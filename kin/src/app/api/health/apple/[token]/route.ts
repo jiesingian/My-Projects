@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { sha256 } from "@/lib/security/crypto";
 import { manilaToday, toSamples } from "@/lib/apple-health";
+import { reportError } from "@/lib/report-error";
 
 /** Where a member's iPhone Shortcut sends the day's Apple Health readings.
  *
@@ -32,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   });
   const { data, error } = await supabase.rpc("ingest_apple_health", { p_token_hash: sha256(token).toString("hex"), p_samples: samples });
   if (error) {
-    console.error("Apple Health import failed", error.message);
+    reportError("Apple Health import failed", error);
     return Response.json({ error: "Kin couldn't save that just now. The Shortcut can try again later." }, { status: 503 });
   }
   if (data === -1) return notFound();

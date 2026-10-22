@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError } from "@/lib/report-error";
 
 const LOOKS = new Set(["warm", "classic", "lively"]);
 
@@ -58,7 +58,7 @@ export async function saveEntryVideoAction(input: {
     look: LOOKS.has(input.look) ? input.look : "warm",
     created_by: me.id,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   // The old files go once the new video is safely recorded, never before: a
   // failed save keeps the video the entry already had. Deleting them can be
@@ -66,7 +66,7 @@ export async function saveEntryVideoAction(input: {
   // household may no longer reach once the row has moved on; that is logged.
   if (old && old.storage_path !== input.videoPath) {
     const { error: removeError } = await supabase.storage.from("journal").remove([old.storage_path, old.poster_path]);
-    if (removeError) console.error(`The replaced video of entry ${input.entryId} was left in storage`, removeError.message);
+    if (removeError) reportError("The replaced video of an entry was left in storage", removeError, input.entryId);
   }
 
   revalidatePath("/journal");
@@ -80,7 +80,7 @@ export async function removeEntryVideoAction(entryId: string): Promise<{ error: 
   const supabase = await createClient();
   await removeFilesOf(supabase, entryId);
   const { error } = await supabase.from("journal_entry_videos").delete().eq("entry_id", entryId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/journal");
   revalidatePath(`/journal/${entryId}`);
   return { error: null };
@@ -93,5 +93,5 @@ async function removeFilesOf(supabase: Awaited<ReturnType<typeof createClient>>,
   const { data: old } = await supabase.from("journal_entry_videos").select("storage_path, poster_path").eq("entry_id", entryId).maybeSingle();
   if (!old) return;
   const { error } = await supabase.storage.from("journal").remove([old.storage_path, old.poster_path]);
-  if (error) console.error(`Entry video files for ${entryId} were left in storage`, error.message);
+  if (error) reportError("An entry's video files were left in storage", error, entryId);
 }

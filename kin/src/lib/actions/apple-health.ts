@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { randomToken, sha256 } from "@/lib/security/crypto";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import type { ActionState } from "@/lib/actions/auth";
 
 /** Makes the member's Apple Health link, replacing any earlier one. Only the
@@ -17,7 +17,7 @@ export async function createAppleHealthLinkAction(visibility: string): Promise<{
   const token = randomToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_apple_health_token", { p_token_hash: sha256(token).toString("hex"), p_visibility: visibility });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   revalidatePath("/settings/connected");
@@ -30,5 +30,5 @@ export async function removeAppleHealthLinkAction(): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("clear_apple_health_token");
   revalidatePath("/settings/connected");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }

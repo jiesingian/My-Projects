@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { explainVisibilityRefusal, visibilityOptions } from "@/lib/visibility";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
@@ -52,7 +52,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       // "parents" row to someone who is not a parent -- the insert is allowed,
       // the RETURNING is not, and the statement rolls back. Correct, but the
       // raw message is a sentence about tables and policies.
-      if (groupErr) return { error: explainVisibilityRefusal(groupErr.message) };
+      if (groupErr) return { error: explainVisibilityRefusal(refusalMessage(groupErr, RLS_EXPLAINED)) };
       groupId = group.id;
     }
     const note = [title, seenBy && `Seen by ${seenBy}`, where, notes].filter(Boolean).join(" — ");
@@ -63,7 +63,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       note,
       created_by: me.id,
     });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else if (type === "lab") {
     const { error } = await supabase.from("health_labs").insert({
       family_id: me.family_id,
@@ -76,7 +76,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       visibility,
       created_by: me.id,
     });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else if (type === "blood_pressure" || type === "weight") {
     const { error } = await supabase.from("health_vitals").insert({
       family_id: me.family_id,
@@ -89,7 +89,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       visibility,
       created_by: me.id,
     });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   revalidatePath(`/family/members/${memberId}`);
@@ -120,7 +120,7 @@ export async function markVaccineGivenAction(input: { memberId: string; vaccine:
     .eq("family_id", me.family_id)
     .eq("status", "routine")
     .order("created_at", { ascending: true });
-  if (readErr) return { error: humanDatabaseError(readErr.message) };
+  if (readErr) return { error: databaseError(readErr) };
   let groupId = (groups ?? []).find((g) => vaccineFor(g.name)?.name === v.name)?.id;
   if (!groupId) {
     const { data: group, error } = await supabase
@@ -128,7 +128,7 @@ export async function markVaccineGivenAction(input: { memberId: string; vaccine:
       .insert({ family_id: me.family_id, member_id: input.memberId, name: v.name, status: "routine", visibility: input.visibility, created_by: me.id })
       .select("id")
       .single();
-    if (error) return { error: explainVisibilityRefusal(error.message) };
+    if (error) return { error: explainVisibilityRefusal(refusalMessage(error, RLS_EXPLAINED)) };
     groupId = group.id;
   }
   const { error } = await supabase.from("health_condition_entries").insert({
@@ -138,7 +138,7 @@ export async function markVaccineGivenAction(input: { memberId: string; vaccine:
     note: `${doseName({ vaccine: v, n: input.n, of: v.doses.length })} — marked from the vaccine guide`,
     created_by: me.id,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/family/members/${input.memberId}`);
   revalidatePath("/family");
   return { error: null };
@@ -155,7 +155,7 @@ export async function updateConditionEntryAction(input: { entryId: string; membe
     .update({ entry_date: input.date, note }, { count: "exact" })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That entry is no longer there — someone may have removed it." };
   revalidatePath(`/family/members/${input.memberId}`);
   return { error: null };
@@ -165,7 +165,7 @@ export async function deleteConditionEntryAction(entryId: string, memberId: stri
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("health_condition_entries").delete().eq("id", entryId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/family/members/${memberId}`);
   return { error: null };
 }
@@ -176,7 +176,7 @@ export async function deleteConditionAction(conditionId: string, memberId: strin
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("health_conditions").delete().eq("id", conditionId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/family/members/${memberId}`);
   return { error: null };
 }
@@ -192,7 +192,7 @@ export async function updateLabAction(input: { labId: string; memberId: string; 
     .update({ test_date: input.date, name, result: clamp(input.result, 300) || null }, { count: "exact" })
     .eq("id", input.labId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That lab result is no longer there — someone may have removed it." };
   revalidatePath(`/family/members/${input.memberId}`);
   return { error: null };
@@ -202,7 +202,7 @@ export async function deleteLabAction(labId: string, memberId: string): Promise<
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("health_labs").delete().eq("id", labId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/family/members/${memberId}`);
   return { error: null };
 }
@@ -220,7 +220,7 @@ export async function toggleOmronAction(memberId: string, connected: boolean): P
     last_synced_at: connected ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/family/members/${memberId}`);
   return { error: null };
 }

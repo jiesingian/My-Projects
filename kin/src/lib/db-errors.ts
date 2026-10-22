@@ -128,3 +128,38 @@ export function humanDatabaseError(message: string): string {
   console.error("Database refused an action:", message);
   return rule.text;
 }
+
+/** The same sentence, without the log line: for databaseError
+ * (lib/report-error.ts), which logs and reports for itself. */
+export function databaseErrorText(message: string): string {
+  return RULES.find((r) => r.match.test(message))?.text ?? message;
+}
+
+/** Whether the database said no because Kin itself is wrong (#808's "errors
+ * that are only logged"), as against saying no on purpose. Reported to
+ * app_errors when true; the person reads the same sentence either way.
+ *
+ * On purpose, never reported: what Kin's own functions raise for a person
+ * to read (P0001, 22023, and a 42501 or 23514 raised by name, such as "That
+ * message was removed."), the Plus and money refusals above, a duplicate
+ * (23505: something added twice, usually a double tap), and a delete that
+ * something else still needs. A fault, reported: a required field not sent,
+ * an insert pointing at nothing, a check constraint the form let through, a
+ * value too long or unreadable, a row-level security refusal of something
+ * the screen offered, a missing grant ("permission denied for function"), a
+ * record gone mid-request, the database not answering (fetch failed, an
+ * abort), and anything else Postgres or PostgREST says with a code of its
+ * own (a missing column, a timeout). Without a code (our own words, an Auth or Storage
+ * error) only the message decides. Pure. */
+export function isDatabaseDefect(message: string, code?: string | null): boolean {
+  if (/kin_plus_required|alkansya_not_enough|utang_overpaid|statement_(too_long|account|row)/i.test(message)) return false;
+  if (
+    /violates not-null constraint|insert or update on table .* violates foreign key constraint|violates check constraint|value too long for type|invalid input syntax for type|date\/time field value out of range|row-level security|multiple \(or no\) rows returned|permission denied for (table|function|schema|sequence|relation|view)|fetch failed|AbortError|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|network error/i.test(
+      message,
+    )
+  ) {
+    return true;
+  }
+  if (!code || !/^([0-9A-Z]{5}|PGRST\d+)$/.test(code)) return false;
+  return !["P0001", "P0002", "22023", "23505", "23503", "42501", "23514"].includes(code);
+}

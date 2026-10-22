@@ -21,7 +21,7 @@ import {
   type Busy,
   type RoutineRule,
 } from "@/lib/routines";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 
 /** A refusal names the field it is about, so the form can point at it
@@ -158,7 +158,7 @@ async function saveMembers(routineId: string, memberIds: string[]): Promise<stri
   const { error } = await supabase
     .from("routine_members")
     .insert(memberIds.map((member_id, position) => ({ routine_id: routineId, member_id, position })));
-  return error ? `The routine was saved, but it is no longer for anyone. ${error.message}` : null;
+  return error ? `The routine was saved, but it is no longer for anyone. ${refusalMessage(error)}` : null;
 }
 
 
@@ -283,7 +283,7 @@ export async function createRoutineAction(_prev: RoutineActionState, formData: F
     .insert({ ...row, family_id: me.family_id, created_by: me.id })
     .select("id")
     .single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the routine.", field: null };
+  if (error || !data) return { error: error ? databaseError(error) : "Could not save the routine.", field: null };
 
   const whoFailed = await saveMembers(data.id, members);
   if (whoFailed) return { error: whoFailed, field: null };
@@ -312,7 +312,7 @@ export async function updateRoutineAction(id: string, _prev: RoutineActionState,
     .update(row, { count: "exact" })
     .eq("id", id)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message), field: null };
+  if (error) return { error: databaseError(error), field: null };
   if (count === 0) return { error: "That routine is no longer there — someone may have removed it.", field: null };
 
   const whoFailed = await saveMembers(id, members);
@@ -332,7 +332,7 @@ export async function setRoutinePausedAction(id: string, paused: boolean): Promi
     .update({ paused }, { count: "exact" })
     .eq("id", id)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That routine is no longer there — someone may have removed it." };
 
   // Pausing takes it off everyone's calendar; resuming puts it back.
@@ -347,7 +347,7 @@ export async function deleteRoutineAction(id: string): Promise<ActionState> {
   const supabase = await createClient();
   await removeRowFromCalendars(me.family_id, "routines", id);
   const { error } = await supabase.from("routines").delete().eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -419,7 +419,7 @@ export async function logRoutineAction(input: {
     },
     { onConflict: "routine_id,occurrence_date" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (input.status === "done" && amount && amount > 0 && routine.cost_account_id) {
     const posted = await postHubExpenseAction({
@@ -468,7 +468,7 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
     .eq("routine_id", routineId)
     .eq("occurrence_date", date)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -496,7 +496,7 @@ async function decideRoutineLog(routineId: string, date: string, approval: "appr
     .eq("occurrence_date", date)
     .eq("family_id", me.family_id)
     .eq("approval", "pending");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That one has already been answered for." };
 
   revalidatePath("/planner");
@@ -524,7 +524,7 @@ export async function setRoutineLogNoteAction(routineId: string, date: string, n
     .eq("routine_id", routineId)
     .eq("occurrence_date", date)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -569,7 +569,7 @@ export async function attachRoutineFileAction(input: {
     })
     .select("id")
     .single();
-  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${databaseError(error)}` };
 
   revalidatePath("/planner");
   return { error: null, id: row.id };
@@ -592,10 +592,10 @@ export async function deleteRoutineFileAction(fileId: string): Promise<ActionSta
   if (!file) return { error: "That file is no longer there." };
 
   const { error: removeError } = await supabase.storage.from("documents").remove([file.storage_path]);
-  if (removeError) console.error(`routine_attachments file ${file.storage_path} was left in storage after its record was deleted`, removeError.message);
+  if (removeError) reportError("routine_attachments file was left in storage after its record was deleted", removeError, file.storage_path);
 
   const { error } = await supabase.from("routine_attachments").delete().eq("id", fileId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   return { error: null };

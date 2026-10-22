@@ -183,8 +183,28 @@ adding a paid service. Payments (PayMongo) are not part of this.
   answers only the two QA accounts the weekly check signs in as, and
   `weekly-check.yml` puts "Errors this week" in the run summary, in the
   failure issue, and in an issue of its own when production recorded any.
-  Probe: app-errors.mjs. Spec: e2e/error-capture.logic.spec.ts. Not
-  recorded: an error a server action catches itself and only logs. Not
+  Probe: app-errors.mjs. Spec: e2e/error-capture.logic.spec.ts. Since 22
+  October errors that are caught are recorded too (they never reached
+  `onRequestError`): every server action and route handler, and the
+  server code they call (push, Drive, Calendar, the highlights sweep, Kin
+  AI's allowance), reports through one helper, `lib/report-error.ts`:
+  `reportError(label, error, ...logOnly)` for a catch that logged, and
+  `databaseError(error)` in place of `humanDatabaseError(error.message)`
+  (about 400 places; the sentence people read is unchanged) or
+  `refusalMessage(error)` where an action words the refusal itself. A
+  database refusal is reported only when it is Kin's fault
+  (`isDatabaseDefect`: a missing field, a check or RLS refusal of what the
+  screen offered, a missing grant or column, a timeout, the database not
+  answering), never what Kin's own functions refuse on purpose (P0001,
+  22023, a named 42501/23514, a duplicate, Plus required) nor an RLS
+  refusal a screen explains itself (Parents only, someone else's
+  account). Same table, same scrub (now also the value Postgres quotes
+  back), same fingerprint plus the label; the label is fixed text, the
+  page the Referer as a pattern, a Supabase error's details never read or
+  logged; sent after the response; at most 60 a minute per instance. Bad
+  input from outside (a malformed request body, a recipe link that does
+  not answer) is still not an error. Spec: e2e/caught-errors.logic.spec.ts;
+  run against dev on 22 October, both kinds landed scrubbed. Not
   checked: that production's QA account is `kin-e2e-qa@example.com` (the
   digest allows that and `kin-dev-qa@`; if not, the section says "not
   read" and the address needs adding in a migration).

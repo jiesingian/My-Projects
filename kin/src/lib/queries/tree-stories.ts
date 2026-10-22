@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { orderStories, storyFileKind, type StoryFileKind } from "@/lib/tree-stories";
+import { reportError } from "@/lib/report-error";
 
 /** Stories on the tree (20261014204000_tree_person_stories). The household's
  * own, and (20261019211500_tree_stories_shared) the ones a linked household
@@ -55,7 +56,7 @@ export type LinkedStory = {
 export async function getStoryCounts(familyId: string): Promise<Map<string, number>> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("tree_person_stories").select("person_id").eq("family_id", familyId);
-  if (error) console.error("tree story counts could not be read", error.message);
+  if (error) reportError("tree story counts could not be read", error);
   const counts = new Map<string, number>();
   for (const r of data ?? []) counts.set(r.person_id, (counts.get(r.person_id) ?? 0) + 1);
   return counts;
@@ -72,7 +73,7 @@ export async function getPersonStories(personId: string, familyId: string): Prom
     .eq("family_id", familyId)
     .eq("person_id", personId);
   if (error) {
-    console.error("tree stories could not be read", error.message);
+    reportError("tree stories could not be read", error);
     return null;
   }
   const stories = orderStories(rows ?? []);
@@ -91,7 +92,7 @@ export async function getPersonStories(personId: string, familyId: string): Prom
       .order("created_at"),
     memberIds.length > 0 ? supabase.from("members").select("id, full_name").in("id", memberIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
   ]);
-  if (fileError) console.error("tree story files could not be read", fileError.message);
+  if (fileError) reportError("tree story files could not be read", fileError);
   const nameOf = new Map((memberRows ?? []).map((m) => [m.id, m.full_name]));
   const urls = await getSignedUrls(
     "documents",
@@ -133,8 +134,8 @@ export async function getLinkedStories(personId: string): Promise<LinkedStory[]>
     supabase.rpc("linked_tree_stories", { p_person: personId }),
     supabase.rpc("linked_tree_story_files", { p_person: personId }),
   ]);
-  if (error) console.error("linked tree stories could not be read", error.message);
-  if (fileError) console.error("linked tree story files could not be read", fileError.message);
+  if (error) reportError("linked tree stories could not be read", error);
+  if (fileError) reportError("linked tree story files could not be read", fileError);
   const stories = orderStories(rows ?? []);
   if (stories.length === 0) return [];
   const files = fileRows ?? [];

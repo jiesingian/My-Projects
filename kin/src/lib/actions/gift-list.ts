@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { UUID } from "@/lib/ids";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
@@ -45,7 +45,7 @@ export async function addGiftPersonAction(input: { year: number; name: string; m
     created_by: me.id,
   });
   refresh();
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export async function setGiftBudgetAction(personId: string, budget: string): Promise<ActionState> {
@@ -56,7 +56,7 @@ export async function setGiftBudgetAction(personId: string, budget: string): Pro
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_list_people").update({ budget: value }).eq("id", personId).select("id");
   refresh();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That person is no longer on the list." };
   return { error: null };
 }
@@ -67,7 +67,7 @@ export async function removeGiftPersonAction(personId: string): Promise<ActionSt
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_list_people").delete().eq("id", personId).select("id");
   refresh();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That person was already taken off the list." };
   return { error: null };
 }
@@ -83,7 +83,7 @@ export async function addGiftIdeaAction(personId: string, text: string): Promise
     .from("gift_list_items")
     .insert({ family_id: me.family_id, person_id: personId, label: parsed.label, cost: parsed.cost, is_cash: parsed.isCash, created_by: me.id });
   refresh();
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export async function setGiftBoughtAction(itemId: string, bought: boolean): Promise<ActionState> {
@@ -92,7 +92,7 @@ export async function setGiftBoughtAction(itemId: string, bought: boolean): Prom
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_list_items").update({ bought: bought === true }).eq("id", itemId).select("id");
   refresh();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That idea is no longer on the list." };
   return { error: null };
 }
@@ -103,7 +103,7 @@ export async function removeGiftIdeaAction(itemId: string): Promise<ActionState>
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_list_items").delete().eq("id", itemId).select("id");
   refresh();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That idea was already removed." };
   return { error: null };
 }

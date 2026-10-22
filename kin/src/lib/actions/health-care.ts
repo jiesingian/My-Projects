@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, type DatabaseFailure, RLS_EXPLAINED } from "@/lib/report-error";
 import { explainVisibilityRefusal } from "@/lib/visibility";
 import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
@@ -31,7 +31,7 @@ const done = (memberId: string, error: string | null): ActionState => {
   revalidatePath("/family");
   return { error };
 };
-const say = (message: string) => explainVisibilityRefusal(humanDatabaseError(message));
+const say = (error: DatabaseFailure) => explainVisibilityRefusal(databaseError(error, RLS_EXPLAINED));
 
 // ── medicines ────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ export async function addMedicineAction(input: { memberId: string; name: string;
     visibility: VISIBILITY.has(input.visibility) ? input.visibility : "family",
     created_by: me.id,
   });
-  return done(input.memberId, error ? say(error.message) : null);
+  return done(input.memberId, error ? say(error) : null);
 }
 
 export async function stopMedicineAction(id: string, memberId: string): Promise<ActionState> {
@@ -78,7 +78,7 @@ export async function stopMedicineAction(id: string, memberId: string): Promise<
   const yesterday = familyDay(new Date(Date.now() - 86_400_000), tz);
   const end = yesterday < med.start_date ? med.start_date : yesterday;
   const { error } = await supabase.from("health_medicines").update({ end_date: end }).eq("id", id);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 export async function deleteMedicineAction(id: string, memberId: string): Promise<ActionState> {
@@ -90,7 +90,7 @@ export async function deleteMedicineAction(id: string, memberId: string): Promis
   const { data: photos } = await supabase.from("health_medicine_photos").select("storage_path").eq("medicine_id", id);
   const { error } = await supabase.from("health_medicines").delete().eq("id", id);
   if (!error && photos?.length) await supabase.storage.from("journal").remove(photos.map((p) => p.storage_path));
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 /** Records a prescription photo the browser has already put in Storage,
@@ -104,7 +104,7 @@ export async function addMedicinePhotoAction(medicineId: string, memberId: strin
   const { count } = await supabase.from("health_medicine_photos").select("id", { count: "exact", head: true }).eq("medicine_id", medicineId);
   if ((count ?? 0) >= MAX_PRESCRIPTION_PHOTOS) return { error: `A medicine keeps up to ${MAX_PRESCRIPTION_PHOTOS} prescription photos. Delete an old one first.` };
   const { error } = await supabase.from("health_medicine_photos").insert({ family_id: me.family_id, medicine_id: medicineId, storage_path: storagePath, created_by: me.id });
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 export async function deleteMedicinePhotoAction(id: string, memberId: string): Promise<ActionState> {
@@ -113,7 +113,7 @@ export async function deleteMedicinePhotoAction(id: string, memberId: string): P
   const supabase = await createClient();
   const { data, error } = await supabase.from("health_medicine_photos").delete().eq("id", id).select("storage_path").maybeSingle();
   if (!error && data?.storage_path) await supabase.storage.from("journal").remove([data.storage_path]);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 /** Tick a dose as taken, or untick it. */
@@ -125,10 +125,10 @@ export async function setDoseTakenAction(input: { medicineId: string; memberId: 
     const { error } = await supabase
       .from("health_medicine_doses")
       .upsert({ family_id: me.family_id, medicine_id: input.medicineId, dose_date: input.day, dose_time: input.time, taken_by: me.id }, { onConflict: "medicine_id,dose_date,dose_time", ignoreDuplicates: true });
-    return done(input.memberId, error ? say(error.message) : null);
+    return done(input.memberId, error ? say(error) : null);
   }
   const { error } = await supabase.from("health_medicine_doses").delete().eq("medicine_id", input.medicineId).eq("dose_date", input.day).eq("dose_time", input.time);
-  return done(input.memberId, error ? say(error.message) : null);
+  return done(input.memberId, error ? say(error) : null);
 }
 
 /** "Tell someone if a dose is missed" (20261014200000): name one grown-up of
@@ -141,7 +141,7 @@ export async function setMissedDoseAlertAction(input: { medicineId: string; memb
   const supabase = await createClient();
   if (input.notifyMemberId === null) {
     const { error } = await supabase.from("health_medicine_alerts").delete().eq("medicine_id", input.medicineId);
-    return done(input.memberId, error ? say(error.message) : null);
+    return done(input.memberId, error ? say(error) : null);
   }
   if (!UUID.test(input.notifyMemberId)) return { error: "Choose who to tell." };
   if (!isMissedDelay(input.delayMinutes)) return { error: "Choose how long to wait." };
@@ -158,7 +158,7 @@ export async function setMissedDoseAlertAction(input: { medicineId: string; memb
   // The table refuses a child, someone without a login, or someone the
   // medicine is hidden from, all with the same row-level refusal.
   if (error && /row-level security/i.test(error.message)) return { error: "That person can't be told about this medicine. Choose a grown-up with a login who can see it." };
-  return done(input.memberId, error ? say(error.message) : null);
+  return done(input.memberId, error ? say(error) : null);
 }
 
 /** Pills left (20261014201000): a new count, and how many go per dose. A
@@ -178,10 +178,10 @@ export async function setMedicineSupplyAction(input: { medicineId: string; membe
   const fields = { counted, unit, per_dose: perDose, set_by: me.id };
   // A count, not .select(): KNOWN_RISKS, "Actions that reported success".
   const { count, error } = await supabase.from("health_medicine_supply").update(fields, { count: "exact" }).eq("medicine_id", input.medicineId);
-  if (error) return done(input.memberId, say(error.message));
+  if (error) return done(input.memberId, say(error));
   if (count) return done(input.memberId, null);
   const { error: insertError } = await supabase.from("health_medicine_supply").insert({ medicine_id: input.medicineId, family_id: me.family_id, ...fields });
-  return done(input.memberId, insertError ? say(insertError.message) : null);
+  return done(input.memberId, insertError ? say(insertError) : null);
 }
 
 /** "Refilled: add a box". The database adds it to what is left now, so a
@@ -193,7 +193,7 @@ export async function addToMedicineSupplyAction(medicineId: string, memberId: st
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("add_to_medicine_supply", { p_medicine: medicineId, p_add: add });
   if (!error && data === null) return { error: "That couldn't be added. Count what's left instead." };
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 /** What the household's helper reads for this medicine's refill line
@@ -211,7 +211,7 @@ export async function setMedicineHelperLineAction(input: { medicineId: string; m
     .update({ show_name_to_helper: input.showName === true, store: store || null, set_by: me.id }, { count: "exact" })
     .eq("medicine_id", input.medicineId);
   if (!error && !count) return { error: "Count what's left first; the refill line comes from that." };
-  return done(input.memberId, error ? say(error.message) : null);
+  return done(input.memberId, error ? say(error) : null);
 }
 
 export async function stopMedicineSupplyAction(medicineId: string, memberId: string): Promise<ActionState> {
@@ -220,7 +220,7 @@ export async function stopMedicineSupplyAction(medicineId: string, memberId: str
   if (!UUID.test(medicineId)) return { error: "That medicine could not be found." };
   const supabase = await createClient();
   const { error } = await supabase.from("health_medicine_supply").delete().eq("medicine_id", medicineId);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 // ── the illness log ──────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ export async function addIllnessLogAction(input: { memberId: string; temperature
     visibility: VISIBILITY.has(input.visibility) ? input.visibility : "family",
     created_by: me.id,
   });
-  return done(input.memberId, error ? say(error.message) : null);
+  return done(input.memberId, error ? say(error) : null);
 }
 
 export async function deleteIllnessLogAction(id: string, memberId: string): Promise<ActionState> {
@@ -260,7 +260,7 @@ export async function deleteIllnessLogAction(id: string, memberId: string): Prom
   if (!UUID.test(id)) return { error: "That entry could not be found." };
   const supabase = await createClient();
   const { error } = await supabase.from("health_illness_logs").delete().eq("id", id);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 // ── a visit's notes and photos ───────────────────────────────────────────────
@@ -271,7 +271,7 @@ export async function saveVisitNotesAction(appointmentId: string, memberId: stri
   const supabase = await createClient();
   const { error } = await supabase.from("health_appointments").update({ notes: clamp(notes, 4000) || null }).eq("id", appointmentId);
   revalidatePath(`/family/members/${memberId}/visit/${appointmentId}`);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 /** Records a photo the browser has already put in Storage, under
@@ -283,7 +283,7 @@ export async function addVisitPhotoAction(appointmentId: string, memberId: strin
   const supabase = await createClient();
   const { error } = await supabase.from("health_visit_photos").insert({ family_id: me.family_id, appointment_id: appointmentId, storage_path: storagePath, created_by: me.id });
   revalidatePath(`/family/members/${memberId}/visit/${appointmentId}`);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 export async function deleteVisitPhotoAction(id: string, appointmentId: string, memberId: string): Promise<ActionState> {
@@ -293,7 +293,7 @@ export async function deleteVisitPhotoAction(id: string, appointmentId: string, 
   const { data, error } = await supabase.from("health_visit_photos").delete().eq("id", id).select("storage_path").maybeSingle();
   if (!error && data?.storage_path) await supabase.storage.from("journal").remove([data.storage_path]);
   revalidatePath(`/family/members/${memberId}/visit/${appointmentId}`);
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }
 
 // ── the growth chart's one question ──────────────────────────────────────────
@@ -304,5 +304,5 @@ export async function setMemberSexAction(memberId: string, sex: string): Promise
   const supabase = await createClient();
   const { data, error } = await supabase.from("members").update({ sex }).eq("id", memberId).select("id");
   if (!error && (!data || data.length === 0)) return { error: "Only the child's own grown-ups can set this." };
-  return done(memberId, error ? say(error.message) : null);
+  return done(memberId, error ? say(error) : null);
 }

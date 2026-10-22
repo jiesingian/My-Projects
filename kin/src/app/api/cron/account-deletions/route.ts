@@ -1,6 +1,7 @@
 import { constantTimeEquals } from "@/lib/security/crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { HOUSEHOLD_BUCKETS, removeFolder } from "@/lib/storage-sweep";
+import { reportError } from "@/lib/report-error";
 
 /** Once a day (kin-account-deletions, 20261021020000_delete_my_account.sql):
  * every account whose 7 days are up is deleted.
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
   const { data: due, error } = await admin.rpc("due_account_deletions");
   if (error) {
-    console.error("Account deletions: could not list who is due", error.message);
+    reportError("Account deletions: could not list who is due", error);
     return Response.json({ error: "Database unavailable." }, { status: 503 });
   }
 
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
   for (const userId of (due ?? []) as string[]) {
     const { data, error: finalizeError } = await admin.rpc("finalize_account_deletion", { p_user: userId });
     if (finalizeError) {
-      console.error(`Account deletion ${userId} did not finish`, finalizeError.message);
+      reportError("Account deletion did not finish", finalizeError, userId);
       continue;
     }
     const result = (data ?? {}) as {
@@ -63,19 +64,20 @@ export async function POST(request: Request) {
       if (householdError) {
         // Someone is still there (another grown-up also leaving, say): the
         // household stays, and their own deletion will come back to it.
-        console.error(`Household ${familyId} was kept after an account deletion: ${householdError.message}`);
+        if (/still has someone in it/.test(householdError.message)) console.error(`Household ${familyId} was kept after an account deletion: ${householdError.message}`);
+        else reportError("A household was not deleted after an account deletion", householdError, familyId);
         continue;
       }
       const paths = (healthFiles ?? []) as string[];
       for (let i = 0; i < paths.length; i += 100) await admin.storage.from("journal").remove(paths.slice(i, i + 100));
       for (const bucket of HOUSEHOLD_BUCKETS) {
         const left = await removeFolder(admin, bucket, familyId);
-        if (left > 0) console.error(`${left} files in ${bucket} were left behind while deleting household ${familyId}`);
+        if (left > 0) reportError("Files were left behind while deleting a household", new Error("Files were left behind while deleting a household"), left, bucket, familyId);
       }
     }
 
     const { error: authError } = await admin.auth.admin.deleteUser(userId);
-    if (authError) console.error(`Login ${userId} was left behind after its account was deleted`, authError.message);
+    if (authError) reportError("Login was left behind after its account was deleted", authError, userId);
     done++;
   }
   return Response.json({ deleted: done });

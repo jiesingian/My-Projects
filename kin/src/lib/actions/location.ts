@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { isGrownUp } from "@/lib/roles";
 import type { ActionState } from "@/lib/actions/auth";
 import { after } from "next/server";
@@ -52,7 +52,7 @@ export async function setLocationSharingAction(memberId: string, on: boolean): P
       : { member_id: memberId, family_id: me.family_id, sharing: false, lat: null, lng: null, accuracy_m: null, updated_at: null },
     { onConflict: "member_id" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/family");
   return { error: null };
@@ -95,7 +95,7 @@ export async function reportMyLocationAction(lat: number, lng: number, accuracyM
     .eq("sharing", true)
     .select("member_id")
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data) return { error: null };
 
   // "Ben arrived at School", once per arrival, to everyone else at home.
@@ -136,7 +136,7 @@ export async function pauseMyLocationAction(hours: number | "tomorrow" | null): 
     .eq("member_id", me.id)
     .eq("sharing", true)
     .select("member_id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "You're not sharing your location." };
   revalidatePath("/family");
   revalidatePath("/today");
@@ -156,7 +156,7 @@ export async function setChildLocationOkAction(memberId: string, ok: boolean): P
   const { error } = await supabase
     .from("member_locations")
     .upsert(ok ? { member_id: memberId, family_id: me.family_id, parent_ok: true } : { member_id: memberId, family_id: me.family_id, parent_ok: false, sharing: false, lat: null, lng: null, accuracy_m: null, place_id: null }, { onConflict: "member_id" });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   revalidatePath("/today");
   return { error: null };
@@ -174,7 +174,7 @@ export async function addPlaceAction(input: { name: string; lat: number; lng: nu
   const radius = Math.min(2000, Math.max(50, Math.round(input.radiusM ?? 150)));
   const supabase = await createClient();
   const { error } = await supabase.from("household_places").insert({ family_id: me.family_id, name, lat, lng, radius_m: radius, created_by: me.id });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -183,7 +183,7 @@ export async function setPlaceNotifyAction(placeId: string, notify: boolean): Pr
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data, error } = await supabase.from("household_places").update({ notify }).eq("id", placeId).eq("family_id", me.family_id).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only a grown-up can change places." };
   revalidatePath("/family");
   return { error: null };
@@ -193,7 +193,7 @@ export async function removePlaceAction(placeId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data, error } = await supabase.from("household_places").delete().eq("id", placeId).eq("family_id", me.family_id).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only a grown-up can remove places." };
   revalidatePath("/family");
   return { error: null };
@@ -216,7 +216,7 @@ export async function arrivedAction(lat: number, lng: number, accuracyM: number 
   const message = arrivedMessage({ first, lat, lng, accuracyM: accuracy, places, at: new Date(), tz: me.families.time_zone });
 
   const { data: posted, error } = await supabase.from("family_messages").insert({ family_id: me.family_id, member_id: me.id, body: message.body, mentions: [] }).select("id").single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // Your own words are never waiting for you to read them.
   await markChatReadAction();
 

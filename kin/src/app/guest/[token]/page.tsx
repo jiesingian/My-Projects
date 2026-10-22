@@ -5,6 +5,7 @@ import { GUEST_TOKEN } from "@/lib/event-guests";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
 import { readableDay } from "@/lib/time";
 import { GuestView } from "./guest-view";
+import { reportError } from "@/lib/report-error";
 
 /** One event, for a relative with the link and no account
  * (20261020231000_event_guest_links.sql). The token in the URL is hashed and
@@ -31,7 +32,7 @@ export default async function GuestPage({ params }: { params: Promise<{ token: s
   const hash = toBase64Url(sha256(token));
   const [{ data: events, error }, { data: items }] = await Promise.all([supabase.rpc("guest_event", { p_token_hash: hash }), supabase.rpc("guest_potluck", { p_token_hash: hash })]);
   if (error) {
-    console.error("Guest link failed", error.message);
+    reportError("Guest link failed", error);
     return (
       <>
         <h1>Kin couldn&rsquo;t open this just now</h1>

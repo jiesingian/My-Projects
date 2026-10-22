@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { UUID } from "@/lib/ids";
 
@@ -73,7 +73,7 @@ export async function addPhotoCommentAction(ref: PhotoRef, body: string): Promis
   if (!text) return { error: "Write something first." };
   const supabase = await createClient();
   const { error } = await supabase.from("photo_comments").insert({ family_id: me.family_id, member_id: me.id, ...target(ref), body: text });
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export async function deletePhotoCommentAction(id: string): Promise<ActionState> {
@@ -81,7 +81,7 @@ export async function deletePhotoCommentAction(id: string): Promise<ActionState>
   if (!UUID.test(id)) return { error: "That comment could not be found." };
   const supabase = await createClient();
   const { error } = await supabase.from("photo_comments").delete().eq("id", id).eq("member_id", me.id);
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** One reaction per person per photo: set it, change it, or (null) take it
@@ -96,11 +96,11 @@ export async function setPhotoReactionAction(ref: PhotoRef, emoji: string | null
 
   if (emoji === null) {
     const { error } = await supabase.from("photo_reactions").delete().eq(col, ref.id).eq("member_id", me.id);
-    return { error: error ? humanDatabaseError(error.message) : null };
+    return { error: error ? databaseError(error) : null };
   }
   const { data: changed, error: updateError } = await supabase.from("photo_reactions").update({ emoji }).eq(col, ref.id).eq("member_id", me.id).select("id");
-  if (updateError) return { error: humanDatabaseError(updateError.message) };
+  if (updateError) return { error: databaseError(updateError) };
   if (changed && changed.length > 0) return { error: null };
   const { error } = await supabase.from("photo_reactions").insert({ family_id: me.family_id, member_id: me.id, ...target(ref), emoji });
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }

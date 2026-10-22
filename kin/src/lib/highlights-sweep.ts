@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { reportError } from "@/lib/report-error";
 
 /** Removes the files of a household's expired highlights, then their rows.
  * Run as the signed-in member, whenever someone in the household opens Chat
@@ -19,17 +20,17 @@ export async function sweepExpiredHighlightsFor(supabase: SupabaseClient<Databas
   const { data: expired, error } = await supabase.rpc("expired_highlights");
   if (error) {
     // Most likely the migration hasn't run here yet; nothing to sweep.
-    if (!/does not exist|Could not find/i.test(error.message)) console.error("Highlights: expired_highlights failed", error.message);
+    if (!/does not exist|Could not find/i.test(error.message)) reportError("Highlights: expired_highlights failed", error);
     return 0;
   }
   const mine = (expired ?? []).filter((h) => h.storage_path.startsWith(`${familyId}/highlights/`));
   if (mine.length === 0) return 0;
   const { error: removeError } = await supabase.storage.from("documents").remove(mine.map((h) => h.storage_path));
   if (removeError) {
-    console.error("Highlights: removing expired files failed", removeError.message);
+    reportError("Highlights: removing expired files failed", removeError);
     return 0;
   }
   const { data: forgotten, error: forgetError } = await supabase.rpc("forget_expired_highlights", { p_ids: mine.map((h) => h.id) });
-  if (forgetError) console.error("Highlights: forget_expired_highlights failed", forgetError.message);
+  if (forgetError) reportError("Highlights: forget_expired_highlights failed", forgetError);
   return forgotten ?? 0;
 }
