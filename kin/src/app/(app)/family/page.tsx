@@ -271,8 +271,11 @@ function Fact({ k, v, addHref }: { k: string; v: string | null; addHref?: string
       {v ? (
         <span style={{ color: "var(--color-text)" }}>{v}</span>
       ) : addHref ? (
-        <Link href={addHref} style={{ color: "var(--color-accent-700)" }} aria-label={`Add ${k.toLowerCase()}`}>
-          Not recorded · add
+        // The field's name rides along for a screen reader, after the words
+        // on screen, so what is read starts with what is seen (WCAG 2.5.3:
+        // "Add blood type" alone did not contain "Not recorded · add").
+        <Link href={addHref} style={{ color: "var(--color-accent-700)" }}>
+          Not recorded · add<span className="sr-only"> {k.toLowerCase()}</span>
         </Link>
       ) : (
         <span style={{ color: "var(--color-neutral-500)" }}>Not recorded</span>

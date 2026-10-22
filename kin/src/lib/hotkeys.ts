@@ -53,6 +53,15 @@ export type HotkeyState = {
   places: readonly string[];
 };
 
+/** What counts as "a sheet or dialog is open". Every sheet in Kin is
+ * Vaul's drawer over Radix's dialog, which says role="dialog" and
+ * data-state="open" but never aria-modal (Radix hides the page behind with
+ * aria-hidden instead), so asking only for aria-modal="true" missed every
+ * one of them: g then p over the open help sheet moved the page behind it
+ * (wrap-up check, 22 October). A closing sheet says data-state="closed". */
+export const OVERLAY_SELECTOR =
+  '[role="dialog"][aria-modal="true"],[role="dialog"][data-state="open"],[role="alertdialog"],dialog[open]';
+
 /** How long "g" waits for its second letter. */
 export const G_WINDOW_MS = 1200;
 
@@ -87,7 +96,9 @@ export function hotkeyFor(e: KeyLike, s: HotkeyState): HotkeyAction | null {
   if (e.repeat) return key.startsWith("Arrow") ? arrow(key, s) : null;
   if (key === "/") return { kind: "search" };
   if (key === "?") return { kind: "help" };
-  if (key === "n" && !e.shiftKey) return { kind: "quickAdd" };
+  // Adding is the Planner's: a child's view has no Planner and no one-line
+  // add, so n is left alone there.
+  if (key === "n" && !e.shiftKey) return s.places.includes("/planner") ? { kind: "quickAdd" } : null;
   if (key === "g" && !e.shiftKey) return { kind: "pending" };
   return arrow(key, s);
 }
@@ -136,7 +147,7 @@ export function shortcutList(places: readonly string[], letters: boolean, ask = 
   return [
     ...(ask ? [{ keys: "/", what: "Ask Kin (search)" }] : []),
     { keys: "?", what: "This list" },
-    { keys: "n", what: "Add something" },
+    ...(places.includes("/planner") ? [{ keys: "n", what: "Add something" }] : []),
     ...go,
     { keys: "← →", what: "Previous or next day, in the Planner" },
     { keys: "↑ ↓", what: "Move through a list" },

@@ -16,6 +16,13 @@ test("g then p goes to the Planner; ? lists the shortcuts and Esc closes it", as
   const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
   await expect(help).toBeVisible();
   await expect(help.getByText("Go to Today")).toBeVisible();
+  // Over the open list nothing moves the page behind it (wrap-up check,
+  // 22 October: it did, because Kin's sheets never say aria-modal).
+  await page.keyboard.press("g");
+  await page.keyboard.press("t");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/\/planner/);
+  await expect(help).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(help).toBeHidden();
 });
@@ -32,10 +39,9 @@ test("typing in a field never fires a shortcut", async ({ page }) => {
   await page.goto("/today");
   const line = page.locator(".kin-quickline-input");
   test.skip(!(await line.count()), "no one-line add on this Today");
-  // After the page settles, and as a person would: clicked into, and
-  // confirmed focused before typing. A bare focus() straight after goto can
-  // lose focus to the page still starting up, and the keys then reach the
-  // page -- which is the test's fault, not the shortcuts'.
+  // Focus only once the page is hydrated and settled: focused any earlier,
+  // hydration took the focus back and "gp" went to the page as g then p
+  // (seen once in five runs, 22 October).
   await page.waitForLoadState("networkidle").catch(() => {});
   await line.click();
   await expect(line).toBeFocused();
