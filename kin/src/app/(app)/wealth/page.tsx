@@ -56,7 +56,7 @@ import {
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
-import { CollapsibleGroup } from "@/components/collapsible-group";
+import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
@@ -836,7 +836,6 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                   {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
                   <span style={{ display: "flex", gap: "0.375rem", justifyContent: "flex-end", marginTop: "0.375rem" }}>
                     <MoveMoneyButton accountId={a.id} accountName={a.name} />
-                    <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
                   </span>
                 </span>
               </Link>
@@ -862,13 +861,12 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         people={people}
       />
 
-      {/* Archive hides an account and keeps its history; this is where
-          they wait, to be restored -- or deleted, if nothing ever moved
-          through them. */}
+      {/* Archive hides an account and keeps its history; this is where they
+          wait, to be restored or deleted. */}
       {archived.length > 0 && (
         <CollapsibleGroup title={`ARCHIVED · ${archived.length}`} defaultOpen={false}>
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0", lineHeight: 1.45 }}>
-            Hidden from every list and total above, with their history kept. Restore brings one back. Delete is only for an account nothing has moved through.
+            Hidden from every list and total above, with their history kept. Restore brings one back; Delete removes the account for good, keeping or deleting its entries as you choose.
           </p>
           {archived.map((a) => (
             <div key={a.id} style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -880,7 +878,17 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
               </Link>
               <span style={{ display: "flex", gap: "0.375rem", flex: "none", alignItems: "flex-start" }}>
                 <RestoreAccountButton accountId={a.id} />
-                <DeleteAccountButton accountId={a.id} accountName={a.name} movementCount={a.movementCount} archived />
+                <DeleteAccountButton
+                  accountId={a.id}
+                  accountName={a.name}
+                  balance={a.balance}
+                  movementCount={a.movementCount}
+                  pendingCount={a.pendingCount}
+                  archived
+                  currency={currency}
+                  dateFormat={dateFormat}
+                  compact
+                />
               </span>
             </div>
           ))}
@@ -888,12 +896,11 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       )}
 
       {pane.recent.length > 0 && (
-        <>
-          <SectionLabel>RECENT ACTIVITY</SectionLabel>
+        <FoldableSection label="RECENT ACTIVITY" storageKey="kin-wealth-recent-activity">
           {pane.recent.map((e) => (
             <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
           ))}
-        </>
+        </FoldableSection>
       )}
 
       <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem", lineHeight: 1.45 }}>

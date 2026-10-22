@@ -11,7 +11,7 @@ import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodH
 export type { WealthScope };
 
 /** movementCount is every entry on the account, pending included -- what
- * decides whether it can still be deleted outright (deleteAccountAction). */
+ * decides whether Delete Account has entries to ask about. */
 export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number; movementCount: number };
 
 export type LedgerEntry = Tables<"wealth_transactions"> & {
@@ -33,7 +33,10 @@ function currentPeriod() {
 async function loadAccounts(familyId: string, archived = false): Promise<AccountWithBalance[]> {
   const supabase = await createClient();
   const [{ data: accounts }, { data: movements }] = await Promise.all([
-    supabase.from("accounts").select("*").eq("family_id", familyId).eq("is_archived", archived).order("created_at"),
+    // A deleted account (deleted_at, 20261022150000) is archived too, so the
+    // live list already leaves it out; the Archived list has to as well --
+    // it can't be restored, only its kept entries remain.
+    supabase.from("accounts").select("*").eq("family_id", familyId).eq("is_archived", archived).is("deleted_at", null).order("created_at"),
     supabase.from("wealth_transactions").select("account_id, direction, amount, status").eq("family_id", familyId),
   ]);
 
@@ -61,13 +64,23 @@ async function privateLeftOutOfAll(): Promise<string | null> {
   return me && me.wealth_include_private === false ? me.id : null;
 }
 
+/** Accounts deleted with their entries kept. Their balance is in no total
+ * (the account is closed), but the money that moved through them really
+ * moved: their entries still count in the months they happened, so the
+ * flow figures read the ledger across these as well as the live accounts. */
+async function loadDeletedAccounts(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("accounts").select("id, is_joint, owner_member_id, is_private").eq("family_id", familyId).not("deleted_at", "is", null);
+  return data ?? [];
+}
+
 export async function getAccounts(familyId: string): Promise<AccountWithBalance[]> {
   return loadAccounts(familyId);
 }
 
 /** Archived accounts the viewer can see, for the Accounts tab's ARCHIVED
- * list -- where they can be restored, or deleted if nothing ever moved
- * through them. Kept out of every other list and total. */
+ * list -- where they can be restored or deleted. Kept out of every other
+ * list and total. */
 export async function getArchivedAccounts(familyId: string): Promise<AccountWithBalance[]> {
   return loadAccounts(familyId, true);
 }
@@ -83,8 +96,9 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
   const months = recentMonths(6);
   const historyStart = new Date(year, month - 6, 1);
 
-  const [allAccounts, { data: period }, { data: target }, { data: transactions }] = await Promise.all([
+  const [allAccounts, deletedAccounts, { data: period }, { data: target }, { data: transactions }] = await Promise.all([
     loadAccounts(familyId),
+    loadDeletedAccounts(familyId),
     supabase
       .from("budget_periods")
       .select("*, budget_allocations(*)")
@@ -101,7 +115,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
       .maybeSingle(),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint, deleted_at), members:recorded_by(full_name)")
       .eq("family_id", familyId)
       .gte("occurred_at", historyStart.toISOString())
       .order("occurred_at", { ascending: false }),
@@ -109,7 +123,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
 
   const leaveOut = await privateLeftOutOfAll();
   const accounts = allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut));
-  const accountIds = new Set(accounts.map((a) => a.id));
+  const accountIds = new Set([...accounts, ...deletedAccounts.filter((a) => inTotalsScope(a, scope, leaveOut))].map((a) => a.id));
   const scoped = (transactions ?? []).filter((t) => accountIds.has(t.account_id));
   const thisMonth = scoped.filter((t) => t.status === "confirmed" && monthKey(t.occurred_at) === monthKey(new Date()));
 
@@ -160,13 +174,13 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
 }
 
 type RawLedgerRow = Tables<"wealth_transactions"> & {
-  accounts: { name: string; owner_member_id: string | null; is_joint: boolean } | null;
+  accounts: { name: string; owner_member_id: string | null; is_joint: boolean; deleted_at: string | null } | null;
   members: { full_name: string } | null;
 };
 
 function toLedgerEntry(row: unknown): LedgerEntry {
   const t = row as RawLedgerRow;
-  return { ...t, accountName: t.accounts?.name ?? "", accountOwnerId: t.accounts?.owner_member_id ?? null, accountIsJoint: !!t.accounts?.is_joint, recordedByName: t.members?.full_name ?? null };
+  return { ...t, accountName: t.accounts ? (t.accounts.deleted_at ? `${t.accounts.name} (deleted)` : t.accounts.name) : "", accountOwnerId: t.accounts?.owner_member_id ?? null, accountIsJoint: !!t.accounts?.is_joint, recordedByName: t.members?.full_name ?? null };
 }
 
 export async function getAccountDetail(familyId: string, accountId: string) {
@@ -175,7 +189,7 @@ export async function getAccountDetail(familyId: string, accountId: string) {
     loadAccounts(familyId),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint, deleted_at), members:recorded_by(full_name)")
       .eq("account_id", accountId)
       .eq("family_id", familyId)
       .order("occurred_at", { ascending: false })
@@ -349,11 +363,12 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   const periods = recentPeriods(range, count);
   const historyStart = periods[0].start;
 
-  const [allAccounts, { data: transactions }, bills, incomeSchedules] = await Promise.all([
+  const [allAccounts, deletedAccounts, { data: transactions }, bills, incomeSchedules] = await Promise.all([
     loadAccounts(familyId),
+    loadDeletedAccounts(familyId),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint, deleted_at), members:recorded_by(full_name)")
       .eq("family_id", familyId)
       .gte("occurred_at", historyStart.toISOString())
       .order("occurred_at", { ascending: false }),
@@ -367,7 +382,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   const visibleIncome = incomeSchedules.filter((s) => !s.account_id || canSee.has(s.account_id));
 
   const leaveOut = await privateLeftOutOfAll();
-  const accountIds = new Set(allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut)).map((a) => a.id));
+  const accountIds = new Set([...allAccounts, ...deletedAccounts].filter((a) => inTotalsScope(a, scope, leaveOut)).map((a) => a.id));
   const rows = (transactions ?? []).map(toLedgerEntry).filter((t) => accountIds.has(t.account_id));
   const confirmed = rows.filter((t) => t.status === "confirmed");
   const thisPeriodKey = periodKey(new Date(), range);
@@ -571,8 +586,9 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   const supabase = await createClient();
   const from = new Date(year, month - 1, 1);
   const to = new Date(year, month, 1);
-  const [accounts, budgets, { data: rows }] = await Promise.all([
+  const [accounts, deletedAccounts, budgets, { data: rows }] = await Promise.all([
     loadAccounts(familyId),
+    loadDeletedAccounts(familyId),
     getMemberBudgets(familyId, year, month),
     supabase
       .from("wealth_transactions")
@@ -583,7 +599,7 @@ export async function getSpendingByMember(familyId: string, year: number, month:
       .gte("occurred_at", from.toISOString())
       .lt("occurred_at", to.toISOString()),
   ]);
-  const ownerOf = new Map(accounts.map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
+  const ownerOf = new Map([...accounts, ...deletedAccounts].map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
   const spent = new Map<string | null, number>();
   for (const r of rows ?? []) {
     if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;

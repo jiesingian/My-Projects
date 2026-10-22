@@ -1,0 +1,17 @@
+-- Delete Account, keeping its entries (Wealth → Accounts).
+--
+-- An account closed in real life is deleted in Kin, but the money that moved
+-- through it really moved: its entries stay, still counted in the months
+-- they happened, and the other side of every transfer stays on the other
+-- account untouched. So "deleted" cannot drop the row -- wealth_transactions
+-- .account_id is not null and points at it, and every ledger policy reads
+-- the account to decide who sees an entry. The row stays, marked here:
+--
+--   deleted_at set   -> gone from every list, total and the Archived list;
+--                       not restorable; its kept entries show "(deleted)".
+--
+-- A deleted account is also archived (is_archived = true), so every place
+-- that already leaves archived accounts out leaves this one out unchanged.
+-- An account whose entries were all deleted with it is removed outright by
+-- the app instead; nothing here changes who may see or change an account.
+alter table public.accounts add column if not exists deleted_at timestamptz;

@@ -939,6 +939,7 @@ export type Database = {
           account_type: string
           app_store_url: string | null
           created_at: string
+          deleted_at: string | null
           created_by: string | null
           family_id: string
           id: string
@@ -957,6 +958,7 @@ export type Database = {
           account_type?: string
           app_store_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           created_by?: string | null
           family_id: string
           id?: string
@@ -975,6 +977,7 @@ export type Database = {
           account_type?: string
           app_store_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           created_by?: string | null
           family_id?: string
           id?: string
