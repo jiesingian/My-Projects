@@ -38,6 +38,7 @@ import {
   LIABILITY_KIND_LABELS,
   CASH_FLOW_RANGES,
   CASH_FLOW_RANGE_LABELS,
+  INCOME_FREQUENCY_LABELS,
   periodOverPeriodChange,
   cashBalanceTrend,
   billsDueWithin,
@@ -502,7 +503,42 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       )}
       {/* Where this period's money came from, by source -- the same donut
           EXPENSES has, with its list (22 October). */}
-      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0 }))} currency={currency} monthBudget={null} kind="income" />
+      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0, color: c.color }))} currency={currency} monthBudget={null} kind="income" />
+      {cf.incomeGroups.length > 0 && (
+        <>
+          <SectionLabel>REGULAR INCOME</SectionLabel>
+          {cf.incomeGroups.map((g) => {
+            const cap = g.monthly_target ? Number(g.monthly_target) : null;
+            const pct = cap ? Math.min(100, Math.round((g.thisMonth / cap) * 100)) : 0;
+            return (
+              <div key={g.id} style={{ padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{g.name}</span>
+                    <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+                      {g.category ?? "Other"} · {INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually {formatCurrency(Number(g.usual_amount), currency)}
+                      {g.next?.next_date ? ` · next ${fmtDate(g.next.next_date)}` : ""}
+                    </span>
+                  </span>
+                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", textAlign: "right", flex: "none" }}>
+                    {formatCurrency(g.thisMonth, currency)}
+                    {cap ? ` / ${formatCurrency(cap, currency)}` : ""}
+                    <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>this month</span>
+                  </span>
+                </div>
+                {cap && (
+                  <div style={{ height: 6, background: "var(--color-neutral-200)", marginTop: "0.375rem" }} role="img" aria-label={`${pct}% of this month's target`}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent-700)" }} />
+                  </div>
+                )}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.25rem" }}>
+                  <RemoveButton id={g.id} kind="income_group" label={`Delete "${g.name}"`} />
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
       {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
         <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}

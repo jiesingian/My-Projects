@@ -17,6 +17,7 @@ import { pesoRate, type PesoRate } from "@/lib/fx";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { addYears } from "@/lib/sinking-fund";
+import { addMonths } from "@/lib/subscriptions";
 import { hasNextBill, nextBillDate, nextBillOffer, type NextBillOffer } from "@/lib/bill-roll";
 
 type Db = SupabaseClient<Database>;
@@ -489,6 +490,8 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       .eq("id", entry.source_id)
       .eq("family_id", entry.family_id);
     if (error) return `The income was recorded, but the schedule is still showing as expected. ${refusalMessage(error)}`;
+    const next = await lineUpNextInGroup(supabase, memberId, entry.source_id);
+    if (next) return next;
   }
 
   if (entry.goal_id) {
@@ -1088,6 +1091,116 @@ export async function deleteIncomeScheduleAction(scheduleId: string): Promise<Ac
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("income_schedules").delete().eq("id", scheduleId).eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  revalidateWealth();
+  return { error: null };
+}
+
+/* ------------------------------------------------------------ income groups */
+
+const GROUP_FREQUENCIES = { monthly: 1, quarterly: 3, yearly: 12 } as const;
+type GroupFrequency = keyof typeof GROUP_FREQUENCIES;
+const isGroupFrequency = (f: string): f is GroupFrequency => f in GROUP_FREQUENCIES;
+
+/** Once a regular income's payment is received, its next one is expected:
+ * the group's usual amount, one period after the date this one was
+ * expected. Nothing is added while one is still open, so a pending payment
+ * confirmed twice lines up one, not two. */
+async function lineUpNextInGroup(supabase: Db, memberId: string, scheduleId: string): Promise<string | null> {
+  const { data: received } = await supabase.from("income_schedules").select("*").eq("id", scheduleId).maybeSingle();
+  if (!received?.group_id) return null;
+  const [{ data: group }, { data: open }] = await Promise.all([
+    supabase.from("income_groups").select("*").eq("id", received.group_id).maybeSingle(),
+    supabase.from("income_schedules").select("id").eq("group_id", received.group_id).neq("status", "received").limit(1),
+  ]);
+  if (!group || (open ?? []).length > 0) return null;
+  const from = received.next_date ?? (received.received_at ?? new Date().toISOString()).slice(0, 10);
+  const { error } = await supabase.from("income_schedules").insert({
+    family_id: received.family_id,
+    name: group.name,
+    amount: group.usual_amount,
+    category: group.category,
+    recurrence: group.frequency,
+    account_id: group.account_id,
+    is_joint: received.is_joint,
+    owner_member_id: received.owner_member_id,
+    next_date: addMonths(from, isGroupFrequency(group.frequency) ? GROUP_FREQUENCIES[group.frequency] : 1),
+    status: "expected",
+    created_by: memberId,
+    group_id: group.id,
+  });
+  return error ? `The income was recorded, but its next one could not be lined up. ${refusalMessage(error)}` : null;
+}
+
+/** A regular income set up once -- a salary, a business -- and its first
+ * payment expected on the date given. Receiving each one lines up the next
+ * (lineUpNextInGroup). Grown-ups only (income_groups RLS). */
+export async function addIncomeGroupAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const name = clamp(String(formData.get("name") ?? ""), 80);
+  const usualAmount = Number(formData.get("usual_amount") ?? 0);
+  const category = clamp(String(formData.get("category") ?? ""), 100) || null;
+  const frequency = String(formData.get("frequency") ?? "monthly");
+  const firstDate = String(formData.get("first_date") ?? "");
+  const targetRaw = String(formData.get("monthly_target") ?? "").trim();
+  const monthlyTarget = targetRaw ? Number(targetRaw) : null;
+  const requestedAccountId = String(formData.get("account_id") ?? "") || null;
+  const isJoint = formData.get("is_joint") === "on";
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up of the household can set up a regular income." };
+  if (!name) return { error: "Give it a name." };
+  if (!(usualAmount > 0)) return { error: "Enter a usual amount greater than zero." };
+  if (!isGroupFrequency(frequency)) return { error: "Choose how often it comes." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate)) return { error: "Choose when the next one is expected." };
+  if (monthlyTarget !== null && !(monthlyTarget > 0)) return { error: "A monthly target has to be more than zero, or left empty." };
+
+  let accountId: string | null = null;
+  if (requestedAccountId) {
+    const { data: account } = await supabase.from("accounts").select("id").eq("id", requestedAccountId).eq("family_id", me.family_id).maybeSingle();
+    if (!account) return { error: "Choose an account this household actually has." };
+    accountId = account.id;
+  }
+
+  const { data: group, error } = await supabase
+    .from("income_groups")
+    .insert({ family_id: me.family_id, name, category, usual_amount: usualAmount, frequency, monthly_target: monthlyTarget, account_id: accountId, recorded_by: me.id })
+    .select()
+    .single();
+  if (error) return { error: databaseError(error) };
+
+  const { error: firstError } = await supabase.from("income_schedules").insert({
+    family_id: me.family_id,
+    name,
+    amount: usualAmount,
+    category,
+    recurrence: frequency,
+    account_id: accountId,
+    is_joint: isJoint,
+    owner_member_id: isJoint ? null : me.id,
+    next_date: firstDate,
+    status: "expected",
+    created_by: me.id,
+    group_id: group.id,
+  });
+  if (firstError) {
+    await supabase.from("income_groups").delete().eq("id", group.id);
+    return { error: databaseError(firstError) };
+  }
+
+  revalidateWealth();
+  return { error: null };
+}
+
+/** The group goes, and so does its payment still expected; payments
+ * received, or waiting on a banking app's confirmation, stay in INCOME, no
+ * longer grouped. */
+export async function deleteIncomeGroupAction(groupId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error: openError } = await supabase.from("income_schedules").delete().eq("family_id", me.family_id).eq("group_id", groupId).eq("status", "expected");
+  if (openError) return { error: databaseError(openError) };
+  const { error } = await supabase.from("income_groups").delete().eq("id", groupId).eq("family_id", me.family_id);
   if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };

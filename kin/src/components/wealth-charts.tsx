@@ -299,7 +299,9 @@ export function CashTrendLine({ trend, currency }: { trend: { key: string; label
   );
 }
 
-export type CategorySlice = { category: string; spent: number; budget: number };
+/** `color` overrides the category's own, for a slice that is not a
+ * category: a regular income's group. */
+export type CategorySlice = { category: string; spent: number; budget: number; color?: string };
 
 /** Where the month's money went, as a donut (Jonathan's choice over a divided
  * bar). The list under it carries the exact figures, so nobody has to judge an
@@ -349,7 +351,7 @@ export function CategoryDonut({
                   <path
                     key={arc.data.category}
                     d={pie.path(arc) ?? ""}
-                    fill={colorOf(arc.data.category)}
+                    fill={arc.data.color ?? colorOf(arc.data.category)}
                     opacity={sel === null || sel === i ? 1 : 0.28}
                     style={{ cursor: "pointer", transition: "opacity 160ms ease-out" }}
                     onClick={() => setSel(sel === i ? null : i)}
@@ -402,7 +404,7 @@ export function CategoryDonut({
                 transition: "background-color 160ms ease-out",
               }}
             >
-              <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: colorOf(c.category), flex: "none" }} />
+              <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: c.color ?? colorOf(c.category), flex: "none" }} />
               <span style={{ flex: 1, minWidth: 0 }}>{c.category}</span>
               <span style={tabular}>{formatCurrency(c.spent, currency)}</span>
               <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(c.spent)}%</span>

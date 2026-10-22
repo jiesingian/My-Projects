@@ -21,6 +21,7 @@ import {
   deleteLiabilityAction,
   deleteBillAction,
   deleteIncomeScheduleAction,
+  deleteIncomeGroupAction,
   deleteGoalAction,
   archiveAccountAction,
   restoreAccountAction,
@@ -769,6 +770,7 @@ const DELETERS = {
   liability: deleteLiabilityAction,
   bill: deleteBillAction,
   income_schedule: deleteIncomeScheduleAction,
+  income_group: deleteIncomeGroupAction,
   goal: deleteGoalAction,
   remittance: deleteRemittanceAction,
 } as const;
