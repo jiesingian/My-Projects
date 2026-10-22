@@ -937,7 +937,7 @@ export function DeleteAccountButton({
               {!archived && (
                 <ChoiceButton
                   title="Archive instead"
-                  line="Hidden from your lists and totals, history kept. You can restore it any time."
+                  line="Hidden from your lists and balance totals. Its entries still count in the months they happened, and you can restore it any time."
                   disabled={pending}
                   onClick={() => run(() => archiveAccountAction(accountId), () => { setStep("closed"); if (afterDelete) router.push(afterDelete); })}
                 />
@@ -1097,7 +1097,7 @@ function deletionEffects(doomed: AccountDeletionEntry[], currency: string): stri
 /** The notice shown once it is done: the same facts, as plain lines. */
 function summaryText(accountName: string, deleted: number, kept: number, effects: string[]): string {
   return [
-    `Gone from every list and total.`,
+    `Gone from every list and balance total.`,
     `${deleted} ${deleted === 1 ? "entry" : "entries"} deleted · ${kept} kept, shown as "${accountName} (deleted)".`,
     ...(effects.length ? ["", "What changed:", ...effects.map((l) => `• ${l}`)] : []),
     "",
@@ -1108,7 +1108,7 @@ function summaryText(accountName: string, deleted: number, kept: number, effects
 function DeletionSummary({ accountName, deleted, kept, effects }: { accountName: string; deleted: number; kept: number; effects: string[] }) {
   return (
     <div>
-      <p style={noteStyle}>&ldquo;{accountName}&rdquo; will be gone from every list and total, and can&rsquo;t be restored.</p>
+      <p style={noteStyle}>&ldquo;{accountName}&rdquo; will be gone from every list and balance total, and can&rsquo;t be restored.</p>
       <ul style={{ ...noteStyle, paddingLeft: "1.125rem" }}>
         <li>
           <strong>{deleted}</strong> {deleted === 1 ? "entry" : "entries"} to delete

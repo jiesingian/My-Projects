@@ -197,7 +197,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
         />
         {account.is_archived && (
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
-            Archived: left out of every list and total, with its history kept. Restore puts it back.
+            Archived: left out of every list and balance total; its entries still count in the months they happened. Restore puts it back.
           </p>
         )}
       </div>
