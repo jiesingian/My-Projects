@@ -20,6 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { OfflineSync } from "@/components/offline-sync";
 import { DynamicType } from "@/components/dynamic-type";
 import { inSimpleMode } from "@/lib/simple-mode";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -92,6 +93,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ConfirmSheetHost />
         <Toaster />
         <ReturnToToday />
+        <KeyboardShortcuts
+          simple={inSimpleMode(member)}
+          ask={!inKidView(member)}
+          places={inKidView(member) ? ["/today", "/chat", "/journal", "/family", "/settings"] : ["/today", "/planner", "/chat", "/wealth", "/journal", "/family", "/household", "/settings"]}
+        />
         {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
         <OfflineSync userId={member.auth_user_id ?? ""} />
       </CallProvider>

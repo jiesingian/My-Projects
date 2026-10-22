@@ -30,7 +30,7 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
         </Link>
       </div>
 
-      <ul className="kin-threadlist">
+      <ul className="kin-threadlist" data-kin-arrows="list">
         {threads.map((t) => (
           <li key={t.key}>
             <ThreadRow thread={t} />
