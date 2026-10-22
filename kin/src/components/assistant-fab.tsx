@@ -33,6 +33,17 @@ export function AssistantFab({ memberName }: { memberName: string }) {
     setOpen(true);
   }, [router]);
 
+  // Ctrl/⌘+K or / (components/keyboard-shortcuts.tsx).
+  useEffect(() => {
+    const ask = () => {
+      setStart(undefined);
+      setOpened(true);
+      setOpen(true);
+    };
+    window.addEventListener("kin:ask", ask);
+    return () => window.removeEventListener("kin:ask", ask);
+  }, []);
+
   // The family thread has its own composer down there; two things reaching
   // for the same corner is one too many.
   if (pathname.startsWith("/chat")) return null;

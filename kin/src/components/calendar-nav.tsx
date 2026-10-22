@@ -371,7 +371,7 @@ export function DateRail({ anchor, children }: { anchor: string; children: React
   }, [anchor]);
 
   return (
-    <div ref={ref} className="cal-rail">
+    <div ref={ref} className="cal-rail" data-kin-arrows="row">
       {children}
     </div>
   );
