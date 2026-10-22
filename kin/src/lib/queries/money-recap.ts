@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAccounts } from "@/lib/queries/wealth";
+import { getAccounts, getArchivedAccountsForFlow } from "@/lib/queries/wealth";
 import { familyDay, familyMidnight } from "@/lib/time";
 import { inTotalsScope, paidFromVisibleFilter } from "@/lib/wealth";
 import { buildRecap, monthBefore, type Recap, type RecapTxn } from "@/lib/money-recap";
@@ -17,9 +17,10 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
   const from = familyMidnight(`${prev}-01`, tz) ?? new Date(`${prev}-01T00:00:00Z`);
   const to = familyMidnight(nextMonth, tz) ?? new Date(`${nextMonth}T00:00:00Z`);
 
-  const accounts = await getAccounts(me.family_id);
+  const [accounts, archived] = await Promise.all([getAccounts(me.family_id), getArchivedAccountsForFlow(me.family_id)]);
   const leaveOut = me.wealth_include_private === false ? me.id : null;
-  const counted = new Set(accounts.filter((a) => inTotalsScope(a, "all", leaveOut)).map((a) => a.id));
+  // Archived and deleted accounts' movements count too: they happened in the month.
+  const counted = new Set([...accounts, ...archived].filter((a) => inTotalsScope(a, "all", leaveOut)).map((a) => a.id));
 
   const [txns, { data: period }, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
     // Two months of movements: one imported statement can pass 1000 rows.

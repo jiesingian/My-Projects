@@ -871,7 +871,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {archived.length > 0 && (
         <CollapsibleGroup title={`ARCHIVED · ${archived.length}`} defaultOpen={false}>
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0", lineHeight: 1.45 }}>
-            Hidden from every list and total above, with their history kept. Restore brings one back; Delete removes the account for good, keeping or deleting its entries as you choose.
+            Hidden from every list and balance total above. Their entries still count in the months they happened. Restore brings one back; Delete removes the account for good, keeping or deleting its entries as you choose.
           </p>
           {archived.map((a) => (
             <div key={a.id} style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>

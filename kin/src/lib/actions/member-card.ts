@@ -177,7 +177,9 @@ async function readMoney(familyId: string, memberId: string, preview: boolean, w
   if (!from || !to) return null;
   const supabase = await createClient();
   const { data: accounts } = await supabase.from("accounts").select("id, owner_member_id, is_joint, is_private, is_archived").eq("family_id", familyId).eq("owner_member_id", memberId);
-  const own = ownSpendingAccounts(accounts ?? [], memberId, preview).filter((a) => !a.is_archived);
+  // Archived accounts' spending counts too -- it happened this month -- but
+  // only live accounts make the card say the person has accounts at all.
+  const own = ownSpendingAccounts(accounts ?? [], memberId, preview);
   const [{ data: rows }, budgets] = await Promise.all([
     own.length
       ? supabase
@@ -195,7 +197,7 @@ async function readMoney(familyId: string, memberId: string, preview: boolean, w
   const spent = (rows ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
   const set = budgets.get(memberId);
   const budget = set != null && set > 0 ? set : null;
-  return { spent, budget, hasAccounts: own.length > 0 };
+  return { spent, budget, hasAccounts: own.some((a) => !a.is_archived) };
 }
 
 /** Medicines due today, as far as Health lets the viewer see them
