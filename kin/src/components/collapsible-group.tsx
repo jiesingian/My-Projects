@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/icons";
 
 /** GroupLabel's clickable sibling -- same weight, same border, but a group
  * this big (Assets, Liabilities, a whole Cash Flow section) benefits from
@@ -39,11 +40,9 @@ export function CollapsibleGroup({
         }}
       >
         {title}
-        <span
-          aria-hidden
-          style={{ fontSize: "var(--text-sm)", color: "var(--color-neutral-600)", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}
-        >
-          ▾
+        {/* The same chevron as Today's fold, not a text glyph. */}
+        <span aria-hidden className="kin-chevron" data-open={open}>
+          <Icon name="chevronLeft" size={16} />
         </span>
       </button>
       {open && children}
