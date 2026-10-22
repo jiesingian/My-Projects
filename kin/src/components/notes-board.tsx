@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { toast } from "@/components/toast";
-import { confirm } from "@/components/confirm-sheet";
+import { deleteWithUndo, useHiddenRows } from "@/lib/undo-delete";
 import { addNoteAction, deleteNoteAction, updateNoteAction } from "@/lib/actions/notes";
 import { NOTE_MAX, noteMatches, noteTitle } from "@/lib/personal-notes";
 
@@ -22,7 +22,9 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const shown = useMemo(() => notes.filter((n) => noteMatches(n.body, query)), [notes, query]);
+  const hidden = useHiddenRows();
+  const visible = useMemo(() => notes.filter((n) => !hidden.has(n.id)), [notes, hidden]);
+  const shown = useMemo(() => visible.filter((n) => noteMatches(n.body, query)), [visible, query]);
 
   const save = () =>
     startTransition(async () => {
@@ -41,15 +43,15 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
       router.refresh();
     });
 
-  const remove = async (note: Note) => {
-    const ok = await confirm({ title: `Delete "${noteTitle(note.body)}"?`, description: "It can't be brought back.", confirmLabel: "Delete", danger: true });
-    if (!ok) return;
-    startTransition(async () => {
-      const r = await deleteNoteAction(note.id);
-      if (r.error) return void toast.error(r.error);
-      router.refresh();
+  // Gone at once, with Undo for a few seconds, rather than a confirm first
+  // (lib/undo-delete.ts).
+  const remove = (note: Note) =>
+    deleteWithUndo({
+      id: note.id,
+      message: `Deleted "${noteTitle(note.body)}"`,
+      remove: () => deleteNoteAction(note.id),
+      onDeleted: () => router.refresh(),
     });
-  };
 
   return (
     <div>
@@ -74,7 +76,7 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
         </button>
       </div>
 
-      {notes.length > 0 && (
+      {visible.length > 0 && (
         <input
           className="input"
           type="search"
@@ -86,7 +88,7 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
         />
       )}
 
-      {notes.length === 0 ? (
+      {visible.length === 0 ? (
         <p style={{ color: "var(--color-neutral-600)" }}>No notes yet. Write one above.</p>
       ) : shown.length === 0 ? (
         <p style={{ color: "var(--color-neutral-600)" }}>No note has &ldquo;{query.trim()}&rdquo; in it.</p>

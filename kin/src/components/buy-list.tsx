@@ -15,7 +15,7 @@ import { ShoppingDayControl } from "@/components/shopping-day";
 import { CheckoutCards, LoyaltyCardsButton } from "@/components/loyalty-cards";
 import type { LoyaltyCard } from "@/lib/loyalty-cards";
 import { formatCurrency } from "@/lib/format";
-import { confirm } from "@/components/confirm-sheet";
+import { deleteWithUndo, useHiddenRows } from "@/lib/undo-delete";
 import type { PickableAccount } from "@/components/money-actions";
 import { AccountOptions } from "@/components/account-options";
 import type { Tables } from "@/lib/database.types";
@@ -234,7 +234,10 @@ export function BuyList({
   // What the basket comes to, and what the whole list would. Both are
   // estimates built from the price book, so a line Kin cannot price is
   // counted as an item but not as money — and says so.
-  const allItems = groups.flatMap((g) => g.items);
+  // Less any item just removed and still offering Undo (lib/undo-delete.ts),
+  // so the totals drop with it.
+  const hidden = useHiddenRows();
+  const allItems = groups.flatMap((g) => g.items).filter((i) => !hidden.has(i.id));
   const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
   const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
   const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
@@ -755,12 +758,16 @@ function EditItemRow({ item, events, onClose }: { item: Tables<"buy_items">; eve
           className="btn btn-secondary"
           disabled={pending}
           style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.75rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-          onClick={async () => {
-            if (!(await confirm(`Remove "${item.name}" from the list?`))) return;
-            startTransition(async () => {
-              await removeBuyItemAction(item.id);
-              onClose();
-              router.refresh();
+          onClick={() => {
+            // Off the list at once, with Undo for a few seconds, instead of
+            // a confirm first. The old path also ignored a failed remove;
+            // deleteWithUndo brings the item back and says why.
+            onClose();
+            deleteWithUndo({
+              id: item.id,
+              message: `Removed "${item.name}"`,
+              remove: () => removeBuyItemAction(item.id),
+              onDeleted: () => router.refresh(),
             });
           }}
         >

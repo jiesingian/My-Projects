@@ -1203,6 +1203,35 @@ textarea.input {
 .toast[data-kind="error"] {
   background: var(--color-accent-700);
 }
+/* The undo toast: the message, then Undo and ×, each its own 44px target. */
+.toast[data-kind="undo"] {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.25rem;
+  padding-right: 0.25rem;
+}
+.toast-msg { flex: 1; min-width: 0; }
+.toast-undo,
+.toast-close {
+  all: unset;
+  box-sizing: border-box;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+}
+.toast-undo { background: color-mix(in srgb, currentColor 16%, transparent); }
+.toast-close { font-size: 1.25rem; font-weight: 400; opacity: 0.8; }
+.toast-undo:focus-visible,
+.toast-close:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) {
   .toast {
     transition: opacity 0.16s ease;
