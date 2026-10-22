@@ -605,7 +605,12 @@ button,
   color: var(--color-text);
   caret-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
-  border: 1px solid transparent;
+  /* A visible edge (WCAG 1.4.11, 3:1 for a control): the 5% fill alone was
+     1.1:1 against the card. The theme's muted colour is 4.6:1 or more on
+     both the page and the card in all 16 themes, light and dark, where a
+     mix of the text colour fell to 2.1:1 in some (final design check,
+     22 October; Jonathan: proceed). */
+  border: 1px solid var(--color-neutral-600);
   border-radius: var(--radius-control);
   appearance: none;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -3557,8 +3562,11 @@ div.kin-tp-ghost {
   min-height: 2.875rem;
   border-radius: var(--radius-card);
   background: var(--color-surface);
+  /* The same edge as .input: the white row on the page ground was 1.1:1. */
+  border: 1px solid var(--color-neutral-600);
   box-shadow: var(--shadow-sm);
 }
+.kin-quickline-row:focus-within { border-color: var(--color-accent); }
 .kin-quickline-input {
   flex: 1;
   min-width: 0;
