@@ -57,9 +57,9 @@ on dev (#701).
 
 **Proposals, for Jonathan and Janine to decide (nothing changed):**
 - **Simple Kin's own 44px for every control.** The segmented controls,
-  Wealth's Income/Expenses headers and Journal's share chips are 26–40px
-  tall with Simple Kin on. WCAG's 24px is met, so this is Simple Kin's
-  promise, not a failure. The proposal: `min-height: 44px` on those three
+  the Planner's month button, Wealth's Income/Expenses headers and
+  Journal's share chips are 26–40px tall with Simple Kin on. WCAG's 24px is met, so this is Simple Kin's
+  promise, not a failure. The proposal: `min-height: 44px` on those
   under `.kin-simple`, which makes those rows taller.
 - **The Notes board's arrows go note to note.** ↑/↓ (#864) step through
   each note's two buttons (Edit, Delete), so a board of ten notes is
