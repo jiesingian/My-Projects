@@ -645,3 +645,169 @@ function BudgetEditor({ memberId, current, label }: { memberId: string; current:
     </span>
   );
 }
+
+/* ------------------------------------------------- accounts by owner */
+
+export type AccountSlice = { id: string; name: string; balance: number; ownerKey: string; ownerLabel: string; ownerSlot: number };
+
+/** One hue per owner, in a fixed order -- Joint first, then each member in
+ * the household's order -- so a person keeps their colour whichever Who is
+ * picked. These are the expense-category hues, in the order they were run
+ * through the colour-blindness validator in both themes (worst adjacent
+ * pair 9.1 ΔE light, 8.4 dark); past seven owners the rest share the
+ * neutral, as categories do. Owner and account names are always printed
+ * beside their colour, so the colour never carries the meaning alone. */
+const OWNER_HUES = [
+  "var(--wealth-groceries)",
+  "var(--wealth-utilities)",
+  "var(--wealth-housing)",
+  "var(--wealth-transport)",
+  "var(--wealth-health)",
+  "var(--wealth-dining)",
+  "var(--wealth-shopping)",
+];
+const ownerHue = (slot: number) => OWNER_HUES[slot] ?? "var(--wealth-cat-other)";
+/** An owner's second, third... account: the same hue, lighter, so the
+ * slices of one person read as one run and each still stands apart. */
+const accountShade = (slot: number, nth: number) => {
+  const mix = [100, 72, 50][nth % 3];
+  return mix === 100 ? ownerHue(slot) : `color-mix(in oklab, ${ownerHue(slot)} ${mix}%, var(--color-surface))`;
+};
+
+/** How the combined total splits, account by account, grouped by whose
+ * each is (Janine, 22 October). The donut sits beside the headline figure;
+ * under it, each owner's share and then each of their accounts with its
+ * amount and percent. A tap on a slice or a row puts that account -- name,
+ * owner, amount -- in the middle. Accounts at zero or below have no slice
+ * (a pie can't hold a negative); they are named under the list instead. */
+export function AccountsByOwnerPie({ head, slices, currency }: { head: React.ReactNode; slices: AccountSlice[]; currency: string }) {
+  const [sel, setSel] = useState<string | null>(null);
+  const positive = slices.filter((s) => s.balance > 0);
+  const left = slices.filter((s) => s.balance <= 0);
+  const total = positive.reduce((sum, s) => sum + s.balance, 0);
+
+  // Owners in their fixed order, each with its accounts largest first.
+  const owners = [...new Set(positive.map((s) => s.ownerKey))]
+    .map((key) => {
+      const accounts = positive.filter((s) => s.ownerKey === key).sort((a, b) => b.balance - a.balance);
+      return { key, label: accounts[0].ownerLabel, slot: accounts[0].ownerSlot, accounts, sum: accounts.reduce((t, a) => t + a.balance, 0) };
+    })
+    .sort((a, b) => a.slot - b.slot);
+  // One owner on screen (Who: Family, or one person): shades of one hue
+  // would be all there is to tell accounts apart by, so each account takes
+  // its own hue instead -- in the order the accounts were added (`slices`
+  // arrives that way), so an account keeps its colour as balances move.
+  const single = owners.length === 1;
+  const addedOrder = new Map(positive.map((s, i) => [s.id, i]));
+  const ordered = owners.flatMap((o) => o.accounts.map((a, nth) => ({ ...a, fill: single ? ownerHue(addedOrder.get(a.id)!) : accountShade(o.slot, nth) })));
+  // "<1", not "0": a slice that is there should never read as nothing.
+  const pct = (v: number) => {
+    const p = total > 0 ? Math.round((v / total) * 100) : 0;
+    return p === 0 && v > 0 ? "<1" : String(p);
+  };
+  // The ring, in the order its colours were validated as neighbours: by
+  // owner slot, or -- one owner -- in added order. The list stays largest first.
+  const ring = single ? [...ordered].sort((a, b) => addedOrder.get(a.id)! - addedOrder.get(b.id)!) : ordered;
+  const picked = ordered.find((a) => a.id === sel) ?? null;
+
+  const size = 176;
+  const outer = 82;
+  const inner = 56;
+  const pad = 2 / ((outer + inner) / 2);
+  const showPie = positive.length >= 2;
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem 1rem" }}>
+        <div style={{ flex: "1 1 15rem", minWidth: 0 }}>{head}</div>
+        {showPie && (
+          <div style={{ flex: "0 0 auto", width: size, margin: "0 auto" }}>
+            <p className="sr-only">
+              The total by account: {owners.map((o) => `${o.label} ${formatCurrency(o.sum, currency)} (${pct(o.sum)}%): ${o.accounts.map((a) => `${a.name} ${formatCurrency(a.balance, currency)}`).join(", ")}`).join("; ")}.
+            </p>
+            <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
+              <g transform={`translate(${size / 2},${size / 2})`}>
+                <Pie data={ring} pieValue={(d) => d.balance} outerRadius={outer} innerRadius={inner} padAngle={pad} pieSort={null}>
+                  {(pie) =>
+                    pie.arcs.map((arc) => (
+                      <path
+                        key={arc.data.id}
+                        d={pie.path(arc) ?? ""}
+                        fill={arc.data.fill}
+                        opacity={sel === null || sel === arc.data.id ? 1 : 0.28}
+                        style={{ cursor: "pointer", transition: "opacity 160ms ease-out" }}
+                        onClick={() => setSel(sel === arc.data.id ? null : arc.data.id)}
+                      />
+                    ))
+                  }
+                </Pie>
+                <text textAnchor="middle" y={-14} fontSize={9.5} letterSpacing=".04em" fill="var(--color-neutral-600)">
+                  {picked ? picked.ownerLabel.toUpperCase() : `${positive.length} ACCOUNTS`}
+                </text>
+                <text textAnchor="middle" y={4} fontSize={11} fontWeight={600} fill="var(--color-text)">
+                  {picked ? (picked.name.length > 16 ? `${picked.name.slice(0, 15)}…` : picked.name) : "Tap a slice"}
+                </text>
+                <text textAnchor="middle" y={21} fontSize={11} fill="var(--color-neutral-600)" style={tabular}>
+                  {picked ? `${shortMoney(picked.balance, currency)} · ${pct(picked.balance)}%` : ""}
+                </text>
+              </g>
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {showPie && (
+        <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
+          {owners.map((o) => (
+            <div key={o.key} style={{ marginBottom: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, padding: "0.25rem 0.25rem 0.125rem" }}>
+                {!single && <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: ownerHue(o.slot), flex: "none" }} />}
+                <span style={{ flex: 1, minWidth: 0 }}>{o.label}</span>
+                <span style={tabular}>{formatCurrency(o.sum, currency)}</span>
+                <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(o.sum)}%</span>
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 1 }}>
+                {ordered
+                  .filter((a) => a.ownerKey === o.key)
+                  .map((a) => (
+                    <li key={a.id}>
+                      <button
+                        type="button"
+                        aria-pressed={sel === a.id}
+                        onClick={() => setSel(sel === a.id ? null : a.id)}
+                        style={{
+                          all: "unset",
+                          boxSizing: "border-box",
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          fontSize: "0.8125rem",
+                          padding: "0.3125rem 0.25rem 0.3125rem 1.25rem",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          background: sel === a.id ? "var(--color-neutral-200)" : "transparent",
+                          transition: "background-color 160ms ease-out",
+                        }}
+                      >
+                        <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", background: a.fill, flex: "none" }} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
+                        <span style={tabular}>{formatCurrency(a.balance, currency)}</span>
+                        <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(a.balance)}%</span>
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          ))}
+          {left.length > 0 && (
+            <p style={{ ...muted, margin: "0.25rem 0 0" }}>
+              Not in the chart (at {formatCurrency(0, currency)} or below):{" "}
+              {left.map((a) => `${a.name} (${a.ownerLabel}) ${formatCurrency(a.balance, currency)}`).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

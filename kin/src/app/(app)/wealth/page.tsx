@@ -58,7 +58,7 @@ import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
-import { CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson } from "@/components/wealth-charts";
+import { AccountsByOwnerPie, CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson, type AccountSlice } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { canMarkPaid, cycleStart, fundPlan, STATUS_TEXT } from "@/lib/sinking-fund";
@@ -130,15 +130,22 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 /* --------------------------------------------------------------- shared bits */
 
-function Hero({ label, amount, currency, caption, delta }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode }) {
-  return (
-    <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+/** The headline figure. `breakdown` (the Accounts tab) puts the
+ * accounts-by-owner donut beside it and each owner's accounts under it. */
+function Hero({ label, amount, currency, caption, delta, breakdown }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode; breakdown?: AccountSlice[] }) {
+  const head = (
+    <>
       <div className="kin-eyebrow">{label}</div>
       <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", margin: "9px 0 0" }}>
         <span style={{ font: "600 min(2.375rem, 10vw)/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
         {delta}
       </div>
       {caption && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>{caption}</div>}
+    </>
+  );
+  return (
+    <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+      {breakdown ? <AccountsByOwnerPie head={head} slices={breakdown} currency={currency} /> : head}
     </Blueprint>
   );
 }
@@ -731,6 +738,20 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
+  // The hero's donut: each account in this view, labelled with whose it is.
+  // Slots follow the household, not this view -- Joint 0, then each member
+  // in order -- so a person's colour doesn't change with the Who picker.
+  const breakdown: AccountSlice[] = pane.accounts.map((a) => {
+    const i = a.is_joint || !a.owner_member_id ? -1 : who.active.findIndex((m) => m.id === a.owner_member_id);
+    return {
+      id: a.id,
+      name: a.name,
+      balance: a.balance,
+      ownerKey: i < 0 ? "joint" : a.owner_member_id!,
+      ownerLabel: i < 0 ? "Family (joint)" : a.owner_member_id === memberId ? "You" : who.labels[i],
+      ownerSlot: i + 1,
+    };
+  });
   const accountGroups = ACCOUNT_TYPES.map((t) => ({
     type: t,
     accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
@@ -760,6 +781,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         currency={currency}
         delta={<DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />}
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
+        breakdown={breakdown}
       />
 
       <CashTrendLine trend={cashTrend} currency={currency} />
