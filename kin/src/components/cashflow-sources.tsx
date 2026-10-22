@@ -32,12 +32,12 @@ export function CashFlowSources({ sources, currency }: { sources: CashFlowSource
               <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{s.label}</span>
             </span>
             {s.income > 0 && (
-              <span style={{ font: "600 0.875rem/1 var(--font-numeric)", color: "var(--cal-home)", whiteSpace: "nowrap" }}>
+              <span style={{ font: "600 0.875rem/1 var(--font-numeric)", color: "var(--cal-home-ink)", whiteSpace: "nowrap" }}>
                 +{formatCurrency(s.income, currency)}
               </span>
             )}
             {s.expense > 0 && (
-              <span style={{ font: "600 0.875rem/1 var(--font-numeric)", color: "var(--cal-money)", whiteSpace: "nowrap" }}>
+              <span style={{ font: "600 0.875rem/1 var(--font-numeric)", color: "var(--cal-money-ink)", whiteSpace: "nowrap" }}>
                 −{formatCurrency(s.expense, currency)}
               </span>
             )}

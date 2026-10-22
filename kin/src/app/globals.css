@@ -133,6 +133,12 @@
   --cal-money: #e8590c;
   --cal-home: #2f9e44;
   --cal-goal: #6c6c70;
+  /* The same two as text: orange and green are 3.4-3.6:1 on white, fine
+     for a stripe or an icon (3:1) but short of 4.5:1 for small text.
+     Three-quarters strength over black is 5:1 or more on white, both page
+     grounds and a 14% tint of the colour (final design check, 22 October). */
+  --cal-money-ink: color-mix(in srgb, var(--cal-money) 75%, #000);
+  --cal-home-ink: color-mix(in srgb, var(--cal-home) 75%, #000);
 
   /* Per-member colours. Six, capped for the same reason the wealth
      categories cap at seven -- past that they stop being tellable apart at
@@ -206,6 +212,8 @@
   --cal-money: #ff922b;
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
+  --cal-money-ink: #ff922b;
+  --cal-home-ink: #51cf66;
 
   --member-coral: #ff8787;
   --member-amber: #ffc078;
@@ -265,6 +273,8 @@
   --cal-money: #ff922b;
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
+  --cal-money-ink: #ff922b;
+  --cal-home-ink: #51cf66;
 
   --member-coral: #ff8787;
   --member-amber: #ffc078;
@@ -3505,7 +3515,7 @@ div.kin-tp-ghost {
 }
 .kin-glance-tile[data-warn="true"] .kin-glance-value,
 .kin-glance-tile[data-warn="true"] .kin-glance-top {
-  color: var(--cal-money);
+  color: var(--cal-money-ink);
 }
 .kin-glance-label {
   font-size: 0.78125rem;
@@ -4018,7 +4028,7 @@ button.kin-initial:focus-visible {
 /* Overdue and due-today carry the money tint on the text too, not only the
    icon — an icon alone is not enough to make something read as pressing. */
 .kin-brief-row[data-urgent="true"] .kin-brief-meta {
-  color: var(--cal-money);
+  color: var(--cal-money-ink);
   font-weight: 600;
 }
 .kin-brief-chev {

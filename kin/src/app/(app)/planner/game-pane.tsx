@@ -446,7 +446,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
               style={{ flex: "none", minHeight: 44, fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem" }}
             >
               {s.name.split(" ")[0]} · 🪙 {s.spendable}
-              {s.awaiting > 0 && <span style={{ color: "var(--cal-money)" }}>· {s.awaiting} waiting</span>}
+              {s.awaiting > 0 && <span style={{ color: "var(--cal-money-ink)" }}>· {s.awaiting} waiting</span>}
             </Link>
           ))}
         </div>
