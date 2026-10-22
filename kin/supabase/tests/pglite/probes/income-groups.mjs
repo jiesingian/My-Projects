@@ -40,7 +40,9 @@ export default async function ({ as, check, refused }) {
     (await refused(() => group(dan, P("d1")))) === true &&
     (await as(dan, "update income_groups set name = 'x' where id = $1 returning 1", [g])).length === 0 &&
     (await as(dan, "delete from income_groups where id = $1 returning 1", [g])).length === 0);
-  await check("Dan cannot file his own household's income under House A's group", async () => {
+  // income_schedule_group_in_family: the trigger that keeps a payment
+  // under its own household's group, both ways.
+  await check("income_schedule_group_in_family: Dan cannot file his own household's income under House A's group", async () => {
     gD = (await group(dan, P("d1"), D))[0].id;
     return (await refused(() => schedule(dan, D, g), "income_group_not_in_family")) === true &&
       (await refused(() => schedule(ann, A, gD), "income_group_not_in_family")) === true;
