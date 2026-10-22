@@ -4732,6 +4732,8 @@ button.kin-initial:focus-visible {
    the 44px a finger needs. Width is left to the label, so nothing gets wider
    than a 320px phone. */
 .kin-simple .btn { min-height: 2.75rem; }
+/* A bill's Settle, reminder and Remove set 2rem inline; inline beats the rule above. */
+.kin-simple .kin-bill-actions :is(.btn, select) { min-height: 2.75rem !important; }
 .kin-simple .btn-icon { width: 2.75rem; height: 2.75rem; }
 .kin-simple .chip { min-height: 2.5rem; }
 .kin-simple .kin-brief-row { min-height: 3.5rem; }
