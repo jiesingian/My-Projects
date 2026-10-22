@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hotkeyFor, lettersOn, shortcutList, stepIndex, G_WINDOW_MS, type HotkeyState } from "@/lib/hotkeys";
+import { hotkeyFor, lettersOn, shortcutList, stepIndex, G_WINDOW_MS, OVERLAY_SELECTOR, type HotkeyState } from "@/lib/hotkeys";
 
 /** Keyboard shortcuts on a computer: which key means what, and when a key is
  * left alone (lib/hotkeys.ts). */
@@ -61,6 +61,28 @@ test("a child's view goes only where a child's tabs go", () => {
   expect(kid("w")).toBeNull();
   expect(kid("p")).toBeNull();
   expect(kid("t")).toEqual({ kind: "go", href: "/today" });
+});
+
+test("a child's view has no n: no Planner to add to, and the list does not offer it", () => {
+  expect(hotkeyFor({ key: "n" }, s({ places: KID }))).toBeNull();
+  expect(shortcutList(KID, true, false).some((r) => r.keys === "n")).toBe(false);
+  expect(shortcutList(ALL, true).some((r) => r.keys === "n")).toBe(true);
+});
+
+/** The shape Kin's sheets really have (Vaul over Radix): role="dialog" and
+ * data-state, never aria-modal. Missing it let g then p move the page behind
+ * an open sheet (wrap-up check, 22 October). */
+test("an open sheet counts as open, as Radix marks it; a closing one does not", async ({ page }) => {
+  const open = async (html: string) => {
+    await page.setContent(`<!doctype html><html><body>${html}</body></html>`);
+    return page.evaluate((sel) => !!document.querySelector(sel), OVERLAY_SELECTOR);
+  };
+  expect(await open('<div role="dialog" data-state="open" aria-labelledby="t"><h2 id="t">Keyboard shortcuts</h2></div>')).toBe(true);
+  expect(await open('<div role="alertdialog" data-state="open"></div>')).toBe(true);
+  expect(await open('<div role="dialog" aria-modal="true"></div>')).toBe(true);
+  expect(await open("<dialog open></dialog>")).toBe(true);
+  expect(await open('<div role="dialog" data-state="closed"></div>')).toBe(false);
+  expect(await open("<main><h1>Today</h1></main>")).toBe(false);
 });
 
 test("single-key shortcuts off: only Ctrl/⌘ ones work", () => {

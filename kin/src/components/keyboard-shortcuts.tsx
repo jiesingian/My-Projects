@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { AnimatedSheet } from "@/components/animated-sheet";
-import { hotkeyFor, lettersOn, shortcutList, stepIndex, LETTERS_KEY, type HotkeyAction } from "@/lib/hotkeys";
+import { hotkeyFor, lettersOn, shortcutList, stepIndex, LETTERS_KEY, OVERLAY_SELECTOR, type HotkeyAction } from "@/lib/hotkeys";
 
 /** Kin's keyboard shortcuts on a computer. lib/hotkeys.ts decides what a key
  * means; this listens on the window and acts. Nothing renders but the help
@@ -19,9 +19,10 @@ function typingIn(t: EventTarget | null): boolean {
   return t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT";
 }
 
-/** A Radix dialog (every sheet), a native dialog, or anything else marked modal. */
+/** A sheet (Vaul over Radix's dialog), a native dialog, or anything else
+ * marked modal: lib/hotkeys.ts, OVERLAY_SELECTOR, says what counts. */
 function overlayOpen(): boolean {
-  return !!document.querySelector('[role="dialog"][aria-modal="true"],[role="alertdialog"],dialog[open]');
+  return !!document.querySelector(OVERLAY_SELECTOR);
 }
 
 export function KeyboardShortcuts({ simple, places, ask }: { simple: boolean; places: string[]; ask: boolean }) {
