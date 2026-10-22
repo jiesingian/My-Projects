@@ -293,6 +293,21 @@ export function expenseCategoryColor(category: string): string {
   return EXPENSE_CATEGORY_COLOR_VAR[category] ?? "var(--wealth-cat-other)";
 }
 
+/** The same palette for money in: each income source takes one of the
+ * expense hues (the two donuts never share a screen's slice list), and
+ * Other keeps the neutral. */
+const INCOME_SOURCE_COLOR_VAR: Record<string, string> = {
+  Salary: "var(--wealth-utilities)",
+  Business: "var(--wealth-housing)",
+  Remittance: "var(--wealth-dining)",
+  Investment: "var(--wealth-health)",
+  Gift: "var(--wealth-transport)",
+  Refund: "var(--wealth-groceries)",
+};
+export function incomeSourceColor(category: string): string {
+  return INCOME_SOURCE_COLOR_VAR[category] ?? "var(--wealth-cat-other)";
+}
+
 /** How this period compares to the one before it -- the badge that turns a
  * hero number into a judgment ("up ₱2,100 from last month") without making
  * anyone read the bars to find out, the way every net-worth screen from

@@ -418,6 +418,12 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     expectedIncome: visibleIncome.filter((s) => s.status !== "received"),
     receivedIncome: visibleIncome.filter((s) => s.status === "received").slice(0, 12),
     recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
+    // This period's money in by source, for the INCOME donut. Transfers
+    // between the household's own accounts are not income.
+    incomeByCategory: [...thisPeriod
+      .filter((t) => t.direction === "in" && t.category !== TRANSFER_CATEGORY)
+      .reduce((m, t) => m.set(t.category ?? "Other", (m.get(t.category ?? "Other") ?? 0) + Number(t.amount)), new Map<string, number>())]
+      .map(([category, earned]) => ({ category, earned })),
     openBills: visibleBills.filter((b) => b.status !== "paid"),
     settledBills: visibleBills.filter((b) => b.status === "paid").slice(0, 12),
     recentExpense: confirmed.filter((t) => t.direction === "out" && t.source_table !== "bills").slice(0, 8),

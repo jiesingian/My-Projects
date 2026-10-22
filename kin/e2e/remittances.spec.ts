@@ -1,14 +1,15 @@
 import { test, expect } from "@playwright/test";
 
 /** The remittance log, reached the way a grown-up reaches it: from Cash
- * Flow's Income group, then the form. Only reads -- nothing is logged, so
+ * Flow's Income group, its Add income sheet, then the form. Only reads -- nothing is logged, so
  * there is nothing to tidy up and nothing to collide with another run. The
  * write path, and who may see what, is asked of the database directly in
  * supabase/tests/rls_remittances.sql. */
 
-test("Cash Flow's Income group links to the remittance log", async ({ page }) => {
+test("Cash Flow's Add income sheet links to the remittance log", async ({ page }) => {
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^INCOME/ }).click();
+  await page.getByRole("button", { name: /ADD INCOME/ }).click();
   await page.getByRole("link", { name: /Remittances from abroad/ }).click();
   await expect(page).toHaveURL(/\/wealth\/remittances$/);
   await expect(page.getByRole("heading", { name: "Remittances" })).toBeVisible();
