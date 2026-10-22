@@ -1191,46 +1191,58 @@ export function AudienceChoices({
   people: AccountAudienceMember[];
   onChange: (mode: AudienceMode, chosen: string[]) => void;
 }) {
-  const grownUps = people.filter((p) => p.grownUp).map((p) => p.id);
-  const onlyGrownUps = mode === "chosen" && grownUps.length > 0 && chosen.length === grownUps.length && grownUps.every((id) => chosen.includes(id));
-  // "All grown-ups" ticks every grown-up; ticking a child from there keeps
-  // the grown-ups and adds the child by name.
-  const ticked = mode === "everyone" ? grownUps : mode === "chosen" ? chosen : [];
+  // Custom stays open while it is the choice, even with nobody ticked yet.
+  const [custom, setCustom] = useState(mode === "chosen");
+  const pickable = people.filter((p) => p.hasLogin !== false);
+  const grownUps = pickable.filter((p) => p.grownUp).map((p) => p.id);
+  const ticked = mode === "chosen" ? chosen : [];
   const toggle = (id: string) => {
     const next = ticked.includes(id) ? ticked.filter((c) => c !== id) : [...ticked, id];
-    onChange(next.length ? "chosen" : "only_me", next);
+    onChange("chosen", next);
   };
+  const isCustom = custom || mode === "chosen";
 
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4375rem" }}>
-        <button type="button" className="chip" data-active={mode === "everyone" || onlyGrownUps} onClick={() => onChange("everyone", [])}>
+        <button type="button" className="chip" data-active={!isCustom && mode === "everyone"} onClick={() => { setCustom(false); onChange("everyone", []); }}>
           All grown-ups
         </button>
-        <button type="button" className="chip" data-active={mode === "only_me"} onClick={() => onChange("only_me", [])}>
+        <button type="button" className="chip" data-active={!isCustom && mode === "only_me"} onClick={() => { setCustom(false); onChange("only_me", []); }}>
           Only me
         </button>
+        <button type="button" className="chip" data-active={isCustom} onClick={() => { setCustom(true); onChange("chosen", mode === "everyone" ? grownUps : chosen); }}>
+          Custom
+        </button>
       </div>
-      {people.length > 0 && (
+      {isCustom && (
         <>
-          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0.375rem" }}>Or pick people — you always see it:</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0.375rem" }}>Tick who can see it — you always see it:</div>
           <div style={{ display: "grid", gap: "0.375rem" }}>
-            {people.map((p) => (
-              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", minHeight: "2rem" }}>
-                <input type="checkbox" checked={ticked.includes(p.id)} onChange={() => toggle(p.id)} />
-                {p.label}
-                {!p.grownUp && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>· child</span>}
-              </label>
-            ))}
+            {people.map((p) => {
+              const can = p.hasLogin !== false;
+              return (
+                <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", minHeight: "2rem", opacity: can ? 1 : 0.55 }}>
+                  <input type="checkbox" disabled={!can} checked={can && ticked.includes(p.id)} onChange={() => toggle(p.id)} />
+                  {p.label}
+                  <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
+                    {!can ? "· needs their own login to see it" : p.grownUp ? "" : "· child"}
+                  </span>
+                </label>
+              );
+            })}
+            {people.length === 0 && <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Nobody else is in the household yet.</span>}
           </div>
         </>
       )}
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.625rem 0 0" }}>
-        {mode === "everyone"
-          ? "Every grown-up in the household sees its balance and movements. Children do not, unless you tick them."
-          : mode === "only_me"
-            ? "Only you see it."
-            : "Only you and the people ticked see its balance and movements. Nobody else knows it is there."}
+        {isCustom
+          ? ticked.length === 0
+            ? "Tick at least one person, or choose Only me."
+            : "Only you and the people ticked see its balance and movements. Nobody else knows it is there."
+          : mode === "everyone"
+            ? "Every grown-up in the household sees its balance and movements. Children do not — choose Custom to add one."
+            : "Only you see it."}
       </p>
     </div>
   );

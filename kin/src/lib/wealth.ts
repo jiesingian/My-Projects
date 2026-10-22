@@ -869,7 +869,10 @@ export function assetWorth(asset: AssetForWorth, items: AssetItemForWorth[], tod
 }
 
 /** Someone an account can be shown to: a member of the household. */
-export type AccountAudienceMember = { id: string; label: string; grownUp: boolean };
+/** Someone an account can be shown to. `hasLogin` false is a managed
+ * child's profile: listed so the household is all there, but nobody can be
+ * shown an account without a login to see it with. */
+export type AccountAudienceMember = { id: string; label: string; grownUp: boolean; hasLogin?: boolean };
 
 /** The chip on an account: who can see it, in a word or two. `viewers` are
  * the people it is shared with besides its owner. */
@@ -887,7 +890,7 @@ export function accountAudienceLabel(
   if (viewers.length === 0) return mine ? "Only you" : "Private";
   if (!mine) return "Shared with you";
   const names = viewers.map((id) => people.find((p) => p.id === id)?.label).filter((n): n is string => !!n);
-  const grownUps = people.filter((p) => p.grownUp && p.id !== me);
+  const grownUps = people.filter((p) => p.grownUp && p.id !== me && p.hasLogin !== false);
   if (grownUps.length > 0 && grownUps.length === viewers.length && grownUps.every((g) => viewers.includes(g.id)) && people.some((p) => !p.grownUp)) return "Grown-ups";
   if (names.length === 0) return "Only you";
   return names.length <= 2 ? `You + ${names.join(", ")}` : `You + ${names.length} people`;
