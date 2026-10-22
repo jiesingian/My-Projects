@@ -292,7 +292,7 @@ function CardForm({ card, onDone }: { card: LoyaltyCard | null; onDone: () => vo
           Cancel
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.5rem" }}>{error}</div>}
     </div>
   );
 }

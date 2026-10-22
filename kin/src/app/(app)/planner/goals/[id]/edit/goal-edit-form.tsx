@@ -50,7 +50,7 @@ export function GoalEditForm({
 
         {giverName && (
           <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, margin: "0 0 1rem", padding: "0.625rem 0.75rem", borderRadius: 12, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)" }}>
-            <Icon name="gift" size={14} style={{ verticalAlign: "-2px", marginRight: "0.375rem", color: "var(--cal-goal)" }} />
+            <Icon name="gift" size={14} style={{ verticalAlign: "-2px", marginRight: "0.375rem", color: "var(--cal-goal-ink)" }} />
             This goal has a reward from {giverName}. A new target, period or date goes to them for a yes — they can agree or keep it as it was. The name changes now.
           </p>
         )}
@@ -117,7 +117,7 @@ export function GoalEditForm({
         {givers && givers.length > 0 && (
           <section style={{ marginTop: "1.75rem" }}>
             <h4 style={{ font: "600 1.0625rem/1.2 var(--font-heading)", margin: "0 0 0.5rem" }}>
-              <Icon name="gift" size={15} style={{ verticalAlign: "-2px", marginRight: "0.375rem", color: "var(--cal-goal)" }} />
+              <Icon name="gift" size={15} style={{ verticalAlign: "-2px", marginRight: "0.375rem", color: "var(--cal-goal-ink)" }} />
               Add a reward
             </h4>
             <span style={{ ...hint, marginTop: 0, marginBottom: "0.625rem" }}>A promise for when it is reached. Whoever gives it says yes; if that is you, it counts now.</span>

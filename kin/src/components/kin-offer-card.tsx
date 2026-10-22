@@ -57,7 +57,7 @@ export function KinOfferCard({ state, plus, comped = false, referralCode, househ
     <section aria-label="An offer from Kin" style={{ marginBottom: "1.125rem", display: "grid", gap: "0.5rem" }}>
       {earned.map((e) => (
         <div key={e.code} role="status" style={{ padding: "0.6875rem 0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--cal-money) 14%, transparent)", fontSize: "0.875rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <Icon name="sparkle" size={16} style={{ color: "var(--cal-money)", flex: "none" }} />
+          <Icon name="sparkle" size={16} style={{ color: "var(--cal-money-ink)", flex: "none" }} />
           <span>
             <strong>{comped ? "Done." : `Done — ${e.days} day${e.days === 1 ? "" : "s"} of Kin Plus earned.`}</strong> {OFFER_META[e.code].title}.
           </span>
@@ -113,7 +113,7 @@ export function KinOfferCard({ state, plus, comped = false, referralCode, househ
               </span>
             </div>
           )}
-          {error && <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+          {error && <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
         </div>
       )}
     </section>

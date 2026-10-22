@@ -64,7 +64,7 @@ export function EntryShareToggle({
         <Icon name={shared ? "users" : "plus"} size={13} />
         {shared ? "Shared" : "Share"}
       </button>
-      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </>
   );
 }

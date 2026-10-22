@@ -113,7 +113,7 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
         {busy ? "Uploading…" : "+ ADD FILE"}
       </button>
       {error && (
-        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>
           {error}
         </p>
       )}

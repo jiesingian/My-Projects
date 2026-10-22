@@ -97,7 +97,7 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
             background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
           }}
         >
-          <Icon name="gift" size={16} style={{ color: "var(--cal-goal)" }} />
+          <Icon name="gift" size={16} style={{ color: "var(--cal-goal-ink)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.title}</div>
@@ -128,7 +128,7 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
           Not this time
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -175,7 +175,7 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
             background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
           }}
         >
-          <Icon name="target" size={16} style={{ color: "var(--cal-goal)" }} />
+          <Icon name="target" size={16} style={{ color: "var(--cal-goal-ink)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.reward}</div>
@@ -207,7 +207,7 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
           Not this one
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -250,7 +250,7 @@ function GoalChangeRow({ item }: { item: PendingGoalChange }) {
             background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
           }}
         >
-          <Icon name="target" size={16} style={{ color: "var(--cal-goal)" }} />
+          <Icon name="target" size={16} style={{ color: "var(--cal-goal-ink)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>Change &ldquo;{item.goalTitle}&rdquo;?</div>
@@ -286,7 +286,7 @@ function GoalChangeRow({ item }: { item: PendingGoalChange }) {
           Keep it as it was
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -330,7 +330,7 @@ function GoalClaimRow({ item }: { item: PendingGoalClaim }) {
             background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
           }}
         >
-          <Icon name="target" size={16} style={{ color: "var(--cal-goal)" }} />
+          <Icon name="target" size={16} style={{ color: "var(--cal-goal-ink)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.goalTitle}</div>
@@ -362,7 +362,7 @@ function GoalClaimRow({ item }: { item: PendingGoalClaim }) {
           Not this time
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -417,7 +417,7 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
             background: "color-mix(in srgb, var(--cal-money) 22%, transparent)",
           }}
         >
-          <Icon name="check" size={16} style={{ color: "var(--cal-money)" }} />
+          <Icon name="check" size={16} style={{ color: "var(--cal-money-ink)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.title}</div>
@@ -458,7 +458,7 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
         </button>
       </div>
       )}
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }

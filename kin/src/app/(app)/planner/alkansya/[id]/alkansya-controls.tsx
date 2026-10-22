@@ -258,7 +258,7 @@ export function RemoveEntryButton({ entryId, memberId }: { entryId: string; memb
         ✕
       </button>
       {error && (
-        <span role="alert" style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)", maxWidth: 140 }}>
+        <span role="alert" style={{ fontSize: "0.71875rem", color: "var(--cal-occasion-ink)", maxWidth: 140 }}>
           {error}
         </span>
       )}

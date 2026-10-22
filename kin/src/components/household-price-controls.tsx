@@ -153,7 +153,7 @@ export function PriceRowControl({
           Cancel
         </button>
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -217,7 +217,7 @@ export function AddPriceControl() {
               Cancel
             </button>
           </div>
-          {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+          {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
         </div>
       </FormSheet>
     </>
@@ -309,7 +309,7 @@ export function BuyItemPriceEditor({
       <button type="button" className="btn btn-ghost" style={{ minHeight: "2.375rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={onClose}>
         Cancel
       </button>
-      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </div>
   );
 }
@@ -409,7 +409,7 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
       {items.length > 0 && (
         <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>Tap an item when it&rsquo;s running low.</p>
       )}
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }

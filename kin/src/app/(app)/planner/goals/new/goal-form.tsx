@@ -301,7 +301,7 @@ export function GoalForm({
                 lineHeight: 1.4,
               }}
             >
-              <Icon name="info" size={16} style={{ color: "var(--cal-occasion)", flex: "none", marginTop: "0.0625rem" }} />
+              <Icon name="info" size={16} style={{ color: "var(--cal-occasion-ink)", flex: "none", marginTop: "0.0625rem" }} />
               {state.error}
             </p>
           )}

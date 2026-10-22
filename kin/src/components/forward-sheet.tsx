@@ -86,7 +86,7 @@ export function ForwardSheet({ source, preview, onClose }: { source: ForwardSour
         )}
       </div>
       {note && (
-        <p role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", margin: "0.5rem 0 0" }}>
+        <p role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", margin: "0.5rem 0 0" }}>
           {note}
         </p>
       )}

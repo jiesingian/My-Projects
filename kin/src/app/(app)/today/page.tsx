@@ -197,7 +197,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           <TodayList entries={entries} />
           {behind > 0 && (
             <p style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.84375rem", margin: "0.25rem 0 0" }}>
-              <Icon name="info" size={16} style={{ color: "var(--cal-money)" }} />
+              <Icon name="info" size={16} style={{ color: "var(--cal-money-ink)" }} />
               <span>
                 {behind} task{behind === 1 ? "" : "s"} behind on other days —{" "}
                 <Link href="/planner?seg=routines" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>

@@ -48,7 +48,7 @@ const small = { minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem", 
 function ErrorLine({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem", flexBasis: "100%" }}>
+    <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem", flexBasis: "100%" }}>
       {error}
     </div>
   );
@@ -323,7 +323,7 @@ export function GoalDeleteButton({ goalId, title }: { goalId: string; title: str
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78125rem", flexWrap: "wrap" }}>
       <span style={{ color: "var(--color-neutral-700)" }}>Remove “{title}”?</span>
-      <button type="button" className="btn btn-ghost" style={{ ...ghost, color: "var(--cal-occasion)" }} disabled={pending} onClick={() => run(() => deleteGoalAction(goalId))}>
+      <button type="button" className="btn btn-ghost" style={{ ...ghost, color: "var(--cal-occasion-ink)" }} disabled={pending} onClick={() => run(() => deleteGoalAction(goalId))}>
         Remove
       </button>
       <button type="button" className="btn btn-ghost" style={ghost} onClick={() => setConfirming(false)}>

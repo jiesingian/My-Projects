@@ -187,7 +187,7 @@ export function RoutineDeleteButton({ id, title }: { id: string; title: string }
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--cal-occasion)" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--cal-occasion-ink)" }}
         disabled={pending}
         onClick={() => run(() => deleteRoutineAction(id))}
       >
@@ -252,7 +252,7 @@ export function RoutineOccurrences({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
-            <Icon name="info" size={14} style={{ color: "var(--cal-money)" }} />
+            <Icon name="info" size={14} style={{ color: "var(--cal-money-ink)" }} />
             {overdue.length === 1 ? "One day still unanswered" : `${overdue.length} days still unanswered`}
           </div>
           {overdue.slice(0, 3).map((date) => (
@@ -360,7 +360,7 @@ export function RoutineOccurrences({
             {cost ? `, and posts ${formatCurrency(cost, currency)}` : ""}.
           </div>
         )}
-        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
       </div>
     </div>
   );

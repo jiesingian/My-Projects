@@ -1038,7 +1038,7 @@ export function ChatThread({
                             type="button"
                             onClick={() => act(() => deleteMessageAction(m.id))}
                             className="btn btn-ghost"
-                            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem", color: "var(--cal-occasion)" }}
+                            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem", color: "var(--cal-occasion-ink)" }}
                           >
                             Unsend
                           </button>
@@ -1149,7 +1149,7 @@ export function ChatThread({
       </div>
 
       {error && (
-        <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", padding: "0.375rem 0.125rem" }} role="alert">
+        <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", padding: "0.375rem 0.125rem" }} role="alert">
           {error}
         </div>
       )}

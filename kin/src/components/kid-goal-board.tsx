@@ -98,7 +98,7 @@ export function KidGoalBoard({ name, goals }: { name: string; goals: KidBoardGoa
         </div>
       )}
       {error && (
-        <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>
+        <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.5rem" }}>
           {error}
         </div>
       )}

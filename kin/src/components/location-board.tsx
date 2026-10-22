@@ -235,7 +235,7 @@ function PersonRow({ person, isMe, canManage }: { person: MemberLocation; isMe: 
         </button>
       )}
 
-      {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</div>}
+      {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion-ink)" }}>{error}</div>}
     </Blueprint>
   );
 }

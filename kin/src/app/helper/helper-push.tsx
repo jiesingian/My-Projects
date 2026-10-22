@@ -86,7 +86,7 @@ export function HelperPush({ familyId }: { familyId: string }) {
       {state === "needs-install" && <p style={quiet}>To be told when the family adds to the list, add Kin to your Home Screen (Share → Add to Home Screen) and open it from there.</p>}
       {state === "blocked" && <p style={quiet}>Notifications are blocked for Kin in this browser&apos;s settings. Allow them there to be told when the family adds to the list.</p>}
       {error && (
-        <p role="alert" style={{ ...quiet, color: "var(--cal-occasion)" }}>
+        <p role="alert" style={{ ...quiet, color: "var(--cal-occasion-ink)" }}>
           {error}
         </p>
       )}
