@@ -74,3 +74,20 @@ async function removeFolderKeeping(
   }
   return left;
 }
+
+/** Removes exactly these paths from `bucket`, 100 at a time, and returns
+ * the ones in a batch that failed. A path already gone counts as removed. */
+export async function removePaths(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, any, any>,
+  bucket: string,
+  paths: readonly string[],
+): Promise<string[]> {
+  const failed: string[] = [];
+  for (let i = 0; i < paths.length; i += 100) {
+    const batch = paths.slice(i, i + 100);
+    const { error } = await supabase.storage.from(bucket).remove(batch);
+    if (error) failed.push(...batch);
+  }
+  return failed;
+}

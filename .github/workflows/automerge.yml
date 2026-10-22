@@ -133,6 +133,9 @@ jobs:
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'End-to-end' &&
+       github.event.workflow_run.conclusion == 'failure') ||
       (github.event_name == 'status' && github.event.state == 'success')
     runs-on: ubuntu-latest
     steps:
@@ -141,6 +144,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
+          # Which workflow finished, on a workflow_run wake. An End-to-end run
+          # that really ran (green or red) has just freed dev, which is the
+          # moment to give the next waiting pull request its turn.
+          FINISHED: ${{ github.event.workflow_run.name }}
           # The commit the waking event was about: a finished workflow's head,
           # or the commit a status was posted on.
           SHA: ${{ github.event.workflow_run.head_sha || github.event.sha }}
@@ -239,10 +246,22 @@ jobs:
             # ever start that pull request's run again, so it would sit here
             # "not green" for good. Re-run it when the latest End-to-end on
             # this head was cancelled and none is queued, running or green --
-            # at most three attempts per commit, so a run cancelled for any
+            # at most five attempts per commit, so a run cancelled for any
             # other reason (a timeout, a person) cannot loop and spend the
             # month's minutes. A waiting run costs nothing; only the run that
             # finally gets its turn is billed.
+            #
+            # Two fixes on 22 October, after #862, #863 and #864 sat cancelled
+            # for hours. The sweep is set for every 15 minutes but GitHub ran
+            # it about every three hours that day, so re-queuing now also
+            # happens the moment an End-to-end run finishes (see FINISHED
+            # below). And re-queuing every cancelled pull request in one pass
+            # undid itself: each re-run cancelled the waiter queued a second
+            # earlier, spending an attempt each time, until #863 ran out of
+            # them. So End-to-end is re-queued for ONE pull request per pass,
+            # oldest first, and only when no End-to-end run is already waiting
+            # -- one waiter at a time, never bumping another. Five attempts per
+            # commit instead of three, for a busy day.
             #
             # Schema check joined it on 19 October: both now cancel themselves
             # when dev's Auth is down (kin/scripts/dev-preflight.sh) instead
@@ -254,7 +273,17 @@ jobs:
               LATEST=$(echo "$RUNS" | jq -r '.[0] | if . == null then "" else "\(.id) \(.conclusion) \(.run_attempt)" end')
               if [ "$ACTIVE" -eq 0 ] && [ -n "$LATEST" ]; then
                 read -r RUN_ID CONCLUSION ATTEMPT <<< "$LATEST"
-                if [ "$CONCLUSION" = "cancelled" ] && [ "$ATTEMPT" -lt 3 ]; then
+                if [ "$WF" = "End-to-end" ] && [ "$CONCLUSION" = "cancelled" ]; then
+                  if [ "$E2E_REQUEUED" -eq 1 ]; then
+                    echo "PR #$PR: End-to-end is waiting its turn — one pull request is re-queued per pass."; continue
+                  fi
+                  if [ "$(e2e_waiting)" -gt 0 ]; then
+                    E2E_REQUEUED=1
+                    echo "PR #$PR: End-to-end will be re-queued once the run already waiting on dev has started."; continue
+                  fi
+                  E2E_REQUEUED=1
+                fi
+                if [ "$CONCLUSION" = "cancelled" ] && [ "$ATTEMPT" -lt 5 ]; then
                   gh run rerun "$RUN_ID" --repo "$REPO" \
                     && echo "PR #$PR: $WF was cancelled (waiting for its turn, or dev was down) — queued it again (attempt $((ATTEMPT + 1)))." \
                     || echo "PR #$PR: $WF was cancelled and could not be re-run — re-run it by hand."
@@ -443,7 +472,26 @@ jobs:
             fi
           }
 
-          if [ "$EVENT" = "workflow_run" ] || [ "$EVENT" = "status" ]; then
+          # How many End-to-end runs are waiting for their turn on dev (not
+          # running): a re-queue while one waits would cancel it.
+          e2e_waiting() {
+            local n=0 st
+            for st in queued pending waiting requested; do
+              n=$(( n + $(gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=$st&per_page=1" --jq .total_count) ))
+            done
+            echo "$n"
+          }
+          E2E_REQUEUED=0
+
+          if [ "$EVENT" = "workflow_run" ] && [ "$FINISHED" = "End-to-end" ]; then
+            # Dev just freed up: sweep, so the next waiting pull request gets
+            # its turn now rather than at the next (often hours-late) cron.
+            PRS=$(gh pr list --repo "$REPO" --state open --label auto-merge --json number --jq '.[].number' | sort -n)
+            if [ -z "$PRS" ]; then
+              echo "No open pull request is marked auto-merge — nothing to do."; exit 0
+            fi
+            echo "End-to-end finished; sweeping: $(echo "$PRS" | tr '\n' ' ')"
+          elif [ "$EVENT" = "workflow_run" ] || [ "$EVENT" = "status" ]; then
             # One pull request: the one whose commit the finished run was for.
             PRS=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[].number')
             if [ -z "$PRS" ]; then
@@ -451,7 +499,9 @@ jobs:
             fi
           else
             # The sweep: everything currently eligible, whatever woke it.
-            PRS=$(gh pr list --repo "$REPO" --state open --label auto-merge --json number --jq '.[].number')
+            # Oldest first: the pull request that has waited longest gets the
+            # one End-to-end re-queue this pass hands out.
+            PRS=$(gh pr list --repo "$REPO" --state open --label auto-merge --json number --jq '.[].number' | sort -n)
             if [ -z "$PRS" ]; then
               echo "No open pull request is marked auto-merge — nothing to do."; exit 0
             fi

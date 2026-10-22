@@ -165,7 +165,7 @@ function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
       </div>
       {canTap && goal.active && steps && goal.ownerId && (
         <details className="kin-target-log" style={{ padding: "0 0 0.5rem 2.375rem" }}>
-          <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-solid)" }}>Log steps</summary>
+          <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>Log steps</summary>
           <GameSteps goalId={goal.id} title={goal.title} />
         </details>
       )}
@@ -429,7 +429,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
           <div style={{ font: "600 1.25rem/1.2 var(--font-heading)" }}>{player?.coins ?? 0} coins</div>
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>From goals and chores. A request waits for a grown-up’s yes.</div>
         </div>
-        <Link href={`/planner/points/${me.id}`} style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "0.8125rem", color: "var(--color-accent-solid)", fontWeight: 600 }}>
+        <Link href={`/planner/points/${me.id}`} style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "0.8125rem", color: "var(--color-accent-700)", fontWeight: 600 }}>
           History ›
         </Link>
       </Blueprint>
@@ -446,7 +446,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
               style={{ flex: "none", minHeight: 44, fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem" }}
             >
               {s.name.split(" ")[0]} · 🪙 {s.spendable}
-              {s.awaiting > 0 && <span style={{ color: "var(--cal-money)" }}>· {s.awaiting} waiting</span>}
+              {s.awaiting > 0 && <span style={{ color: "var(--cal-money-ink)" }}>· {s.awaiting} waiting</span>}
             </Link>
           ))}
         </div>
@@ -502,7 +502,7 @@ function SetupView({ game, plus, focus }: { game: GameView; plus: boolean; focus
       )}
       {game.bigGoals.length === 0 && (
         <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, margin: "0 0 0.875rem" }}>
-          Targets come from goals. <Link href="/planner/goals/new" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>Set a goal</Link> first, then add the daily and weekly things that get you there.
+          Targets come from goals. <Link href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Set a goal</Link> first, then add the daily and weekly things that get you there.
         </p>
       )}
       <div style={{ marginBottom: "1rem" }}>

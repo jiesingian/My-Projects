@@ -41,8 +41,28 @@ frontend-design), read but never installed or run.
   GEDCOM keeps its own required form). People still see dates as
   22/10/2026.
 
-Proposals for Jonathan and Janine. These change the look, so they weren't
-built:
+**Proposals: all approved and built (Jonathan, 22 October: "proceed with
+all of the recommendations").** As written below, except where noted:
+
+- **Done (#860):** Fields have a visible edge in the theme's muted colour,
+  4.6:1 or more in all 16 themes. That's stronger than the proposed half
+  text colour, which fell to 2.1:1 in some themes.
+- **Done (#866):** The Planner month grid shows coloured dots. Each cell's
+  label reads the names out. Event rows' month abbreviation is 10.5px.
+- **Done (#862):** `--cal-money-ink` and `--cal-home-ink` colour the
+  status text (5:1 or more). Icons and stripes keep the bright colours.
+- **Done (#867):** Delete with Undo on Notes and the To-Buy list, with
+  the delete running only once the toast goes. Plans keep their confirm
+  sheet: a plan is deleted from its own page, which then leaves, so a
+  delayed delete would show the "deleted" plan on the Planner for
+  seconds.
+- **Done (#864):** ↑/↓ on every one-link-per-row list (Settings, Coming
+  up, a child's Today, Start here) and on the Notes board.
+- **Done (#863), found on the way:** the e2e sign-in puts the sample
+  member back to Simple Kin off before it checks Today. A run left it on,
+  and every PR's e2e then failed at sign-in.
+
+The proposals as first written:
 
 - **Input fields get a visible edge.** Every field is a 5% grey fill
   with no border: 1.1:1 against the card, under the 3:1 WCAG 1.4.11
@@ -111,6 +131,11 @@ the same day.
   bill. Not now hides it on that phone for a week (localStorage). A bill
   paid in another app ("Open app & log") is offered once it is confirmed,
   on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
+  Checked on dev 22 October, as the QA household at phone width, with a
+  throwaway bill removed afterwards: paying asks with ₱ and date filled in;
+  Not now adds nothing and hides it on that phone; Cash Flow and Today list
+  it; Add (amount edited) makes exactly one next bill on 15 November; then
+  it is not offered again.
   **Checked 22 October** (e2e/bill-roll.spec.ts, weekly tier: it writes
   bills, removed afterwards): as the QA household on dev, paying a repeating
   bill outside Kin raises the sheet with next month's date and the amount;
@@ -267,10 +292,11 @@ adding a paid service. Payments (PayMongo) are not part of this.
   assets and documents in their name. Probe: delete-my-account.mjs (every
   audited table seeded and checked). Open: a household left with only
   children has no grown-up who can invite one; a relative can't be added
-  until someone does it by hand. Also open, older than this: the Delete
-  household button sweeps only the household's folders, so photos of entries
-  added from "Just me" (filed under the writer's folder) stay in Storage
-  after it.
+  until someone does it by hand. Fixed since (20261022120000): when a
+  journal photo or video row naming a file in a member's own folder is
+  deleted by anyone or any cascade (Delete household, an account deletion),
+  the path is queued and the daily account-deletions job removes it once
+  no row names it.
 - **Done (wrap-up review of the audit, 22 October, 20261022110000):** a
   private account its owner had shared (`account_viewers`) was deleted
   with them, movements and all, out from under the person it was shared
@@ -413,7 +439,9 @@ are refused. Not checked: on a phone (see "Needs a real phone").
     device out once. Sending was already server-side: no client code
     receives a subscription. The cron path is unchanged apart from
     due_scheduled_messages() asking the new way. Probe:
-    push-targets-per-push.mjs. Not checked: a real push on a phone.
+    push-targets-per-push.mjs, and on dev with two real logins:
+    e2e/push-targets-live.spec.ts (every pull request's e2e job). Not
+    checked: the last hop to a real phone (deliver(), unchanged).
 - **Minor, left:**
   - ~~Deleting a note, question or gift row that's already gone reports
     success.~~ Done 20 October (kin/small-leftovers): "already removed".

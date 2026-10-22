@@ -127,11 +127,11 @@ export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[
           <Icon name="sparkle" size="0.9375rem" /> You tried it all: {earned} more days of Plus added
         </p>
       )}
-      <div className="kin-brief">{(open ? counted : steps).map(row)}</div>
+      <div className="kin-brief" data-kin-arrows="list">{(open ? counted : steps).map(row)}</div>
       {open && steps.some((s) => !s.bonus) && (
         <>
           <h4 className="kin-start-also">Also</h4>
-          <div className="kin-brief">{steps.filter((s) => !s.bonus).map(row)}</div>
+          <div className="kin-brief" data-kin-arrows="list">{steps.filter((s) => !s.bonus).map(row)}</div>
         </>
       )}
     </section>
