@@ -128,6 +128,7 @@ const MIGRATIONS = [
   "20261022110000_account_deletion_shared_private.sql",
   "20261022120000_household_delete_sweeps_person_files.sql",
   "20261022150000_accounts_deleted_at.sql",
+  "20261022160000_last_grownup_takes_household.sql",
 ];
 
 const only = process.argv[2];

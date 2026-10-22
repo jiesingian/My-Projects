@@ -60,9 +60,9 @@ export default async function ({ db, as, check, refused }) {
     await db.exec(`delete from members where id = '${M("a5")}'`);
     return (p.kind === "handover" && p.to_member === M("a5")) || p;
   });
-  await check("With no other grown-up but a child, the household stays for the child", async () => {
+  await check("With no other grown-up but a child, the screen says the household goes unless a grown-up joins", async () => {
     const p = await plan(M("d1"));
-    return (p.kind === "children_stay" && p.family_id === D) || p;
+    return (p.kind === "last_grown_up" && p.family_id === D) || p;
   });
   await check("Someone who is not the organizer hands nothing over", async () => (await plan(M("a2"))).kind === "none");
   await check("While another grown-up organizer remains, nothing is handed over", async () => {
@@ -428,7 +428,28 @@ export default async function ({ db, as, check, refused }) {
     return (await svc(`select finalize_account_deletion('${who}') r`))[0].r;
   };
 
-  await check("The only grown-up of a household with a managed child: the household and the child stay, untouched", async () => {
+  await check("A household with people on its family tree can be deleted: the tree goes with it", async () => {
+    const t = (await db.query("select confdeltype from pg_constraint where conname = 'family_tree_people_family_id_fkey'")).rows[0];
+    return t?.confdeltype === "c" || t;
+  });
+  // As on Supabase, every reference to a household goes with it (the
+  // stand-ins in base.sql leave most of them plain).
+  await db.exec(`
+    do $$
+    declare r record;
+    begin
+      for r in
+        select c.conrelid::regclass t, c.conname, a.attname col
+        from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+        where c.contype = 'f' and c.confrelid = 'public.families'::regclass and c.confdeltype = 'a' and c.conrelid <> 'public.families'::regclass
+      loop
+        execute format('alter table %s drop constraint %I', r.t, r.conname);
+        execute format('alter table %s add constraint %I foreign key (%I) references public.families(id) on delete cascade', r.t, r.conname, r.col);
+      end loop;
+    end
+    $$;
+  `);
+  await check("The only grown-up of a household with a managed child: the household goes, the child's profile with it", async () => {
     const F = "f0000000-0000-0000-0000-000000000000";
     const FAY = "10000000-0000-0000-0000-0000000000f1";
     await db.exec(`
@@ -442,17 +463,13 @@ export default async function ({ db, as, check, refused }) {
     `);
     const told = (await as(FAY, "select my_account_deletion_plan() p"))[0].p;
     const r = await leave(FAY);
-    const refusedDelete = await refused(() => svc(`select delete_household_for_account_deletion('${F}')`), "still has someone in it");
+    await svc(`select delete_household_for_account_deletion('${F}')`);
     const house = await count(`select count(*) n from families where id = '${F}'`);
-    const tot = (await db.query(`select full_name, status, dob::text dob from members where id = '${M("f2")}'`)).rows[0];
-    const totData = await count(`select (select count(*) from health_medicines where member_id = '${M("f2")}') + (select count(*) from member_avatars where member_id = '${M("f2")}') n`);
-    const fay = (await db.query(`select full_name from members where id = '${M("f1")}'`)).rows[0];
-    const ok = told.kind === "children_stay" && r.delete_families.length === 0 && refusedDelete === true && house === 1 &&
-      tot.full_name === "Tot F" && tot.status === "managed" && tot.dob === "2022-05-01" && totData === 2 && fay.full_name === "Former member" &&
-      !r.files.some((f) => f.path.includes("tot.jpg"));
-    return ok || { told, r, refusedDelete, house, tot, totData, fay };
+    const totLeft = await count(`select (select count(*) from members where id = '${M("f2")}') + (select count(*) from health_medicines where member_id = '${M("f2")}') + (select count(*) from member_avatars where member_id = '${M("f2")}') n`);
+    const ok = told.kind === "last_grown_up" && r.delete_families.includes(F) && house === 0 && totLeft === 0;
+    return ok || { told, r, house, totLeft };
   });
-  await check("The only grown-up of a household with a child who signs in: the child keeps the household and their login", async () => {
+  await check("The only grown-up of a household with a child who signs in: the household goes, the child's login is not touched", async () => {
     // A namesake once in House D: the vault's log can't tell whose "Dan D"
     // it is, so it is left.
     await db.exec(`
@@ -462,9 +479,10 @@ export default async function ({ db, as, check, refused }) {
     const r = await leave("10000000-0000-0000-0000-0000000000d1");
     const notice = (await db.query(`select dismissed_by_name n from vault_emergency_notices where family_id = '${D}'`)).rows[0].n;
     if (notice !== "Dan D") return { notice };
-    const dee = (await db.query(`select full_name, auth_user_id, status from members where id = '${M("d2")}'`)).rows[0];
+    await svc(`select delete_household_for_account_deletion('${D}')`);
     const house = await count(`select count(*) n from families where id = '${D}'`);
-    const ok = r.delete_families.length === 0 && house === 1 && dee.full_name === "Dee D" && dee.auth_user_id !== null && dee.status === "active";
+    const dee = await count(`select count(*) n from people where id = '${M("d2")}'`);
+    const ok = r.delete_families.includes(D) && house === 0 && dee === 1;
     return ok || { r, dee, house };
   });
   await check("Someone alone in their household: the job names it, and deletes it", async () => {
@@ -478,14 +496,14 @@ export default async function ({ db, as, check, refused }) {
       insert into journal_media (family_id, owner_person_id, visibility, storage_path) values ('${G}', '${M("b1")}', 'household', 'person/${M("b1")}/old.jpg');
     `);
     const told = (await as(GIL, "select my_account_deletion_plan() p"))[0].p;
-    const early = await refused(() => svc(`select delete_household_for_account_deletion('${G}')`), "still has someone in it");
+    const early = await refused(() => svc(`select delete_household_for_account_deletion('${G}')`), "still has a grown-up in it");
     const r = await leave(GIL);
     const paths = (await svc(`select delete_household_for_account_deletion('${G}') p`))[0].p;
     const after = await count(`select count(*) n from families where id = '${G}'`);
     const ok = told.kind === "delete_household" && early === true && r.delete_families.includes(G) && after === 0 && paths.includes(`person/${M("b1")}/old.jpg`);
     return ok || { told, early, r, after, paths };
   });
-  await check("A grown-up and a teen both leaving: the household goes with the last of them, not before", async () => {
+  await check("A grown-up and a teen both leaving: the household goes with the grown-up", async () => {
     const H = "80000000-0000-0000-0000-000000000000";
     const HAL = "10000000-0000-0000-0000-0000000000e1";
     const HANA = "10000000-0000-0000-0000-0000000000e2";
@@ -499,11 +517,35 @@ export default async function ({ db, as, check, refused }) {
     await as(HANA, "select request_account_deletion()");
     const first = await leave(HAL);
     const between = await count(`select count(*) n from families where id = '${H}'`);
-    const second = await leave(HANA);
     await svc(`select delete_household_for_account_deletion('${H}')`);
+    const second = await leave(HANA);
     const after = await count(`select count(*) n from families where id = '${H}'`);
-    const ok = first.delete_families.length === 0 && between === 1 && second.delete_families.includes(H) && after === 0;
+    const ok = first.delete_families.includes(H) && between === 1 && second.delete_families.length === 0 && after === 0;
     return ok || { first, between, second, after };
   });
-  await check("A household with someone left in it is refused by the job's delete", () => refused(() => svc(`select delete_household_for_account_deletion('${A}')`), "still has someone in it"));
+  await check("Two grown-ups both leaving with a child: the household stays until the second goes, and goes with them", async () => {
+    const K = "70000000-0000-0000-0000-000000000000";
+    const KAI = "10000000-0000-0000-0000-0000000000b7";
+    const KIT = "10000000-0000-0000-0000-0000000000b8";
+    await db.exec(`
+      insert into families (id, name) values ('${K}', 'House K');
+      insert into people (id, auth_user_id) values ('${M("b7")}', '${KAI}'), ('${M("b8")}', '${KIT}'), ('${M("b9")}', null);
+      insert into members (id, family_id, person_id, auth_user_id, full_name, role, status, is_organiser) values
+        ('${M("b7")}', '${K}', '${M("b7")}', '${KAI}', 'Kai K', 'parent', 'active', true),
+        ('${M("b8")}', '${K}', '${M("b8")}', '${KIT}', 'Kit K', 'adult', 'active', false),
+        ('${M("b9")}', '${K}', '${M("b9")}', null, 'Kid K', 'child_managed', 'managed', false);
+    `);
+    // Kit is not the organizer, but is the only grown-up staying once Kai has asked.
+    await as(KAI, "select request_account_deletion()");
+    const toldKit = (await as(KIT, "select my_account_deletion_plan() p"))[0].p;
+    await as(KIT, "select request_account_deletion()");
+    const first = await leave(KAI);
+    const early = await refused(() => svc(`select delete_household_for_account_deletion('${K}')`), "still has a grown-up in it");
+    const second = await leave(KIT);
+    await svc(`select delete_household_for_account_deletion('${K}')`);
+    const after = await count(`select count(*) n from families where id = '${K}'`);
+    const ok = toldKit.kind === "last_grown_up" && first.delete_families.length === 0 && early === true && second.delete_families.includes(K) && after === 0;
+    return ok || { toldKit, first, early, second, after };
+  });
+  await check("A household with a grown-up left in it is refused by the job's delete", () => refused(() => svc(`select delete_household_for_account_deletion('${A}')`), "still has a grown-up in it"));
 }

@@ -56,7 +56,7 @@ export default async function AccountSettingsPage() {
               </button>
             </form>
           ) : (
-            <DeleteAccountButton householdNote={planSentence(plan, toName)} />
+            <DeleteAccountButton householdNote={planSentence(plan, toName)} lastGrownUp={plan.kind === "last_grown_up"} />
           )}
         </div>
         <nav aria-label="Legal" style={{ display: "flex", justifyContent: "center", gap: "1.25rem", marginTop: "1.25rem", fontSize: "0.84375rem" }}>
