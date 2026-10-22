@@ -54,7 +54,7 @@ export function CollapsibleGroup({
  * tapped and back when tapped again. Open by default; the choice is
  * remembered on this device under `storageKey`, so a list someone keeps
  * folded stays folded. */
-export function FoldableSection({ label, storageKey, children }: { label: string; storageKey: string; children: React.ReactNode }) {
+export function FoldableSection({ label, storageKey, swatch, children }: { label: string; storageKey: string; swatch?: string; children: React.ReactNode }) {
   const open = useSyncExternalStore(
     subscribeFold,
     () => readFold(storageKey),
@@ -69,6 +69,8 @@ export function FoldableSection({ label, storageKey, children }: { label: string
         aria-expanded={open}
         style={{ all: "unset", display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", margin: "20px 0 8px" }}
       >
+        {/* A chart's colour for this group, beside its name (never alone). */}
+        {swatch && <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: swatch, flex: "none" }} />}
         <span className="kin-eyebrow">{label}</span>
         <span aria-hidden className="kin-chevron" data-open={open}>
           <Icon name="chevronLeft" size={14} />

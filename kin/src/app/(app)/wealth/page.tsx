@@ -39,6 +39,8 @@ import {
   CASH_FLOW_RANGES,
   CASH_FLOW_RANGE_LABELS,
   INCOME_FREQUENCY_LABELS,
+  INCOME_SOURCES,
+  incomeSourceColor,
   periodOverPeriodChange,
   cashBalanceTrend,
   billsDueWithin,
@@ -465,6 +467,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const categories = [...budget.allocations, ...budget.unbudgeted];
   const momChange = periodOverPeriodChange(cf.history);
 
+  // INCOME's groups: the sources in their own order, then any other
+  // source a row carries (an older or imported one) after them.
+  const usedSources = [...cf.incomeGroups.map((g) => g.category ?? "Other"), ...cf.expectedIncome.map((x) => x.category ?? "Salary"), ...cf.receivedIncome.map((x) => x.category ?? "Salary"), ...cf.recentIncome.map((e) => e.category ?? "Other")];
+  const incomeSources = [...INCOME_SOURCES, ...[...new Set(usedSources)].filter((c) => !(INCOME_SOURCES as readonly string[]).includes(c)).sort()];
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
@@ -515,13 +521,26 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           {scope === memberId && <SetTargetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />}
         </>
       )}
-      {/* Where this period's money came from, by source -- the same donut
-          EXPENSES has, with its list (22 October). */}
-      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0, color: c.color }))} currency={currency} monthBudget={null} kind="income" />
-      {cf.incomeGroups.length > 0 && (
-        <>
-          <SectionLabel>REGULAR INCOME</SectionLabel>
-          {cf.incomeGroups.map((g) => {
+      {/* One set of groups for the donut and the list (Janine, 22 October):
+          each income source is a group -- its regular incomes, what is
+          expected and received, and other money in -- in INCOME_SOURCES'
+          order, each folding on a tap; the donut has a slice per group in
+          the group's colour, so its own list would only repeat them. */}
+      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0 }))} currency={currency} monthBudget={null} kind="income" showList={false} />
+      {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
+        <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
+      )}
+      {incomeSources.map((source) => {
+        const groups = cf.incomeGroups.filter((g) => (g.category ?? "Other") === source);
+        const expected = cf.expectedIncome.filter((s) => (s.category ?? "Salary") === source);
+        const received = cf.receivedIncome.filter((s) => (s.category ?? "Salary") === source);
+        const recent = cf.recentIncome.filter((e) => (e.category ?? "Other") === source);
+        const count = groups.length + expected.length + received.length + recent.length;
+        if (count === 0) return null;
+        const earned = cf.incomeByCategory.find((c) => c.category === source)?.earned ?? 0;
+        return (
+          <FoldableSection key={source} label={`${source.toUpperCase()} · ${count} · ${formatCurrency(earned, currency)}`} storageKey={`kin-income-${source}`} swatch={incomeSourceColor(source)}>
+            {groups.map((g) => {
             const cap = g.monthly_target ? Number(g.monthly_target) : null;
             const pct = cap ? Math.min(100, Math.round((g.thisMonth / cap) * 100)) : 0;
             return (
@@ -550,36 +569,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
                 </div>
               </div>
             );
-          })}
-        </>
-      )}
-      {comingBack.length > 0 && (
-        <>
-          <SectionLabel>UTANG COMING BACK</SectionLabel>
-          {comingBack.map((u) => (
-            <Link
-              key={u.id}
-              href="/wealth/utang"
-              style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: "0.875rem", display: "block" }}>{u.personName}</span>
-                <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                  Instalment {u.next.n} of {u.of} · due {fmtDate(u.next.due)}
-                </span>
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                {u.overdue && <Tag variant="accent">OVERDUE</Tag>}
-                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(u.next.amount, currency)}</span>
-              </span>
-            </Link>
-          ))}
-        </>
-      )}
-      {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
-        <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
-      )}
-      {cf.expectedIncome.map((s) => (
+            })}
+            {expected.map((s) => (
         <div key={s.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -601,8 +592,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
             </span>
           </div>
         </div>
-      ))}
-      {cf.receivedIncome.map((s) => (
+            ))}
+            {received.map((s) => (
         <div key={s.id} style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: "0.875rem", display: "block" }}>{s.name}</span>
@@ -613,12 +604,33 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
           </span>
         </div>
-      ))}
-      {cf.recentIncome.length > 0 && (
-        <>
-          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>OTHER RECENT ACTIVITY</div>
-          {cf.recentIncome.map((e) => (
+            ))}
+            {recent.map((e) => (
             <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
+            ))}
+          </FoldableSection>
+        );
+      })}
+      {comingBack.length > 0 && (
+        <>
+          <SectionLabel>UTANG COMING BACK</SectionLabel>
+          {comingBack.map((u) => (
+            <Link
+              key={u.id}
+              href="/wealth/utang"
+              style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: "0.875rem", display: "block" }}>{u.personName}</span>
+                <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+                  Instalment {u.next.n} of {u.of} · due {fmtDate(u.next.due)}
+                </span>
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {u.overdue && <Tag variant="accent">OVERDUE</Tag>}
+                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(u.next.amount, currency)}</span>
+              </span>
+            </Link>
           ))}
         </>
       )}
