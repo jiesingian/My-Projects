@@ -251,6 +251,19 @@ adding a paid service. Payments (PayMongo) are not part of this.
   household button sweeps only the household's folders, so photos of entries
   added from "Just me" (filed under the writer's folder) stay in Storage
   after it.
+- **Done (wrap-up review of the audit, 22 October, 20261022110000):** a
+  private account its owner had shared (`account_viewers`) was deleted
+  with them, movements and all, out from under the person it was shared
+  with; it stays now, and only a private account nobody else is named on
+  goes. A "just me" paluwagan was left behind (names, members and all,
+  readable by nobody); it goes now, as private utang does. Check-ins they
+  asked of someone else go too. Still open, both older than the audit:
+  (1) if deleting an emptied household fails once (its own RPC, after
+  `finalize_account_deletion` has committed and dropped the request),
+  nothing lists that household again and it stays, empty, with its data
+  and files; (2) an organizer and another grown-up who both asked to
+  delete: the organizer's job promotes nobody (the other is pending), and
+  if the other then cancels, the household has no organizer.
 - **Done:** Consent banner and privacy section for the ad stage, built
   switched off. One switch: `AD_TRACKING_ON` in `src/lib/legal.ts`, on only
   when Vercel has `NEXT_PUBLIC_AD_TRACKING=on` (then redeploy); default
