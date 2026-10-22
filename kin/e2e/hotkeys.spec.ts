@@ -32,9 +32,26 @@ test("typing in a field never fires a shortcut", async ({ page }) => {
   await page.goto("/today");
   const line = page.locator(".kin-quickline-input");
   test.skip(!(await line.count()), "no one-line add on this Today");
-  await line.focus();
+  // After the page settles, and as a person would: clicked into, and
+  // confirmed focused before typing. A bare focus() straight after goto can
+  // lose focus to the page still starting up, and the keys then reach the
+  // page -- which is the test's fault, not the shortcuts'.
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await line.click();
+  await expect(line).toBeFocused();
   await page.keyboard.type("gp/?");
   await expect(page).toHaveURL(/\/today/);
   await expect(line).toHaveValue("gp/?");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("↓ and ↑ move through a list of rows (Settings)", async ({ page }) => {
+  await page.goto("/settings");
+  const rows = page.locator('[data-kin-arrows="list"]').first().locator("a[href]");
+  test.skip((await rows.count()) < 2, "fewer than two rows here");
+  await rows.nth(0).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
 });

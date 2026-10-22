@@ -91,7 +91,7 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
       ) : shown.length === 0 ? (
         <p style={{ color: "var(--color-neutral-600)" }}>No note has &ldquo;{query.trim()}&rdquo; in it.</p>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.625rem" }}>
+        <ul data-kin-arrows="list" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.625rem" }}>
           {shown.map((n) => (
             <li key={n.id} style={{ padding: "0.75rem 0.875rem", background: "var(--color-surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--radius-card)" }}>
               {editing?.id === n.id ? (
