@@ -39,7 +39,12 @@ test("typing in a field never fires a shortcut", async ({ page }) => {
   await page.goto("/today");
   const line = page.locator(".kin-quickline-input");
   test.skip(!(await line.count()), "no one-line add on this Today");
-  await line.focus();
+  // Focus only once the page is hydrated and settled: focused any earlier,
+  // hydration took the focus back and "gp" went to the page as g then p
+  // (seen once in five runs, 22 October).
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await line.click();
+  await expect(line).toBeFocused();
   await page.keyboard.type("gp/?");
   await expect(page).toHaveURL(/\/today/);
   await expect(line).toHaveValue("gp/?");
