@@ -727,9 +727,10 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   ]);
   const archived = allArchived.filter((a) => inScope(a, scope));
   // Whom an account of yours can be shown to: everyone else in the
-  // household with a login of their own (a managed child has none).
+  // household. A managed child is listed but can't be ticked -- with no
+  // login of their own there is nothing to show it to yet.
   const people: AccountAudienceMember[] = who.active.flatMap((m, i) =>
-    m.id === memberId || m.role === "child_managed" ? [] : [{ id: m.id, label: who.labels[i], grownUp: isGrownUp(m.role) }],
+    m.id === memberId ? [] : [{ id: m.id, label: who.labels[i], grownUp: isGrownUp(m.role), hasLogin: m.role !== "child_managed" }],
   );
   const isJoint = isHouseholdScope(scope);
   const mine = scope === memberId;

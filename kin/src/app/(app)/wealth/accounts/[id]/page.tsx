@@ -33,9 +33,9 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   ]);
   if (!account) notFound();
   // Who else this account can be shown to, as on the Accounts tab.
-  const others = members.filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== me.id && m.role !== "child_managed");
+  const others = members.filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== me.id);
   const otherNames = shortNames(others.map((m) => m.full_name));
-  const people = others.map((m, i) => ({ id: m.id, label: otherNames[i], grownUp: isGrownUp(m.role) }));
+  const people = others.map((m, i) => ({ id: m.id, label: otherNames[i], grownUp: isGrownUp(m.role), hasLogin: m.role !== "child_managed" }));
   const number = numbers.get(account.id) ?? null;
   const canNumber = account.is_joint ? isGrownUp(me.role) : account.owner_member_id === me.id;
   // The Accounts tab's cash trend, for this account alone: the same line,
