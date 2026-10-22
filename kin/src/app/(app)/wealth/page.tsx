@@ -33,6 +33,8 @@ import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   ASSET_KIND_LABELS,
+  ASSET_KINDS,
+  LIABILITY_KINDS,
   LIABILITY_KIND_LABELS,
   CASH_FLOW_RANGES,
   CASH_FLOW_RANGE_LABELS,
@@ -58,7 +60,7 @@ import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
-import { AccountsByOwnerPie, CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson, type AccountSlice } from "@/components/wealth-charts";
+import { OwnerBreakdownPie, CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson, type BreakdownSlice } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { canMarkPaid, cycleStart, fundPlan, STATUS_TEXT } from "@/lib/sinking-fund";
@@ -125,14 +127,25 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
     const i = active.findIndex((m) => m.id === ownerId);
     return i < 0 ? null : `${labels[i]}\u2019s`;
   };
-  return { active, labels, whoLabel, options, ownerOf };
+  // Whose a slice of a breakdown donut is. Slots follow the household, not
+  // the view -- Joint 0, then each member in order -- so a person's colour
+  // doesn't change with the Who picker. A departed member's falls to Family.
+  const sliceOwner = (ownerId: string | null, isJoint: boolean | null) => {
+    const i = isJoint || !ownerId ? -1 : active.findIndex((m) => m.id === ownerId);
+    return {
+      ownerKey: i < 0 ? "joint" : ownerId!,
+      ownerLabel: i < 0 ? "Family (joint)" : ownerId === memberId ? "You" : labels[i],
+      ownerSlot: i + 1,
+    };
+  };
+  return { active, labels, whoLabel, options, ownerOf, sliceOwner };
 }
 
 /* --------------------------------------------------------------- shared bits */
 
-/** The headline figure. `breakdown` (the Accounts tab) puts the
- * accounts-by-owner donut beside it and each owner's accounts under it. */
-function Hero({ label, amount, currency, caption, delta, breakdown }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode; breakdown?: AccountSlice[] }) {
+/** The headline figure. `breakdown` puts a by-owner donut beside it and
+ * each owner's items under it (Accounts: accounts; A&L: what is owned). */
+function Hero({ label, amount, currency, caption, delta, breakdown, noun }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode; breakdown?: BreakdownSlice[]; noun?: string }) {
   const head = (
     <>
       <div className="kin-eyebrow">{label}</div>
@@ -145,7 +158,7 @@ function Hero({ label, amount, currency, caption, delta, breakdown }: { label: s
   );
   return (
     <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
-      {breakdown ? <AccountsByOwnerPie head={head} slices={breakdown} currency={currency} /> : head}
+      {breakdown ? <OwnerBreakdownPie head={head} slices={breakdown} currency={currency} noun={noun} /> : head}
     </Blueprint>
   );
 }
@@ -720,19 +733,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
   // The hero's donut: each account in this view, labelled with whose it is.
-  // Slots follow the household, not this view -- Joint 0, then each member
-  // in order -- so a person's colour doesn't change with the Who picker.
-  const breakdown: AccountSlice[] = pane.accounts.map((a) => {
-    const i = a.is_joint || !a.owner_member_id ? -1 : who.active.findIndex((m) => m.id === a.owner_member_id);
-    return {
-      id: a.id,
-      name: a.name,
-      balance: a.balance,
-      ownerKey: i < 0 ? "joint" : a.owner_member_id!,
-      ownerLabel: i < 0 ? "Family (joint)" : a.owner_member_id === memberId ? "You" : who.labels[i],
-      ownerSlot: i + 1,
-    };
-  });
+  const breakdown: BreakdownSlice[] = pane.accounts.map((a) => ({ id: a.id, name: a.name, balance: a.balance, ...who.sliceOwner(a.owner_member_id, a.is_joint) }));
   const accountGroups = ACCOUNT_TYPES.map((t) => ({
     type: t,
     accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
@@ -936,6 +937,18 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   const pickableCash = toPickable(allAccounts, memberId);
   const mine = scope === memberId;
   const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
+  // What is owned and what is owed, each as a donut grouped by owner.
+  const owned: BreakdownSlice[] = [
+    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: a.name, balance: a.balance, detail: "Cash", ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    ...goals.map((g) => ({ id: `goal-${g.id}`, name: g.title, balance: Number(g.current_amount), detail: "Goal", ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
+    ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, balance: a.worth.total, detail: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+  ];
+  const owed: BreakdownSlice[] = liabilities.map((l) => ({ id: l.id, name: l.name, balance: Number(l.balance), detail: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) }));
+  // Each kind its own group, folded or open as the viewer last left it; a
+  // kind the list doesn't know is shown under Other.
+  const assetKindOf = (k: string): AssetKind => ((ASSET_KINDS as readonly string[]).includes(k) ? (k as AssetKind) : "other");
+  const liabilityKindOf = (k: string): LiabilityKind => ((LIABILITY_KINDS as readonly string[]).includes(k) ? (k as LiabilityKind) : "other");
+  const groupLabel = (name: string, count: number, total: number) => `${name.toUpperCase()} · ${count} · ${formatCurrency(total, currency)}`;
   const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
     cash: cashTotal,
     goals: goalTotal,
@@ -958,12 +971,14 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         amount={netWorth}
         currency={currency}
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
+        breakdown={owned}
+        noun="owned"
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
-      <SectionLabel>CASH & SAVINGS</SectionLabel>
+      <FoldableSection label={groupLabel("Cash & savings", cashAccounts.length, cashTotal)} storageKey="kin-al-cash">
       {cashAccounts.length === 0 && (
         <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
       )}
@@ -989,8 +1004,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           Read-only here — open an account from the Accounts tab to edit or add one.
         </div>
       )}
+      </FoldableSection>
 
-      <SectionLabel>SAVINGS GOALS</SectionLabel>
+      <FoldableSection label={groupLabel("Savings goals", goals.length, goalTotal)} storageKey="kin-al-goals">
       {goals.length === 0 && (
         <Empty icon={<Icon name="target" size={26} />} title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
       )}
@@ -1054,12 +1070,18 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <Link href="/wealth/add" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
         + ADD GOAL
       </Link>
+      </FoldableSection>
 
-      <SectionLabel>OTHER ASSETS</SectionLabel>
+      {assets.length === 0 && <SectionLabel>OTHER ASSETS</SectionLabel>}
       {assets.length === 0 && (
         <Empty icon={<Icon name="house" size={26} />} title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
       )}
-      {assets.map((a) => (
+      {ASSET_KINDS.map((kind) => {
+        const group = assets.filter((a) => assetKindOf(a.kind) === kind);
+        if (group.length === 0) return null;
+        return (
+          <FoldableSection key={kind} label={groupLabel(ASSET_KIND_LABELS[kind], group.length, group.reduce((t, a) => t + a.worth.total, 0))} storageKey={`kin-al-asset-${kind}`}>
+            {group.map((a) => (
         <div key={a.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -1094,17 +1116,40 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
           </div>
         </div>
-      ))}
+                  ))}
+          </FoldableSection>
+        );
+      })}
       <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + ASSET
       </Link>
       </CollapsibleGroup>
 
       <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
+      {owed.length >= 2 && (
+        <div style={{ margin: "0.75rem 0" }}>
+          <OwnerBreakdownPie
+            head={
+              <>
+                <div className="kin-eyebrow">OWED · BY WHOSE</div>
+                <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal, currency)}</div>
+              </>
+            }
+            slices={owed}
+            currency={currency}
+            noun="debts"
+          />
+        </div>
+      )}
       {liabilities.length === 0 && (
         <Empty icon={<Icon name="check" size={26} />} title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
-      {liabilities.map((l) => (
+      {LIABILITY_KINDS.map((kind) => {
+        const group = liabilities.filter((l) => liabilityKindOf(l.kind) === kind);
+        if (group.length === 0) return null;
+        return (
+          <FoldableSection key={kind} label={groupLabel(LIABILITY_KIND_LABELS[kind], group.length, group.reduce((t, l) => t + Number(l.balance), 0))} storageKey={`kin-al-liability-${kind}`}>
+            {group.map((l) => (
         <div key={l.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
@@ -1134,7 +1179,10 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
           </div>
         </div>
-      ))}
+                  ))}
+          </FoldableSection>
+        );
+      })}
       <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + LIABILITY
       </Link>
