@@ -41,3 +41,11 @@ test("a delete that fails brings the row back", async () => {
   await flush();
   expect(isHidden("row-c")).toBe(false);
 });
+
+test("a delete that throws (offline) brings the row back too", async () => {
+  const id = deleteWithUndo({ id: "row-d", message: "Deleted", remove: async () => { throw new Error("offline"); } });
+  toast.dismiss(id);
+  await flush();
+  await flush();
+  expect(isHidden("row-d")).toBe(false);
+});

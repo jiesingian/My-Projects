@@ -37,7 +37,8 @@ export function useHiddenRows(): ReadonlySet<string> {
   );
 }
 
-/** Whether a list should leave `id` out (useHiddenRows, outside React). */
+/** Whether a list should leave `id` out: useHiddenRows outside React (the
+ * logic tests use it). */
 export function isHidden(id: string): boolean {
   return hidden.has(id);
 }
@@ -59,13 +60,24 @@ export function deleteWithUndo({
   return toast.undo(message, {
     onUndo: () => set(id, false),
     onExpire: async () => {
-      const r = await remove();
-      if (r && r.error) {
+      let error: string | null = null;
+      try {
+        const r = await remove();
+        error = r ? r.error : null;
+      } catch {
+        // A thrown failure (offline, the server action itself failing) as
+        // well as a returned one: the row comes back either way.
+        error = "Kin couldn't delete that just now. It's back on the list; try again in a minute.";
+      }
+      if (error) {
         set(id, false);
-        toast.error(r.error);
+        toast.error(error);
         return;
       }
       onDeleted?.();
+      // Deleted: the refresh drops the row; let go of its id once it has,
+      // so the set does not grow all session.
+      setTimeout(() => set(id, false), 10_000);
     },
   });
 }
