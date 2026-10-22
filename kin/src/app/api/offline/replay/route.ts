@@ -10,6 +10,7 @@ import { choreAnswerVerdict, choreLogVerdict, doseVerdict, type Verdict } from "
 import { sendMessageAction } from "@/lib/actions/chat";
 import { familyDay } from "@/lib/time";
 import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types";
+import { reportError } from "@/lib/report-error";
 
 /** Changes made offline, sent in the order they were made (lib/offline/queue).
  *
@@ -59,7 +60,8 @@ export async function POST(request: Request) {
     let result: ReplayResult;
     try {
       result = await apply(op, me.id, me.family_id);
-    } catch {
+    } catch (err) {
+      reportError("Offline change could not be replayed", err, op.kind);
       result = { id: op.id, outcome: "retry" };
     }
     results.push(result);

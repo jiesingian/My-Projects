@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getMemberScores } from "@/lib/queries/routines";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import type { ActionState } from "@/lib/actions/auth";
@@ -24,7 +24,7 @@ export async function addRewardAction(_prev: ActionState, formData: FormData): P
   const { error } = await supabase
     .from("rewards")
     .insert({ family_id: me.family_id, title, cost_points: Math.round(cost), created_by: me.id });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -44,7 +44,7 @@ export async function setStreakBonusAction(_prev: ActionState, formData: FormDat
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_streak_bonus", { p_seven: seven, p_thirty: thirty });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -62,7 +62,7 @@ export async function updateRewardAction(rewardId: string, cost: number, budget:
 
   const supabase = await createClient();
   const { error } = await supabase.from("rewards").update({ cost_points: cost, budget_amount: budget }).eq("id", rewardId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -80,7 +80,7 @@ export async function retireRewardAction(rewardId: string): Promise<ActionState>
     .update({ active: false })
     .eq("id", rewardId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -128,7 +128,7 @@ export async function redeemRewardAction(rewardId: string, forMemberId?: string)
     member_id: memberId,
     cost_points: reward.cost_points,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -150,7 +150,7 @@ async function decideRedemption(redemptionId: string, status: "granted" | "refus
     .eq("id", redemptionId)
     .eq("family_id", me.family_id)
     .eq("status", "pending");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That one has already been answered." };
 
   revalidatePath("/planner");

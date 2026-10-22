@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { UUID } from "@/lib/ids";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
@@ -50,7 +50,7 @@ export async function createGiftDrawAction(input: NewDraw): Promise<ActionState 
     })
     .select("id")
     .single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "The draw couldn't be started." };
+  if (error || !data) return { error: error ? databaseError(error) : "The draw couldn't be started." };
   // The one who starts it is in it.
   await supabase.from("gift_draw_people").insert({ draw_id: data.id, member_id: me.id, family_id: me.family_id, added_by: me.id });
   refresh();
@@ -63,7 +63,7 @@ export async function deleteGiftDrawAction(id: string): Promise<ActionState> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_draws").delete().eq("id", id).eq("family_id", me.family_id).select("id");
   refresh();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only a grown-up of the household that started it can call it off." };
   return { error: null };
 }
@@ -78,7 +78,7 @@ export async function setDrawRulesAction(id: string, rules: { notOwnHousehold?: 
   if (rules.revealOnDay !== undefined) patch.reveal_on_day = rules.revealOnDay === true;
   const { data, error } = await supabase.from("gift_draws").update(patch).eq("id", id).eq("family_id", me.family_id).select("id");
   refresh(id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only a grown-up of the household that started it can change that." };
   return { error: null };
 }
@@ -92,7 +92,7 @@ export async function setDrawHouseholdAction(id: string, familyId: string, on: b
     ? await supabase.from("gift_draw_households").insert({ draw_id: id, family_id: familyId }).select("draw_id")
     : await supabase.from("gift_draw_households").delete().eq("draw_id", id).eq("family_id", familyId).select("draw_id");
   refresh(id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: on ? "That household can't be asked in." : "Only a grown-up can do that, before the draw." };
   return { error: null };
 }
@@ -107,7 +107,7 @@ export async function setInDrawAction(id: string, memberId: string, on: boolean)
     ? await supabase.from("gift_draw_people").insert({ draw_id: id, member_id: memberId, family_id: me.family_id, added_by: me.id }).select("id")
     : await supabase.from("gift_draw_people").delete().eq("draw_id", id).eq("member_id", memberId).select("id");
   refresh(id);
-  if (error) return { error: error.message.includes("gift_draw_people_once") ? null : humanDatabaseError(error.message) };
+  if (error) return { error: error.message.includes("gift_draw_people_once") ? null : databaseError(error) };
   if (!data?.length) return { error: "That can't be changed now: the draw is done, or they're not yours to put in." };
   return { error: null };
 }
@@ -121,7 +121,7 @@ export async function removeDrawPersonAction(id: string, personId: string): Prom
   const supabase = await createClient();
   const { data, error } = await supabase.from("gift_draw_people").delete().eq("draw_id", id).eq("id", personId).select("id");
   refresh(id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That can't be changed now: the draw is done, or they're not yours to take out." };
   return { error: null };
 }
@@ -133,7 +133,7 @@ export async function runGiftDrawAction(id: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("draw_gift_draw", { p_draw: id });
   refresh(id);
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** A wish list, one wish a line, replacing what was there: your own, or a
@@ -147,14 +147,14 @@ export async function saveWishesAction(id: string, personId: string, text: strin
   // (taken out of the draw meanwhile, say) leaves the list as it was rather
   // than empty.
   const { data: old, error: read } = await supabase.from("gift_draw_wishes").select("id").eq("person_id", personId);
-  if (read) return { error: humanDatabaseError(read.message) };
+  if (read) return { error: databaseError(read) };
   if (wishes.length) {
     const { error } = await supabase.from("gift_draw_wishes").insert(wishes.map((body) => ({ draw_id: id, person_id: personId, body })));
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   if (old?.length) {
     const { error: cleared } = await supabase.from("gift_draw_wishes").delete().eq("person_id", personId).in("id", old.map((w) => w.id));
-    if (cleared) return { error: humanDatabaseError(cleared.message) };
+    if (cleared) return { error: databaseError(cleared) };
   }
   refresh(id);
   return { error: null };

@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { buildIcs, type FeedRow } from "@/lib/ics";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
+import { reportError } from "@/lib/report-error";
 
 /** A member's private calendar feed, for Apple Calendar, Outlook and the
  * rest. Apple fetches it with no cookie, so the link's token is the only
@@ -19,7 +20,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   });
   const { data, error } = await supabase.rpc("calendar_feed", { feed_hash: toBase64Url(sha256(token)) });
   if (error) {
-    console.error("Calendar feed failed", error.message);
+    reportError("Calendar feed failed", error);
     return new Response("Try again later", { status: 503 });
   }
   // A link that matches nobody gets the same answer as one that never

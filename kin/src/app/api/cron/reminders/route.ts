@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { constantTimeEquals } from "@/lib/security/crypto";
 import { deliver, vapidReady } from "@/lib/push";
+import { reportError } from "@/lib/report-error";
 
 /** The five-minute reminder tick (20260926140000_reminders.sql).
  *
@@ -68,20 +69,20 @@ export async function POST(request: Request) {
   // has already written its reminder_sends keys by now, so leaving here sent
   // nothing for the other kinds and their keys kept them from going again --
   // one bad medicine time lost every household's Undas, recap and doses.
-  if (main.error) console.error("Reminders: due_reminders failed", main.error.message);
-  if (pantry.error) console.error("Reminders: due_pantry_reminders failed", pantry.error.message);
-  if (trial.error) console.error("Reminders: due_trial_reminders failed", trial.error.message);
-  if (week.error) console.error("Reminders: due_week_ahead_reminders failed", week.error.message);
-  if (promises.error) console.error("Reminders: due_goal_reward_reminders failed", promises.error.message);
-  if (scheduled.error) console.error("Reminders: due_scheduled_messages failed", scheduled.error.message);
-  if (billsAhead.error) console.error("Reminders: due_bill_ahead_reminders failed", billsAhead.error.message);
-  if (letters.error) console.error("Reminders: due_letter_notifications failed", letters.error.message);
-  if (rsvps.error) console.error("Reminders: due_rsvp_reminders failed", rsvps.error.message);
-  if (missed.error) console.error("Reminders: due_missed_dose_alerts failed", missed.error.message);
-  if (refills.error) console.error("Reminders: due_refill_reminders failed", refills.error.message);
-  if (vault.error) console.error("Reminders: due_vault_emergency_reminders failed", vault.error.message);
-  if (remembrance.error) console.error("Reminders: due_remembrance_reminders failed", remembrance.error.message);
-  if (recap.error) console.error("Reminders: due_money_recap_reminders failed", recap.error.message);
+  if (main.error) reportError("Reminders: due_reminders failed", main.error);
+  if (pantry.error) reportError("Reminders: due_pantry_reminders failed", pantry.error);
+  if (trial.error) reportError("Reminders: due_trial_reminders failed", trial.error);
+  if (week.error) reportError("Reminders: due_week_ahead_reminders failed", week.error);
+  if (promises.error) reportError("Reminders: due_goal_reward_reminders failed", promises.error);
+  if (scheduled.error) reportError("Reminders: due_scheduled_messages failed", scheduled.error);
+  if (billsAhead.error) reportError("Reminders: due_bill_ahead_reminders failed", billsAhead.error);
+  if (letters.error) reportError("Reminders: due_letter_notifications failed", letters.error);
+  if (rsvps.error) reportError("Reminders: due_rsvp_reminders failed", rsvps.error);
+  if (missed.error) reportError("Reminders: due_missed_dose_alerts failed", missed.error);
+  if (refills.error) reportError("Reminders: due_refill_reminders failed", refills.error);
+  if (vault.error) reportError("Reminders: due_vault_emergency_reminders failed", vault.error);
+  if (remembrance.error) reportError("Reminders: due_remembrance_reminders failed", remembrance.error);
+  if (recap.error) reportError("Reminders: due_money_recap_reminders failed", recap.error);
   const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? []), ...(remembrance.data ?? []), ...(recap.data ?? [])];
 
   vapidReady();

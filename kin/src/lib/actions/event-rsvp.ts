@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { UUID } from "@/lib/ids";
 import { isRsvpAnswer } from "@/lib/event-rsvp";
 
@@ -25,7 +25,7 @@ export async function setRsvpAction(eventId: string, memberId: string, answer: s
           .upsert({ event_id: eventId, member_id: memberId, family_id: me.family_id, answer, answered_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "event_id,member_id" })
           .select("event_id");
   revalidatePath("/planner");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // An update the policies filtered out comes back empty rather than as an
   // error: the event is over, or this isn't someone you can answer for.
   if (!data?.length && answer !== null) return { error: "Answers are closed for this event." };

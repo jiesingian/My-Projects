@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { sweepExpiredHighlightsFor } from "@/lib/highlights-sweep";
 import { HIGHLIGHT_MAX_SECONDS, HIGHLIGHT_PHOTO_BYTES, HIGHLIGHT_VIDEO_BYTES } from "@/lib/highlights";
 
@@ -41,7 +41,7 @@ export async function createHighlightAction(input: {
   });
   if (error) {
     await supabase.storage.from("documents").remove([input.storagePath]);
-    return { error: humanDatabaseError(error.message) };
+    return { error: databaseError(error) };
   }
   after(() => sweepExpiredHighlights());
   revalidatePath("/chat", "layout");
@@ -55,7 +55,7 @@ export async function deleteHighlightAction(id: string): Promise<{ error: string
   const { data: row } = await supabase.from("highlights").select("storage_path").eq("id", id).eq("member_id", me.id).maybeSingle();
   if (!row) return { error: "That highlight has already gone." };
   const { error } = await supabase.from("highlights").delete().eq("id", id).eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   await supabase.storage.from("documents").remove([row.storage_path]);
   revalidatePath("/chat", "layout");
   return { error: null };

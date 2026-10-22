@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
@@ -59,7 +59,7 @@ export async function addUtangAction(_prev: ActionState, formData: FormData): Pr
     remind: direction === "lent" && formData.get("remind") === "on",
     recorded_by: me.id,
   });
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh();
   return { error: null };
@@ -87,7 +87,7 @@ export async function addUtangPaymentAction(_prev: ActionState, formData: FormDa
     note: clamp(String(formData.get("note") ?? ""), 200) || null,
     recorded_by: me.id,
   });
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh();
   return { error: null };
@@ -98,7 +98,7 @@ export async function removeUtangPaymentAction(paymentId: string): Promise<Actio
   if (error) return { error };
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("utang_payments").delete().eq("id", paymentId).eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh();
   return { error: null };
 }
@@ -108,7 +108,7 @@ export async function deleteUtangAction(utangId: string): Promise<ActionState> {
   if (error) return { error };
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("utang_entries").delete().eq("id", utangId).eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh();
   return { error: null };
 }
@@ -125,7 +125,7 @@ export async function setUtangOptionsAction(utangId: string, opts: { remind?: bo
     .update({ ...(opts.remind === undefined ? {} : { remind: opts.remind }), ...(opts.isPrivate === undefined ? {} : { is_private: opts.isPrivate }) })
     .eq("id", utangId)
     .eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh();
   return { error: null };
 }
@@ -171,7 +171,7 @@ export async function addPaluwaganAction(_prev: ActionState, formData: FormData)
     })
     .select("id")
     .single();
-  if (dbError || !group) return { error: humanDatabaseError(dbError?.message ?? "Not saved.") };
+  if (dbError || !group) return { error: databaseError(dbError ?? "Not saved.") };
 
   const usIndex = usTurn > 0 ? Math.min(usTurn, names.length) - 1 : -1;
   const { error: membersError } = await supabase
@@ -179,7 +179,7 @@ export async function addPaluwaganAction(_prev: ActionState, formData: FormData)
     .insert(names.map((n, i) => ({ group_id: group.id, family_id: me.family_id, name: n, turn: i + 1, is_us: i === usIndex })));
   if (membersError) {
     await supabase.from("paluwagan_groups").delete().eq("id", group.id);
-    return { error: humanDatabaseError(membersError.message) };
+    return { error: databaseError(membersError) };
   }
 
   refresh();
@@ -197,7 +197,7 @@ export async function setPaluwaganPaidAction(groupId: string, memberId: string, 
         { onConflict: "member_id,round", ignoreDuplicates: true },
       )
     : await supabase.from("paluwagan_payments").delete().eq("member_id", memberId).eq("round", round).eq("group_id", groupId);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh(`/wealth/paluwagan/${groupId}`);
   return { error: null };
 }
@@ -211,7 +211,7 @@ export async function setPaluwaganOptionsAction(groupId: string, opts: { remind?
     .update({ ...(opts.remind === undefined ? {} : { remind: opts.remind }), ...(opts.isPrivate === undefined ? {} : { is_private: opts.isPrivate }) })
     .eq("id", groupId)
     .eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh(`/wealth/paluwagan/${groupId}`);
   return { error: null };
 }
@@ -221,7 +221,7 @@ export async function deletePaluwaganAction(groupId: string): Promise<ActionStat
   if (error) return { error };
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("paluwagan_groups").delete().eq("id", groupId).eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
   refresh();
   return { error: null };
 }

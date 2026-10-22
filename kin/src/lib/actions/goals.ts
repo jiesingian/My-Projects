@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { readAccess } from "@/lib/access";
 import { familyDay } from "@/lib/time";
@@ -113,7 +113,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
     })
     .select("id")
     .single();
-  if (error || !goal) return { error: humanDatabaseError(error?.message ?? "Could not save the goal.") };
+  if (error || !goal) return { error: databaseError(error ?? "Could not save the goal.") };
 
   if (reward) {
     // Offered by the giver: promised now. Asked of someone else: pending.
@@ -127,7 +127,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
       ...(offered ? { status: "approved", decided_by: me.id, decided_at: new Date().toISOString() } : {}),
     });
     // The goal stands either way; say what did not.
-    if (rewardError) return { error: `The goal is saved, but not its reward: ${humanDatabaseError(rewardError.message)}` };
+    if (rewardError) return { error: `The goal is saved, but not its reward: ${databaseError(rewardError)}` };
   }
 
   revalidatePath("/planner");
@@ -158,7 +158,7 @@ export async function logGoalAction(goalId: string, amount = 1, day?: string): P
     entry_date: entryDate,
     amount,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -182,7 +182,7 @@ export async function unlogGoalAction(goalId: string): Promise<{ error: string |
     .maybeSingle();
   if (!last) return { error: "Nothing logged this week to take back." };
   const { error } = await supabase.from("planner_goal_entries").delete().eq("id", last.id).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -247,7 +247,7 @@ export async function logGoalReadingAction(goalId: string, value: number, day?: 
       .maybeSingle();
     if (existing) {
       const { error } = await supabase.from("health_vitals").update({ value_text: valueText }).eq("id", existing.id).eq("family_id", me.family_id);
-      if (error) return { error: humanDatabaseError(error.message) };
+      if (error) return { error: databaseError(error) };
       return readingSaved(memberId);
     }
   }
@@ -264,7 +264,7 @@ export async function logGoalReadingAction(goalId: string, value: number, day?: 
     visibility: goal.visibility === "private" ? "private" : "family",
     created_by: me.id,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   return readingSaved(memberId);
 }
 
@@ -297,7 +297,7 @@ export async function unlogGoalReadingAction(goalId: string): Promise<{ error: s
     .maybeSingle();
   if (!last) return { error: "Nothing typed in this week to take back." };
   const { error } = await supabase.from("health_vitals").delete().eq("id", last.id).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   return readingSaved(memberId);
 }
 
@@ -314,7 +314,7 @@ export async function setGoalVisibilityAction(goalId: string, visibility: "house
   if (goal.owner_member_id !== me.id) return { error: "Only the person whose goal it is can choose who sees it." };
   if (visibility === "private" && !isGrownUp(me.role)) return { error: "A child's goals stay visible to the grown-ups of the house." };
   const { error } = await supabase.from("planner_goals").update({ visibility }).eq("id", goalId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -327,7 +327,7 @@ export async function deleteGoalAction(goalId: string): Promise<{ error: string 
   if (error) {
     // The one who promised a reward on it cannot delete the promise with it.
     if (/goal_promised/.test(error.message)) return { error: "You promised a reward on this goal, so it stays until the reward is given — or the one receiving it lets it go." };
-    return { error: humanDatabaseError(error.message) };
+    return { error: databaseError(error) };
   }
   if (count === 0) return { error: "That goal is no longer here." };
   revalidatePath("/planner");
@@ -344,7 +344,7 @@ async function rewardStep(goalId: string, action: "promise" | "refuse" | "claim"
   const { error } = await supabase.rpc("goal_reward_act", { p_goal: goalId, p_action: action });
   if (error) {
     if (/goal_reward_not_yours/.test(error.message)) return { error: "That step isn't yours to take on this reward right now." };
-    return { error: humanDatabaseError(error.message) };
+    return { error: databaseError(error) };
   }
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -387,7 +387,7 @@ export async function withdrawGoalRewardAction(goalId: string): Promise<{ error:
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("planner_goal_rewards").delete({ count: "exact" }).eq("goal_id", goalId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "A promised reward can only be let go by the one receiving it." };
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -416,7 +416,7 @@ export async function addGoalRewardAction(goalId: string, title: string, giverId
     giver_member_id: giver.id,
     ...(offered ? { status: "approved", decided_by: me.id, decided_at: new Date().toISOString() } : {}),
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -463,12 +463,12 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
 
   if (!needsYes) {
     const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate, ...pointsChange }).eq("id", goal.id).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     // The name is nobody's promise: it changes now. The rest waits.
     if (title !== goal.title || "points" in pointsChange) {
       const { error } = await supabase.from("planner_goals").update({ title, ...pointsChange }).eq("id", goal.id).eq("family_id", me.family_id);
-      if (error) return { error: humanDatabaseError(error.message) };
+      if (error) return { error: databaseError(error) };
     }
     const { error } = await supabase.from("planner_goal_changes").insert({
       family_id: me.family_id,
@@ -480,7 +480,7 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
       due_date: dueDate,
       change_due_date: goal.due_date !== dueDate,
     });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   revalidatePath("/planner");
@@ -494,7 +494,7 @@ async function decideGoalChange(changeId: string, approve: boolean): Promise<{ e
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("decide_goal_change", { p_change: changeId, p_approve: approve });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -512,7 +512,7 @@ export async function withdrawGoalChangeAction(changeId: string): Promise<{ erro
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("planner_goal_changes").delete({ count: "exact" }).eq("id", changeId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "Only whoever asked can take the change back." };
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -534,7 +534,7 @@ export async function claimGoalPeriodAction(goalId: string): Promise<{ error: st
   if (goal.claim) return { error: "Already claimed for this one." };
   const supabase = await createClient();
   const { error } = await supabase.from("planner_goal_completions").insert({ family_id: me.family_id, goal_id: goal.id, member_id: me.id, period_start: goal.periodStart });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -551,7 +551,7 @@ export async function unclaimGoalPeriodAction(goalId: string, periodStart: strin
     .eq("period_start", periodStart)
     .eq("member_id", me.id)
     .neq("status", "refused");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "Nothing to take back." };
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -570,7 +570,7 @@ export async function answerGoalClaimAction(claimId: string, yes: boolean): Prom
     .eq("id", claimId)
     .eq("family_id", me.family_id)
     .eq("status", "pending");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "Already answered, or taken back." };
   revalidatePath("/planner");
   revalidatePath("/today");

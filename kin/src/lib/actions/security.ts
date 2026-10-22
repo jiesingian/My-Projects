@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { constantTimeEquals, hashPin, newSalt, randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { verifyAssertion, ES256, RS256 } from "@/lib/security/webauthn";
 import { CHALLENGE_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, getLockState, relyingParty } from "@/lib/security/gate";
@@ -50,7 +50,7 @@ async function grantUnlock(memberId: string): Promise<ActionState> {
       updated_at: new Date().toISOString(),
     })
     .eq("member_id", memberId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   const jar = await cookies();
   jar.set(UNLOCK_COOKIE, token, { httpOnly: true, sameSite: "lax", secure, path: "/", expires });
@@ -114,7 +114,7 @@ export async function setDocumentsPinAction(_prev: ActionState, formData: FormDa
     },
     { onConflict: "member_id" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
@@ -161,7 +161,7 @@ export async function removeDocumentsPinAction(): Promise<ActionState> {
     .from("member_security")
     .update({ pin_hash: null, pin_salt: null, pin_set_at: null, failed_attempts: 0, locked_until: null, updated_at: new Date().toISOString() })
     .eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
   return { error: null };
@@ -246,7 +246,7 @@ export async function finishBiometricSetupAction(input: {
     alg: input.alg,
     label: input.label.slice(0, 60) || "This device",
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
@@ -318,7 +318,7 @@ export async function removeBiometricCredentialAction(credentialRowId: string): 
     .delete()
     .eq("id", credentialRowId)
     .eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
   return { error: null };
