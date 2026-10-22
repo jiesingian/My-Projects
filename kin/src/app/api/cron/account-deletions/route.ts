@@ -9,10 +9,11 @@ import { HOUSEHOLD_BUCKETS, removeFolder } from "@/lib/storage-sweep";
  * calls app/api/cron/reminders. For each one due, the database removes the
  * person's own data, hands the household to another grown-up or names it
  * for deletion, and keeps their shared records under "Former member"
- * (finalize_account_deletion). This route then does what plain SQL can't:
- * removes their files from Storage and their login from Auth, and deletes a
- * household left with no grown-up the way Delete household does (#777's
- * health photo paths, then every household folder). Those need the service
+ * (finalize_account_deletion, 20261022090000). This route then does what
+ * plain SQL can't: removes their files from Storage and their login from
+ * Auth, and deletes a household left with nobody in it the way Delete
+ * household does (#777's health photo paths, then every household folder).
+ * Those need the service
  * role, as deleting a login always has (the old Delete my account did the
  * same); it is used for nothing else here, and reads nothing.
  * Until CRON_SECRET and the service-role key are set it answers 503. */
@@ -37,20 +38,30 @@ export async function POST(request: Request) {
       console.error(`Account deletion ${userId} did not finish`, finalizeError.message);
       continue;
     }
-    const result = (data ?? {}) as { person_id?: string | null; files?: { bucket: string; path: string }[]; delete_families?: string[] };
+    const result = (data ?? {}) as {
+      person_id?: string | null;
+      files?: { bucket: string; path: string }[];
+      keep_files?: { bucket: string; path: string }[];
+      delete_families?: string[];
+    };
 
     for (const bucket of new Set((result.files ?? []).map((f) => f.bucket))) {
       const paths = (result.files ?? []).filter((f) => f.bucket === bucket).map((f) => f.path);
       for (let i = 0; i < paths.length; i += 100) await admin.storage.from(bucket).remove(paths.slice(i, i + 100));
     }
+    // Their own folder, except the photos of entries they added to the
+    // household journal from "Just me": those stay where they were filed.
     if (result.person_id) {
-      for (const bucket of HOUSEHOLD_BUCKETS) await removeFolder(admin, bucket, `person/${result.person_id}`);
+      for (const bucket of HOUSEHOLD_BUCKETS) {
+        const keep = new Set((result.keep_files ?? []).filter((f) => f.bucket === bucket).map((f) => f.path));
+        await removeFolder(admin, bucket, `person/${result.person_id}`, 0, keep);
+      }
     }
 
     for (const familyId of result.delete_families ?? []) {
       const { data: healthFiles, error: householdError } = await admin.rpc("delete_household_for_account_deletion", { p_family: familyId });
       if (householdError) {
-        // Another grown-up is still there (one also leaving, say): the
+        // Someone is still there (another grown-up also leaving, say): the
         // household stays, and their own deletion will come back to it.
         console.error(`Household ${familyId} was kept after an account deletion: ${householdError.message}`);
         continue;

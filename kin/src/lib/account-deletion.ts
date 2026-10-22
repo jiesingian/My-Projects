@@ -26,7 +26,11 @@ export type HandoverMember = {
   leaving?: boolean;
 };
 
-export type HandoverPlan = { kind: "none" } | { kind: "handover"; to_member: string } | { kind: "delete_household" };
+export type HandoverPlan =
+  | { kind: "none" }
+  | { kind: "handover"; to_member: string }
+  | { kind: "children_stay" }
+  | { kind: "delete_household" };
 
 const grownUp = (role: string) => role === "parent" || role === "adult";
 
@@ -34,8 +38,10 @@ const grownUp = (role: string) => role === "parent" || role === "adult";
  * - not its organizer, or another grown-up organizer stays: nothing;
  * - otherwise the next active grown-up becomes organizer, a parent before
  *   an adult, then whoever joined first;
- * - no other active grown-up: the household is deleted (children's managed
- *   profiles go with it, as with Delete household; never on their own). */
+ * - no other active grown-up but children remain: the household stays for
+ *   them, with everything in it and no organizer -- an account deletion
+ *   never deletes a child's profile (20261022090000);
+ * - nobody else left at all: the household is deleted. */
 export function handoverPlan(leaving: HandoverMember, household: HandoverMember[]): HandoverPlan {
   if (!leaving.is_organiser || !grownUp(leaving.role)) return { kind: "none" };
   const others = household.filter((m) => m.id !== leaving.id && m.status === "active" && grownUp(m.role) && !m.leaving);
@@ -43,14 +49,17 @@ export function handoverPlan(leaving: HandoverMember, household: HandoverMember[
   const next = [...others].sort(
     (a, b) => Number(b.role === "parent") - Number(a.role === "parent") || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
   )[0];
-  return next ? { kind: "handover", to_member: next.id } : { kind: "delete_household" };
+  if (next) return { kind: "handover", to_member: next.id };
+  const stays = household.some((m) => m.id !== leaving.id && (m.status === "active" || m.status === "managed") && !m.leaving);
+  return stays ? { kind: "children_stay" } : { kind: "delete_household" };
 }
 
 /** The sentence the delete screen shows about the household. */
 export function planSentence(plan: HandoverPlan, toName?: string | null): string | null {
   if (plan.kind === "handover") return `${toName || "Another grown-up"} will become the household's organizer.`;
-  if (plan.kind === "delete_household")
-    return "You're the household's only grown-up, so the household goes too, with everything in it, children's profiles included. Add another grown-up first to keep it.";
+  if (plan.kind === "children_stay")
+    return "You're the household's only grown-up. The household stays for the children, with their profiles and everything in it, but no grown-up will be there to look after it. Add another grown-up first.";
+  if (plan.kind === "delete_household") return "You're the only one in the household, so the household goes too, with everything in it.";
   return null;
 }
 

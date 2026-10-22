@@ -188,10 +188,10 @@ adding a paid service. Payments (PayMongo) are not part of this.
   records (plans, lists, money, chat, DMs to others) keep an author. If they
   were the last grown-up organizer, the next active grown-up (a parent
   before an adult, longest in the household first) becomes organizer; with
-  no grown-up left, the household is deleted as Delete household does it
-  (#777's health photo paths, every household folder). Managed children's
-  profiles are never touched by an account deletion, only by that
-  household deletion. The route removes files and the login with the
+  no grown-up left but children, the household stays for them (see the
+  audit below); with nobody left, the household is deleted as Delete
+  household does it (#777's health photo paths, every household folder).
+  Children's profiles are never deleted by an account deletion. The route removes files and the login with the
   service-role key (as the old immediate delete did). The old immediate
   delete is gone. **Download:** the existing ZIP gains `mine/`: own profile,
   personal notes/journal/goals, saved messages, and the files themselves
@@ -203,6 +203,39 @@ adding a paid service. Payments (PayMongo) are not part of this.
   `kin_cron_url`/`kin_cron_secret` and Vercel's `SUPABASE_SERVICE_ROLE_KEY`
   are set in production; until they are, requests wait and nothing is
   removed.
+- **Done (account deletion audit, 22 October):** every reference to a
+  person, member or personal-space row (dev's schema: 211 foreign keys --
+  184 to members, 24 to people, 3 to logins -- the uuid and name columns
+  without one, storage paths) checked against `finalize_account_deletion`
+  (20261022090000). Fixed: (1) household journal entries, photos and joint
+  goals they wrote were deleted with their personal space (`owner_person_id`
+  is on every entry), and a trip linked to one would have failed the job
+  every night; now only "Just me" rows, non-joint goals and notes go, and a
+  trip lets go of a personal entry. (2) Nothing that cascades from `members`
+  ever fired, since the row is kept: locations, SOS alerts, passkeys,
+  calendar/import/list tokens, photo album and highlights (with files),
+  check-ins, budgets, alkansya, game scores, RSVPs, vault access and 20 more
+  are now deleted (letters to them stay: their writer still reads them);
+  names copied onto rows others read (chat, comments, reactions, potluck,
+  stories, letters written, remittances, the vault's log) say "Former
+  member", through three triggers that had kept or refused the rename;
+  private accounts, debts, remittances and documents nobody else can see go
+  with their files; a membership they moved out of is emptied too. (3) Files
+  of "Just me" entries later added to the household stay (the folder sweep
+  keeps them). (4) A household with only children left is kept, children's
+  profiles and records untouched, with no organizer; only an empty one is
+  deleted, by whoever leaves it last (two leaving together no longer strand
+  it), and its photos filed under someone's own folder go with it. Left on
+  purpose: a pin's `pinned_by` (a first name, nothing says whose), a vault
+  log name a namesake in the household shares, the household's tree person
+  for them (unlinked from the account), and household-visible accounts,
+  assets and documents in their name. Probe: delete-my-account.mjs (every
+  audited table seeded and checked). Open: a household left with only
+  children has no grown-up who can invite one; a relative can't be added
+  until someone does it by hand. Also open, older than this: the Delete
+  household button sweeps only the household's folders, so photos of entries
+  added from "Just me" (filed under the writer's folder) stay in Storage
+  after it.
 - **Done:** Consent banner and privacy section for the ad stage, built
   switched off. One switch: `AD_TRACKING_ON` in `src/lib/legal.ts`, on only
   when Vercel has `NEXT_PUBLIC_AD_TRACKING=on` (then redeploy); default
