@@ -3,7 +3,6 @@
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { scriptFamily } from "@/lib/script-font";
 import { AnimatedSheet } from "@/components/animated-sheet";
 import { MemberCardBody } from "@/components/member-card";
 import { SosButton } from "@/components/sos-button";
@@ -75,12 +74,13 @@ export function TodayHeader({
           column one letter wide. */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "0.625rem 0.75rem" }}>
         {/* The initials, SOS and Settings share the name's line (Janine, 12
-            October), so the name only gives up its line to them below 8rem. */}
-        <div style={{ flex: "1 1 8rem", minWidth: 0 }}>
+            October) when the whole name fits beside them; a longer name takes
+            the line and they move under it, so no word is ever broken. */}
+        <div style={{ flex: "1 1 auto", minWidth: 0 }}>
           <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
           {/* Grows with the text size until a long word would no longer fit
-              the phone, and stops there instead of breaking the word. */}
-          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>
+              the phone, and wraps between words, never inside one. */}
+          <h2 style={{ fontSize: "min(1.875rem, 8.5vw)", overflowWrap: "normal" }}>
             <FamilyName name={familyName} />
           </h2>
         </div>
@@ -160,8 +160,9 @@ export function TodayHeader({
   );
 }
 
-/** The household's name in handwriting, the whole of it ("The" too, Janine,
- * 12 October). */
+/** The household's name, the whole of it ("The" too), in the heading font
+ * like every other title (Janine, 22 October: handwriting was 12 October's,
+ * and not every family would want it). */
 function FamilyName({ name }: { name: string }) {
-  return <span style={{ fontFamily: scriptFamily, fontWeight: 600, fontSize: "1.15em", letterSpacing: 0 }}>{name}</span>;
+  return <span>{name}</span>;
 }
