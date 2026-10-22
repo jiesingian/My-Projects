@@ -1,4 +1,5 @@
 import { PushKeepAlive } from "@/components/push-opt-in";
+import { DoseAlarmListener } from "@/components/dose-alarm";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { HouseholdZoneProvider } from "@/components/household-zone";
@@ -62,6 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // class on the shell (globals.css, "Simple Kin").
     <div className={inSimpleMode(member) ? "kin-shell kin-simple" : "kin-shell"}>
       <PushKeepAlive />
+      <DoseAlarmListener />
       {/* The member's text size, and the three layout switches that have to
           answer it -- see text-scale.ts for why they are generated rather than
           written in globals.css.

@@ -131,6 +131,7 @@ const MIGRATIONS = [
   "20261022160000_last_grownup_takes_household.sql",
   "20261022170000_income_groups.sql",
   "20261022180000_utang_instalments.sql",
+  "20261022190000_dose_reminder_repeats.sql",
 ];
 
 const only = process.argv[2];
