@@ -111,6 +111,21 @@ the same day.
   bill. Not now hides it on that phone for a week (localStorage). A bill
   paid in another app ("Open app & log") is offered once it is confirmed,
   on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
+  **Checked 22 October** (e2e/bill-roll.spec.ts, weekly tier: it writes
+  bills, removed afterwards): as the QA household on dev, paying a repeating
+  bill outside Kin raises the sheet with next month's date and the amount;
+  Add makes exactly one next bill at that date and amount, Not now makes
+  none, and a bill whose next one exists offers nothing. Cash Flow and Today
+  at 320px and 390px, Simple Kin off and on, and the sheet at 320px in
+  Simple Kin: nothing wider than the phone; in Simple Kin the offer's and
+  the sheet's buttons and an open bill's Settle, reminder and Remove are
+  44px. Fixed on the way: in Simple Kin at 320px a bill's Settle / reminder
+  / Remove row ran 39px off the screen, and "Next 30 days" broke bill names
+  mid-word (both rows wrap now); Settle and the reminder were 41.6px in
+  Simple Kin (an inline 2rem beat its 2.75rem); and "Next 30 days" called a
+  bill overdue from 08:00 Manila on the day it was due (a date compared
+  with the clock in UTC). The offers on Cash Flow sit in the EXPENSES
+  group, which is closed unless opened (Today shows them open).
 - **Decided and done (Jonathan, 21 October): Journal "Public" entries reach
   connections only, strictly.** A Public entry reaches the writer's accepted
   connections (are_connected: mutual and live, the household's other
