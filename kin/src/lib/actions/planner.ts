@@ -9,7 +9,7 @@ import { syncRowToCalendars, removeRowFromCalendars, type CalendarTarget } from 
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { activityInstants } from "@/lib/planner-time";
 import { clamp } from "@/lib/text";
 import { isCurrencyCode } from "@/lib/household-prefs";
@@ -74,13 +74,13 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (!wholeFamily && who.length > 0) {
     const { error: whoError } = await supabase
       .from("activity_members")
       .insert(who.map((memberId) => ({ activity_id: activity.id, member_id: memberId })));
-    if (whoError) return { error: `The activity was saved, but not who it is for. ${whoError.message}` };
+    if (whoError) return { error: `The activity was saved, but not who it is for. ${refusalMessage(whoError)}` };
   }
 
   await syncRowToCalendars(
@@ -147,7 +147,7 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     )
     .eq("id", activityId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // An update that matches nothing is not an error, so without this the form
   // said "saved" over an activity somebody else had already removed. `count`
   // rather than `.select()` deliberately: asking for the rows back adds a
@@ -165,7 +165,7 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     const { error: whoError } = await supabase
       .from("activity_members")
       .insert(who.map((memberId) => ({ activity_id: activityId, member_id: memberId })));
-    if (whoError) return { error: `The activity was saved, but it is no longer marked for anyone. ${whoError.message}` };
+    if (whoError) return { error: `The activity was saved, but it is no longer marked for anyone. ${refusalMessage(whoError)}` };
   }
 
   if (repeat === "once" && before && before.repeat !== "once") await removeRowFromCalendars(me.family_id, "activities", activityId);
@@ -187,7 +187,7 @@ export async function deleteActivityAction(activityId: string): Promise<ActionSt
 
   await removeRowFromCalendars(me.family_id, "activities", activityId);
   const { error } = await supabase.from("activities").delete().eq("id", activityId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -201,7 +201,7 @@ async function saveEventMembers(eventId: string, memberIds: string[]): Promise<s
   if (cleared) return cleared.message;
   if (memberIds.length === 0) return null;
   const { error } = await supabase.from("event_members").insert(memberIds.map((member_id) => ({ event_id: eventId, member_id })));
-  return error ? `It was saved, but it is no longer marked for anyone. ${error.message}` : null;
+  return error ? `It was saved, but it is no longer marked for anyone. ${refusalMessage(error)}` : null;
 }
 
 /** Who a dated record reaches on Google Calendar: everyone, or just the
@@ -241,7 +241,7 @@ async function saveEventExtras(
   extras: { budget_currency: string | null; invite_url: string | null },
 ) {
   const { error } = await supabase.from("events").update(extras).eq("id", eventId).eq("family_id", familyId);
-  if (error) console.error(`Event ${eventId} saved, but its budget currency and invitation link were not`, error.message);
+  if (error) reportError("Event saved, but its budget currency and invitation link were not", error, eventId);
 }
 
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -282,7 +282,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   await saveEventExtras(supabase, event.id, me.family_id, { budget_currency: budgetCurrency, invite_url: invite.url });
 
   const eventWho = await saveEventMembers(event.id, wholeFamily ? [] : who);
@@ -329,7 +329,7 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     )
     .eq("id", eventId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That occasion is no longer there — someone may have removed it." };
   await saveEventExtras(supabase, eventId, me.family_id, { budget_currency: budgetCurrency, invite_url: invite.url });
 
@@ -357,7 +357,7 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
 
   await removeRowFromCalendars(me.family_id, "events", eventId);
   const { data: gone, error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // A delete the database refused matches nothing and reports no error, so
   // the files are only removed once the event is really gone.
   if (!gone?.length) return { error: "That event couldn't be deleted. You may not have permission to." };
@@ -389,12 +389,12 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
   // it here too the entry is still kept, as 'manual', rather than lost.
   let { error } = await supabase.from("journal_entries").insert({ ...entry, source: "from_plan" });
   if (error && /violates check constraint/i.test(error.message)) {
-    console.error("addActivityToJournal: from_plan refused", error.message);
+    reportError("addActivityToJournal: from_plan refused", error);
     ({ error } = await supabase.from("journal_entries").insert({ ...entry, source: "manual" }));
   }
   if (error) {
-    console.error("addActivityToJournal", error.message);
-    return { error: humanDatabaseError(error.message) };
+    reportError("addActivityToJournal", error);
+    return { error: databaseError(error) };
   }
 
   revalidatePath("/journal");

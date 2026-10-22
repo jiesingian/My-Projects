@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { reportError } from "@/lib/report-error";
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
@@ -58,7 +59,7 @@ export async function getValidDriveAccessToken(familyId: string): Promise<string
     token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }).eq("family_id", familyId);
-  if (error) console.error(`Refreshed Drive token for family ${familyId} was not stored; every call will refresh again`, error.message);
+  if (error) reportError("Refreshed Drive token was not stored; every call will refresh again", error, familyId);
 
   return refreshed.access_token;
 }
@@ -126,7 +127,7 @@ export async function ensureDriveFolderStructure(
     // The folder now exists in their Drive. If we do not record it, the next
     // run makes another one with the same name, and so on.
     const { error } = await supabase.from("drive_links").update({ root_folder_id: rootFolderId, root_folder_link: rootFolderLink }).eq("family_id", familyId);
-    if (error) console.error(`Drive root folder ${rootFolderId} was created but not recorded; the next run will create a duplicate`, error.message);
+    if (error) reportError("Drive root folder was created but not recorded; the next run will create a duplicate", error, rootFolderId);
   }
 
   const familyFolderId = await ensureNamedSubfolder(accessToken, rootFolderId, "Family");
@@ -137,7 +138,7 @@ export async function ensureDriveFolderStructure(
     if (!folder.drive_folder_id) {
       const created = await createFolder(accessToken, folder.name, documentsFolderId);
       const { error } = await supabase.from("doc_folders").update({ drive_folder_id: created.id }).eq("id", folder.id);
-      if (error) console.error(`Drive folder ${created.id} for "${folder.name}" was created but not recorded; the next run will create a duplicate`, error.message);
+      if (error) reportError("A Drive folder was created but not recorded; the next run will create a duplicate", error, created.id, folder.name);
       continue;
     }
     const parents = await getFolderParents(accessToken, folder.drive_folder_id);

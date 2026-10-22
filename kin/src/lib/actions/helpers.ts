@@ -8,6 +8,7 @@ import { getCurrentMember, getSessionUser, requireCurrentMember } from "@/lib/se
 import { isGrownUp } from "@/lib/roles";
 import { guessSection } from "@/lib/grocery";
 import { HELPER_INVITE_COOKIE, normaliseHelperCode, type HelperSwitches } from "@/lib/helper-access";
+import { refusalMessage } from "@/lib/report-error";
 
 /** Helper access (20261015121000_household_helpers.sql). Two sides:
  *
@@ -42,7 +43,7 @@ export async function addHelperAction(name: string, s: HelperSwitches): Promise<
   if (!clean) return { error: "Give the helper a name.", code: null };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_helper_invite", { p_name: clean, p_list: s.list, p_meals: s.meals, p_kids: s.kids });
-  if (error || !data?.[0]) return { error: said(error?.message, "It didn't save. Try again."), code: null };
+  if (error || !data?.[0]) return { error: said(refusalMessage(error), "It didn't save. Try again."), code: null };
   revalidatePath("/settings/household");
   return { error: null, code: data[0].code };
 }
@@ -52,7 +53,7 @@ export async function setHelperAccessAction(helperId: string, s: HelperSwitches)
   if (refused) return { error: refused };
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_helper_access", { p_helper: helperId, p_list: s.list, p_meals: s.meals, p_kids: s.kids });
-  if (error) return { error: said(error.message, "It didn't save. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't save. Try again.") };
   revalidatePath("/settings/household");
   return { error: null };
 }
@@ -62,7 +63,7 @@ export async function renewHelperLinkAction(helperId: string): Promise<Result & 
   if (refused) return { error: refused, code: null };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("renew_helper_invite", { p_helper: helperId });
-  if (error || !data) return { error: said(error?.message, "It didn't make a new link. Try again."), code: null };
+  if (error || !data) return { error: said(refusalMessage(error), "It didn't make a new link. Try again."), code: null };
   revalidatePath("/settings/household");
   return { error: null, code: data };
 }
@@ -72,7 +73,7 @@ export async function removeHelperAction(helperId: string): Promise<Result> {
   if (refused) return { error: refused };
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_helper", { p_helper: helperId });
-  if (error) return { error: said(error.message, "It didn't remove. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't remove. Try again.") };
   revalidatePath("/settings/household");
   return { error: null };
 }
@@ -88,7 +89,7 @@ export async function acceptHelperLinkAction(): Promise<Result> {
   if (!code) return { error: "That helper link has been used or has expired. Ask the family for a new one." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("claim_helper_invite", { p_code: code });
-  if (error) return { error: said(error.message, "It didn't work. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't work. Try again.") };
   jar.delete(HELPER_INVITE_COOKIE);
   redirect("/helper");
 }
@@ -106,7 +107,7 @@ export async function helperTickAction(itemId: string, checked: boolean): Promis
   if (!(await getSessionUser())) return { error: "Sign in again." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("helper_tick_buy_item", { p_item: itemId, p_checked: checked });
-  if (error) return { error: said(error.message, "It didn't save. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't save. Try again.") };
   revalidatePath("/helper");
   return { error: null };
 }
@@ -117,7 +118,7 @@ export async function helperAddAction(familyId: string, name: string): Promise<R
   if (!clean) return { error: "Name the item." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("helper_add_buy_item", { p_family: familyId, p_name: clean, p_section: guessSection(clean) });
-  if (error) return { error: said(error.message, "It didn't save. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't save. Try again.") };
   revalidatePath("/helper");
   return { error: null };
 }
@@ -134,7 +135,7 @@ export async function saveHelperPushAction(familyId: string, sub: { endpoint: st
   if (!fits(sub.keys?.p256dh, 200) || !fits(sub.keys?.auth, 100)) return { error: "This phone didn't give usable keys." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_helper_push", { p_family: familyId, p_endpoint: sub.endpoint, p_p256dh: sub.keys.p256dh, p_auth: sub.keys.auth });
-  if (error) return { error: said(error.message, "It didn't save. Try again.") };
+  if (error) return { error: said(refusalMessage(error), "It didn't save. Try again.") };
   return { error: null };
 }
 

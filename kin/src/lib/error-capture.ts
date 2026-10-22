@@ -25,6 +25,9 @@ export function appVersion(): string {
 /** An error message with nothing personal left in it. */
 export function scrubMessage(message: unknown, max = ERROR_MESSAGE_MAX): string {
   const text = String(message ?? "")
+    // What Postgres could not read, quoted back: whatever the person typed.
+    // To the last quote: Postgres does not escape the quotes inside it.
+    .replace(/(for type [a-z ]+|out of range|for enum [a-z_]+|literal): ".*"/gi, '$1: "[value]"')
     .replace(/[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}/g, "[email]")
     .replace(/(https?:\/\/[^\s?#]*)[?#]\S*/g, "$1")
     .replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, "[id]")
@@ -100,4 +103,34 @@ export function describeThrown(thrown: unknown): { message: string; stack: strin
   if (thrown instanceof Error) return { message: `${thrown.name}: ${thrown.message}`, stack: thrown.stack ?? "" };
   if (thrown && typeof thrown === "object" && "message" in thrown) return { message: String((thrown as { message: unknown }).message), stack: "" };
   return { message: String(thrown), stack: "" };
+}
+
+/** What is recorded for an error a server action or route handler caught
+ * (lib/report-error.ts): `where` is a fixed label, scrubbed again in case an
+ * id or a name was put in it; `page` the page it came from, as a pattern.
+ * A caught Supabase error has no stack; `callerStack` (where it was caught)
+ * stands in, so the fingerprint still says which code it was. Only the
+ * thrown thing's message is read: never a Supabase error's details or hint,
+ * which quote the row. */
+export function caughtReport(where: unknown, thrown: unknown, page = "", callerStack = ""): ErrorReport {
+  const label = scrubMessage(where, 120) || "server";
+  const { message, stack } = describeThrown(thrown);
+  const r = errorReport("server", page ? `${label} ${scrubRoute(page)}` : label, message, stack || callerStack);
+  // The label is part of what it is: fourteen reminder kinds failing with
+  // the same timeout from the same function are fourteen rows, not one.
+  return { ...r, fingerprint: hash16(`${r.fingerprint}\n${label}`) };
+}
+
+/** At most `perMinute` a minute from one server instance (a loop that fails
+ * on every row reports a minute's worth, not thousands). */
+export function perMinuteLimit(perMinute: number): (now?: number) => boolean {
+  let windowStart = 0;
+  let count = 0;
+  return (now = Date.now()) => {
+    if (now - windowStart >= 60_000) {
+      windowStart = now;
+      count = 0;
+    }
+    return ++count <= perMinute;
+  };
 }

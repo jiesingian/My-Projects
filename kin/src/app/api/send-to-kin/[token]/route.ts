@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { SENT_MAX_BYTES, SENT_SAYS, sentImageType, sentOpenUrl } from "@/lib/send-to-kin";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
+import { reportError } from "@/lib/report-error";
 
 /** "Send it to Kin": the iPhone share sheet's Shortcut posts a screenshot
  * here (Get Contents of URL, body = the shared image), and what comes back
@@ -54,7 +55,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     p_data_base64: Buffer.from(bytes).toString("base64"),
   });
   if (error) {
-    console.error("Send to Kin by link failed", error.message);
+    reportError("Send to Kin by link failed", error);
     return text(SENT_SAYS.busy, 503);
   }
   const result = data as { ok?: boolean; id?: string; why?: string } | null;

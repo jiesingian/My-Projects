@@ -7,6 +7,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
 import { clamp } from "@/lib/text";
 import type { ActionState } from "@/lib/actions/auth";
+import { refusalMessage } from "@/lib/report-error";
 
 /** Every write to a connection goes through a security-definer function that
  * re-checks the caller (20260929060000_connections.sql). These turn the
@@ -32,7 +33,7 @@ export async function requestConnectionAction(personId: string): Promise<ActionS
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_connection", { p_person_id: personId });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 export async function requestConnectionByCodeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -42,7 +43,7 @@ export async function requestConnectionByCodeAction(_prev: ActionState, formData
   if (!code) return { error: "Enter the code they gave you." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_connection_by_code", { p_code: code });
-  if (error) return { error: readable(error.message) };
+  if (error) return { error: readable(refusalMessage(error)) };
   // A connection link remembered this code through sign-up; it has done its job.
   (await cookies()).delete("kin-connect");
   return done();
@@ -52,14 +53,14 @@ export async function respondConnectionAction(id: string, accept: boolean): Prom
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_connection", { p_id: id, p_accept: accept });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 export async function removeConnectionAction(id: string): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_connection", { p_id: id });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 /** A fresh code; the old one stops working at once. */
@@ -68,7 +69,7 @@ export async function newConnectionCodeAction(): Promise<ActionState> {
   if (!isGrownUp(me.role)) return { error: readable("grown-ups") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("my_connection_code", { p_new: true });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 /** A parent's yes or no to their child's new connection (20260929163000). */
@@ -76,7 +77,7 @@ export async function guardianDecideConnectionAction(id: string, approve: boolea
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("guardian_decide_connection", { p_id: id, p_approve: approve });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 /** A parent ending one of their child's connections. */
@@ -84,7 +85,7 @@ export async function guardianRemoveConnectionAction(id: string): Promise<Action
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("guardian_remove_connection", { p_id: id });
-  return error ? { error: readable(error.message) } : done();
+  return error ? { error: readable(refusalMessage(error)) } : done();
 }
 
 /** "Not now" on the reminder to finish a connection link. */

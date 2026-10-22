@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { isGrownUp } from "@/lib/roles";
 
 /** Take or skip one of Kin's offers. respond_kin_offer() holds the rules. */
@@ -12,7 +12,7 @@ export async function respondKinOfferAction(offerId: string, accept: boolean): P
   if (!isGrownUp(me.role)) return { error: "Only a parent or another adult can answer Kin's offers." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_kin_offer", { p_offer: offerId, p_accept: accept });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/today");
   return { error: null };
 }
@@ -26,7 +26,7 @@ export async function setReferrerAction(code: string): Promise<{ error: string |
   if (clean.length < 6) return { error: "That code looks too short." };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("set_referrer", { p_code: clean });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/today");
   return { error: null, name: data ?? undefined };
 }

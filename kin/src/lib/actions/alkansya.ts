@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getMemberScores } from "@/lib/queries/routines";
 import { getAlkansya } from "@/lib/queries/alkansya";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
@@ -72,7 +72,7 @@ export async function saveAlkansyaPlanAction(_prev: ActionState, formData: FormD
     },
     { onConflict: "member_id" },
   );
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };
@@ -115,7 +115,7 @@ export async function convertPointsAction(_prev: ActionState, formData: FormData
       recorded_by: me.id,
     })),
   );
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };
@@ -143,7 +143,7 @@ export async function addToJarAction(_prev: ActionState, formData: FormData): Pr
     occurred_on: today(me),
     recorded_by: me.id,
   });
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };
@@ -176,7 +176,7 @@ export async function takeFromJarAction(_prev: ActionState, formData: FormData):
     occurred_on: today(me),
     recorded_by: me.id,
   });
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };
@@ -203,7 +203,7 @@ export async function addInterestAction(memberId: string): Promise<ActionState> 
     occurred_on: today(me),
     recorded_by: me.id,
   });
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };
@@ -231,7 +231,7 @@ export async function removeAlkansyaEntryAction(entryId: string, memberId: strin
     .delete()
     .in("id", going.map((e) => e.id))
     .eq("family_id", me.family_id);
-  if (dbError) return { error: humanDatabaseError(dbError.message) };
+  if (dbError) return { error: databaseError(dbError) };
 
   refresh(memberId);
   return { error: null };

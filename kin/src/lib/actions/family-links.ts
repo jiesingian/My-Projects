@@ -4,7 +4,7 @@ import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, refusalMessage } from "@/lib/report-error";
 import { isGrownUp } from "@/lib/roles";
 import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
@@ -35,7 +35,7 @@ export async function requestFamilyLinkAction(_prev: ActionState, formData: Form
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_family_link", { code });
-  if (error) return { error: readable(error.message) };
+  if (error) return { error: readable(refusalMessage(error)) };
 
   revalidatePath("/journal");
   return { error: null };
@@ -45,7 +45,7 @@ export async function respondFamilyLinkAction(linkId: string, accept: boolean): 
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_family_link", { link_id: linkId, accept });
-  if (error) return { error: readable(error.message) };
+  if (error) return { error: readable(refusalMessage(error)) };
   revalidatePath("/journal");
   return { error: null };
 }
@@ -54,7 +54,7 @@ export async function revokeFamilyLinkAction(linkId: string): Promise<ActionStat
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("revoke_family_link", { link_id: linkId });
-  if (error) return { error: readable(error.message) };
+  if (error) return { error: readable(refusalMessage(error)) };
   revalidatePath("/journal");
   return { error: null };
 }
@@ -72,7 +72,7 @@ export async function greetOccasionAction(eventId: string, body: string): Promis
   if (error) {
     // The one refusal a person can meet: the day ended, or the link closed.
     if (error.message.includes("event_family_id")) return { error: "That day has passed, so the greeting can't be sent." };
-    return { error: humanDatabaseError(error.message) };
+    return { error: databaseError(error) };
   }
   revalidatePath("/journal");
   return { error: null };
@@ -95,7 +95,7 @@ export async function setOccasionMilestoneAction(eventId: string, on: boolean): 
       .eq("entry_date", today)
       .eq("milestone", true)
       .eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     revalidatePath("/journal");
     return { error: null };
   }
@@ -116,7 +116,7 @@ export async function setOccasionMilestoneAction(eventId: string, on: boolean): 
   });
   // Marked twice (two taps, two phones): the unique index keeps one, and
   // that is the answer either way.
-  if (error && !error.message.includes("milestones_event_day_idx")) return { error: humanDatabaseError(error.message) };
+  if (error && !error.message.includes("milestones_event_day_idx")) return { error: databaseError(error) };
   revalidatePath("/journal");
   return { error: null };
 }
@@ -126,7 +126,7 @@ export async function removeGreetingAction(greetingId: string): Promise<ActionSt
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("occasion_greetings").delete().eq("id", greetingId).eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/journal");
   return { error: null };
 }
@@ -160,7 +160,7 @@ export async function sendLinkMessageAction(linkId: string, body: string): Promi
   if (!text) return { error: "Nothing to send." };
   const supabase = await createClient();
   const { error } = await supabase.from("family_link_messages").insert({ link_id: linkId, family_id: me.family_id, member_id: me.id, body: text });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/journal/links/${linkId}`);
   return { error: null };
 }
@@ -169,7 +169,7 @@ export async function deleteLinkMessageAction(messageId: string, linkId: string)
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("family_link_messages").delete().eq("id", messageId).eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/journal/links/${linkId}`);
   return { error: null };
 }

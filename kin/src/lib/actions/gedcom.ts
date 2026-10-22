@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { isGrownUp } from "@/lib/roles";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { getFamilyTree } from "@/lib/queries/family";
 import { getTreeMatches, type BranchPerson } from "@/lib/queries/tree-links";
 import { matchBranch, mergeBranch, type ChartPerson } from "@/lib/tree-merge";
@@ -130,7 +130,7 @@ export async function importGedcomAction(plan: ImportPlan): Promise<{ error: str
       };
     });
     const { error } = await supabase.from("family_tree_people").insert(rows);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   let linked = 0;
@@ -139,7 +139,7 @@ export async function importGedcomAction(plan: ImportPlan): Promise<{ error: str
       const to = ref(r);
       if (!to || to === f.personId) continue;
       const { data, error } = await supabase.from("family_tree_people").update(column === "father_id" ? { father_id: to } : column === "mother_id" ? { mother_id: to } : { spouse_id: to }).eq("id", f.personId).eq("family_id", me.family_id).is(column, null).select("id");
-      if (error) return { error: humanDatabaseError(error.message), added: plan.add.length, linked };
+      if (error) return { error: databaseError(error), added: plan.add.length, linked };
       linked += data?.length ?? 0;
     }
   }

@@ -10,7 +10,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { pesoRate, type PesoRate } from "@/lib/fx";
@@ -42,7 +42,7 @@ async function saveAccountNumber(
 ): Promise<string | null> {
   if (number === null) {
     const { error } = await supabase.from("account_numbers").delete().eq("account_id", accountId).eq("family_id", familyId);
-    return error ? humanDatabaseError(error.message) : null;
+    return error ? databaseError(error) : null;
   }
   const { error } = await supabase
     .from("account_numbers")
@@ -50,7 +50,7 @@ async function saveAccountNumber(
   if (!error) return null;
   return /row-level security/i.test(error.message)
     ? "Only the account’s owner can set its number — or, on a joint account, a grown-up."
-    : humanDatabaseError(error.message);
+    : databaseError(error);
 }
 
 export async function addAccountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -117,7 +117,7 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     is_private: isJoint || ownerId !== me.id ? false : true,
     created_by: me.id,
   }).select("id").single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // Who can see it, asked on the form for an account of your own.
   if (ownerId === me.id && !isJoint && formData.get("visibility")) {
     const mode = String(formData.get("visibility")) as "everyone" | "only_me" | "chosen";
@@ -170,7 +170,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     }, { count: "exact" })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
   if (numbered) {
     const numberError = await saveAccountNumber(supabase, me.family_id, me.id, accountId, numbered.number);
@@ -218,18 +218,18 @@ async function shareAccountWith(
   if (choice.mode === "chosen" && ids.length === 0) return "Pick at least one person, or choose Only me.";
 
   const { error: closeError } = await supabase.from("accounts").update({ is_private: true }).eq("id", accountId).eq("family_id", me.family_id);
-  if (closeError) return humanDatabaseError(closeError.message);
+  if (closeError) return databaseError(closeError);
   const { error: clearError } = await supabase.from("account_viewers").delete().eq("account_id", accountId);
-  if (clearError) return humanDatabaseError(clearError.message);
+  if (clearError) return databaseError(clearError);
   if (ids.length > 0) {
     const { error } = await supabase
       .from("account_viewers")
       .insert(ids.map((member_id) => ({ account_id: accountId, member_id, family_id: me.family_id, added_by: me.id })));
-    if (error) return humanDatabaseError(error.message);
+    if (error) return databaseError(error);
   }
   if (choice.mode === "everyone") {
     const { error } = await supabase.from("accounts").update({ is_private: false }).eq("id", accountId).eq("family_id", me.family_id);
-    if (error) return humanDatabaseError(error.message);
+    if (error) return databaseError(error);
   }
   return null;
 }
@@ -241,7 +241,7 @@ export async function setIncludePrivateInTotalsAction(include: boolean): Promise
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("members").update({ wealth_include_private: include }, { count: "exact" }).eq("id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That setting couldn't be saved. Try again." };
   revalidateWealth();
   return { error: null };
@@ -251,7 +251,7 @@ export async function archiveAccountAction(accountId: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("accounts").update({ is_archived: true }, { count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
@@ -263,7 +263,7 @@ export async function restoreAccountAction(accountId: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("accounts").update({ is_archived: false }, { count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
@@ -284,12 +284,12 @@ export async function deleteAccountAction(accountId: string): Promise<ActionStat
     .select("id", { count: "exact", head: true })
     .eq("account_id", accountId)
     .eq("family_id", me.family_id);
-  if (countError) return { error: humanDatabaseError(countError.message) };
+  if (countError) return { error: databaseError(countError) };
   if ((movements ?? 0) > 0) {
     return { error: `This account has ${movements} movement${movements === 1 ? "" : "s"} in its history, so it can't be deleted without breaking that history. Archive it instead — it disappears from your lists and totals, and its history stays.` };
   }
   const { error, count } = await supabase.from("accounts").delete({ count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That account couldn't be deleted — it may already be gone, or it isn't yours to delete." };
   revalidateWealth();
   return { error: null };
@@ -352,7 +352,7 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       })
       .eq("id", entry.source_id)
       .eq("family_id", entry.family_id);
-    if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${error.message}`;
+    if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(error)}`;
   }
 
   if (entry.source_table === "income_schedules" && entry.source_id) {
@@ -364,12 +364,12 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       .update({ status: "received", received_at: entry.occurred_at, received_by_member_id: memberId, transaction_id: entry.id })
       .eq("id", entry.source_id)
       .eq("family_id", entry.family_id);
-    if (error) return `The income was recorded, but the schedule is still showing as expected. ${error.message}`;
+    if (error) return `The income was recorded, but the schedule is still showing as expected. ${refusalMessage(error)}`;
   }
 
   if (entry.goal_id) {
     const goalError = await recalcGoalTotal(supabase, entry.goal_id);
-    if (goalError) return `The money moved, but the goal total was not brought up to date. ${goalError.message}`;
+    if (goalError) return `The money moved, but the goal total was not brought up to date. ${refusalMessage(goalError)}`;
   }
   return null;
 }
@@ -447,7 +447,7 @@ export async function recordMovementAction(input: {
     // cashflow breakdown while the goal itself stayed where it was.
     goalId: sourceTable === "goals" ? sourceId : null,
   });
-  if (error) return { error: explainLedgerRefusal(error.message) };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -536,7 +536,7 @@ export async function transferAction(input: {
   const { error } = await supabase
     .from("wealth_transactions")
     .insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? from.linked_app_url : null };
@@ -559,7 +559,7 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
     : [entry.id];
 
   const { error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   const settled = await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
   if (settled) return { error: settled };
@@ -600,7 +600,7 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
       .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
       .eq("id", entry.source_id)
       .eq("family_id", me.family_id);
-    if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${billError.message}` };
+    if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${refusalMessage(billError)}` };
   }
 
   // Same reopening for income: a discarded receipt goes back to "expected"
@@ -611,14 +611,14 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
       .update({ status: "expected", received_at: null, received_by_member_id: null, transaction_id: null })
       .eq("id", entry.source_id)
       .eq("family_id", me.family_id);
-    if (incomeError) return { error: `The income schedule could not be reopened, so the entry was left in place. ${incomeError.message}` };
+    if (incomeError) return { error: `The income schedule could not be reopened, so the entry was left in place. ${refusalMessage(incomeError)}` };
   }
 
   const query = supabase.from("wealth_transactions").delete();
   const { error } = entry.transfer_group_id
     ? await query.eq("transfer_group_id", entry.transfer_group_id)
     : await query.eq("id", entry.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   for (const goalId of touchedGoalIds) await recalcGoalTotal(supabase, goalId);
 
@@ -661,7 +661,7 @@ export async function postHubExpenseAction(input: {
     sourceTable: input.sourceTable,
     sourceId: input.sourceId,
   });
-  if (error) return { error: explainLedgerRefusal(error.message) };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   revalidateWealth();
   return { error: null };
@@ -691,7 +691,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
     .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (dueDate) {
     await syncRowToCalendars(
@@ -724,7 +724,7 @@ export async function settleBillOutsideKinAction(billId: string): Promise<Action
     .eq("family_id", me.family_id)
     .in("status", ["unpaid", "scheduled"])
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Bill not found, or already paid." };
   revalidateWealth();
   revalidatePath("/today");
@@ -760,7 +760,7 @@ export async function payBillAction(input: {
     sourceTable: "bills",
     sourceId: bill.id,
   });
-  if (error) return { error: explainLedgerRefusal(error.message) };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -820,7 +820,7 @@ export async function addNextBillAction(input: { fromBillId: string; amount: num
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   await syncRowToCalendars(me.family_id, "bills", bill.id, allDayEvent(`${from.name} due`, input.dueDate), { kind: "all" });
   revalidateWealth();
@@ -839,7 +839,7 @@ export async function setBillReminderAction(billId: string, days: number): Promi
     .eq("id", billId)
     .eq("family_id", me.family_id)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Bill not found." };
   revalidateWealth();
   revalidatePath("/today");
@@ -850,7 +850,7 @@ export async function deleteBillAction(billId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("bills").delete().eq("id", billId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -898,7 +898,7 @@ export async function addIncomeScheduleAction(_prev: ActionState, formData: Form
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (nextDate) {
     await syncRowToCalendars(
@@ -945,7 +945,7 @@ export async function receiveIncomeAction(input: {
     sourceTable: "income_schedules",
     sourceId: schedule.id,
   });
-  if (error) return { error: explainLedgerRefusal(error.message) };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -961,7 +961,7 @@ export async function deleteIncomeScheduleAction(scheduleId: string): Promise<Ac
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("income_schedules").delete().eq("id", scheduleId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -978,7 +978,7 @@ export async function setJointBudgetAction(month: number, year: number, amount: 
     { family_id: me.family_id, period_month: month, period_year: year, budget_amount: amount },
     { onConflict: "family_id,period_month,period_year" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -1002,7 +1002,7 @@ export async function setWealthTargetAction(month: number, year: number, amount:
     { member_id: me.id, family_id: me.family_id, period_month: month, period_year: year, target_amount: amount },
     { onConflict: "member_id,period_month,period_year" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -1023,7 +1023,7 @@ export async function setAllocationAction(input: { category: string; amount: num
   // duplicate-key error rather than a duplicate -- but the allocation read
   // underneath it has no such backstop.
   const { data: existingPeriod, error: periodReadError } = await readPeriod();
-  if (periodReadError) return { error: `This month's budget could not be read, so nothing was changed. ${periodReadError.message}` };
+  if (periodReadError) return { error: `This month's budget could not be read, so nothing was changed. ${refusalMessage(periodReadError)}` };
 
   let period = existingPeriod;
   if (!period) {
@@ -1037,7 +1037,7 @@ export async function setAllocationAction(input: { category: string; amount: num
       // yet" and both insert; the constraint lets one through. Theirs is as
       // good as ours -- take it rather than showing a duplicate-key error.
       const { data: raced } = await readPeriod();
-      if (!raced) return { error: periodErr.message };
+      if (!raced) return { error: refusalMessage(periodErr) };
       period = raced;
     } else {
       period = created;
@@ -1062,7 +1062,7 @@ export async function setAllocationAction(input: { category: string; amount: num
     { budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount },
     { onConflict: "budget_period_id,category" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidateWealth();
   return { error: null };
@@ -1107,7 +1107,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (targetDate) {
     const target: CalendarTarget = isJoint ? { kind: "all" } : { kind: "member", memberId: ownerMemberId };
@@ -1147,7 +1147,7 @@ export async function contributeToGoalAction(input: {
     status,
     goalId: input.goalId,
   });
-  if (error) return { error: explainLedgerRefusal(error.message) };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -1188,7 +1188,7 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
       category: GOAL_CATEGORY,
       goalId: input.goalId,
     });
-    if (error) return { error: explainLedgerRefusal(error.message) };
+    if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
     const settled = await applySettlement(supabase, me.id, back);
     if (settled) return { error: settled };
   }
@@ -1200,12 +1200,12 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
     particulars: goal.title,
     category,
   });
-  if (paidError) return { error: `The money came out of the goal, but the payment was not recorded. ${explainLedgerRefusal(paidError.message)}` };
+  if (paidError) return { error: `The money came out of the goal, but the payment was not recorded. ${explainLedgerRefusal(refusalMessage(paidError, RLS_EXPLAINED))}` };
 
   if (goal.repeats_yearly && goal.target_date) {
     const next = addYears(goal.target_date, 1);
     const { error } = await supabase.from("goals").update({ target_date: next }).eq("id", input.goalId).eq("family_id", me.family_id);
-    if (error) return { error: `Paid, but the next due date was not set. ${humanDatabaseError(error.message)}` };
+    if (error) return { error: `Paid, but the next due date was not set. ${databaseError(error)}` };
     const target: CalendarTarget = goal.is_joint ? { kind: "all" } : { kind: "member", memberId: goal.owner_member_id };
     await syncRowToCalendars(me.family_id, "goals", input.goalId, allDayEvent(goal.title, next), target);
   }
@@ -1218,7 +1218,7 @@ export async function deleteGoalAction(goalId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("goals").delete().eq("id", goalId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -1308,6 +1308,9 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     const parsed = JSON.parse(String(formData.get("items") ?? "[]"));
     rawItems = Array.isArray(parsed) ? parsed.slice(0, 100) : [];
   } catch {
+    // The form's own JSON: unreadable means the form is wrong, not the
+    // person. Not the parse error itself: it quotes the breakdown.
+    reportError("Asset breakdown from the form could not be read", new Error("Asset breakdown was not JSON"));
     return { error: "The breakdown could not be read. Try again." };
   }
   const items = [];
@@ -1334,7 +1337,7 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     })
     .select("id")
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (items.length > 0) {
     const { error: itemsError } = await supabase
@@ -1343,7 +1346,7 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     // The asset is saved either way; say so rather than lose it to a retry that doubles it.
     if (itemsError) {
       revalidateWealth();
-      return { error: `The asset is saved, but its breakdown was not: ${humanDatabaseError(itemsError.message)} Add the items from Breakdown on the A&L tab.` };
+      return { error: `The asset is saved, but its breakdown was not: ${databaseError(itemsError)} Add the items from Breakdown on the A&L tab.` };
     }
   }
 
@@ -1383,7 +1386,7 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidateWealth();
   redirect("/wealth?seg=assets");
@@ -1410,7 +1413,7 @@ export async function updateAssetValueAction(assetId: string, value: number, ann
     )
     .eq("id", assetId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That asset is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
@@ -1426,7 +1429,7 @@ export async function addAssetItemAction(assetId: string, input: AssetItemInput)
   const { error } = await supabase
     .from("asset_items")
     .insert({ ...shaped.row, asset_id: assetId, family_id: me.family_id, created_by: me.id });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   await touchAsset(supabase, assetId, me.family_id);
   revalidateWealth();
   return { error: null };
@@ -1443,7 +1446,7 @@ export async function updateAssetItemAction(itemId: string, input: AssetItemInpu
     .eq("id", itemId)
     .eq("family_id", me.family_id)
     .select("asset_id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That item is no longer there — someone may have removed it." };
   await touchAsset(supabase, data[0].asset_id, me.family_id);
   revalidateWealth();
@@ -1454,7 +1457,7 @@ export async function deleteAssetItemAction(itemId: string): Promise<ActionState
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data, error } = await supabase.from("asset_items").delete().eq("id", itemId).eq("family_id", me.family_id).select("asset_id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (data?.[0]) await touchAsset(supabase, data[0].asset_id, me.family_id);
   revalidateWealth();
   return { error: null };
@@ -1475,7 +1478,7 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
     .update({ balance, updated_at: new Date().toISOString() }, { count: "exact" })
     .eq("id", liabilityId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
@@ -1498,7 +1501,7 @@ export async function updateLiabilityScheduleAction(
     .update({ ...schedule, monthly_payment: monthly, updated_at: new Date().toISOString() }, { count: "exact" })
     .eq("id", liabilityId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   revalidatePath("/planner");
@@ -1509,7 +1512,7 @@ export async function deleteAssetAction(assetId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("assets").delete().eq("id", assetId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -1518,7 +1521,7 @@ export async function deleteLiabilityAction(liabilityId: string): Promise<Action
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("liabilities").delete().eq("id", liabilityId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }
@@ -1600,7 +1603,7 @@ export async function logRemittanceAction(input: {
       };
     }
     if (/remittance_over_allocated/.test(error.message)) return { error: "What it went to adds up to more than arrived." };
-    return { error: humanDatabaseError(error.message) };
+    return { error: databaseError(error) };
   }
 
   revalidateWealth();
@@ -1613,7 +1616,7 @@ export async function deleteRemittanceAction(remittanceId: string): Promise<Acti
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_remittance", { p_id: remittanceId });
-  if (error) return { error: /remittance_not_found/.test(error.message) ? "That remittance is no longer there." : humanDatabaseError(error.message) };
+  if (error) return { error: /remittance_not_found/.test(error.message) ? "That remittance is no longer there." : databaseError(error) };
   revalidateWealth();
   revalidatePath("/wealth/remittances");
   return { error: null };
@@ -1640,7 +1643,7 @@ export async function setMemberBudgetAction(memberId: string, amount: number): P
             { family_id: me.family_id, member_id: memberId, ...period, amount: Math.round(amount * 100) / 100, set_by: me.id, updated_at: now.toISOString() },
             { onConflict: "member_id,period_year,period_month" },
           );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidateWealth();
   return { error: null };
 }

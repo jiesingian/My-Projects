@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CalendarEventInput, GoogleCalendarEvent } from "@/lib/calendar-shape";
 import { toGoogleEventBody } from "@/lib/calendar-shape";
+import { reportError } from "@/lib/report-error";
 
 // Re-exported so the many importers of these types need not know they moved.
 export type { CalendarEventInput, GoogleCalendarEvent } from "@/lib/calendar-shape";
@@ -51,7 +52,7 @@ export async function getValidCalendarAccessToken(memberId: string): Promise<str
       updated_at: new Date().toISOString(),
     })
     .eq("member_id", memberId);
-  if (storeError) console.error(`Refreshed Calendar token for member ${memberId} was not stored; every call will refresh again`, storeError.message);
+  if (storeError) reportError("Refreshed Calendar token was not stored; every call will refresh again", storeError, memberId);
 
   return refreshed.access_token;
 }
