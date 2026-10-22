@@ -3,6 +3,69 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Wrap-up, 22 October
+
+The final design check (#847–#867) and the redo of skipped work (#855,
+#858, #865) were read PR by PR (body and diff), then checked by hand on
+dev as the QA household, one spec at a time and only while no CI run was
+on dev (#701).
+
+**Verified:**
+- Keyboard shortcuts: g then each of t, p, c, w, j, f, h, s goes there;
+  typing in the one-line add, a chat message, the Planner and Wealth add
+  forms fires nothing; `?` opens the list (axe clean); the off switch
+  holds across a reload, `?` is then quiet and Ctrl+/ and Ctrl+K still
+  work; single keys start off in Simple Kin.
+- axe, WCAG 2.2 AA, light and dark, on Today, Planner, Chat, Wealth,
+  Health, Journal and Settings: clean but for Health (fixed, below).
+- Nothing wider than the phone at 320 or 390px on those seven, Simple Kin
+  off and on.
+- Every theme, light and dark, measured against the compiled CSS: text
+  4.5:1 and controls 3:1 after the fixes below.
+- #847, #855, #865 and #868's migrations reached dev and production.
+
+**Fixed (each its own PR, merged):**
+- #868 account deletion: a private account shared with someone stays; a
+  "just me" paluwagan and check-ins asked of others go.
+- #873 shortcuts no longer fire behind an open sheet (Kin's sheets never
+  say aria-modal); no `n` in a child's view.
+- #874 Health's "Not recorded · add" links name what they show (2.5.3);
+  Health is in a11y.spec.ts.
+- #875 the Planner rail's day letters stay at 10.5px at 320px.
+- #876 a photo-migration error no longer puts a file name in app_errors.
+- #877 the switch's off ring is 3:1 in every theme (was 2.4–2.9 in four).
+- #880 goal links, rings, pips and six focus outlines use the theme's
+  colours, not one fixed blue (2.0:1 on Nord dark).
+- #884 the toast live region is always mounted, so "Deleted · Undo" is
+  read out.
+- #885 status colours as text read at 4.7:1 or more in every theme.
+
+**Left, and for whom:**
+- Jonathan: everything on the review page that waits on him or on money
+  (the AI key, payments, TURN, business registration, the ad stage).
+- Real phone: the "Needs a real phone" list, now with Undo read out
+  (below).
+- Not checked in a browser: #847 as a child sees it. The sample
+  household has no child login on dev.
+- Account deletion, older than #855 (the 21 October entry below lists
+  both): an emptied household whose delete fails once is never retried;
+  an organizer and a grown-up both leaving can leave the household
+  without an organizer.
+- Error capture (#865): one fault can make two rows where reportError and
+  refusalMessage both run; an expired login and PGRST116 count as
+  defects. Read the first Friday's "Errors this week" with that in mind.
+
+**Proposals, for Jonathan and Janine to decide (nothing changed):**
+- **Simple Kin's own 44px for every control.** The segmented controls,
+  Wealth's Income/Expenses headers and Journal's share chips are 26–40px
+  tall with Simple Kin on. WCAG's 24px is met, so this is Simple Kin's
+  promise, not a failure. The proposal: `min-height: 44px` on those three
+  under `.kin-simple`, which makes those rows taller.
+- **The Notes board's arrows go note to note.** ↑/↓ (#864) step through
+  each note's two buttons (Edit, Delete), so a board of ten notes is
+  twenty presses. The proposal: arrows move between notes, Tab reaches a
+  note's buttons.
+
 ## Final design check, 22 October (Jonathan: approved, decide and explain)
 
 What was checked, what was fixed, and what is left for Jonathan and
@@ -2019,6 +2082,9 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 
+- **Undo read out (22 October, #884):** with VoiceOver on, delete a note,
+  then a To-Buy item; VoiceOver should say "Deleted" with Undo, and Undo
+  should put it back.
 - **Delete my account (21 October), with a throwaway account only:** ask to
   delete it, check you are signed out and the login page says 7 days; sign
   in again and choose Keep my account. Download my data on the phone and
