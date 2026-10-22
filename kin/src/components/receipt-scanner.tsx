@@ -153,7 +153,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus }: { accounts: 
         </p>
       ) : !ready ? (
         <p className="kin-scan-off" role="note">
-          Kin AI isn&apos;t switched on yet (Jonathan adds it once). Until then your picture shows here so you can copy the amount into Move money. Nothing is sent anywhere.
+          Kin AI isn&apos;t switched on yet. Until then your picture shows here so you can copy the amount into Move money. Nothing is sent anywhere.
         </p>
       ) : null}
       <p className="kin-scan-privacy">{KIN_AI_PRIVACY}</p>

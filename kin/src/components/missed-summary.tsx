@@ -50,7 +50,7 @@ export function MissedSummary({ thread, since, count, threadName, peerName, plus
               A short Taglish catch-up of these messages is part of <b>Kin Plus</b>. <Link href="/subscribe">See plans</Link>
             </p>
           ) : !ready ? (
-            <p className="kin-missed-note">Kin AI isn&apos;t switched on yet (Jonathan adds it once). Scroll up to read, or come back once it is.</p>
+            <p className="kin-missed-note">Kin AI isn&apos;t switched on yet. Scroll up to read what you missed.</p>
           ) : (
             <button type="button" className="btn btn-primary" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", padding: "0 0.875rem" }} onClick={ask} disabled={pending}>
               {pending ? "Reading…" : "What did I miss?"}

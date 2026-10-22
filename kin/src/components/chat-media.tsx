@@ -69,7 +69,7 @@ export function MediaPicker({ gifReady, onSend, onClose }: { gifReady: boolean; 
           ))}
         </div>
       ) : !gifReady ? (
-        <p className="kin-media-note">GIF search is coming soon. It switches on once Jonathan adds the GIPHY key. Stickers work now.</p>
+        <p className="kin-media-note">GIF search is coming soon. Stickers work now.</p>
       ) : (
         <>
           <input className="input kin-media-search" type="search" placeholder="Search GIFs" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search GIFs" enterKeyHint="search" />
