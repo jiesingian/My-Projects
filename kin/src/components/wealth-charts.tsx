@@ -693,12 +693,21 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
       return { key, label: accounts[0].ownerLabel, slot: accounts[0].ownerSlot, accounts, sum: accounts.reduce((t, a) => t + a.balance, 0) };
     })
     .sort((a, b) => a.slot - b.slot);
-  const ordered = owners.flatMap((o) => o.accounts.map((a, nth) => ({ ...a, fill: accountShade(o.slot, nth) })));
+  // One owner on screen (Who: Family, or one person): shades of one hue
+  // would be all there is to tell accounts apart by, so each account takes
+  // its own hue instead -- in the order the accounts were added (`slices`
+  // arrives that way), so an account keeps its colour as balances move.
+  const single = owners.length === 1;
+  const addedOrder = new Map(positive.map((s, i) => [s.id, i]));
+  const ordered = owners.flatMap((o) => o.accounts.map((a, nth) => ({ ...a, fill: single ? ownerHue(addedOrder.get(a.id)!) : accountShade(o.slot, nth) })));
   // "<1", not "0": a slice that is there should never read as nothing.
   const pct = (v: number) => {
     const p = total > 0 ? Math.round((v / total) * 100) : 0;
     return p === 0 && v > 0 ? "<1" : String(p);
   };
+  // The ring, in the order its colours were validated as neighbours: by
+  // owner slot, or -- one owner -- in added order. The list stays largest first.
+  const ring = single ? [...ordered].sort((a, b) => addedOrder.get(a.id)! - addedOrder.get(b.id)!) : ordered;
   const picked = ordered.find((a) => a.id === sel) ?? null;
 
   const size = 176;
@@ -718,7 +727,7 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
             </p>
             <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
               <g transform={`translate(${size / 2},${size / 2})`}>
-                <Pie data={ordered} pieValue={(d) => d.balance} outerRadius={outer} innerRadius={inner} padAngle={pad} pieSort={null}>
+                <Pie data={ring} pieValue={(d) => d.balance} outerRadius={outer} innerRadius={inner} padAngle={pad} pieSort={null}>
                   {(pie) =>
                     pie.arcs.map((arc) => (
                       <path
@@ -752,7 +761,7 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
           {owners.map((o) => (
             <div key={o.key} style={{ marginBottom: "0.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, padding: "0.25rem 0.25rem 0.125rem" }}>
-                <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: ownerHue(o.slot), flex: "none" }} />
+                {!single && <i aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 3, background: ownerHue(o.slot), flex: "none" }} />}
                 <span style={{ flex: 1, minWidth: 0 }}>{o.label}</span>
                 <span style={tabular}>{formatCurrency(o.sum, currency)}</span>
                 <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(o.sum)}%</span>
