@@ -567,6 +567,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                       key={day}
                       href={calendarHref(who, "month", date, hide)}
                       aria-current={isSelected ? "date" : undefined}
+                      aria-label={`${day} ${monthShort(date)}${items.length ? `: ${items.map((a) => a.title).join(", ")}` : ""}`}
                       style={{
                         minHeight: "3.75rem",
                         minWidth: 0,
@@ -600,38 +601,20 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                       >
                         {day}
                       </span>
-                      {/* Chips carry a clipped title, so a day's contents read at a
-                          glance rather than as an anonymous dot. A long title
-                          must never widen its cell: the column is capped, the
-                          chip is a block that cannot exceed it, and the text
-                          clips inside. */}
-                      <span style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: "0.0625rem" }}>
-                        {items.slice(0, 2).map((a) => (
-                          <span
-                            key={`${a.table}-${a.id}`}
-                            title={a.title}
-                            style={{
-                              display: "block",
-                              maxWidth: "100%",
-                              minWidth: 0,
-                              fontSize: "0.53125rem",
-                              lineHeight: 1.3,
-                              borderRadius: 3,
-                              padding: "0 0.125rem",
-                              background: styleFor(a.table).color,
-                              color: "#fff",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {a.title}
-                          </span>
-                        ))}
-                        {items.length > 2 && (
-                          <span style={{ fontSize: "0.53125rem", color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
-                        )}
-                      </span>
+                      {/* A dot per plan, in its colour, up to three, then "+N": the
+                          8.5px titles that were here were the smallest text in
+                          Kin and still clipped to a few letters in a seventh of a
+                          phone. The names are in the selected day's list below,
+                          and the cell's label reads them out (final design
+                          check, 22 October). */}
+                      {items.length > 0 && (
+                        <span aria-hidden="true" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, minHeight: "0.875rem" }}>
+                          {items.slice(0, 3).map((a) => (
+                            <span key={`${a.table}-${a.id}`} style={{ width: 6, height: 6, borderRadius: 999, background: styleFor(a.table).color, flex: "none" }} />
+                          ))}
+                          {items.length > 3 && <span style={{ fontSize: "var(--text-2xs)", lineHeight: 1, color: "var(--color-neutral-600)" }}>+{items.length - 3}</span>}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -1108,7 +1091,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
           }}
         >
           <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{Number(row.event.event_date.slice(8, 10))}</span>
-          <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+          <span style={{ fontSize: "var(--text-2xs)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
             {monthShort(row.event.event_date).toUpperCase()}
           </span>
         </Blueprint>
@@ -1143,7 +1126,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
           }}
         >
           <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{Number(row.trip.event_date.slice(8, 10))}</span>
-          <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+          <span style={{ fontSize: "var(--text-2xs)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
             {monthShort(row.trip.event_date).toUpperCase()}
           </span>
         </Blueprint>

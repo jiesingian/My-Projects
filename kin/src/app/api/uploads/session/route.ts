@@ -13,6 +13,7 @@ import {
   ensureProfilePhotoFolder,
   createResumableUploadSession,
 } from "@/lib/google-drive";
+import { reportError } from "@/lib/report-error";
 
 type SessionRequest = {
   kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight" | "event_photo" | "visit_photo" | "tree_story";
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const { data: used, error } = await supabase.rpc("family_storage_bytes");
     if (error || typeof used !== "number") {
-      if (error) console.error("family_storage_bytes failed; allowing the upload", error.message);
+      if (error) reportError("family_storage_bytes failed; allowing the upload", error);
       return null;
     }
     const plus = readAccess(me.families).plus;
@@ -276,7 +277,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ provider: "google_drive", uploadUrl });
     } catch (err) {
       // Falls through to the Supabase Storage session below.
-      console.error(`Drive upload session failed for kind=${kind}, falling back to Supabase:`, err);
+      reportError("Drive upload session failed; falling back to Supabase", err, kind);
     }
   }
 

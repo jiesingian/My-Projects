@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { chatTheme, householdTopic } from "@/lib/chat-themes";
 
 /** Sets the household chat's theme, for everyone in it. Whether the caller
@@ -15,7 +15,7 @@ export async function setHouseholdChatThemeAction(theme: string): Promise<{ erro
   const { error } = await supabase
     .from("chat_themes")
     .upsert({ topic: householdTopic(me.family_id), theme: chatTheme(theme), set_by: me.id, updated_at: new Date().toISOString() });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }

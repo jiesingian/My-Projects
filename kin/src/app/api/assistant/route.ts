@@ -7,6 +7,7 @@ import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 import { KIN_AI_OFF, kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { GONE_STATUSES } from "@/lib/member-status";
+import { reportError } from "@/lib/report-error";
 
 /** Enough turns for the assistant to look something up, act on it, and
  * report back, without ever looping unbounded on a user's request. */
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
           output = await runAssistantTool(use.name, use.input, me);
           if (use.name.startsWith("add_") || use.name === "record_money") actions.push(use.name);
         } catch (err) {
-          console.error(`Assistant tool ${use.name} threw`, err);
+          reportError("Assistant tool threw", err, use.name);
           output = JSON.stringify({ error: "That didn't go through. Nothing was saved." });
         }
         results.push({ type: "tool_result", tool_use_id: use.id, content: output });
@@ -134,17 +135,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ reply: "That took more steps than I can do in one go — try asking for one thing at a time.", actions });
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
-      console.error("Assistant auth failed", error);
+      reportError("Assistant auth failed", error);
       return NextResponse.json({ error: "The assistant's API key isn't valid." }, { status: 503 });
     }
     if (error instanceof Anthropic.RateLimitError) {
       return NextResponse.json({ error: "Too many requests just now — give it a moment." }, { status: 429 });
     }
     if (error instanceof Anthropic.APIError) {
-      console.error(`Assistant API error ${error.status}`, error);
+      reportError("Assistant API error", error, error.status);
       return NextResponse.json({ error: "The assistant couldn't be reached." }, { status: 502 });
     }
-    console.error("Assistant failed", error);
+    reportError("Assistant failed", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }
 }

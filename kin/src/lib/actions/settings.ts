@@ -8,7 +8,7 @@ import { isGrownUp } from "@/lib/roles";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, refusalMessage } from "@/lib/report-error";
 import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { simpleModeTextScale } from "@/lib/simple-mode";
@@ -26,7 +26,7 @@ export async function setThemeAction(theme: "light" | "dark" | "system"): Promis
   // whether or not the row saved -- so the theme appeared to change here and
   // quietly reverted on the member's other devices.
   const { error } = await supabase.from("members").update({ theme }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${error.message}` };
+  if (error) return { error: `That did not save. ${refusalMessage(error)}` };
 
   const cookieStore = await cookies();
   if (theme === "system") cookieStore.delete("kin-theme");
@@ -48,7 +48,7 @@ export async function setTextScaleAction(percent: number): Promise<ActionState> 
   }
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ text_scale: value }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${error.message}` };
+  if (error) return { error: `That did not save. ${refusalMessage(error)}` };
   return { error: null };
 }
 
@@ -61,7 +61,7 @@ export async function setSimpleModeAction(on: boolean): Promise<ActionState> {
   if (on === true) patch.text_scale = Math.min(TEXT_SCALE_MAX, simpleModeTextScale(me.text_scale));
   const supabase = await createClient();
   const { error } = await supabase.from("members").update(patch).eq("id", me.id);
-  if (error) return { error: `That did not save. ${error.message}` };
+  if (error) return { error: `That did not save. ${refusalMessage(error)}` };
   return { error: null };
 }
 
@@ -74,7 +74,7 @@ export async function setPaletteAction(id: string): Promise<ActionState> {
   if (!isPaletteId(id)) return { error: "That is not one of the themes we offer." };
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ palette: id }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   const cookieStore = await cookies();
   if (id === PALETTE_DEFAULT) cookieStore.delete("kin-palette");
   else cookieStore.set("kin-palette", id, { path: "/", maxAge: 60 * 60 * 24 * 365 });
@@ -91,7 +91,7 @@ export async function answerLookOfferAction(accept: boolean): Promise<ActionStat
     .from("members")
     .update({ look_offer_answered_at: new Date().toISOString(), ...(accept ? { palette: PALETTE_NEW_MEMBER } : {}) })
     .eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   if (accept) {
     const cookieStore = await cookies();
     cookieStore.set("kin-palette", PALETTE_NEW_MEMBER, { path: "/", maxAge: 60 * 60 * 24 * 365 });
@@ -110,7 +110,7 @@ export async function toggleNotificationAction(key: string, value: boolean): Pro
   const supabase = await createClient();
   const prefs = { ...(me.notification_prefs as Record<string, boolean>), [key]: value };
   const { error } = await supabase.from("members").update({ notification_prefs: prefs }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${error.message}` };
+  if (error) return { error: `That did not save. ${refusalMessage(error)}` };
   revalidatePath("/settings", "layout");
   return { error: null };
 }
@@ -131,7 +131,7 @@ export async function updateHouseholdNameAction(name: string): Promise<ActionSta
   const { error } = await supabase.from("families").update({ name: trimmed }).eq("id", me.family_id);
   revalidatePath("/settings", "layout");
   revalidatePath("/today");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Whether new journal entries and milestones reach linked households on
@@ -145,7 +145,7 @@ export async function updateShareWithRelativesAction(on: boolean): Promise<Actio
   const { error } = await supabase.from("families").update({ share_with_relatives: on === true }).eq("id", me.family_id);
   revalidatePath("/settings", "layout");
   revalidatePath("/journal");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Undas and babang-luksa reminders for relatives on the tree who have passed
@@ -159,7 +159,7 @@ export async function updateRememberTheDepartedAction(on: boolean): Promise<Acti
   revalidatePath("/settings", "layout");
   revalidatePath("/today");
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Christmas on Today (20261020212000): the household's switch for the
@@ -172,7 +172,7 @@ export async function updateChristmasOnTodayAction(on: boolean): Promise<ActionS
   const { error } = await supabase.from("families").update({ christmas_on_today: on === true }).eq("id", me.family_id);
   revalidatePath("/settings", "layout");
   revalidatePath("/today");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Kid view on or off for one child with a login of their own (K1). Only a
@@ -186,7 +186,7 @@ export async function setKidViewAction(memberId: string, on: boolean): Promise<A
   if (!child || child.family_id !== me.family_id) return { error: "That person could not be found." };
   if (child.role !== "child_self") return { error: "Kid view is for children with a login of their own." };
   const { data: saved, error } = await supabase.from("members").update({ kid_view: on === true }).eq("id", memberId).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // A policy that refuses an update matches no rows rather than erroring.
   if (!saved || saved.length === 0) return { error: "That didn't save. Try again, or ask the household's organizer." };
   revalidatePath("/settings", "layout");
@@ -228,7 +228,7 @@ export async function updateHouseholdPrefsAction(
     .update({ currency, date_format: dateFormat, week_start: weekStart, country: country || null, time_zone: timeZone })
     .eq("id", me.family_id);
   revalidatePath("/settings", "layout");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Makes the member a new private calendar link for Apple Calendar, Outlook
@@ -243,7 +243,7 @@ export async function createCalendarFeedAction(): Promise<{ error: string | null
     .from("members")
     .update({ calendar_feed_hash: toBase64Url(sha256(token)) })
     .eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const path = `/api/calendar/feed/${token}.ics`;
@@ -256,7 +256,7 @@ export async function removeCalendarFeedAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ calendar_feed_hash: null }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings", "layout");
   return { error: null };
 }
@@ -271,7 +271,7 @@ export async function setQuickButtonAction(prefs: { menu: string[]; widget: stri
   if (!menu || !widget) return { error: `Pick at least one, and at most ${MENU_MAX}.` };
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ quick_actions: { menu, widget } }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings");
   return { error: null };
 }
@@ -285,7 +285,7 @@ export async function createBriefLinkAction(): Promise<{ error: string | null; u
   const token = randomToken();
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ brief_hash: toBase64Url(sha256(token)) }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   revalidatePath("/settings", "layout");
@@ -298,7 +298,7 @@ export async function removeBriefLinkAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ brief_hash: null }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings", "layout");
   return { error: null };
 }
@@ -314,7 +314,7 @@ export async function createListAddLinkAction(): Promise<{ error: string | null;
   const token = randomToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_list_add_token", { p_token_hash: toBase64Url(sha256(token)) });
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   revalidatePath("/settings", "layout");
@@ -327,7 +327,7 @@ export async function removeListAddLinkAction(): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("clear_list_add_token");
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings", "layout");
   return { error: null };
 }
@@ -343,7 +343,7 @@ export async function createSendToKinLinkAction(): Promise<{ error: string | nul
   const token = randomToken();
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_send_to_kin_token", { p_token_hash: toBase64Url(sha256(token)) });
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   revalidatePath("/settings", "layout");
@@ -356,7 +356,7 @@ export async function removeSendToKinLinkAction(): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("clear_send_to_kin_token");
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings", "layout");
   return { error: null };
 }
@@ -417,7 +417,7 @@ export async function dismissStartHereAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ start_here_dismissed_at: new Date().toISOString() }).eq("id", me.id);
-  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/today");
   return { error: null };
 }

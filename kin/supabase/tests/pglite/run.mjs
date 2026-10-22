@@ -125,6 +125,7 @@ const MIGRATIONS = [
   "20261021140000_journal_public_tree_linked.sql",
   "20261022010000_journal_public_grownups_only.sql",
   "20261022090000_account_deletion_leaves_nothing.sql",
+  "20261022110000_account_deletion_shared_private.sql",
 ];
 
 const only = process.argv[2];

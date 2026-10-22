@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { sendChatPush } from "@/lib/push";
 import { getDirectPeers, getForwardTargets, pairOf } from "@/lib/queries/chat-rooms";
@@ -37,7 +37,7 @@ export async function markThreadReadAction(thread: Thread): Promise<ActionState>
   const { error } = await supabase
     .from("chat_reads")
     .upsert({ person_id: me.person_id, thread, last_read_at: new Date().toISOString() }, { onConflict: "person_id,thread" });
-  return error ? { error: humanDatabaseError(error.message) } : { error: null };
+  return error ? { error: databaseError(error) } : { error: null };
 }
 
 /** A photo already uploaded to the sender's own chat folder, straight from
@@ -89,7 +89,7 @@ async function attachPhotos(
   else if ("group_message_id" in to) await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
   else await supabase.from("saved_messages").delete().eq("id", to.saved_message_id);
   await supabase.storage.from("documents").remove(photos.map((p) => p.storagePath));
-  return `The photos didn't attach, so nothing was sent. ${humanDatabaseError(error.message)}`;
+  return `The photos didn't attach, so nothing was sent. ${databaseError(error)}`;
 }
 
 /** Deleting a message takes its photos with it -- the files, not only the
@@ -137,7 +137,7 @@ export async function sendFamilyMessageAction(
     .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+  if (error || !data) return { error: error ? databaseError(error) : "That didn't send." };
   const attachError = await attachPhotos(me, photos, { family_message_id: data.id });
   if (attachError) return { error: attachError };
   await markThreadReadAction("family");
@@ -162,7 +162,7 @@ export async function deleteFamilyMessageAction(id: string): Promise<ActionState
   if (!mine) return { error: "That message isn't yours to delete." };
   await removePhotosOf("family_message_id", id);
   const { error } = await supabase.from("family_tree_messages").delete().eq("id", id).eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -191,7 +191,7 @@ export async function sendDirectMessageAction(
     .single();
   if (error || !data) {
     if (error?.code === "42501") return { error: "You're no longer connected, so this can't be sent." };
-    return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+    return { error: error ? databaseError(error) : "That didn't send." };
   }
   const attachError = await attachPhotos(me, photos, { direct_message_id: data.id });
   if (attachError) return { error: attachError };
@@ -215,7 +215,7 @@ export async function deleteDirectMessageAction(id: string): Promise<ActionState
   if (!mine) return { error: "That message isn't yours to delete." };
   await removePhotosOf("direct_message_id", id);
   const { error } = await supabase.from("direct_messages").delete().eq("id", id).eq("sender_person_id", me.person_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -247,7 +247,7 @@ export async function toggleRoomReactionAction(kind: "family" | "dm" | "group" |
                 ? { link_message_id: messageId, emoji }
                 : { group_message_id: messageId, emoji },
         );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   // The linked-household thread lives under Journal (20260930100001).
   if (kind === "link") revalidatePath("/journal/links", "layout");
@@ -287,7 +287,7 @@ export async function setThreadPrefAction(
     updated_at: new Date().toISOString(),
   };
   const { error } = await supabase.from("chat_thread_prefs").upsert(next, { onConflict: "person_id,thread" });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -312,7 +312,7 @@ export async function createGroupAction(name: string, announceOnly: boolean, peo
   await requireCurrentMember();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_chat_group", { p_name: clamp(name.trim(), 60), p_announce_only: announceOnly, p_people: uuids(people) });
-  if (error || !data) return { error: groupError(error?.message ?? "") };
+  if (error || !data) return { error: groupError(refusalMessage(error)) };
   revalidatePath("/chat", "layout");
   return { error: null, id: data };
 }
@@ -322,7 +322,7 @@ export async function addGroupMembersAction(groupId: string, people: string[]): 
   if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("add_chat_group_members", { p_group: groupId, p_people: uuids(people) });
-  if (error) return { error: groupError(error.message) };
+  if (error) return { error: groupError(refusalMessage(error)) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -333,7 +333,7 @@ export async function removeGroupMemberAction(groupId: string, personId: string)
   if (!UUID.test(groupId) || !UUID.test(personId)) return { error: "That group doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_chat_group_member", { p_group: groupId, p_person: personId });
-  if (error) return { error: groupError(error.message) };
+  if (error) return { error: groupError(refusalMessage(error)) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -343,7 +343,7 @@ export async function updateGroupAction(groupId: string, name: string, announceO
   if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_chat_group", { p_group: groupId, p_name: clamp(name.trim(), 60), p_announce_only: announceOnly });
-  if (error) return { error: groupError(error.message) };
+  if (error) return { error: groupError(refusalMessage(error)) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -353,7 +353,7 @@ export async function setGroupAdminAction(groupId: string, personId: string, adm
   if (!UUID.test(groupId) || !UUID.test(personId)) return { error: "That group doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_chat_group_admin", { p_group: groupId, p_person: personId, p_admin: admin });
-  if (error) return { error: groupError(error.message) };
+  if (error) return { error: groupError(refusalMessage(error)) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -379,7 +379,7 @@ export async function sendGroupMessageAction(
     .single();
   if (error || !data) {
     if (error?.code === "42501") return { error: "Only this group's admins can post here." };
-    return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+    return { error: error ? databaseError(error) : "That didn't send." };
   }
   const attachError = await attachPhotos(me, photos, { group_message_id: data.id });
   if (attachError) return { error: attachError };
@@ -406,7 +406,7 @@ export async function deleteGroupMessageAction(id: string): Promise<ActionState>
   if (!row) return { error: "That message isn't there any more." };
   await removePhotosOf("group_message_id", id);
   const { data, error } = await supabase.from("chat_group_messages").delete().eq("id", id).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That message isn't yours to delete." };
   revalidatePath("/chat", "layout");
   return { error: null };
@@ -579,7 +579,7 @@ export async function editRoomMessageAction(kind: RoomKind, id: string, body: st
   if (!text) return { error: "An edit needs some words. Unsend it instead." };
   const supabase = await createClient();
   const { data, error } = await supabase.from(ROOM_TABLE[kind]).update({ body: text }).eq("id", id).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only the person who sent a message can edit it." };
   revalidatePath("/chat", "layout");
   return { error: null };
@@ -596,7 +596,7 @@ export async function unsendRoomMessageAction(kind: RoomKind, id: string): Promi
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only the person who sent a message can unsend it." };
   await removePhotosOf(ROOM_COLUMN[kind], id);
   await supabase.from("chat_room_attachments").delete().eq(ROOM_COLUMN[kind], id);
@@ -611,7 +611,7 @@ export async function pinRoomMessageAction(kind: RoomKind, id: string, pinned: b
   if (!(kind in ROOM_TABLE) || !UUID.test(id)) return { error: "That message doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("pin_chat_message", { p_kind: kind, p_id: id, p_pinned: pinned });
-  if (error) return { error: error.code === "42501" ? "Only this channel's admins can pin here." : humanDatabaseError(error.message) };
+  if (error) return { error: error.code === "42501" ? "Only this channel's admins can pin here." : databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -630,7 +630,7 @@ export async function sendSavedMessageAction(body: string, photos: RoomPhoto[] =
     .insert({ body: text, forwarded_from: forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't save." };
+  if (error || !data) return { error: error ? databaseError(error) : "That didn't save." };
   const attachError = await attachPhotos(me, photos, { saved_message_id: data.id });
   if (attachError) return { error: attachError };
   revalidatePath("/chat", "layout");
@@ -643,7 +643,7 @@ export async function deleteSavedMessageAction(id: string): Promise<ActionState>
   await removePhotosOf("saved_message_id", id);
   const supabase = await createClient();
   const { error } = await supabase.from("saved_messages").delete().eq("id", id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -662,7 +662,7 @@ export async function sendGroupPollAction(groupId: string, question: string, opt
   if (answers.length < 2) return { error: "A poll needs at least two answers." };
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_group_poll", { p_group: groupId, p_question: q, p_options: answers, p_allow_multiple: !!allowMultiple });
-  if (error || !data) return { error: error?.code === "42501" ? "Only this channel's admins can ask here." : humanDatabaseError(error?.message ?? "That didn't send.") };
+  if (error || !data) return { error: error?.code === "42501" ? "Only this channel's admins can ask here." : databaseError(error ?? "That didn't send.") };
   await markThreadReadAction(`group:${groupId}`);
   revalidatePath("/chat", "layout");
   const { data: group } = await supabase.from("chat_groups").select("name").eq("id", groupId).maybeSingle();
@@ -691,11 +691,11 @@ export async function voteGroupPollAction(pollId: string, optionId: string): Pro
   const already = (mine ?? []).some((v) => v.option_id === optionId);
   if (already) {
     const { error } = await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("option_id", optionId).eq("person_id", me.person_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     if (!poll.allow_multiple && (mine ?? []).length) await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("person_id", me.person_id);
     const { error } = await supabase.from("group_poll_votes").insert({ poll_id: pollId, option_id: optionId });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   revalidatePath("/chat", "layout");
   return { error: null };
@@ -719,7 +719,7 @@ export async function scheduleMessageAction(thread: string, body: string, sendAt
   if (when.getTime() > Date.now() + 365 * 86_400_000) return { error: "Pick a time within a year." };
   const supabase = await createClient();
   const { error } = await supabase.from("scheduled_messages").insert({ thread: thread.toLowerCase(), body: text, send_at: when.toISOString() });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
@@ -743,7 +743,7 @@ export async function cancelScheduledAction(id: string): Promise<ActionState> {
   if (!UUID.test(id)) return { error: "That message doesn't exist." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("scheduled_messages").delete().eq("id", id).is("sent_at", null).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That one has already been sent." };
   return { error: null };
 }

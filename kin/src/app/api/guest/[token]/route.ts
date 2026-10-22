@@ -5,6 +5,7 @@ import { isRsvpAnswer } from "@/lib/event-rsvp";
 import { POTLUCK_LABEL_MAX, POTLUCK_WANTED_MAX } from "@/lib/potluck";
 import { UUID } from "@/lib/ids";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
+import { reportError } from "@/lib/report-error";
 
 /** A guest's answers through a guest link (20261020231000): no session, the
  * link's token is the key. It is hashed here and each guest_* function
@@ -76,7 +77,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     // raise is a sentence for the guest. A real failure is neither.
     if (result.error.code === "P0002") return dead();
     if (result.error.code?.startsWith("P0") || result.error.code === "23514") return json({ error: result.error.message }, 400);
-    console.error("Guest link action failed", result.error.message);
+    reportError("Guest link action failed", result.error);
     return json({ error: "Kin couldn't save that just now. Try again in a minute." }, 503);
   }
   return json({ state: result.data ?? null });

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN, PASSWORD_TOO_SHORT } from "@/lib/password";
 import { humanAuthError, isEmailRateLimit, isRateLimit, REQUEST_RATE_LIMITED } from "@/lib/auth-errors";
 import { signupCode } from "@/lib/signup-code";
+import { reportError, refusalMessage } from "@/lib/report-error";
 
 export type ActionState = { error: string | null };
 /** Sign-up stays on one screen: once the email is sent, `sentTo` turns the
@@ -72,7 +73,7 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
   // simply work again once the mailer's hourly cap resets. The form keeps
   // what was typed (see signup/page.tsx) so trying again is one tap.
   if (error) {
-    if (isEmailRateLimit(error)) console.error("Sign-up confirmation email hit the mail rate limit", error.code);
+    if (isEmailRateLimit(error)) reportError("Sign-up confirmation email hit the mail rate limit", error.code);
     return { error: humanAuthError(error) };
   }
 
@@ -123,7 +124,7 @@ export async function resendConfirmation(email: string): Promise<ActionState> {
     email,
     options: { emailRedirectTo: `${origin}/auth/callback` },
   });
-  if (isEmailRateLimit(error)) console.error("Confirmation resend hit the mail rate limit", error?.code);
+  if (isEmailRateLimit(error)) reportError("Confirmation resend hit the mail rate limit", error?.code);
   return { error: humanAuthError(error) };
 }
 
@@ -134,7 +135,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  if (error) return { error: refusalMessage(error) };
 
   redirect("/");
 }
@@ -169,7 +170,7 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
   // It is logged by its code so a capped mailer is recognisable in the logs.
   if (mailError) {
     const reason = isEmailRateLimit(mailError) ? "mail rate limit" : mailError.message;
-    console.error("Password reset email could not be sent", reason);
+    reportError("Password reset email could not be sent", reason);
   }
 
   redirect(`/reset-password?email=${encodeURIComponent(email)}`);
@@ -208,7 +209,7 @@ export async function updatePasswordAction(_prev: ActionState, formData: FormDat
   }
 
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: error.message };
+  if (error) return { error: refusalMessage(error) };
 
   // A password is usually reset because the old one is not trusted any more,
   // so every other device is signed out. This session stays, so they land in
@@ -218,7 +219,7 @@ export async function updatePasswordAction(_prev: ActionState, formData: FormDat
   // and there is nothing they could do about it here. But a password reset
   // that failed to sign the other devices out is exactly the case the reset
   // was for, so it must not pass unrecorded.
-  if (othersError) console.error("Other sessions were not signed out after a password reset", othersError.message);
+  if (othersError) reportError("Other sessions were not signed out after a password reset", othersError);
 
   redirect("/today");
 }
@@ -229,6 +230,6 @@ export async function signOutAction() {
   // The redirect happens either way -- leaving someone stranded on a page
   // they meant to leave is worse -- but a sign-out that did not take means
   // the session is still live behind the login screen.
-  if (error) console.error("Sign out did not complete", error.message);
+  if (error) reportError("Sign out did not complete", error);
   redirect("/login");
 }

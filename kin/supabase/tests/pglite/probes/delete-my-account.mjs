@@ -262,6 +262,20 @@ export default async function ({ db, as, check, refused }) {
       ('ac000000-0000-0000-0000-000000000002', '${A}', 'Ann wallet (household sees it)', '${M("a1")}', false);
     insert into wealth_transactions (family_id, account_id, direction, amount, particulars) values ('${A}', 'ac000000-0000-0000-0000-000000000001', 'in', 5, 'pay');
     insert into utang_entries (family_id, direction, person_name, amount, started_on, is_private, recorded_by) values ('${A}', 'lent', 'Cousin', 1, current_date, true, '${M("a1")}');
+    -- A private account she shared with Ben (account_viewers) is not hers
+    -- alone: it stays, with its movement, for him (20261022110000).
+    insert into accounts (id, family_id, name, owner_member_id, is_private) values
+      ('ac000000-0000-0000-0000-000000000003', '${A}', 'Ann shared (Ben sees it)', '${M("a1")}', true);
+    insert into wealth_transactions (family_id, account_id, direction, amount, particulars) values ('${A}', 'ac000000-0000-0000-0000-000000000003', 'in', 7, 'pay');
+    insert into account_viewers (account_id, member_id, family_id, added_by) values ('ac000000-0000-0000-0000-000000000003', '${M("b1")}', '${A}', '${M("a1")}');
+    -- A "just me" paluwagan of hers goes, members and all; Ben's stays his.
+    insert into paluwagan_groups (id, family_id, name, contribution, starts_on, is_private, recorded_by) values
+      ('9a100000-0000-0000-0000-000000000001', '${A}', 'Office paluwagan', 1000, current_date, true, '${M("a1")}'),
+      ('9a100000-0000-0000-0000-000000000002', '${A}', 'Ben''s barkada', 500, current_date, true, '${M("b1")}');
+    insert into paluwagan_members (group_id, family_id, name, turn) values
+      ('9a100000-0000-0000-0000-000000000001', '${A}', 'Tita Rose', 1), ('9a100000-0000-0000-0000-000000000002', '${A}', 'Jun', 1);
+    -- A check-in she asked of Ben goes with her, as the cascade would have.
+    insert into member_checkins (family_id, asked_by, member_id) values ('${A}', '${M("a1")}', '${M("b1")}');
     update remittances set is_private = true, recorded_by = '${M("a1")}' where sender_member_id = '${M("a1")}';
     -- Ben's own private remittance naming Ann as sender stays his.
     update remittances set is_private = true, recorded_by = '${M("b1")}' where sender_member_id = '${M("b1")}';
@@ -373,14 +387,20 @@ export default async function ({ db, as, check, refused }) {
   await check("Her private account, debt, remittance and document go; what the household or someone else sees stays", async () => {
     const accounts = (await db.query(`select name from accounts where owner_member_id = '${M("a1")}' order by 1`)).rows.map((r) => r.name);
     const tx = await count("select count(*) n from wealth_transactions where account_id = 'ac000000-0000-0000-0000-000000000001'");
+    const sharedTx = await count("select count(*) n from wealth_transactions where account_id = 'ac000000-0000-0000-0000-000000000003'");
+    const viewer = await count(`select count(*) n from account_viewers where account_id = 'ac000000-0000-0000-0000-000000000003' and member_id = '${M("b1")}'`);
+    const paluwagan = (await db.query("select name from paluwagan_groups where id::text like '9a1%' order by 1")).rows.map((r) => r.name);
+    const paluwaganPeople = (await db.query("select name from paluwagan_members where group_id::text like '9a1%' order by 1")).rows.map((r) => r.name);
+    const asked = await count(`select count(*) n from member_checkins where asked_by = '${M("a1")}'`);
     const utang = await count(`select count(*) n from utang_entries where recorded_by = '${M("a1")}'`);
     const remit = (await db.query(`select is_private, sender_name from remittances where sender_member_id = '${M("a1")}'`)).rows;
     const docs = (await db.query(`select title from doc_entries where 'd0c' = left(id::text, 3) order by 1`)).rows.map((r) => r.title);
     const bens = await count(`select count(*) n from remittances where is_private and recorded_by = '${M("b1")}'`);
-    const ok = accounts.join() === "Ann wallet (household sees it)" && tx === 0 && utang === 0 &&
+    const ok = accounts.join() === "Ann shared (Ben sees it),Ann wallet (household sees it)" && tx === 0 && sharedTx === 1 && viewer === 1 &&
+      paluwagan.join() === "Ben's barkada" && paluwaganPeople.join() === "Jun" && asked === 0 && utang === 0 &&
       remit.length === 1 && !remit[0].is_private && remit[0].sender_name === "Former member" &&
       docs.join() === "House title,Kid passport" && bens === 1;
-    return ok || { accounts, tx, utang, remit, docs, bens };
+    return ok || { accounts, tx, sharedTx, viewer, paluwagan, paluwaganPeople, asked, utang, remit, docs, bens };
   });
   await check("The membership she moved out of is emptied too, and stays 'moved'; her tree person stays, untied", async () => {
     const old = (await db.query(`select full_name, status, email from members where id = '${M("a9")}'`)).rows[0];

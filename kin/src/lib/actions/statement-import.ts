@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { MAX_STATEMENT_ROWS } from "@/lib/statement-import";
 
 export type ImportRow = { date: string; direction: "in" | "out"; amount: number; particulars: string };
@@ -25,7 +25,7 @@ export async function importStatementAction(accountId: string, rows: ImportRow[]
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("import_wealth_transactions", { p_account: accountId, p_rows: clean });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   const result = Array.isArray(data) ? data[0] : data;
 
   revalidatePath("/wealth");

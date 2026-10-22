@@ -111,6 +111,21 @@ the same day.
   bill. Not now hides it on that phone for a week (localStorage). A bill
   paid in another app ("Open app & log") is offered once it is confirmed,
   on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
+  **Checked 22 October** (e2e/bill-roll.spec.ts, weekly tier: it writes
+  bills, removed afterwards): as the QA household on dev, paying a repeating
+  bill outside Kin raises the sheet with next month's date and the amount;
+  Add makes exactly one next bill at that date and amount, Not now makes
+  none, and a bill whose next one exists offers nothing. Cash Flow and Today
+  at 320px and 390px, Simple Kin off and on, and the sheet at 320px in
+  Simple Kin: nothing wider than the phone; in Simple Kin the offer's and
+  the sheet's buttons and an open bill's Settle, reminder and Remove are
+  44px. Fixed on the way: in Simple Kin at 320px a bill's Settle / reminder
+  / Remove row ran 39px off the screen, and "Next 30 days" broke bill names
+  mid-word (both rows wrap now); Settle and the reminder were 41.6px in
+  Simple Kin (an inline 2rem beat its 2.75rem); and "Next 30 days" called a
+  bill overdue from 08:00 Manila on the day it was due (a date compared
+  with the clock in UTC). The offers on Cash Flow sit in the EXPENSES
+  group, which is closed unless opened (Today shows them open).
 - **Decided and done (Jonathan, 21 October): Journal "Public" entries reach
   connections only, strictly.** A Public entry reaches the writer's accepted
   connections (are_connected: mutual and live, the household's other
@@ -168,8 +183,28 @@ adding a paid service. Payments (PayMongo) are not part of this.
   answers only the two QA accounts the weekly check signs in as, and
   `weekly-check.yml` puts "Errors this week" in the run summary, in the
   failure issue, and in an issue of its own when production recorded any.
-  Probe: app-errors.mjs. Spec: e2e/error-capture.logic.spec.ts. Not
-  recorded: an error a server action catches itself and only logs. Not
+  Probe: app-errors.mjs. Spec: e2e/error-capture.logic.spec.ts. Since 22
+  October errors that are caught are recorded too (they never reached
+  `onRequestError`): every server action and route handler, and the
+  server code they call (push, Drive, Calendar, the highlights sweep, Kin
+  AI's allowance), reports through one helper, `lib/report-error.ts`:
+  `reportError(label, error, ...logOnly)` for a catch that logged, and
+  `databaseError(error)` in place of `humanDatabaseError(error.message)`
+  (about 400 places; the sentence people read is unchanged) or
+  `refusalMessage(error)` where an action words the refusal itself. A
+  database refusal is reported only when it is Kin's fault
+  (`isDatabaseDefect`: a missing field, a check or RLS refusal of what the
+  screen offered, a missing grant or column, a timeout, the database not
+  answering), never what Kin's own functions refuse on purpose (P0001,
+  22023, a named 42501/23514, a duplicate, Plus required) nor an RLS
+  refusal a screen explains itself (Parents only, someone else's
+  account). Same table, same scrub (now also the value Postgres quotes
+  back), same fingerprint plus the label; the label is fixed text, the
+  page the Referer as a pattern, a Supabase error's details never read or
+  logged; sent after the response; at most 60 a minute per instance. Bad
+  input from outside (a malformed request body, a recipe link that does
+  not answer) is still not an error. Spec: e2e/caught-errors.logic.spec.ts;
+  run against dev on 22 October, both kinds landed scrubbed. Not
   checked: that production's QA account is `kin-e2e-qa@example.com` (the
   digest allows that and `kin-dev-qa@`; if not, the section says "not
   read" and the address needs adding in a migration).
@@ -236,6 +271,19 @@ adding a paid service. Payments (PayMongo) are not part of this.
   household button sweeps only the household's folders, so photos of entries
   added from "Just me" (filed under the writer's folder) stay in Storage
   after it.
+- **Done (wrap-up review of the audit, 22 October, 20261022110000):** a
+  private account its owner had shared (`account_viewers`) was deleted
+  with them, movements and all, out from under the person it was shared
+  with; it stays now, and only a private account nobody else is named on
+  goes. A "just me" paluwagan was left behind (names, members and all,
+  readable by nobody); it goes now, as private utang does. Check-ins they
+  asked of someone else go too. Still open, both older than the audit:
+  (1) if deleting an emptied household fails once (its own RPC, after
+  `finalize_account_deletion` has committed and dropped the request),
+  nothing lists that household again and it stays, empty, with its data
+  and files; (2) an organizer and another grown-up who both asked to
+  delete: the organizer's job promotes nobody (the other is pending), and
+  if the other then cancels, the household has no organizer.
 - **Done:** Consent banner and privacy section for the ad stage, built
   switched off. One switch: `AD_TRACKING_ON` in `src/lib/legal.ts`, on only
   when Vercel has `NEXT_PUBLIC_AD_TRACKING=on` (then redeploy); default
@@ -413,8 +461,9 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   last 06:00 Manila and the browser's Date is fixed to it; only a baseline
   from the same frozen moment is compared (#830). **Fails on a real
   difference since 21 October** (Jonathan moved it up from 27 October): an
-  intended change is accepted with a `<slug> #<PR>` line in
-  `kin/e2e/visual-accept.txt` in the same PR, as the failure message says.
+  intended change is accepted with the screen's slug in
+  `kin/e2e/visual-accept/<PR>.txt` in the same PR, as the failure message
+  says (one file per PR: a shared list made parallel PRs conflict).
   `VISUAL_WARN_ONLY: "1"` on the e2e.yml step goes back to warning if noise
   returns.
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:

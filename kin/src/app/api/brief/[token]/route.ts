@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { buildBrief, type BriefItem, type BriefRoutine } from "@/lib/brief";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
+import { reportError } from "@/lib/report-error";
 
 /** A member's plan for today, as plain sentences for the iPhone to speak:
  * the "Today in Kin" Shortcut fetches this (Get Contents of URL) and reads it
@@ -23,7 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
   });
   const { data, error } = await supabase.rpc("today_brief", { p_hash: toBase64Url(sha256(token)) });
   if (error) {
-    console.error("Today brief failed", error.message);
+    reportError("Today brief failed", error);
     return text("Kin couldn't get today's plan just now. Try again in a minute.", 503);
   }
   const brief = data as { name: string; tz?: string; me?: string; items: BriefItem[]; routines?: BriefRoutine[]; low?: string[] } | null;

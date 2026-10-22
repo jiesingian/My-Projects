@@ -240,8 +240,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           places. Above them, one-line add: type it and Kin files it. */}
       <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay(new Date(), tz)} />
       <nav aria-label="Quick add" className="kin-quick">
-        {/* In the order of the tabs, as At a glance is: Journal, Planner,
-            Household, Wealth. */}
+        {/* In the order of the tabs: Journal, Planner, Wealth, then the
+            private note. */}
         {/* A milestone rather than a plain entry (Janine, 12 October): the
             moment worth a star is the one worth a shortcut. */}
         <Link href="/journal/milestones/new" className="kin-quick-btn">
@@ -251,10 +251,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <Link href="/planner/add?type=event" className="kin-quick-btn">
           <span className="kin-quick-ico" data-tint="schedule"><Icon name="calendarDays" size={18} /></span>
           Event
-        </Link>
-        <Link href="/household?seg=buy&add=1" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="home"><Icon name="basket" size={18} /></span>
-          To buy
         </Link>
         <Link href="/wealth/transact?mode=out" className="kin-quick-btn">
           <span className="kin-quick-ico" data-tint="money"><Icon name="receipt" size={18} /></span>
