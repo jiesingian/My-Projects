@@ -321,6 +321,11 @@
   box-sizing: border-box;
 }
 html {
+  /* WCAG 2.2, 2.4.11 Focus Not Obscured: when Tab moves focus, the browser
+     scrolls it clear of the fixed tab bar and the Ask Kin button (the same
+     170px .kin-content keeps free at the bottom) and of a sticky header. */
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 170px);
   /* Scrolling, never pinch-zooming the page: iPhone Safari ignores the
      viewport's user-scalable, but honours this (layout.tsx says why the page
      no longer zooms). Anything that zooms itself -- photos, the family tree
@@ -3862,7 +3867,9 @@ div.kin-tp-ghost {
 .kin-initial {
   width: 27px;
   height: 27px;
-  margin-left: -6px;
+  /* Overlap no more than 3px: what is left of each one to tap stays 24px
+     (WCAG 2.2, 2.5.8 Target Size). */
+  margin-left: -3px;
   border: 1px solid var(--color-divider);
   display: flex;
   align-items: center;

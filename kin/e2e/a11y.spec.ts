@@ -31,7 +31,7 @@ for (const path of PAGES) {
       // the scheme under test so a household set to Light still gets checked dark.
       await page.evaluate((s) => document.documentElement.setAttribute("data-theme", s), scheme);
       const { violations } = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
         .disableRules(["meta-viewport"])
         .analyze();
       const readable = violations.map(
@@ -40,6 +40,52 @@ for (const path of PAGES) {
       expect(readable, readable.join("\n")).toEqual([]);
     });
   }
+}
+
+/** Structure (final design check, 22 October): one main landmark, a level-one
+ * heading, headings that don't skip a level, and a way past the repeated
+ * blocks. axe files these under best practice rather than a WCAG tag, so
+ * they are asked for by name. */
+for (const path of PAGES) {
+  test(`${path} has one main, an h1 and headings in order`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(path);
+    await expect(page.locator("main, .kin-content").first()).toBeVisible();
+    await page.waitForLoadState("networkidle").catch(() => {});
+    const { violations } = await new AxeBuilder({ page }).withRules(["landmark-one-main", "page-has-heading-one", "heading-order", "bypass", "landmark-no-duplicate-main", "landmark-unique"]).analyze();
+    const readable = violations.map((v) => `${v.id}: ${v.help}\n${v.nodes.slice(0, 5).map((n) => `    ${n.target.join(" ")}`).join("\n")}`);
+    expect(readable, readable.join("\n")).toEqual([]);
+  });
+}
+
+/** WCAG 2.2, 2.4.11 Focus Not Obscured: tabbing through a page on a phone,
+ * nothing that has focus sits hidden under the tab bar, the Ask Kin button
+ * or a sticky header. Checked at the focused element's centre. */
+for (const path of ["/today", "/planner", "/wealth", "/settings"]) {
+  test(`${path}: what has focus is never hidden under the bars (phone)`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(path);
+    await expect(page.locator("main, .kin-content").first()).toBeVisible();
+    await page.waitForLoadState("networkidle").catch(() => {});
+    const hidden: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press("Tab");
+      const r = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body) return null;
+        const b = el.getBoundingClientRect();
+        if (b.width === 0 || b.height === 0) return null;
+        const x = Math.min(Math.max(b.left + b.width / 2, 0), innerWidth - 1);
+        const y = Math.min(Math.max(b.top + b.height / 2, 0), innerHeight - 1);
+        const top = document.elementFromPoint(x, y);
+        const ok = !top || el.contains(top) || top.contains(el);
+        return ok ? null : `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40)}" under ${top!.className || top!.tagName}`;
+      });
+      if (r) hidden.push(r);
+    }
+    expect(hidden, hidden.join("\n")).toEqual([]);
+  });
 }
 
 /** Every colour theme, as a member who chose it would see it (accessibility
@@ -51,7 +97,7 @@ for (const path of PAGES) {
  * and Kin Classic. */
 async function analyze(page: Page): Promise<string[]> {
   const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .disableRules(["meta-viewport"])
     .analyze();
   return violations.map((v) => `${v.id} (${v.impact}): ${v.help}\n${v.nodes.slice(0, 5).map((n) => `    ${n.target.join(" ")} -- ${n.failureSummary?.split("\n")[1]?.trim() ?? ""}`).join("\n")}`);
