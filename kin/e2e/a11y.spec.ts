@@ -60,6 +60,17 @@ for (const path of PAGES) {
   });
 }
 
+/** WCAG 4.1.3 Status Messages: toasts ("Saved", "Deleted ... · Undo") are
+ * spoken from one polite live region, which has to be on the page before
+ * the first one is said -- a region that appears with its message is often
+ * not read (wrap-up check, 22 October). */
+test("the live region toasts speak from is there before anything is said", async ({ page }) => {
+  await page.goto("/today");
+  await expect(page.locator("main, .kin-content").first()).toBeVisible();
+  await expect(page.locator('.toast-stack[aria-live="polite"]')).toHaveCount(1);
+  await expect(page.locator(".toast")).toHaveCount(0);
+});
+
 /** WCAG 2.2, 2.4.11 Focus Not Obscured: tabbing through a page on a phone,
  * nothing that has focus sits hidden under the tab bar, the Ask Kin button
  * or a sticky header. Checked at the focused element's centre. */

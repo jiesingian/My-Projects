@@ -166,12 +166,14 @@ export function Toaster() {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  if (list.length === 0) return null;
-
   return (
     // The live region is the stack, not each toast. A role="status" on every
     // child nests a live region inside a live region, which some screen
-    // readers read twice.
+    // readers read twice. It is always there, empty when nothing is said: a
+    // live region that appears together with its first message is often not
+    // read at all, and "Deleted ... · Undo" has six seconds to be heard
+    // (WCAG 4.1.3; wrap-up check, 22 October). Empty, it draws nothing and
+    // takes no taps (pointer-events: none).
     <div
       className="toast-stack"
       aria-live="polite"
