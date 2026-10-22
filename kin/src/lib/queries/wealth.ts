@@ -12,7 +12,15 @@ export type { WealthScope };
 
 /** movementCount is every entry on the account, pending included -- what
  * decides whether Delete Account has entries to ask about. */
-export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number; movementCount: number };
+export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number; movementCount: number; shared: boolean };
+
+/** Accounts named on account_viewers: a private account its owner has shared
+ * with someone, so not "Only you" (inTotalsScope). */
+async function sharedAccountIds(familyId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("account_viewers").select("account_id").eq("family_id", familyId);
+  return new Set((data ?? []).map((r) => r.account_id));
+}
 
 export type LedgerEntry = Tables<"wealth_transactions"> & {
   accountName: string;
@@ -32,12 +40,13 @@ function currentPeriod() {
  * here can never disagree. */
 async function loadAccounts(familyId: string, archived = false): Promise<AccountWithBalance[]> {
   const supabase = await createClient();
-  const [{ data: accounts }, { data: movements }] = await Promise.all([
+  const [{ data: accounts }, { data: movements }, shared] = await Promise.all([
     // A deleted account (deleted_at, 20261022150000) is archived too, so the
     // live list already leaves it out; the Archived list has to as well --
     // it can't be restored, only its kept entries remain.
     supabase.from("accounts").select("*").eq("family_id", familyId).eq("is_archived", archived).is("deleted_at", null).order("created_at"),
     supabase.from("wealth_transactions").select("account_id, direction, amount, status").eq("family_id", familyId),
+    sharedAccountIds(familyId),
   ]);
 
   const delta = new Map<string, number>();
@@ -54,6 +63,7 @@ async function loadAccounts(familyId: string, archived = false): Promise<Account
     balance: Number(a.opening_balance) + (delta.get(a.id) ?? 0),
     pendingCount: pending.get(a.id) ?? 0,
     movementCount: count.get(a.id) ?? 0,
+    shared: shared.has(a.id),
   }));
 }
 
@@ -72,8 +82,11 @@ async function privateLeftOutOfAll(): Promise<string | null> {
  * live accounts. */
 export async function getArchivedAccountsForFlow(familyId: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from("accounts").select("id, is_joint, owner_member_id, is_private").eq("family_id", familyId).eq("is_archived", true);
-  return data ?? [];
+  const [{ data }, shared] = await Promise.all([
+    supabase.from("accounts").select("id, is_joint, owner_member_id, is_private").eq("family_id", familyId).eq("is_archived", true),
+    sharedAccountIds(familyId),
+  ]);
+  return (data ?? []).map((a) => ({ ...a, shared: shared.has(a.id) }));
 }
 
 export async function getAccounts(familyId: string): Promise<AccountWithBalance[]> {

@@ -744,7 +744,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
           {scope === "all"
             ? includePrivate
               ? "Everything you can see"
-              : "Everything you can see, except your private accounts"
+              : "Everything you can see, except your Only-you accounts"
             : scope === WEALTH_FAMILY
               ? "Joint, and not in anyone's name"
               : mine

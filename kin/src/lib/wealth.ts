@@ -27,15 +27,19 @@ export type WealthScope = "all" | (string & {});
  * of All (members.wealth_include_private). `leaveOutPrivateOf` is the
  * viewer's member id when they've turned that off, else null. Only All
  * changes: the viewer's own Who still shows everything that's theirs.
+ * "Private" there means Only you: an account its owner has shared with
+ * people they picked (`shared`, from account_viewers) is not left out --
+ * picking every grown-up by name read as "All grown-ups" on the form, then
+ * vanished from All with the switch off (Janine, 22 October).
  * Nobody else's private account is ever here to leave out -- the database
  * never returns it to them. */
 export function inTotalsScope(
-  account: { is_joint: boolean | null; owner_member_id: string | null; is_private: boolean | null },
+  account: { is_joint: boolean | null; owner_member_id: string | null; is_private: boolean | null; shared?: boolean },
   scope: WealthScope,
   leaveOutPrivateOf: string | null,
 ): boolean {
   if (!inScope(account, scope)) return false;
-  return !(scope === "all" && leaveOutPrivateOf !== null && !account.is_joint && !!account.is_private && account.owner_member_id === leaveOutPrivateOf);
+  return !(scope === "all" && leaveOutPrivateOf !== null && !account.is_joint && !!account.is_private && !account.shared && account.owner_member_id === leaveOutPrivateOf);
 }
 
 export function inScope(
