@@ -93,5 +93,8 @@ test("leaving my private accounts out of All touches only my private ones, and o
   expect(inTotalsScope(minePrivate, "all", me)).toBe(false);
   expect(inTotalsScope(minePrivate, me, me)).toBe(true);
   expect(inTotalsScope(mineShared, "all", me)).toBe(true);
+  // Private but shared with people picked by name -- "All grown-ups" ticked
+  // one by one -- is not Only you, so it stays (Janine, 22 October).
+  expect(inTotalsScope({ ...minePrivate, shared: true }, "all", me)).toBe(true);
   expect(inTotalsScope(joint, "all", me)).toBe(true);
 });

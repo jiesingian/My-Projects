@@ -17,15 +17,18 @@ import { subscriptionsFrom, yearlyTotal, type RepeatingRow } from "@/lib/subscri
  * "All" totals, gets the same here. */
 export async function getSubscriptions(familyId: string) {
   const supabase = await createClient();
-  const [me, { data: accounts }, { data: bills }, { data: income }] = await Promise.all([
+  const [me, { data: accounts }, { data: viewers }, { data: bills }, { data: income }] = await Promise.all([
     getCurrentMember(),
     supabase.from("accounts").select("id, is_private, owner_member_id").eq("family_id", familyId),
+    supabase.from("account_viewers").select("account_id").eq("family_id", familyId),
     supabase.from("bills").select("id, name, amount, recurrence, due_date, status, paid_at, category, paid_from_account_id").eq("family_id", familyId),
     supabase.from("income_schedules").select("id, name, amount, recurrence, next_date, status, category, account_id").eq("family_id", familyId),
   ]);
 
   const leaveOutMine = me?.wealth_include_private === false ? me.id : null;
-  const usable = new Set((accounts ?? []).filter((a) => !(leaveOutMine && a.is_private && a.owner_member_id === leaveOutMine)).map((a) => a.id));
+  // "Private" is Only you: one shared with people picked by name still counts.
+  const shared = new Set((viewers ?? []).map((v) => v.account_id));
+  const usable = new Set((accounts ?? []).filter((a) => !(leaveOutMine && a.is_private && !shared.has(a.id) && a.owner_member_id === leaveOutMine)).map((a) => a.id));
   const allowed = (accountId: string | null) => accountId === null || usable.has(accountId);
 
   const charges: RepeatingRow[] = (bills ?? [])

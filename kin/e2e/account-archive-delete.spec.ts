@@ -5,8 +5,8 @@ import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 /** Archive, Delete, Restore, the account number and the "include my private
  * accounts" switch on Wealth → Accounts, driven the way a person drives them.
  *
- * #438 made Delete refuse an account with history and offer Archive instead,
- * and gave archived accounts a list of their own to be restored from. #441
+ * #438 gave archived accounts a list of their own to be restored from; #888
+ * made Delete Account the one way in, with Archive instead among its choices. #441
  * added an account number shown masked with Copy, and a switch that leaves
  * the viewer's own private accounts out of All's totals. Each piece has a
  * logic test or an RLS probe; none had been seen working in the app.
@@ -51,15 +51,21 @@ async function account(rest: Rest, id: string): Promise<{ is_archived: boolean }
 }
 
 /** What the switch should move All by: the balance of every unarchived
- * private account in the login's own name (opening balance plus confirmed
- * movements, the way the app works it out). */
+ * Only-you account in the login's own name -- private and shared with
+ * nobody (opening balance plus confirmed movements, the way the app works
+ * it out). One shared with people by name stays in All either way. */
 async function myPrivateBalance(rest: Rest, who: Me): Promise<number> {
   const res = await rest.ctx.get(
     `${rest.url}/rest/v1/accounts?select=id,opening_balance&owner_member_id=eq.${who.memberId}&is_private=eq.true&is_joint=eq.false&is_archived=eq.false`,
     { headers: rest.headers },
   );
   expect(res.ok()).toBeTruthy();
-  const accounts = (await res.json()) as { id: string; opening_balance: number }[];
+  const own = (await res.json()) as { id: string; opening_balance: number }[];
+  if (own.length === 0) return 0;
+  const viewers = await rest.ctx.get(`${rest.url}/rest/v1/account_viewers?select=account_id&account_id=in.(${own.map((a) => a.id).join(",")})`, { headers: rest.headers });
+  expect(viewers.ok()).toBeTruthy();
+  const shared = new Set(((await viewers.json()) as { account_id: string }[]).map((v) => v.account_id));
+  const accounts = own.filter((a) => !shared.has(a.id));
   if (accounts.length === 0) return 0;
   const moves = await rest.ctx.get(
     `${rest.url}/rest/v1/wealth_transactions?select=direction,amount&status=eq.confirmed&account_id=in.(${accounts.map((a) => a.id).join(",")})`,
@@ -128,7 +134,7 @@ test.describe("archiving, deleting and numbering an account", () => {
     }
   });
 
-  test("an account with a movement can't be deleted, is archived instead, and can be restored", async ({ page }) => {
+  test("an account with a movement offers Archive instead from Delete Account, and can be restored", async ({ page }) => {
     const name = `${RUN} has history`;
     const id = await addAccount(rest, who, name);
     const tx = await rest.ctx.post(`${rest.url}/rest/v1/wealth_transactions`, {
@@ -138,11 +144,11 @@ test.describe("archiving, deleting and numbering an account", () => {
     expect(tx.ok(), `could not record a movement: ${tx.status()} ${await tx.text()}`).toBeTruthy();
 
     await page.goto(`/wealth/accounts/${id}`, { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
-    const sheet = page.getByRole("alertdialog");
-    await expect(sheet).toContainText(`"${name}" can't be deleted`);
-    await expect(sheet).toContainText("1 movement in its history");
-    await sheet.getByRole("button", { name: "Archive instead" }).click();
+    await page.getByRole("button", { name: "Delete Account", exact: true }).click();
+    const sheet = page.getByRole("dialog");
+    await expect(sheet).toContainText(`Delete "${name}"?`);
+    await expect(sheet).toContainText("It has 1 entry");
+    await sheet.getByRole("button", { name: /^Archive instead/ }).click();
 
     await page.waitForURL(/\/wealth\?seg=accounts/);
     await expect.poll(async () => (await account(rest, id))?.is_archived, { message: "Archive instead did not archive it" }).toBe(true);
@@ -156,7 +162,7 @@ test.describe("archiving, deleting and numbering an account", () => {
     await expect.poll(async () => (await account(rest, id))?.is_archived, { message: "Restore did not bring it back" }).toBe(false);
     await page.reload({ waitUntil: "networkidle" });
     await expandAllCollapsedGroups(page);
-    await expect(rowFor(page, name, "Archive"), "the restored account should be back among the accounts").toBeVisible();
+    await expect(page.getByRole("button", { name: `Move money: ${name}` }), "the restored account should be back among the accounts").toBeVisible();
     await expect(rowFor(page, name, "Restore")).toHaveCount(0);
   });
 
@@ -165,10 +171,10 @@ test.describe("archiving, deleting and numbering an account", () => {
     const id = await addAccount(rest, who, name);
 
     await page.goto(`/wealth/accounts/${id}`, { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("button", { name: "Delete Account", exact: true }).click();
     const sheet = page.getByRole("alertdialog");
     await expect(sheet).toContainText(`Delete "${name}"?`);
-    await sheet.getByRole("button", { name: "Delete", exact: true }).click();
+    await sheet.getByRole("button", { name: "Delete Account", exact: true }).click();
 
     await page.waitForURL(/\/wealth\?seg=accounts/);
     await expect.poll(async () => account(rest, id), { message: "the account is still in the database" }).toBeNull();
