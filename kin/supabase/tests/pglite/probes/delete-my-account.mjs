@@ -433,7 +433,8 @@ export default async function ({ db, as, check, refused }) {
     return t?.confdeltype === "c" || t;
   });
   // As on Supabase, every reference to a household goes with it (the
-  // stand-ins in base.sql leave most of them plain).
+  // stand-ins in base.sql leave most of them plain; production read 22
+  // October).
   await db.exec(`
     do $$
     declare r record;
@@ -448,6 +449,10 @@ export default async function ({ db, as, check, refused }) {
       end loop;
     end
     $$;
+ 
+    -- And a push subscription goes with its member, as on Supabase.
+    alter table push_subscriptions drop constraint if exists push_subscriptions_member_id_fkey;
+    alter table push_subscriptions add constraint push_subscriptions_member_id_fkey foreign key (member_id) references members(id) on delete cascade;
   `);
   await check("The only grown-up of a household with a managed child: the household goes, the child's profile with it", async () => {
     const F = "f0000000-0000-0000-0000-000000000000";
