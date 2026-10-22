@@ -81,7 +81,14 @@ const bubble = (page: Page, text: string) => page.locator("button.kin-bubble", {
 async function send(page: Page, text: string) {
   await page.locator("textarea.kin-composer-field").fill(text);
   await page.getByRole("button", { name: "Send", exact: true }).click();
-  await expect(bubble(page, text)).toBeVisible();
+  // Your own message shows once the send has saved and the page refreshed --
+  // there is no optimistic bubble -- so on a busy dev it waits as long as the
+  // other screen does (LIVE), not the default 15s that twice ran out on 22
+  // October. And if the send itself was refused, fail with what the composer
+  // says, not "element not found".
+  const refused = page.locator(".kin-room-error");
+  await expect(bubble(page, text).or(refused.first())).toBeVisible({ timeout: LIVE });
+  if (await refused.count()) throw new Error(`The send was refused: ${await refused.first().innerText()}`);
 }
 
 async function act(page: Page, text: string, word: "Edit" | "Pin" | "Unsend") {
