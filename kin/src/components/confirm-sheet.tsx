@@ -12,6 +12,9 @@ type ConfirmOptions = {
    * button in this app already does -- accent-700, not a separate red the
    * design has never used. */
   danger?: boolean;
+  /** A notice rather than a question: one button, no Cancel beside it doing
+   * the same thing (Janine, 22 October: "Close" and "OK" on one sheet). */
+  notice?: boolean;
 };
 
 type ConfirmRequest = ConfirmOptions & { resolve: (value: boolean) => void };
@@ -99,17 +102,20 @@ export function ConfirmSheetHost() {
         {visible.title}
       </p>
       {visible.description && (
-        <p id={descId} className="confirm-description">
+        <p id={descId} className="confirm-description" style={{ whiteSpace: "pre-line" }}>
           {visible.description}
         </p>
       )}
       <div className="confirm-actions">
-        <button type="button" className="btn btn-secondary btn-block" autoFocus onClick={() => close(false)}>
-          {visible.cancelLabel ?? "Cancel"}
-        </button>
+        {!visible.notice && (
+          <button type="button" className="btn btn-secondary btn-block" autoFocus onClick={() => close(false)}>
+            {visible.cancelLabel ?? "Cancel"}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-primary btn-block"
+          autoFocus={visible.notice}
           style={visible.danger ? { background: "var(--color-accent-700)", boxShadow: "none" } : undefined}
           onClick={() => close(true)}
         >

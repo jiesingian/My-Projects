@@ -11,12 +11,12 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingEntryActions, DeleteEntryButton, RemoveButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
+import { PendingEntryActions, DeleteEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency, shortNames } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
-import { familyDate } from "@/lib/format-family";
+import { familyDate, householdDateFormat } from "@/lib/format-family";
 
 export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
   const me = await getCurrentMember();
@@ -43,7 +43,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const trend = cashBalanceTrend(history, account.balance);
 
   const currency = me.families.currency;
-  const fmtDate = await familyDate();
+  const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
   const pending = entries.filter((e) => e.status === "pending");
   const confirmed = entries.filter((e) => e.status === "confirmed");
 
@@ -176,18 +176,25 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
         ))}
 
         <AccountEditForm account={account} number={number} canNumber={canNumber} />
-        {/* Archive hides the account and keeps its history; Delete removes
-            it for good, and only while it has no history to lose. */}
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.625rem" }}>
-          {account.is_archived ? <RestoreAccountButton accountId={account.id} /> : <RemoveButton id={account.id} kind="account" label={`Archive "${account.name}"`} />}
-          <DeleteAccountButton
-            accountId={account.id}
-            accountName={account.name}
-            movementCount={account.movementCount}
-            archived={account.is_archived}
-            afterDelete="/wealth?seg=accounts"
-          />
-        </div>
+        {/* Delete Account, the same width as Edit account. Archive is one of
+            its choices, not a button of its own: archiving is a rare,
+            deliberate step, not an everyday one. */}
+        {account.is_archived && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.625rem" }}>
+            <RestoreAccountButton accountId={account.id} />
+          </div>
+        )}
+        <DeleteAccountButton
+          accountId={account.id}
+          accountName={account.name}
+          balance={account.balance}
+          movementCount={account.movementCount}
+          pendingCount={account.pendingCount}
+          archived={account.is_archived}
+          currency={currency}
+          dateFormat={dateFormat}
+          afterDelete="/wealth?seg=accounts"
+        />
         {account.is_archived && (
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
             Archived: left out of every list and total, with its history kept. Restore puts it back.

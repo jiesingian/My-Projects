@@ -26,11 +26,13 @@ import {
   restoreAccountAction,
   setIncludePrivateInTotalsAction,
   deleteAccountAction,
+  getAccountDeletionPreviewAction,
+  type AccountDeletionEntry,
   setAccountVisibilityAction,
   postHubExpenseAction,
   deleteRemittanceAction,
 } from "@/lib/actions/wealth";
-import { formatCurrency, currencySymbol } from "@/lib/format";
+import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
@@ -768,7 +770,6 @@ const DELETERS = {
   bill: deleteBillAction,
   income_schedule: deleteIncomeScheduleAction,
   goal: deleteGoalAction,
-  account: archiveAccountAction,
   remittance: deleteRemittanceAction,
 } as const;
 
@@ -780,29 +781,12 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       className="btn btn-secondary"
       disabled={pending}
       style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-      onClick={async (e) => {
-        // A no-op everywhere this isn't inside a link (every kind but
-        // account, today) -- but the account row on the Accounts tab is a
-        // link to that account's own page, and this is not part of
-        // following it.
-        e.preventDefault();
-        e.stopPropagation();
-        if (
-          !(await confirm({
-            title: `${label}?`,
-            description:
-              kind === "account"
-                ? "It drops off your lists and totals, and its history is kept exactly as it is. You can restore it any time from ARCHIVED at the foot of the Accounts tab."
-                : undefined,
-            confirmLabel: kind === "account" ? "Archive" : "Remove",
-            danger: true,
-          }))
-        )
-          return;
+      onClick={async () => {
+        if (!(await confirm({ title: `${label}?`, confirmLabel: "Remove", danger: true }))) return;
         run(() => DELETERS[kind](id));
       }}
     >
-      {pending ? "…" : kind === "account" ? "Archive" : "Remove"}
+      {pending ? "…" : "Remove"}
     </button>
   );
 }
@@ -822,63 +806,331 @@ export function RestoreAccountButton({ accountId }: { accountId: string }) {
   );
 }
 
-/** Delete, the permanent one. Only an account nothing has moved through can
- * go: one with movements is offered Archive instead, in the same sheet,
- * because deleting it would take its history -- and the other half of any
- * transfer -- with it (deleteAccountAction refuses it too, in case this
- * count is stale). `afterDelete` is where to go once it's gone, for the
- * account's own page, which has nothing left to show. */
+/** Delete Account: one full-width button, and the choices behind it.
+ *
+ * An account nothing has moved through just goes, after one confirmation.
+ * One with entries offers Archive instead (hidden, restorable), Delete and
+ * keep every entry -- the usual case: the account was closed in real life
+ * and the money that moved through it really moved -- or Delete and pick
+ * entries to remove with it, each labelled as this account's alone or one
+ * side of a transfer whose other side stays where it is. Before the red
+ * button, what the removal changes; after it, the same list as done. */
 export function DeleteAccountButton({
   accountId,
   accountName,
+  balance,
   movementCount,
+  pendingCount,
   archived,
+  currency,
+  dateFormat,
   afterDelete,
+  compact,
 }: {
   accountId: string;
   accountName: string;
+  balance: number;
   movementCount: number;
+  pendingCount: number;
   archived: boolean;
+  currency: string;
+  dateFormat?: string;
   afterDelete?: string;
+  /** The small button of the Archived list, rather than the account page's full-width one. */
+  compact?: boolean;
 }) {
   const { error, pending, run } = useMoneyAction();
   const router = useRouter();
+  const [step, setStep] = useState<"closed" | "choose" | "pick" | "confirm">("closed");
+  const [entries, setEntries] = useState<AccountDeletionEntry[] | null>(null);
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, startLoading] = useTransition();
+
+  const doomed = (entries ?? []).filter((e) => chosen.has(e.id));
+  const effects = deletionEffects(doomed, currency);
+  const kept = movementCount - doomed.length;
+
+  function close() {
+    setStep("closed");
+    setChosen(new Set());
+  }
+
+  function openPicker() {
+    setStep("pick");
+    if (entries) return;
+    startLoading(async () => {
+      const res = await getAccountDeletionPreviewAction(accountId);
+      setLoadError(res.error);
+      setEntries(res.entries ?? []);
+    });
+  }
+
+  function toggle(id: string) {
+    setChosen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const balanceNote =
+    balance !== 0 ? (
+      <p style={noteStyle}>
+        This account still shows <strong>{formatCurrency(balance, currency)}</strong>. Once it is deleted that amount leaves your totals. If you moved the money
+        elsewhere, record a transfer to that account first so your total stays right.
+      </p>
+    ) : null;
+
   return (
-    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end" }}>
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={pending}
-        style={{ ...smallButton, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-        onClick={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (movementCount > 0) {
-            const archiveInstead = await confirm({
-              title: `"${accountName}" can't be deleted`,
-              description: `It has ${movementCount} movement${movementCount === 1 ? "" : "s"} in its history. Deleting it would erase them — including its side of any transfer, leaving money that left another account and arrived nowhere. ${archived ? "It is already archived: hidden from your lists and totals, with its history kept." : "Archive it instead: it disappears from your lists and totals, its history stays, and you can restore it any time."}`,
-              confirmLabel: archived ? "OK" : "Archive instead",
-              cancelLabel: archived ? "Close" : "Cancel",
-            });
-            if (archiveInstead && !archived) run(() => archiveAccountAction(accountId), () => afterDelete && router.push(afterDelete));
-            return;
+    <>
+      <span style={compact ? { display: "inline-flex", flexDirection: "column", alignItems: "flex-end" } : { display: "block", marginTop: "0.5rem" }}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={pending}
+          style={
+            compact
+              ? { ...smallButton, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }
+              : { width: "100%", minHeight: "2.75rem", fontSize: "0.875rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }
           }
-          if (
-            !(await confirm({
-              title: `Delete "${accountName}"?`,
-              description: "This removes the account for good, for everyone in the household. Nothing has moved through it, so no history is lost. This can't be undone.",
-              confirmLabel: "Delete",
-              danger: true,
-            }))
-          )
-            return;
-          run(() => deleteAccountAction(accountId), () => afterDelete && router.push(afterDelete));
-        }}
-      >
-        {pending ? "…" : "Delete"}
-      </button>
-      <Err message={error} />
-    </span>
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (movementCount === 0) {
+              if (
+                !(await confirm({
+                  title: `Delete "${accountName}"?`,
+                  description: "This removes the account for good, for everyone in the household. Nothing has moved through it, so no history is lost. This can't be undone.",
+                  confirmLabel: "Delete Account",
+                  danger: true,
+                }))
+              )
+                return;
+              run(() => deleteAccountAction(accountId), () => afterDelete && router.push(afterDelete));
+              return;
+            }
+            setStep("choose");
+          }}
+        >
+          {pending ? "…" : compact ? "Delete" : "Delete Account"}
+        </button>
+        {step === "closed" && <Err message={error} />}
+      </span>
+
+      <FormSheet open={step !== "closed"} onClose={close} title={`Delete "${accountName}"?`}>
+        {step === "choose" && (
+          <div>
+            <p style={noteStyle}>
+              It has {movementCount} {movementCount === 1 ? "entry" : "entries"}. Money that really moved stays recorded unless you choose otherwise, and the other
+              side of every transfer always stays in the other account.
+            </p>
+            {pendingCount > 0 && (
+              <p style={{ ...noteStyle, color: "var(--color-accent-700)" }}>
+                {pendingCount} {pendingCount === 1 ? "entry is" : "entries are"} waiting on confirmation. Confirm or discard {pendingCount === 1 ? "it" : "them"} on the
+                account first; until then it can only be archived.
+              </p>
+            )}
+            {balanceNote}
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.75rem" }}>
+              {!archived && (
+                <ChoiceButton
+                  title="Archive instead"
+                  line="Hidden from your lists and totals, history kept. You can restore it any time."
+                  disabled={pending}
+                  onClick={() => run(() => archiveAccountAction(accountId), () => { setStep("closed"); if (afterDelete) router.push(afterDelete); })}
+                />
+              )}
+              <ChoiceButton
+                danger
+                title="Delete account, keep its entries"
+                line={`The account is gone for good. Its ${movementCount} ${movementCount === 1 ? "entry stays" : "entries stay"}, still counted in the months they happened.`}
+                disabled={pending || pendingCount > 0}
+                onClick={() => { setChosen(new Set()); setStep("confirm"); }}
+              />
+              <ChoiceButton
+                danger
+                title="Delete account and choose entries to delete…"
+                line="Pick, one by one, which entries go with it."
+                disabled={pending || pendingCount > 0}
+                onClick={openPicker}
+              />
+              <button type="button" className="btn btn-ghost" onClick={close} style={{ minHeight: "2.5rem" }}>
+                Cancel
+              </button>
+            </div>
+            <Err message={error} />
+          </div>
+        )}
+
+        {step === "pick" && (
+          <div>
+            <p style={noteStyle}>Tick the entries to delete with the account. Nothing is ticked: every entry you leave stays recorded.</p>
+            {loading && <p style={noteStyle}>Loading entries…</p>}
+            <Err message={loadError} />
+            {(entries ?? []).map((e) => (
+              <label key={e.id} style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start", padding: "0.625rem 0", borderBottom: "1px solid var(--color-divider)", cursor: "pointer" }}>
+                <input type="checkbox" checked={chosen.has(e.id)} onChange={() => toggle(e.id)} style={{ marginTop: "0.25rem" }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
+                    <span style={{ fontSize: "0.875rem", flex: 1, minWidth: 0 }}>{e.particulars}</span>
+                    <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>
+                      {e.direction === "in" ? "+" : "−"}
+                      {formatCurrency(e.amount, currency)}
+                    </span>
+                  </span>
+                  <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+                    {formatDate(e.occurredAt, dateFormat)}
+                    {e.category ? ` · ${e.category}` : ""}
+                  </span>
+                  <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, marginTop: "0.25rem", color: e.transfer ? "var(--color-neutral-700)" : "var(--color-accent-700)" }}>
+                    {e.transfer
+                      ? `Transfer — the other side stays in ${e.otherAccountName}. Only this account's side is deleted.`
+                      : "Only in this account — deleting it removes it for good."}
+                  </span>
+                  {(e.goalTitle || e.billName || e.incomeName) && (
+                    <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+                      {e.goalTitle ? `Counts toward the goal "${e.goalTitle}". ` : ""}
+                      {e.billName ? `Paid the bill "${e.billName}". ` : ""}
+                      {e.incomeName ? `Received the income "${e.incomeName}".` : ""}
+                    </span>
+                  )}
+                </span>
+              </label>
+            ))}
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.875rem" }}>
+              <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem" }} onClick={() => setStep("choose")}>
+                Back
+              </button>
+              <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.5rem" }} disabled={loading || !entries} onClick={() => setStep("confirm")}>
+                Review ({chosen.size} to delete)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "confirm" && (
+          <div>
+            <DeletionSummary accountName={accountName} deleted={doomed.length} kept={kept} effects={effects} />
+            {balanceNote}
+            <p style={{ ...noteStyle, fontWeight: 600 }}>This can&rsquo;t be undone.</p>
+            <Err message={error} />
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+              <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem" }} disabled={pending} onClick={() => setStep(entries ? "pick" : "choose")}>
+                Back
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={pending}
+                style={{ flex: 1, minHeight: "2.5rem", background: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+                onClick={() =>
+                  run(
+                    () => deleteAccountAction(accountId, [...chosen]),
+                    () => {
+                      // The account's page and row are about to go (the refresh
+                      // that follows drops them), and this sheet with them -- so
+                      // what changed is told by the app-wide sheet instead.
+                      setStep("closed");
+                      if (afterDelete) router.push(afterDelete);
+                      void confirm({ title: `"${accountName}" deleted`, description: summaryText(accountName, doomed.length, kept, effects), confirmLabel: "Done", notice: true });
+                    },
+                  )
+                }
+              >
+                {pending ? "…" : doomed.length > 0 ? `Delete account and ${doomed.length} ${doomed.length === 1 ? "entry" : "entries"}` : "Delete account"}
+              </button>
+            </div>
+          </div>
+        )}
+
+      </FormSheet>
+    </>
+  );
+}
+
+const noteStyle: React.CSSProperties = { fontSize: "0.8125rem", color: "var(--color-neutral-700)", lineHeight: 1.45, margin: "0 0 0.625rem" };
+
+function ChoiceButton({ title, line, danger, disabled, onClick }: { title: string; line: string; danger?: boolean; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      className="btn btn-secondary"
+      disabled={disabled}
+      onClick={onClick}
+      style={{ display: "block", textAlign: "left", height: "auto", padding: "0.625rem 0.75rem", whiteSpace: "normal", ...(danger ? { borderColor: "var(--color-accent-700)" } : null) }}
+    >
+      <span style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: danger ? "var(--color-accent-700)" : undefined }}>{title}</span>
+      <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", fontWeight: 400 }}>{line}</span>
+    </button>
+  );
+}
+
+/** What deleting these entries changes elsewhere, in words: each month's
+ * money in and out, any goal's progress, any bill or expected income that
+ * opens again. Transfers included: this account's side of one counted as
+ * money in or out of it, and goes with it. */
+function deletionEffects(doomed: AccountDeletionEntry[], currency: string): string[] {
+  const lines: string[] = [];
+  const byMonth = new Map<string, { label: string; in: number; out: number; at: number }>();
+  for (const e of doomed) {
+    const d = new Date(e.occurredAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const m = byMonth.get(key) ?? { label: d.toLocaleDateString("en-PH", { month: "long", year: "numeric" }), in: 0, out: 0, at: d.getTime() };
+    if (e.direction === "in") m.in += e.amount;
+    else m.out += e.amount;
+    byMonth.set(key, m);
+  }
+  for (const m of [...byMonth.values()].sort((a, b) => b.at - a.at)) {
+    if (m.in) lines.push(`${m.label}: money in −${formatCurrency(m.in, currency)}`);
+    if (m.out) lines.push(`${m.label}: money out −${formatCurrency(m.out, currency)}`);
+  }
+  const goals = new Map<string, number>();
+  for (const e of doomed) if (e.goalTitle) goals.set(e.goalTitle, (goals.get(e.goalTitle) ?? 0) + e.amount);
+  for (const [title, amount] of goals) lines.push(`Goal "${title}": progress −${formatCurrency(amount, currency)}`);
+  for (const e of doomed) if (e.billName) lines.push(`Bill "${e.billName}" goes back to unpaid`);
+  for (const e of doomed) if (e.incomeName) lines.push(`Income "${e.incomeName}" goes back to expected`);
+  return lines;
+}
+
+/** The notice shown once it is done: the same facts, as plain lines. */
+function summaryText(accountName: string, deleted: number, kept: number, effects: string[]): string {
+  return [
+    `Gone from every list and total.`,
+    `${deleted} ${deleted === 1 ? "entry" : "entries"} deleted · ${kept} kept, shown as "${accountName} (deleted)".`,
+    ...(effects.length ? ["", "What changed:", ...effects.map((l) => `• ${l}`)] : []),
+    "",
+    "Other accounts: unchanged.",
+  ].join("\n");
+}
+
+function DeletionSummary({ accountName, deleted, kept, effects }: { accountName: string; deleted: number; kept: number; effects: string[] }) {
+  return (
+    <div>
+      <p style={noteStyle}>&ldquo;{accountName}&rdquo; will be gone from every list and total, and can&rsquo;t be restored.</p>
+      <ul style={{ ...noteStyle, paddingLeft: "1.125rem" }}>
+        <li>
+          <strong>{deleted}</strong> {deleted === 1 ? "entry" : "entries"} to delete
+        </li>
+        <li>
+          <strong>{kept}</strong> {kept === 1 ? "entry" : "entries"} to keep, still counted in the months they happened and shown as &ldquo;{accountName} (deleted)&rdquo;
+        </li>
+      </ul>
+      {effects.length > 0 && (
+        <>
+          <p style={{ ...noteStyle, fontWeight: 600, marginBottom: "0.25rem" }}>What this changes</p>
+          <ul style={{ ...noteStyle, paddingLeft: "1.125rem" }}>
+            {effects.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p style={noteStyle}>
+        <strong>Other accounts: unchanged.</strong> The other side of every transfer stays where it is.
+      </p>
+    </div>
   );
 }
 
@@ -898,8 +1150,7 @@ export function IncludePrivateToggle({ include }: { include: boolean }) {
   );
 }
 
-/** Move money for one account: a single banknote icon beside its Archive
- * button, where three MONEY IN / MONEY OUT / TRANSFER buttons used to sit
+/** Move money for one account: a single banknote icon on its row, where three MONEY IN / MONEY OUT / TRANSFER buttons used to sit
  * above the whole list. Which of the three is picked inside the form; this
  * only carries the account in, so it starts out chosen. A button, not a
  * link, for the same reason as RemoveButton: the row it sits in already is

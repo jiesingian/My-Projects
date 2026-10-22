@@ -269,28 +269,152 @@ export async function restoreAccountAction(accountId: string): Promise<ActionSta
   return { error: null };
 }
 
-/** Deletes an account outright -- but only one nothing has ever moved
- * through. An account with movements is refused and pointed at Archive:
- * deleting it would have to take its entries with it, and one leg of a
- * transfer gone means money that left another account and arrived
- * nowhere, in that account's history and every total built from it.
- * Archive keeps all of that whole and only hides the account. Pending
- * entries count, since each is a movement waiting to happen. */
-export async function deleteAccountAction(accountId: string): Promise<ActionState> {
+/** One entry of an account about to be deleted, as Delete Account lists it:
+ * whether it is this account's alone or one side of a transfer (and where
+ * the other side is), and what else removing it would move -- a goal's
+ * progress, a bill or an expected income going back to open. */
+export type AccountDeletionEntry = {
+  id: string;
+  particulars: string;
+  occurredAt: string;
+  amount: number;
+  direction: "in" | "out";
+  category: string | null;
+  pending: boolean;
+  /** Set for one side of a transfer: the account holding the other side,
+   * which stays there whatever happens to this one. */
+  otherAccountName: string | null;
+  transfer: boolean;
+  goalTitle: string | null;
+  billName: string | null;
+  incomeName: string | null;
+};
+
+/** What Delete Account shows before anything is removed: every entry on the
+ * account, labelled. */
+export async function getAccountDeletionPreviewAction(accountId: string): Promise<{ error: string | null; entries?: AccountDeletionEntry[] }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { count: movements, error: countError } = await supabase
+  const { data: rows, error } = await supabase
     .from("wealth_transactions")
-    .select("id", { count: "exact", head: true })
+    .select("id, particulars, occurred_at, amount, direction, category, status, transfer_group_id, goal_id, source_table, source_id")
+    .eq("account_id", accountId)
+    .eq("family_id", me.family_id)
+    .order("occurred_at", { ascending: false });
+  if (error) return { error: databaseError(error) };
+  const entries = rows ?? [];
+
+  const groups = [...new Set(entries.map((e) => e.transfer_group_id).filter((g): g is string => !!g))];
+  const goalIds = [...new Set(entries.map((e) => e.goal_id).filter((g): g is string => !!g))];
+  const billIds = entries.filter((e) => e.source_table === "bills" && e.source_id).map((e) => e.source_id as string);
+  const incomeIds = entries.filter((e) => e.source_table === "income_schedules" && e.source_id).map((e) => e.source_id as string);
+  const [{ data: partners }, { data: goals }, { data: bills }, { data: incomes }] = await Promise.all([
+    groups.length
+      ? supabase.from("wealth_transactions").select("transfer_group_id, accounts(name)").eq("family_id", me.family_id).in("transfer_group_id", groups).neq("account_id", accountId)
+      : Promise.resolve({ data: [] as { transfer_group_id: string | null; accounts: { name: string } | null }[] }),
+    goalIds.length ? supabase.from("goals").select("id, title").in("id", goalIds) : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+    billIds.length ? supabase.from("bills").select("id, name").in("id", billIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    incomeIds.length ? supabase.from("income_schedules").select("id, name").in("id", incomeIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+  ]);
+  const partnerName = new Map((partners ?? []).map((p) => [p.transfer_group_id, (p.accounts as { name: string } | null)?.name ?? null]));
+  const goalTitle = new Map((goals ?? []).map((g) => [g.id, g.title]));
+  const billName = new Map((bills ?? []).map((b) => [b.id, b.name]));
+  const incomeName = new Map((incomes ?? []).map((i) => [i.id, i.name]));
+
+  return {
+    error: null,
+    entries: entries.map((e) => ({
+      id: e.id,
+      particulars: e.particulars,
+      occurredAt: e.occurred_at,
+      amount: Number(e.amount),
+      direction: e.direction as "in" | "out",
+      category: e.category,
+      pending: e.status === "pending",
+      transfer: !!e.transfer_group_id,
+      // The other side may sit in an account this viewer can't see (someone's
+      // private one): it is still there, just not named.
+      otherAccountName: e.transfer_group_id ? (partnerName.get(e.transfer_group_id) ?? "another account") : null,
+      goalTitle: e.goal_id ? (goalTitle.get(e.goal_id) ?? null) : null,
+      billName: e.source_table === "bills" && e.source_id ? (billName.get(e.source_id) ?? null) : null,
+      incomeName: e.source_table === "income_schedules" && e.source_id ? (incomeName.get(e.source_id) ?? null) : null,
+    })),
+  };
+}
+
+/** Delete Account. The account goes -- out of every list, every total and
+ * the Archived list, for good -- usually because it was closed in real life.
+ * Its entries stay unless named in `deleteEntryIds`: the money that moved
+ * through it really moved, so kept entries still count in the months they
+ * happened (marked "(deleted)"). Only this account's own side of a transfer
+ * is ever removed; the other side stays on the other account, untouched.
+ *
+ * Kept entries need the row, so a deleted account is marked (deleted_at,
+ * archived too) rather than dropped; one left with no entries at all is
+ * removed outright. Marking it comes FIRST: it is the step the database may
+ * refuse (not this viewer's to change), and refusing it there destroys
+ * nothing. Waiting entries are refused up front -- each is a movement that
+ * hasn't happened yet, to confirm or discard before the account goes. */
+export async function deleteAccountAction(accountId: string, deleteEntryIds: string[] = []): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: entries, error: readError } = await supabase
+    .from("wealth_transactions")
+    .select("*")
     .eq("account_id", accountId)
     .eq("family_id", me.family_id);
-  if (countError) return { error: databaseError(countError) };
-  if ((movements ?? 0) > 0) {
-    return { error: `This account has ${movements} movement${movements === 1 ? "" : "s"} in its history, so it can't be deleted without breaking that history. Archive it instead — it disappears from your lists and totals, and its history stays.` };
+  if (readError) return { error: databaseError(readError) };
+  if ((entries ?? []).some((e) => e.status === "pending")) {
+    return { error: "This account has entries waiting on confirmation. Confirm or discard them first, then delete the account." };
   }
-  const { error, count } = await supabase.from("accounts").delete({ count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
-  if (error) return { error: databaseError(error) };
+  const doomed = (entries ?? []).filter((e) => deleteEntryIds.includes(e.id));
+  if (doomed.length !== new Set(deleteEntryIds).size) return { error: "Some of those entries aren't on this account any more. Reload and try again." };
+  const emptiesIt = doomed.length === (entries ?? []).length;
+
+  const { error: markError, count } = await supabase
+    .from("accounts")
+    .update({ is_archived: true, deleted_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", accountId)
+    .eq("family_id", me.family_id);
+  if (markError) return { error: databaseError(markError) };
   if (count === 0) return { error: "That account couldn't be deleted — it may already be gone, or it isn't yours to delete." };
+
+  // Plans that would otherwise keep pointing at a closed account: a goal or
+  // loan tracked against it, a routine's cost, income still expected into it.
+  // Settled history (a bill paid from it, income received into it) keeps the
+  // link while the row lasts.
+  const unlinks = await Promise.all([
+    supabase.from("goals").update({ linked_account_id: null }).eq("family_id", me.family_id).eq("linked_account_id", accountId),
+    supabase.from("liabilities").update({ linked_account_id: null }).eq("family_id", me.family_id).eq("linked_account_id", accountId),
+    supabase.from("routines").update({ cost_account_id: null }).eq("family_id", me.family_id).eq("cost_account_id", accountId),
+    supabase.from("income_schedules").update({ account_id: null }).eq("family_id", me.family_id).eq("account_id", accountId).neq("status", "received"),
+  ]);
+  const unlinkError = unlinks.find((r) => r.error)?.error;
+  if (unlinkError) return { error: `The account is deleted, but a plan still points at it. ${refusalMessage(unlinkError)}` };
+
+  if (doomed.length > 0) {
+    for (const entry of doomed) {
+      const reopenError = await reopenWhatItSettled(supabase, me.family_id, entry);
+      if (reopenError) return { error: `The account is deleted and its entries were kept. ${reopenError}` };
+    }
+    // By id, never by transfer group: the other side of a transfer stays.
+    const { error } = await supabase.from("wealth_transactions").delete().in("id", doomed.map((e) => e.id)).eq("family_id", me.family_id);
+    if (error) return { error: `The account is deleted and its entries were kept. ${databaseError(error)}` };
+    const goalIds = [...new Set(doomed.map((e) => e.goal_id).filter((id): id is string => !!id))];
+    for (const goalId of goalIds) await recalcGoalTotal(supabase, goalId);
+  }
+
+  if (emptiesIt) {
+    // Nothing left to keep: the row itself goes. A failure here leaves it
+    // marked deleted -- hidden everywhere, so the person sees it gone anyway.
+    await Promise.all([
+      supabase.from("bills").update({ paid_from_account_id: null }).eq("family_id", me.family_id).eq("paid_from_account_id", accountId),
+      supabase.from("income_schedules").update({ account_id: null }).eq("family_id", me.family_id).eq("account_id", accountId),
+    ]);
+    await supabase.from("accounts").delete().eq("id", accountId).eq("family_id", me.family_id);
+  }
+
   revalidateWealth();
   return { error: null };
 }
@@ -567,6 +691,30 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
   return { error: null };
 }
 
+/** An entry about to be deleted that paid a bill or received an expected
+ * income leaves that bill or income open again -- settled or still pending
+ * in someone's banking app -- never stranded as paid with nothing behind it.
+ * Returns why it couldn't, in words, or null. */
+async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables<"wealth_transactions">): Promise<string | null> {
+  if (entry.source_table === "bills" && entry.source_id) {
+    const { error } = await supabase
+      .from("bills")
+      .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
+      .eq("id", entry.source_id)
+      .eq("family_id", familyId);
+    if (error) return `The bill could not be reopened, so the payment was left in place. ${refusalMessage(error)}`;
+  }
+  if (entry.source_table === "income_schedules" && entry.source_id) {
+    const { error } = await supabase
+      .from("income_schedules")
+      .update({ status: "expected", received_at: null, received_by_member_id: null, transaction_id: null })
+      .eq("id", entry.source_id)
+      .eq("family_id", familyId);
+    if (error) return `The income schedule could not be reopened, so the entry was left in place. ${refusalMessage(error)}`;
+  }
+  return null;
+}
+
 export async function deleteTransactionAction(transactionId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -590,29 +738,8 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     : await doomed.eq("id", entry.id);
   const touchedGoalIds = [...new Set((doomedRows ?? []).map((r) => r.goal_id).filter((id): id is string => !!id))];
 
-  // A discarded payment — settled or still pending in someone's banking app —
-  // leaves the bill open again, never stranded as "scheduled".
-  if (entry.source_table === "bills" && entry.source_id) {
-    // The payment is about to be deleted. A bill left marked paid with nothing
-    // behind it is a bill nobody will pay.
-    const { error: billError } = await supabase
-      .from("bills")
-      .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
-      .eq("id", entry.source_id)
-      .eq("family_id", me.family_id);
-    if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${refusalMessage(billError)}` };
-  }
-
-  // Same reopening for income: a discarded receipt goes back to "expected"
-  // rather than staying marked received with nothing behind it.
-  if (entry.source_table === "income_schedules" && entry.source_id) {
-    const { error: incomeError } = await supabase
-      .from("income_schedules")
-      .update({ status: "expected", received_at: null, received_by_member_id: null, transaction_id: null })
-      .eq("id", entry.source_id)
-      .eq("family_id", me.family_id);
-    if (incomeError) return { error: `The income schedule could not be reopened, so the entry was left in place. ${refusalMessage(incomeError)}` };
-  }
+  const reopenError = await reopenWhatItSettled(supabase, me.family_id, entry);
+  if (reopenError) return { error: reopenError };
 
   const query = supabase.from("wealth_transactions").delete();
   const { error } = entry.transfer_group_id

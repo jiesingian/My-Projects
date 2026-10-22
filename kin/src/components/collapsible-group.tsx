@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 
 /** GroupLabel's clickable sibling -- same weight, same border, but a group
@@ -48,4 +48,60 @@ export function CollapsibleGroup({
       {open && children}
     </div>
   );
+}
+
+/** A small eyebrow heading (RECENT ACTIVITY) that folds its list away when
+ * tapped and back when tapped again. Open by default; the choice is
+ * remembered on this device under `storageKey`, so a list someone keeps
+ * folded stays folded. */
+export function FoldableSection({ label, storageKey, children }: { label: string; storageKey: string; children: React.ReactNode }) {
+  const open = useSyncExternalStore(
+    subscribeFold,
+    () => readFold(storageKey),
+    () => true,
+  );
+  return (
+    <div>
+      <button
+        type="button"
+        className="kin-eyebrow"
+        onClick={() => writeFold(storageKey, !open)}
+        aria-expanded={open}
+        style={{ all: "unset", display: "flex", alignItems: "center", gap: "0.375rem", cursor: "pointer", margin: "20px 0 8px" }}
+      >
+        <span className="kin-eyebrow">{label}</span>
+        <span aria-hidden className="kin-chevron" data-open={open}>
+          <Icon name="chevronLeft" size={14} />
+        </span>
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+const foldListeners = new Set<() => void>();
+const foldFallback = new Map<string, boolean>();
+
+function readFold(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== "closed";
+  } catch {
+    // Storage unavailable (a private window): remembered while the page is open.
+    return foldFallback.get(key) ?? true;
+  }
+}
+
+function writeFold(key: string, open: boolean) {
+  foldFallback.set(key, open);
+  try {
+    localStorage.setItem(key, open ? "open" : "closed");
+  } catch {
+    // Kept in memory only.
+  }
+  foldListeners.forEach((l) => l());
+}
+
+function subscribeFold(listener: () => void) {
+  foldListeners.add(listener);
+  return () => foldListeners.delete(listener);
 }
