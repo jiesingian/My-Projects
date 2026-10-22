@@ -837,7 +837,9 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
     // trip-photos and avatars and two of documents, so event and visit photos
     // (journal/<family>/events/<id>/…, …/health/<id>/…) and every recipe photo
     // outlived the household that owned them. Deleting a household has to
-    // mean its files too.
+    // mean its files too. (Files in members' own person/ folders are not
+    // ours to remove; their rows' deletion queues them for the daily job,
+    // 20261022120000.)
     for (const bucket of HOUSEHOLD_BUCKETS) {
       const left = await removeFolder(supabase, bucket, me.family_id);
       if (left > 0) reportError("Files were left behind while deleting a household", new Error("Files were left behind while deleting a household"), left, bucket, me.family_id);

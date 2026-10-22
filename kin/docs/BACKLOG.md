@@ -292,10 +292,11 @@ adding a paid service. Payments (PayMongo) are not part of this.
   assets and documents in their name. Probe: delete-my-account.mjs (every
   audited table seeded and checked). Open: a household left with only
   children has no grown-up who can invite one; a relative can't be added
-  until someone does it by hand. Also open, older than this: the Delete
-  household button sweeps only the household's folders, so photos of entries
-  added from "Just me" (filed under the writer's folder) stay in Storage
-  after it.
+  until someone does it by hand. Fixed since (20261022120000): when a
+  journal photo or video row naming a file in a member's own folder is
+  deleted by anyone or any cascade (Delete household, an account deletion),
+  the path is queued and the daily account-deletions job removes it once
+  no row names it.
 - **Done (wrap-up review of the audit, 22 October, 20261022110000):** a
   private account its owner had shared (`account_viewers`) was deleted
   with them, movements and all, out from under the person it was shared

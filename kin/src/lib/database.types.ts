@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      storage_sweep: {
+        Row: { bucket: string; path: string; queued_at: string }
+        Insert: { bucket: string; path: string; queued_at?: string }
+        Update: { bucket?: string; path?: string; queued_at?: string }
+        Relationships: []
+      }
       time_capsules: {
         Row: {
           body: string
@@ -8935,6 +8941,8 @@ export type Database = {
       cancel_account_deletion: { Args: never; Returns: boolean }
       my_account_deletion_plan: { Args: never; Returns: Json }
       due_account_deletions: { Args: never; Returns: string[] }
+      due_storage_sweep: { Args: never; Returns: { bucket: string; path: string }[] }
+      forget_storage_sweep: { Args: { p_bucket: string; p_paths: string[] }; Returns: number }
       finalize_account_deletion: { Args: { p_user: string }; Returns: Json }
       delete_household_for_account_deletion: { Args: { p_family: string }; Returns: string[] }
       sweep_sent_screenshots: { Args: never; Returns: undefined }

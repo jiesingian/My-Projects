@@ -95,6 +95,8 @@ create or replace function public.kin_vault_secret(p_name text) returns text lan
 -- production's journal_entries policies give, reduced to what the video
 -- policies lean on.
 create table public.journal_entries (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), title text not null default 'An entry', visibility text not null default 'household', owner_person_id uuid, shared_at timestamptz);
+-- Journal photos (hand-built in September), shaped as on dev: they go with their household.
+create table public.journal_media (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id) on delete cascade, owner_person_id uuid references people(id), visibility text not null default 'household', storage_provider text not null default 'supabase', storage_path text, uploaded_by uuid, created_at timestamptz not null default now());
 alter table journal_entries enable row level security;
 create policy je_household on journal_entries for select using (family_id = current_family_id() and (visibility = 'household' or owner_person_id = current_person_id()));
 create policy je_linked on journal_entries for select using (shared_at is not null and visibility = 'household' and families_are_linked(family_id, current_family_id()));
