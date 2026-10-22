@@ -111,6 +111,11 @@ the same day.
   bill. Not now hides it on that phone for a week (localStorage). A bill
   paid in another app ("Open app & log") is offered once it is confirmed,
   on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
+  Checked on dev 22 October, as the QA household at phone width, with a
+  throwaway bill removed afterwards: paying asks with ₱ and date filled in;
+  Not now adds nothing and hides it on that phone; Cash Flow and Today list
+  it; Add (amount edited) makes exactly one next bill on 15 November; then
+  it is not offered again.
   **Checked 22 October** (e2e/bill-roll.spec.ts, weekly tier: it writes
   bills, removed afterwards): as the QA household on dev, paying a repeating
   bill outside Kin raises the sheet with next month's date and the amount;
@@ -393,7 +398,9 @@ are refused. Not checked: on a phone (see "Needs a real phone").
     device out once. Sending was already server-side: no client code
     receives a subscription. The cron path is unchanged apart from
     due_scheduled_messages() asking the new way. Probe:
-    push-targets-per-push.mjs. Not checked: a real push on a phone.
+    push-targets-per-push.mjs, and on dev with two real logins:
+    e2e/push-targets-live.spec.ts (every pull request's e2e job). Not
+    checked: the last hop to a real phone (deliver(), unchanged).
 - **Minor, left:**
   - ~~Deleting a note, question or gift row that's already gone reports
     success.~~ Done 20 October (kin/small-leftovers): "already removed".

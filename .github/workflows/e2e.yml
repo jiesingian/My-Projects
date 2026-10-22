@@ -239,7 +239,7 @@ jobs:
         # 2 workers, not 4: every page signs the request in against dev's
         # auth server, and with twenty pull requests testing at once 4 each was
         # enough to run it out of database connections (7 October).
-        run: npx playwright test e2e/smoke.spec.ts e2e/chat-live.spec.ts e2e/*.logic.spec.ts --workers=2
+        run: npx playwright test e2e/smoke.spec.ts e2e/chat-live.spec.ts e2e/push-targets-live.spec.ts e2e/*.logic.spec.ts --workers=2
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
