@@ -487,6 +487,9 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           {scope === memberId && <SetTargetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />}
         </>
       )}
+      {/* Where this period's money came from, by source -- the same donut
+          EXPENSES has, with its list (22 October). */}
+      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0 }))} currency={currency} monthBudget={null} kind="income" />
       {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
         <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}
@@ -533,32 +536,9 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           ))}
         </>
       )}
-      <AddIncomeScheduleForm accounts={bareAccounts} />
-      {/* Money sent home from abroad has its own log -- the currency it was
-          sent in, what arrived, what it went to -- and its money-in still
-          lands in this list like any other income. */}
-      {grownUp && (
-        <Link
-          href="/wealth/remittances"
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", marginTop: "0.25rem", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-        >
-          <Icon name="wallet" size={18} />
-          <span style={{ flex: 1 }}>Remittances from abroad</span>
-          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-        </Link>
-      )}
-      {/* Money lent to and borrowed from relatives, and paluwagan groups
-          (20261019110000). Grown-ups only, like remittances. */}
-      {grownUp && (
-        <Link
-          href="/wealth/utang"
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-        >
-          <Icon name="users" size={18} />
-          <span style={{ flex: 1 }}>Utang &amp; paluwagan</span>
-          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-        </Link>
-      )}
+      {/* Remittances and utang & paluwagan open from inside this sheet
+          (22 October): they are ways money comes in, not rows of their own. */}
+      <AddIncomeScheduleForm accounts={bareAccounts} grownUp={grownUp} />
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>

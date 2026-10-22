@@ -18,7 +18,7 @@ import { useId, useState, useTransition } from "react";
 import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
-import { expenseCategoryColor } from "@/lib/wealth";
+import { expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
 import { setMemberBudgetAction } from "@/lib/actions/wealth";
 
 const OUT_COLOR = "color-mix(in srgb, var(--color-text) 40%, transparent)";
@@ -304,12 +304,14 @@ export type CategorySlice = { category: string; spent: number; budget: number };
 /** Where the month's money went, as a donut (Jonathan's choice over a divided
  * bar). The list under it carries the exact figures, so nobody has to judge an
  * angle; a tap on a slice or a row puts that category, and how it stands
- * against its budget, in the middle. */
+ * against its budget, in the middle. `kind="income"` draws the same donut
+ * for money in, by source, with no budget line. */
 export function CategoryDonut({
   categories,
   currency,
   monthBudget,
   showList = true,
+  kind = "expense",
 }: {
   categories: CategorySlice[];
   currency: string;
@@ -317,7 +319,10 @@ export function CategoryDonut({
   /** Off where the page already lists the same categories right below, with
    * the same colour dots -- two lists of one thing is one too many. */
   showList?: boolean;
+  kind?: "expense" | "income";
 }) {
+  const income = kind === "income";
+  const colorOf = income ? incomeSourceColor : expenseCategoryColor;
   const [sel, setSel] = useState<number | null>(null);
   const slices = categories.filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);
   const total = slices.reduce((sum, c) => sum + c.spent, 0);
@@ -333,7 +338,7 @@ export function CategoryDonut({
   return (
     <div style={{ marginBottom: "1rem" }}>
       <p className="sr-only">
-        Spending by category this month, total {formatCurrency(total, currency)}. {slices.map((c) => `${c.category}: ${formatCurrency(c.spent, currency)}, ${pct(c.spent)}%`).join("; ")}.
+        {income ? "Income by source" : "Spending by category this month"}, total {formatCurrency(total, currency)}. {slices.map((c) => `${c.category}: ${formatCurrency(c.spent, currency)}, ${pct(c.spent)}%`).join("; ")}.
       </p>
       <div style={{ maxWidth: size, margin: "0.25rem auto 0" }}>
         <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
@@ -344,7 +349,7 @@ export function CategoryDonut({
                   <path
                     key={arc.data.category}
                     d={pie.path(arc) ?? ""}
-                    fill={expenseCategoryColor(arc.data.category)}
+                    fill={colorOf(arc.data.category)}
                     opacity={sel === null || sel === i ? 1 : 0.28}
                     style={{ cursor: "pointer", transition: "opacity 160ms ease-out" }}
                     onClick={() => setSel(sel === i ? null : i)}
@@ -353,13 +358,15 @@ export function CategoryDonut({
               }
             </Pie>
             <text textAnchor="middle" y={-16} fontSize={10.5} letterSpacing=".06em" fill="var(--color-neutral-600)">
-              {picked ? picked.category.toUpperCase() : "SPENT"}
+              {picked ? picked.category.toUpperCase() : income ? "EARNED" : "SPENT"}
             </text>
             <text textAnchor="middle" y={8} fontSize={20} fontWeight={600} fill="var(--color-text)" style={tabular}>
               {formatCurrency(picked ? picked.spent : total, currency)}
             </text>
             <text textAnchor="middle" y={27} fontSize={11} fill="var(--color-neutral-600)" style={tabular}>
-              {picked
+              {picked && income
+                ? `${pct(picked.spent)}% of income`
+                : picked
                 ? picked.budget > 0
                   ? picked.spent > picked.budget
                     ? `over by ${formatCurrency(picked.spent - picked.budget, currency)}`
@@ -395,7 +402,7 @@ export function CategoryDonut({
                 transition: "background-color 160ms ease-out",
               }}
             >
-              <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: expenseCategoryColor(c.category), flex: "none" }} />
+              <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: colorOf(c.category), flex: "none" }} />
               <span style={{ flex: 1, minWidth: 0 }}>{c.category}</span>
               <span style={tabular}>{formatCurrency(c.spent, currency)}</span>
               <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(c.spent)}%</span>

@@ -4,6 +4,8 @@ import { FormSheet } from "@/components/form-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Icon } from "@/components/icons";
 import {
   addAccountAction,
   setJointBudgetAction,
@@ -558,7 +560,7 @@ export function BillReminderPicker({ billId, days }: { billId: string; days: num
   );
 }
 
-export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; name: string }[] }) {
+export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts: { id: string; name: string }[]; grownUp?: boolean }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
@@ -575,6 +577,17 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
         + ADD INCOME
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Add income">
+        {/* Money sent home from abroad has its own log -- the currency it was
+            sent in, what arrived, what it went to -- and so do money lent to
+            and borrowed from relatives and paluwagan groups
+            (20261019110000). Grown-ups only. Their money-in still lands in
+            INCOME like any other. */}
+        {grownUp && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <SheetLink href="/wealth/remittances" icon="wallet" label="Remittances from abroad" />
+            <SheetLink href="/wealth/utang" icon="users" label="Utang & paluwagan" />
+          </div>
+        )}
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
           <Labelled label="Source">
@@ -634,6 +647,19 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
         </form>
       </FormSheet>
     </>
+  );
+}
+
+function SheetLink({ href, icon, label }: { href: string; icon: "wallet" | "users"; label: string }) {
+  return (
+    <Link
+      href={href}
+      style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+    >
+      <Icon name={icon} size={18} />
+      <span style={{ flex: 1 }}>{label}</span>
+      <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+    </Link>
   );
 }
 
