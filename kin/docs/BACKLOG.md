@@ -313,10 +313,9 @@ adding a paid service. Payments (PayMongo) are not part of this.
   records (plans, lists, money, chat, DMs to others) keep an author. If they
   were the last grown-up organizer, the next active grown-up (a parent
   before an adult, longest in the household first) becomes organizer; with
-  no grown-up left but children, the household stays for them (see the
-  audit below); with nobody left, the household is deleted as Delete
-  household does it (#777's health photo paths, every household folder).
-  Children's profiles are never deleted by an account deletion. The route removes files and the login with the
+  no grown-up left, the household is deleted as Delete household does it
+  (#777's health photo paths, every household folder), children's profiles
+  with it if any are left (20261022160000, below). The route removes files and the login with the
   service-role key (as the old immediate delete did). The old immediate
   delete is gone. **Download:** the existing ZIP gains `mine/`: own profile,
   personal notes/journal/goals, saved messages, and the files themselves
@@ -355,9 +354,17 @@ adding a paid service. Payments (PayMongo) are not part of this.
   log name a namesake in the household shares, the household's tree person
   for them (unlinked from the account), and household-visible accounts,
   assets and documents in their name. Probe: delete-my-account.mjs (every
-  audited table seeded and checked). Open: a household left with only
-  children has no grown-up who can invite one; a relative can't be added
-  until someone does it by hand. Fixed since (20261022120000): when a
+  audited table seeded and checked). Changed since (20261022160000, Jonathan
+  "proceed as recommended", 22 October): no household is left with only
+  children in it. A household with only children, kept by (4), had no
+  grown-up who could let one in. The delete screen now tells the last
+  grown-up staying that the household goes with their account, children's
+  profiles and all, and links "Invite a grown-up first" (one let in before
+  the 7 days are up becomes organizer); the job deletes the household when
+  its last grown-up's account goes. A grown-up whose own request is still
+  waiting counts, so it goes with whichever is deleted last. A teen's login
+  is not deleted, as Delete household leaves it. Production had none of
+  these households, and no pending deletion, when it shipped. Fixed since (20261022120000): when a
   journal photo or video row naming a file in a member's own folder is
   deleted by anyone or any cascade (Delete household, an account deletion),
   the path is queued and the daily account-deletions job removes it once

@@ -12,7 +12,7 @@ import { reportError } from "@/lib/report-error";
  * for deletion, and keeps their shared records under "Former member"
  * (finalize_account_deletion, 20261022090000). This route then does what
  * plain SQL can't: removes their files from Storage and their login from
- * Auth, and deletes a household left with nobody in it the way Delete
+ * Auth, and deletes a household left with no grown-up in it the way Delete
  * household does (#777's health photo paths, then every household folder).
  * Those need the service role, as deleting a login always has (the old
  * Delete my account did the same). It is used for one more thing here, every
@@ -66,9 +66,9 @@ export async function POST(request: Request) {
     for (const familyId of result.delete_families ?? []) {
       const { data: healthFiles, error: householdError } = await admin.rpc("delete_household_for_account_deletion", { p_family: familyId });
       if (householdError) {
-        // Someone is still there (another grown-up also leaving, say): the
+        // A grown-up is still there (another one also leaving, say): the
         // household stays, and their own deletion will come back to it.
-        if (/still has someone in it/.test(householdError.message)) console.error(`Household ${familyId} was kept after an account deletion: ${householdError.message}`);
+        if (/still has a grown-up in it/.test(householdError.message)) console.error(`Household ${familyId} was kept after an account deletion: ${householdError.message}`);
         else reportError("A household was not deleted after an account deletion", householdError, familyId);
         continue;
       }

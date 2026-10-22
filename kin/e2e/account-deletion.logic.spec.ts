@@ -40,7 +40,7 @@ test("between two of the same role, whoever joined first", () => {
   expect(handoverPlan(ann, [ann, later, first])).toEqual({ kind: "handover", to_member: "first" });
 });
 
-test("nobody is handed anything by someone who is not the organizer, or while another grown-up organizer stays", () => {
+test("nobody is handed anything by a child, by someone who is not the organizer, or while another grown-up organizer stays", () => {
   const ann = m("ann", "parent", { is_organiser: true });
   const abe = m("abe", "adult", { is_organiser: true });
   expect(handoverPlan(m("kid", "child_self"), [ann, m("kid", "child_self")])).toEqual({ kind: "none" });
@@ -48,19 +48,22 @@ test("nobody is handed anything by someone who is not the organizer, or while an
   expect(handoverPlan(ann, [ann, abe])).toEqual({ kind: "none" });
 });
 
-test("with no other active grown-up but children left, the household stays for them; it is deleted only with nobody left", () => {
+test("the last grown-up staying, with children left: the household goes with them unless a grown-up joins first", () => {
   const ann = m("ann", "parent", { is_organiser: true });
   const gone = m("gone", "adult", { status: "removed" });
   const asked = m("asked", "parent", { leaving: true });
-  expect(handoverPlan(ann, [ann, m("kid", "child_self"), gone, asked])).toEqual({ kind: "children_stay" });
-  expect(handoverPlan(ann, [ann, m("baby", "child_managed", { status: "managed" }), gone])).toEqual({ kind: "children_stay" });
+  expect(handoverPlan(ann, [ann, m("kid", "child_self"), gone, asked])).toEqual({ kind: "last_grown_up" });
+  expect(handoverPlan(ann, [ann, m("baby", "child_managed", { status: "managed" }), gone])).toEqual({ kind: "last_grown_up" });
+  // Not the organizer, but the only grown-up staying once the organizer has asked.
+  expect(handoverPlan(m("bo", "adult"), [asked, m("bo", "adult"), m("kid", "child_self")])).toEqual({ kind: "last_grown_up" });
   expect(handoverPlan(ann, [ann, gone, asked, m("moved", "child_self", { status: "moved" })])).toEqual({ kind: "delete_household" });
   expect(handoverPlan(ann, [ann])).toEqual({ kind: "delete_household" });
 });
 
 test("the screen says what happens to the household", () => {
   expect(planSentence({ kind: "handover", to_member: "abe" }, "Abe")).toBe("Abe will become the household's organizer.");
-  expect(planSentence({ kind: "children_stay" })).toContain("stays for the children");
+  expect(planSentence({ kind: "last_grown_up" })).toContain("children's profiles");
+  expect(planSentence({ kind: "last_grown_up" })).toContain("invite another grown-up first");
   expect(planSentence({ kind: "delete_household" })).not.toContain("children");
   expect(planSentence({ kind: "none" })).toBeNull();
   expect(deletionDay("2026-10-28T03:00:00Z")).toBe("28 October");
