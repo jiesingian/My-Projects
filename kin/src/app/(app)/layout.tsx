@@ -20,6 +20,8 @@ import { createClient } from "@/lib/supabase/server";
 import { OfflineSync } from "@/components/offline-sync";
 import { DynamicType } from "@/components/dynamic-type";
 import { inSimpleMode } from "@/lib/simple-mode";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { PageHeading } from "@/components/page-heading";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -83,15 +85,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* The household's currency for client components (household-currency). */}
       <HouseholdCurrencyProvider currency={member.families.currency}>
       <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
-        <div className="kin-content">
+        <main className="kin-content">
+          <PageHeading />
           {connectCode && <ConnectLinkReminder code={connectCode} />}
           {children}
-        </div>
+        </main>
         {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
         <TabBar chatUnread={chatUnread} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
         <ConfirmSheetHost />
         <Toaster />
         <ReturnToToday />
+        <KeyboardShortcuts
+          simple={inSimpleMode(member)}
+          ask={!inKidView(member)}
+          places={inKidView(member) ? ["/today", "/chat", "/journal", "/family", "/settings"] : ["/today", "/planner", "/chat", "/wealth", "/journal", "/family", "/household", "/settings"]}
+        />
         {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
         <OfflineSync userId={member.auth_user_id ?? ""} />
       </CallProvider>

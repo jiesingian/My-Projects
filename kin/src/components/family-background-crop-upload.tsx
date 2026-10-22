@@ -115,8 +115,27 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
     });
   }
 
-  function onPointerUp() {
+  // A tap (no drag) centres the frame on the spot tapped, and arrow keys
+  // nudge it: positioning without dragging (WCAG 2.2, 2.5.7).
+  function onPointerUp(e: React.PointerEvent) {
+    const d = dragRef.current;
     dragRef.current = null;
+    if (!d || Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 4) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const fx = FRAME_LEFT + FRAME_W / 2;
+    const fy = FRAME_TOP + FRAME_H / 2;
+    setPan({
+      x: clampAxis(d.panX + fx - (e.clientX - box.left), renderedW, FRAME_W),
+      y: clampAxis(d.panY + fy - (e.clientY - box.top), renderedH, FRAME_H),
+    });
+  }
+
+  function onStageKey(e: React.KeyboardEvent) {
+    const step = e.shiftKey ? 40 : 10;
+    const move = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (!move) return;
+    e.preventDefault();
+    setPan((p) => ({ x: clampAxis(p.x + move[0], renderedW, FRAME_W), y: clampAxis(p.y + move[1], renderedH, FRAME_H) }));
   }
 
   function onZoomChange(next: number) {
@@ -164,8 +183,17 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
           aria-modal="true"
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.125rem" }}
         >
-          <p style={{ color: "#fff", fontSize: "0.8125rem", margin: 0 }}>Drag to reposition · the dimmed area won&apos;t be included</p>
-          <div style={{ position: "relative", width: STAGE_W, height: STAGE_H, overflow: "hidden", touchAction: "none", cursor: "grab" }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+          <p style={{ color: "#fff", fontSize: "0.8125rem", margin: 0 }}>Drag or tap to move it · the dimmed part won&apos;t be included</p>
+          <div
+            tabIndex={0}
+            role="group"
+            aria-label="Photo position. Arrow keys move it."
+            onKeyDown={onStageKey}
+            style={{ position: "relative", width: STAGE_W, height: STAGE_H, overflow: "hidden", touchAction: "none", cursor: "grab" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               ref={imgRef}

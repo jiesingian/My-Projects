@@ -74,3 +74,46 @@ component migrated, and only where a token's value is pixel-identical to
 what was already there — nothing was nudged to the nearest step. New code
 should reach for a token; existing inline sizes get swept to match one only
 as the file they're in is touched for some other reason.
+
+## Kin's tokens, written down (final design check, 22 October)
+
+The values below are in `src/app/globals.css` (`:root`). The usage counts
+come from a sweep of `src/` on 22 October. They show what the app really
+uses, which isn't always what the scale says.
+
+**Spacing**: `--space-1` to `--space-8`, a 4px grid:
+0.25 · 0.5 · 0.75 · 1 · 1.25 · 1.5 · 1.75 · 2rem. Gaps inside a row use
+`--space-2`/`--space-3`. Card padding is `--space-4`, or
+`0.875rem 1rem` on list cards. Space between sections is `--space-6` to
+`--space-7`. Page side padding comes from `.kin-content`, never from the
+page itself.
+
+**Type**: `--text-2xs` 10.5px · `xs` 12px · `sm` 13px · `base` 14px ·
+`md` 15px · `lg` 17px · `xl` 20px · `2xl` 30px. In use beside them are two
+half steps: 12.5px (`0.78125rem`, ~250 uses, secondary captions) and 13.5px
+(`0.84375rem`, ~190 uses, body in dense rows). Treat both as part of the
+scale. Don't add new sizes between steps. Headings use `--font-heading`
+at weight 600 (titles 700). Body text is weight 400, and labels and
+buttons are 600. Text is never smaller than 10.5px, except the day-cell
+labels in the Planner month grid (8.5px). That exception is noted in
+BACKLOG.
+
+**Radii**: `--radius-control` 12px (buttons, inputs, segmented controls) ·
+`--radius-md` 12px · `--radius-card` 18px (cards, sheets' top corners) ·
+`--radius-pill` 999px (chips, the count badges, avatars). Small inline
+marks such as tags, `<kbd>` and the calendar chips use 4-6px.
+
+**Shadows**: `--shadow-sm` (a resting card), `--shadow-md` (something
+floating, such as the Ask Kin button or a popover), `--shadow-lg` (a sheet).
+Dark mode redefines all three, so use the variable and never a literal
+`box-shadow` colour.
+
+**Section headings**: the small uppercase eyebrow (`.kin-eyebrow`: "TODAY",
+"AT A GLANCE") heads a section on the hub pages. Wealth's big tabs use
+`CollapsibleGroup` (20px, a rule under it) because each one holds a whole
+ledger. Both use the same chevron (`.kin-chevron`) for open and closed.
+
+**Widths**: 320px is the smallest phone checked. On 22 October no
+main screen scrolled sideways at 320, 390 or 1280px. Content is
+capped at 720px on a phone-shaped layout and widens beside the sidebar
+on a computer.
