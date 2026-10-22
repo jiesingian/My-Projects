@@ -89,7 +89,7 @@ export function MealPhotoControl({ recipeRef, hasPhoto, dish }: { recipeRef: str
           </button>
         )}
       </div>
-      {error && <div style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", marginTop: "0.25rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", marginTop: "0.25rem" }}>{error}</div>}
     </>
   );
 }
@@ -160,7 +160,7 @@ export function IngredientAmountRow({
         {amount == null && qty && qty.trim() !== "" && (
           <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{qty}</span>
         )}
-        {!inPantry && onList && <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--cal-schedule)" }}>on the list</span>}
+        {!inPantry && onList && <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--cal-schedule-ink)" }}>on the list</span>}
       </span>
 
       <input
@@ -194,7 +194,7 @@ export function IngredientAmountRow({
       >
         <Icon name="x" size={13} />
       </button>
-      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </div>
   );
 }
@@ -263,7 +263,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
       >
         <Icon name="plus" size={15} />
       </button>
-      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </div>
   );
 }

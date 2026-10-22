@@ -144,3 +144,52 @@ test("the fixed blue is only ever a fill, never a text colour or an outline", ()
   );
   expect(inTsx).toEqual([]);
 });
+
+/** The status colours as words (an error, "overdue", "LOW", a money figure)
+ * use their -ink step, the colour mixed toward the theme's own text: 4.5:1
+ * or more on the card and the page, in every theme, light and dark. The
+ * bright colours as text were 2.5-4.3:1 in several (wrap-up check, 22
+ * October). Painted on a canvas, since the inks are color-mix() in oklab. */
+for (const p of PALETTES) {
+  for (const mode of p.darkOnly ? (["dark"] as const) : (["light", "dark"] as const)) {
+    test(`${p.name} (${mode}): the status colours read as text`, async ({ page }) => {
+      test.skip(!css, "No production build in .next; run `npm run build` first.");
+      await page.emulateMedia({ colorScheme: mode });
+      await render(page, paletteCss(p.id), p.darkOnly ? "dark" : mode);
+      const ratios = await page.evaluate(() => {
+        const cx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d", { willReadFrequently: true })!;
+        const probe = document.createElement("span");
+        document.body.append(probe);
+        const rgb = (expr: string, over?: string) => {
+          probe.style.color = expr;
+          cx.clearRect(0, 0, 1, 1);
+          if (over) {
+            cx.fillStyle = over;
+            cx.fillRect(0, 0, 1, 1);
+          }
+          cx.fillStyle = getComputedStyle(probe).color;
+          cx.fillRect(0, 0, 1, 1);
+          return [...cx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+        };
+        const lum = (c: number[]) => {
+          const [r, g, b] = c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4));
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (a: number[], b: number[]) => {
+          const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+          return (x + 0.05) / (y + 0.05);
+        };
+        const grounds = { card: rgb("var(--color-surface)"), page: rgb("var(--color-bg)") };
+        const out: Record<string, number> = {};
+        for (const c of ["money", "home", "occasion", "goal", "schedule"]) {
+          for (const [g, ground] of Object.entries(grounds)) {
+            out[`${c} on the ${g}`] = Math.round(ratio(rgb(`var(--cal-${c}-ink)`, `rgb(${ground.join(",")})`), ground) * 100) / 100;
+          }
+        }
+        return out;
+      });
+      const short = Object.entries(ratios).filter(([, r]) => r < 4.5);
+      expect(short, JSON.stringify(ratios)).toEqual([]);
+    });
+  }
+}

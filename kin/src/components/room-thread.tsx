@@ -825,7 +825,7 @@ export function RoomThread({
       )}
 
       {error && (
-        <p role="alert" className="kin-room-error" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", margin: "0.375rem 0 0" }}>
+        <p role="alert" className="kin-room-error" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", margin: "0.375rem 0 0" }}>
           {error}
         </p>
       )}

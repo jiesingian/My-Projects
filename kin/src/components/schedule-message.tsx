@@ -72,7 +72,7 @@ export function ScheduleMessage({ thread, draft, onScheduled }: { thread: string
         </div>
       )}
       {note && (
-        <p role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", margin: "0 0 0.375rem" }}>
+        <p role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", margin: "0 0 0.375rem" }}>
           {note}
         </p>
       )}

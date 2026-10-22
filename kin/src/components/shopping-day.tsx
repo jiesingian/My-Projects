@@ -158,7 +158,7 @@ export function ShoppingDayControl({
         </button>
       </div>
 
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.5rem" }}>{error}</div>}
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
         {routine ? (
           <>

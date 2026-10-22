@@ -330,7 +330,7 @@ async function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
       }}
     >
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-        <Icon name="gift" size={15} style={{ color: "var(--cal-goal)", flex: "none", marginTop: "0.125rem" }} />
+        <Icon name="gift" size={15} style={{ color: "var(--cal-goal-ink)", flex: "none", marginTop: "0.125rem" }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "0.875rem", fontWeight: 600, textDecoration: r.status === "refused" ? "line-through" : undefined }}>{r.title}</div>
           <div style={{ fontSize: "0.75rem", color: tone, fontWeight: 600, marginTop: "0.0625rem" }}>{status}</div>

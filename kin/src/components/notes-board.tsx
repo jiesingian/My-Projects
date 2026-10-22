@@ -125,7 +125,7 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
                     <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.8125rem" }} onClick={() => setEditing({ id: n.id, body: n.body })}>
                       Edit
                     </button>
-                    <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.8125rem", color: "var(--cal-occasion)" }} onClick={() => void remove(n)}>
+                    <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.8125rem", color: "var(--cal-occasion-ink)" }} onClick={() => void remove(n)}>
                       Delete
                     </button>
                   </div>

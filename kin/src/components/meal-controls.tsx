@@ -166,7 +166,7 @@ export function AddMealControl({ date, slot, householdSize = 0 }: { date: string
               Close
             </button>
           </div>
-          {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+          {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
         </div>
       </FormSheet>
     </>
