@@ -35,7 +35,7 @@ export function ComingUpPager({ items, people }: { items: BriefItem[]; people: {
       <div style={{ display: "flex", marginBottom: "0.625rem" }}>
         <PickButton title="Who" icon="users" label={label} options={options} onPick={setWho} />
       </div>
-      <div className="kin-brief">
+      <div className="kin-brief" data-kin-arrows="list">
         {rows.length === 0 ? (
           <p className="kin-pager-empty">Nothing coming up for {who === "all" ? "anyone" : who === "family" ? "the whole family" : label === "Me" ? "you" : label} this week.</p>
         ) : (

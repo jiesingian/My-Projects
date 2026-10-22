@@ -110,7 +110,7 @@ export default async function SettingsPage({
         </Link>
 
         {groups.map((rows, gi) => (
-          <nav key={gi} className="kin-brief" data-wrap aria-label={gi === 0 ? "You" : gi === 1 ? "Household" : "Account"}>
+          <nav key={gi} className="kin-brief" data-kin-arrows="list" data-wrap aria-label={gi === 0 ? "You" : gi === 1 ? "Household" : "Account"}>
             {rows.map((r) => (
               <Link key={r.href} href={r.href} className="kin-brief-row">
                 <span className="kin-brief-ico" data-tint={r.tint}>

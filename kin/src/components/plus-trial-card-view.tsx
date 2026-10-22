@@ -49,7 +49,7 @@ export function PlusTrialCardView({ steps, daysLeft, plan }: { steps: PlusTrialS
       <p className="kin-brief-meta" style={{ margin: "0 0 0.5rem" }}>
         {trialLine(plan, daysLeft)}
       </p>
-      <div className="kin-brief">
+      <div className="kin-brief" data-kin-arrows="list">
         {steps.map((s) => {
           const body = (
             <>

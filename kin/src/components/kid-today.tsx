@@ -100,7 +100,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
       {next.length > 0 && (
         <section style={{ marginBottom: "1.625rem" }}>
           <h3 className="kin-eyebrow">Coming up</h3>
-          <div className="kin-brief">
+          <div className="kin-brief" data-kin-arrows="list">
             {next.map((b) => (
               <Link key={b.id} href={b.href} className="kin-brief-row">
                 <span className="kin-brief-ico" data-tint={b.tint}>

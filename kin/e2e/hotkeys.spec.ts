@@ -50,3 +50,18 @@ test("typing in a field never fires a shortcut", async ({ page }) => {
   await expect(line).toHaveValue("gp/?");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("↓ and ↑ move through a list of rows (Settings)", async ({ page }) => {
+  await page.goto("/settings");
+  const rows = page.locator('[data-kin-arrows="list"]').first().locator("a[href]");
+  test.skip((await rows.count()) < 2, "fewer than two rows here");
+  // Settled first, as for typing above: focused straight after goto,
+  // hydration can take the focus back before the key arrives.
+  await page.waitForLoadState("networkidle").catch(() => {});
+  await rows.nth(0).focus();
+  await expect(rows.nth(0)).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(1)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
+});
