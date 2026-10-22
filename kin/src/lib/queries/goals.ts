@@ -346,50 +346,6 @@ export async function getGoalRequestsFor(familyId: string, viewer: Viewer): Prom
   };
 }
 
-export type RewardDuty = {
-  goalId: string;
-  goalTitle: string;
-  reward: string;
-  /** owe: the viewer promised it and the goal was reached. confirm: it was
-   * marked given to the viewer, who says whether it arrived. */
-  kind: "owe" | "confirm";
-  other: string;
-  dueAt: string | null;
-  overdue: boolean;
-  state: "claimed" | "given";
-};
-
-/** What a promise asks of this viewer right now, for the banner on Today
- * that cannot be dismissed: rewards they owe (claimed, or given but not yet
- * confirmed), and rewards given to them waiting for their word. */
-export async function getRewardDuties(familyId: string, viewer: Viewer): Promise<RewardDuty[]> {
-  const supabase = await createClient();
-  const { data: rewards } = await supabase
-    .from("planner_goal_rewards")
-    .select("goal_id, title, status, giver_member_id, due_at")
-    .eq("family_id", familyId)
-    .in("status", ["claimed", "given"]);
-  if (!rewards || rewards.length === 0) return [];
-  const [{ data: goals }, { data: members }] = await Promise.all([
-    supabase.from("planner_goals").select("id, title, owner_member_id").in("id", rewards.map((r) => r.goal_id)),
-    supabase.from("members").select("id, full_name").eq("family_id", familyId),
-  ]);
-  const goalOf = new Map((goals ?? []).map((g) => [g.id, g]));
-  const first = (id: string | null) => (id ? ((members ?? []).find((m) => m.id === id)?.full_name.split(" ")[0] ?? "Someone") : "Everyone");
-  const now = Date.now();
-
-  return rewards.flatMap((r): RewardDuty[] => {
-    const g = goalOf.get(r.goal_id);
-    if (!g) return [];
-    const overdue = !!r.due_at && new Date(r.due_at).getTime() <= now;
-    const base = { goalId: g.id, goalTitle: g.title, reward: r.title, dueAt: r.due_at, overdue, state: r.status as "claimed" | "given" };
-    if (r.giver_member_id === viewer.id) return [{ ...base, kind: "owe" as const, other: first(g.owner_member_id) }];
-    const receives = g.owner_member_id === null ? r.giver_member_id !== viewer.id : g.owner_member_id === viewer.id;
-    if (receives && r.status === "given") return [{ ...base, kind: "confirm" as const, other: first(r.giver_member_id) }];
-    return [];
-  });
-}
-
 export type PendingGoalClaim = { id: string; goalTitle: string; who: string; points: number; periodStart: string; period: GoalPeriod };
 
 /** Children's claims that a period was met, waiting on a grown-up's yes --
