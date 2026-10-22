@@ -65,7 +65,7 @@ export function DeleteAccountButton({ householdNote }: { householdNote: string |
             setError(null);
           }}
         >
-          Cancel
+          Keep my account
         </button>
         <button
           type="button"

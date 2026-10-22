@@ -72,11 +72,11 @@ export async function sendTestPushAction(): Promise<{ error: string | null; sent
 export async function sendTestKindPushAction(kind: string): Promise<{ error: string | null; sent: number }> {
   const me = await requireCurrentMember();
   if (!isGrownUp(me.role)) return { error: "Only a grown-up can send a test.", sent: 0 };
-  if (!isPushTestKind(kind)) return { error: "That kind of push isn't one Kin sends.", sent: 0 };
+  if (!isPushTestKind(kind)) return { error: "Kin doesn't send that kind of notification.", sent: 0 };
   if (!vapidReady()) return { error: "Notifications aren't switched on for Kin yet.", sent: 0 };
   const supabase = await createClient();
   const { error: allowedError } = await supabase.rpc("push_test_allowed", { p_kind: kind });
-  if (allowedError) return { error: /few a minute/.test(allowedError.message) ? "A few a minute: wait a moment before the next test." : humanDatabaseError(allowedError.message), sent: 0 };
+  if (allowedError) return { error: /few a minute/.test(allowedError.message) ? "That's a few tests in a minute. Wait a moment, then try again." : humanDatabaseError(allowedError.message), sent: 0 };
   const { data: devices, error } = await supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("member_id", me.id);
   if (error) return { error: humanDatabaseError(error.message), sent: 0 };
   if (!devices?.length) return { error: "No device of yours has notifications turned on in Kin yet.", sent: 0 };

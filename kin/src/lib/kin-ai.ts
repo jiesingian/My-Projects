@@ -32,7 +32,7 @@ export const KIN_AI_MIN_TOKENS = 2048;
 
 /** What every screen says while the key is not on the server. The feature
  * stays visible so a household knows it exists; nothing is sent anywhere. */
-export const KIN_AI_OFF = "Kin AI isn't switched on yet. Jonathan switches it on once; nothing was sent anywhere.";
+export const KIN_AI_OFF = "Kin AI isn't switched on yet. Nothing was sent anywhere.";
 
 /** The one line under anything that sends family records to the model. */
 export const KIN_AI_PRIVACY = "What you send goes to Claude (Anthropic) only to answer you, and is never used to train AI.";

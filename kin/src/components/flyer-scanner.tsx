@@ -163,7 +163,7 @@ export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: str
         // Said up front: until the key is added, the photo can be looked at
         // but not read for dates.
         <p className="kin-scan-off" role="note">
-          Reading the dates automatically isn&apos;t switched on yet (Jonathan adds it once). Until then your photo shows here so
+          Reading the dates by itself isn&apos;t switched on yet. Until then your photo shows here so
           you can copy the details into the event below.
         </p>
       )}
