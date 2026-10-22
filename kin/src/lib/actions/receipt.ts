@@ -10,6 +10,7 @@ import { familyDay } from "@/lib/time";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 import { KIN_AI_OFF, kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { RECEIPT_PLUS_ONLY, RECEIPT_SCHEMA, normaliseReceipt, receiptPrompt, type ScannedReceipt } from "@/lib/receipt-scan";
+import { reportError } from "@/lib/report-error";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 type ImageType = (typeof IMAGE_TYPES)[number];
@@ -65,6 +66,9 @@ export async function scanReceiptAction(formData: FormData): Promise<{ error: st
     try {
       parsed = JSON.parse(textOf(response.content));
     } catch {
+      // Not the parse error itself: it quotes the start of the answer, which
+      // is what was in the picture.
+      reportError("Receipt scan: the answer was not JSON", new Error("Receipt scan: the answer was not JSON"));
       return { error: "Kin couldn't make sense of that picture. Try a sharper one.", receipt: null };
     }
     const receipt = normaliseReceipt(parsed, pickable);
@@ -73,10 +77,10 @@ export async function scanReceiptAction(formData: FormData): Promise<{ error: st
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return { error: "Too many scans just now. Give it a moment.", receipt: null };
     if (error instanceof Anthropic.APIError) {
-      console.error(`Receipt scan API error ${error.status}`, error);
+      reportError("Receipt scan API error", error, error.status);
       return { error: "The scanner couldn't be reached. Try again.", receipt: null };
     }
-    console.error("Receipt scan failed", error);
+    reportError("Receipt scan failed", error);
     return { error: "Something went wrong reading that picture.", receipt: null };
   }
 }

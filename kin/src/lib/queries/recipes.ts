@@ -13,6 +13,7 @@ import type { MarketSection } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import { recipesByPerson, type PersonRecipe } from "@/lib/recipe-person";
+import { reportError } from "@/lib/report-error";
 
 export type RecipeView = {
   /** The shipped key, or the family row's id for one of their own. */
@@ -151,7 +152,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
 export async function getRecipesByPerson(familyId: string): Promise<Map<string, PersonRecipe[]>> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("family_recipes").select("id, name, tree_person_id").eq("family_id", familyId).not("tree_person_id", "is", null);
-  if (error) console.error("recipes by person could not be read", error.message);
+  if (error) reportError("recipes by person could not be read", error);
   return recipesByPerson(data ?? []);
 }
 

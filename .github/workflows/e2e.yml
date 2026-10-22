@@ -270,8 +270,9 @@ jobs:
       #     (#830) the noise had no cause left; the pull request that turned
       #     this on was itself the first run compared with a frozen baseline.
       #     A screen over the threshold now fails this job; the failure says
-      #     how to accept an intended change: a line in
-      #     kin/e2e/visual-accept.txt in the same pull request, since the
+      #     how to accept an intended change: the screen's slug in
+      #     kin/e2e/visual-accept/<PR>.txt in the same pull request (one file
+      #     per pull request, so two never conflict), since the
       #     baseline is main's run and refreshes itself on merge. If noise
       #     comes back, set `VISUAL_WARN_ONLY: "1"` on the step below to go
       #     back to warning while it is found.
@@ -320,7 +321,7 @@ jobs:
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          # Which pull request is under test, for kin/e2e/visual-accept.txt.
+          # Which pull request is under test, for kin/e2e/visual-accept/<PR>.txt.
           VISUAL_PR: ${{ github.event.pull_request.number }}
           # Its own report folder, so the smoke run's report above is not
           # overwritten before it is uploaded.

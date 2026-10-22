@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import type { ActionState } from "@/lib/actions/auth";
 
 /** Albums for photos sent in the family chat (28 September) -- see
@@ -35,7 +35,7 @@ async function addPhotos(albumId: string, photoIds: string[]): Promise<ActionSta
   if (rows.length === 0) return { error: null };
   // Already in the album is fine: nothing to add twice.
   const { error } = await supabase.from("chat_album_photos").upsert(rows, { onConflict: "album_id,attachment_id", ignoreDuplicates: true });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/chat/albums");
   return { error: null };
 }
@@ -46,7 +46,7 @@ export async function createAlbumAction(name: string, photoIds: string[]): Promi
   if (!clean) return { error: "Give the album a name." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("chat_albums").insert({ family_id: me.family_id, name: clean, created_by: me.id }).select("id").single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "The album wasn't made." };
+  if (error || !data) return { error: error ? databaseError(error) : "The album wasn't made." };
   const added = await addPhotos(data.id, photoIds);
   if (added.error) return added;
   return { error: null, id: data.id };
@@ -62,7 +62,7 @@ export async function removeFromAlbumAction(albumId: string, photoId: string): P
   if (!UUID.test(albumId) || !UUID.test(photoId)) return { error: "That photo couldn't be found." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("chat_album_photos").delete().eq("album_id", albumId).eq("attachment_id", photoId).select("album_id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only whoever added it, whoever started the album, or a parent can take it out." };
   revalidatePath(`/chat/albums/${albumId}`);
   return { error: null };
@@ -73,7 +73,7 @@ export async function deleteAlbumAction(albumId: string): Promise<ActionState> {
   if (!UUID.test(albumId)) return { error: "That album couldn't be found." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("chat_albums").delete().eq("id", albumId).select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only whoever started the album, or a parent, can delete it." };
   revalidatePath("/chat/albums");
   return { error: null };

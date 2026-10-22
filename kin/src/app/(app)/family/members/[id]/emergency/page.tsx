@@ -77,8 +77,10 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
                 <dt>{k}</dt>
                 <dd>
                   {v ?? (
-                    <Link href={addHref} style={{ color: "var(--color-accent-700)" }} aria-label={`Add ${k.toLowerCase()}`}>
-                      Not recorded · add
+                    // Read as "Not recorded · add blood type": the words on
+                    // screen first (WCAG 2.5.3), as on Family → Health.
+                    <Link href={addHref} style={{ color: "var(--color-accent-700)" }}>
+                      Not recorded · add<span className="sr-only"> {k.toLowerCase()}</span>
                     </Link>
                   )}
                 </dd>

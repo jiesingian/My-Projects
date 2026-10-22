@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncGoogleCalendarAction } from "@/lib/actions/calendar-sync";
+import { reportError } from "@/lib/report-error";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -78,7 +79,7 @@ export async function GET(request: Request) {
     await syncGoogleCalendarAction();
   } catch (err) {
     // Connection itself succeeded; sync can be retried from Settings.
-    console.error("Initial calendar sync failed", err);
+    reportError("Initial calendar sync failed", err);
   }
 
   return NextResponse.redirect(settingsUrl);

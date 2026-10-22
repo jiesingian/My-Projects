@@ -94,9 +94,13 @@ half steps: 12.5px (`0.78125rem`, ~250 uses, secondary captions) and 13.5px
 (`0.84375rem`, ~190 uses, body in dense rows). Treat both as part of the
 scale. Don't add new sizes between steps. Headings use `--font-heading`
 at weight 600 (titles 700). Body text is weight 400, and labels and
-buttons are 600. Text is never smaller than 10.5px, except the day-cell
-labels in the Planner month grid (8.5px). That exception is noted in
-BACKLOG.
+buttons are 600. Text is never smaller than 10.5px, with one exception:
+the tab bar's labels (9.5px, and smaller on a phone narrower than about
+352px), where seven labels share the width and `.kin-tab-label` in
+globals.css says why. (The Planner month grid's 8.5px titles were the
+other, until #866 made them dots.) A size that shrinks with the screen (`vw`) takes a
+`max(10.5px, ...)` floor, as the Planner's week rail does (checked at
+320px, 22 October).
 
 **Radii**: `--radius-control` 12px (buttons, inputs, segmented controls) ·
 `--radius-md` 12px · `--radius-card` 18px (cards, sheets' top corners) ·

@@ -7,6 +7,7 @@ import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureProfilePhot
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { reportError } from "@/lib/report-error";
 
 type MigrateResult = ActionState & { migrated?: number };
 
@@ -20,7 +21,13 @@ async function migrateOneFile(
   storagePath: string,
 ): Promise<string> {
   const { data: blob, error } = await supabase.storage.from("avatars").download(storagePath);
-  if (error || !blob) throw new Error(`Couldn't read "${storagePath}" from storage: ${error?.message ?? "not found"}`);
+  if (error || !blob) {
+    // The path ends in the uploader's own file name ("Lola Rosa wake.jpg"),
+    // and this message is recorded in app_errors by the catch below
+    // (reportError), so it names no path; the log keeps which one.
+    console.error("Photo migration: couldn't read from storage", storagePath);
+    throw new Error(`Couldn't read a photo from storage: ${error?.message ?? "not found"}`);
+  }
 
   const fileName = storagePath.split("/").pop() ?? storagePath;
   const uploaded = await uploadFileToDrive(accessToken, folderId, fileName, blob.type || "image/jpeg", blob);
@@ -83,7 +90,7 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
       }
       // Only now, with the record pointing at Drive, is the original spare.
       const { error: removeError } = await supabase.storage.from("avatars").remove([storagePath]);
-      if (removeError) console.error(`Old avatar ${storagePath} was left in storage after migrating to Drive`, removeError.message);
+      if (removeError) reportError("Old avatar was left in storage after migrating to Drive", removeError, storagePath);
       migrated++;
     }
 
@@ -115,10 +122,11 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
         if (error) stranded.push(`the background moved, but the household still shows the old one (${error.message})`);
       }
       const { error: removeError } = await supabase.storage.from("avatars").remove([storagePath]);
-      if (removeError) console.error(`Old background ${storagePath} was left in storage after migrating to Drive`, removeError.message);
+      if (removeError) reportError("Old background was left in storage after migrating to Drive", removeError, storagePath);
       migrated++;
     }
   } catch (err) {
+    reportError("Photo migration to Drive stopped", err, { migrated });
     revalidatePath("/family");
     revalidatePath("/settings", "layout");
     return { error: `Moved ${migrated} photo(s) before hitting an error: ${(err as Error).message}` };

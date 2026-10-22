@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { deliver, vapidReady } from "@/lib/push";
 import { arrivedWords, helperListWords, pushPayload, sosWords, treeStoryWords, type PushWords } from "@/lib/push-words";
 import { arrivedMessage } from "@/lib/arrived";
@@ -30,7 +30,7 @@ export async function savePushSubscriptionAction(sub: DeviceSubscription): Promi
   const { error } = await supabase
     .from("push_subscriptions")
     .insert({ member_id: me.id, family_id: me.family_id, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   return { error: null };
 }
 
@@ -38,7 +38,7 @@ export async function removePushSubscriptionAction(endpoint: string): Promise<Ac
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   return { error: null };
 }
 
@@ -50,7 +50,7 @@ export async function sendTestPushAction(): Promise<{ error: string | null; sent
   if (!vapidReady()) return { error: "Notifications aren't switched on for Kin yet.", sent: 0 };
   const supabase = await createClient();
   const { data: devices, error } = await supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message), sent: 0 };
+  if (error) return { error: databaseError(error), sent: 0 };
   if (!devices?.length) return { error: "No device of yours has notifications turned on in Kin yet.", sent: 0 };
   const payload = JSON.stringify({ title: "Kin", body: "Test notification. Calls and reminders will arrive like this.", url: "/settings/notifications", tag: "kin-test" });
   const result = await deliver(devices, payload, { TTL: 60, urgency: "high" }, async (endpoint) => {
@@ -76,9 +76,9 @@ export async function sendTestKindPushAction(kind: string): Promise<{ error: str
   if (!vapidReady()) return { error: "Notifications aren't switched on for Kin yet.", sent: 0 };
   const supabase = await createClient();
   const { error: allowedError } = await supabase.rpc("push_test_allowed", { p_kind: kind });
-  if (allowedError) return { error: /few a minute/.test(allowedError.message) ? "That's a few tests in a minute. Wait a moment, then try again." : humanDatabaseError(allowedError.message), sent: 0 };
+  if (allowedError) return { error: /few a minute/.test(allowedError.message) ? "That's a few tests in a minute. Wait a moment, then try again." : databaseError(allowedError), sent: 0 };
   const { data: devices, error } = await supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("member_id", me.id);
-  if (error) return { error: humanDatabaseError(error.message), sent: 0 };
+  if (error) return { error: databaseError(error), sent: 0 };
   if (!devices?.length) return { error: "No device of yours has notifications turned on in Kin yet.", sent: 0 };
 
   const words = await testWords(kind, me);

@@ -88,7 +88,7 @@ fi
 {
   echo "$MARK"
   if [ "$WARN" = "true" ]; then echo "### Phone screenshots: $CHANGED of $TOTAL differ from main (warn-only, nothing fails yet)"; else echo "### Phone screenshots: $CHANGED of $TOTAL differ from main"; fi
-  if [ "$WARN" != "true" ]; then echo; echo "A difference not accepted fails the e2e job. Intended? Add the line its failure prints (\`<slug> #$PR\`) to \`kin/e2e/visual-accept.txt\` in this pull request; main's pictures refresh themselves once it merges."; fi
+  if [ "$WARN" != "true" ]; then echo; echo "A difference not accepted fails the e2e job. Intended? Add the screen's slug, as its failure prints it, as a line of \`kin/e2e/visual-accept/$PR.txt\` in this pull request; main's pictures refresh themselves once it merges."; fi
   echo
   echo "390px, light, as the sample household. A screen counts as changed above $THRESH of its pixels; the clock is frozen, so the date and time of day match main's. Look at each pair: is it the change this pull request meant to make?"
   echo

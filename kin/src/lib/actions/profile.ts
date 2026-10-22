@@ -11,7 +11,7 @@ import { clampProfileFields } from "@/lib/profile-fields";
 import { isMemberColour } from "@/lib/member-colours";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 
 // Server Action files may only export async functions, so the ProfileFields
@@ -31,7 +31,7 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
   const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", me.id);
   revalidatePath("/settings", "layout");
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Lets the organizer edit any member's profile fields, and lets a parent or
@@ -59,7 +59,7 @@ export async function updateMemberProfileAction(memberId: string, fields: Profil
 
   const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export type AlbumPhoto = { id: string; url: string };
@@ -88,14 +88,14 @@ export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<Ac
 
   const { error: insertErr } = await supabase.from("member_avatars").insert(row);
   if (insertErr) {
-    console.error("member_avatars insert failed", { uploaded, row, insertErr });
-    return { error: insertErr.message };
+    reportError("member_avatars insert failed", insertErr, { uploaded, row });
+    return { error: refusalMessage(insertErr) };
   }
 
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, row) }).eq("id", me.id);
   revalidatePath("/settings", "layout");
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Makes a previously uploaded photo from the album the active avatar
@@ -110,7 +110,7 @@ export async function setActiveAvatarAction(avatarId: string): Promise<ActionSta
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.id);
   revalidatePath("/settings", "layout");
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Chooses one of your own album photos as the cover on your profile, or
@@ -125,7 +125,7 @@ export async function setCoverAction(avatarId: string | null): Promise<ActionSta
   }
   const { error } = await supabase.from("members").update({ cover_avatar_id: avatarId }).eq("id", me.id);
   revalidatePath(`/family/members/${me.id}`);
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes a photo from the album entirely. If it was the active avatar,
@@ -140,14 +140,14 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
 
   const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("member_avatars").delete().eq("id", avatarId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (photo.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
   } else if (photo.storage_path) {
     const { error: removeError } = await supabase.storage.from("avatars").remove([photo.storage_path]);
-    if (removeError) console.error(`Avatar file ${photo.storage_path} was left in storage after its record was deleted`, removeError.message);
+    if (removeError) reportError("Avatar file was left in storage after its record was deleted", removeError, photo.storage_path);
   }
 
   if (me.avatar_url === deletedUrl) {
@@ -160,7 +160,7 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
       .maybeSingle();
     const fallbackUrl = remaining ? resolvePhotoUrl(supabase, remaining) : null;
     const { error } = await supabase.from("members").update({ avatar_url: fallbackUrl }).eq("id", me.id);
-    if (error) return { error: `The photo was removed, but your profile still points at it. ${error.message}` };
+    if (error) return { error: `The photo was removed, but your profile still points at it. ${refusalMessage(error)}` };
   }
 
   revalidatePath("/settings", "layout");
@@ -175,7 +175,7 @@ export async function transferOrganiserRoleAction(newOrganiserMemberId: string):
   const { error } = await supabase.rpc("transfer_organiser_role", { p_new_organiser_member_id: newOrganiserMemberId });
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Your own colour, or a managed child's. Nothing else about the member row
@@ -196,7 +196,7 @@ export async function setMemberColourAction(memberId: string, colour: string): P
     .select("id")
     .maybeSingle();
 
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // No row came back, so a policy refused it rather than the row being
   // missing -- that is somebody else's colour.
   if (!data) return { error: "That's not your colour to change." };

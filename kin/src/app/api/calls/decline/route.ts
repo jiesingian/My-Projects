@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/lib/session";
+import { reportError } from "@/lib/report-error";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     .catch((err: Error) => ({ success: false as const, status: 0, error: err.message }));
   void supabase.removeChannel(channel);
   if (!sent.success) {
-    console.error(`Call decline not delivered: ${sent.status} ${sent.error}`);
+    reportError("Call decline not delivered", new Error(`Call decline not delivered: ${sent.status}`), sent.error);
     return NextResponse.json({ error: "Not delivered" }, { status: 502 });
   }
   return new NextResponse(null, { status: 204 });
