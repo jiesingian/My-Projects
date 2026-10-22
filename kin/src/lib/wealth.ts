@@ -118,7 +118,10 @@ export const EXPENSE_CATEGORIES = [
 ] as const;
 
 /** Where money enters, when it comes from outside anything Kin tracks. */
-export const INCOME_SOURCES = ["Salary", "Remittance", "Business", "Gift", "Investment", "Refund", "Other"] as const;
+/** Where money enters, when it comes from outside anything Kin tracks.
+ * Also the groups of Cash Flow's INCOME and the slices of its donut, in
+ * this order (Janine, 22 October: "House (rent)" for a place let out). */
+export const INCOME_SOURCES = ["Salary", "House (rent)", "Business", "Remittance", "Investment", "Gift", "Refund", "Other"] as const;
 
 /** How often a regular income (income_groups) comes. */
 export const INCOME_FREQUENCY_LABELS: Record<string, string> = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly" };
@@ -306,6 +309,7 @@ const INCOME_SOURCE_COLOR_VAR: Record<string, string> = {
   Investment: "var(--wealth-health)",
   Gift: "var(--wealth-transport)",
   Refund: "var(--wealth-groceries)",
+  "House (rent)": "var(--wealth-shopping)",
 };
 export function incomeSourceColor(category: string): string {
   return INCOME_SOURCE_COLOR_VAR[category] ?? "var(--wealth-cat-other)";

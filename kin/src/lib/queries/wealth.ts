@@ -365,10 +365,6 @@ export async function getIncomeGroups(familyId: string) {
   return data ?? [];
 }
 
-/** A group's own slice colour in the INCOME donut, in the order the groups
- * were set up: the wealth palette, which the sources share. */
-const GROUP_SLICE_COLORS = ["var(--wealth-housing)", "var(--wealth-utilities)", "var(--wealth-dining)", "var(--wealth-transport)", "var(--wealth-health)", "var(--wealth-groceries)", "var(--wealth-shopping)"];
-
 /** Everything the Cash Flow tab renders: net money in vs. out for the
  * selected period, a history strip at whatever granularity (week/month/year)
  * the household switched to, expected and recently-received income, and
@@ -419,17 +415,15 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
 
   const history = periodHistory(confirmed, range, periods);
 
-  // Money in this period by where it came from: a regular income's
-  // payments under the group's own name, everything else by source.
+  // Money in this period by source -- the same groups INCOME lists its
+  // rows under, so a slice and its group always agree (Janine, 22
+  // October). A regular income's payments count under its source.
   // Transfers between the household's own accounts are not income.
-  const groupOf = new Map(incomeSchedules.filter((s) => s.group_id).map((s) => [s.id, s.group_id as string]));
-  const groupById = new Map(incomeGroups.map((g, i) => [g.id, { name: g.name, color: GROUP_SLICE_COLORS[i % GROUP_SLICE_COLORS.length] }]));
-  const slices = new Map<string, { category: string; earned: number; color?: string }>();
+  const slices = new Map<string, { category: string; earned: number }>();
   for (const t of thisPeriod) {
     if (t.direction !== "in" || t.category === TRANSFER_CATEGORY) continue;
-    const group = t.source_table === "income_schedules" && t.source_id ? groupById.get(groupOf.get(t.source_id) ?? "") : undefined;
-    const key = group ? `group:${group.name}` : (t.category ?? "Other");
-    const slice = slices.get(key) ?? { category: group?.name ?? t.category ?? "Other", earned: 0, color: group?.color };
+    const key = t.category ?? "Other";
+    const slice = slices.get(key) ?? { category: key, earned: 0 };
     slice.earned += Number(t.amount);
     slices.set(key, slice);
   }
