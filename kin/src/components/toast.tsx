@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-type ToastKind = "success" | "error" | "info";
+type ToastKind = "success" | "error" | "info" | "undo";
 type ToastItem = { id: number; kind: ToastKind; message: string; open: boolean };
 
 // Same shape as confirm-sheet.tsx's module-level store: state that belongs
@@ -34,7 +34,10 @@ function getServerSnapshot() {
   return NO_TOASTS;
 }
 
-const DURATION: Record<ToastKind, number> = { success: 3000, error: 5000, info: 3500 };
+// "undo" is the longest: it is the window in which a delete can still be
+// taken back (toast.undo below), and the clock stops while it is hovered,
+// focused or the tab is hidden, as for every toast.
+const DURATION: Record<ToastKind, number> = { success: 3000, error: 5000, info: 3500, undo: 6000 };
 // Matches the CSS transition below -- kept as one number instead of two so
 // they can't drift apart.
 const EXIT_MS = 200;
@@ -76,7 +79,17 @@ function resumeAll() {
   for (const id of countdowns.keys()) resume(id);
 }
 
+/* What an undo toast does when it goes: `expire` (the delete goes ahead)
+ * when its time runs out or it is put away, `undo` when Undo is pressed.
+ * Exactly one of them runs, once. */
+const undoActions = new Map<number, { undo: () => void; expire: () => void }>();
+
 function dismiss(id: number) {
+  const a = undoActions.get(id);
+  if (a) {
+    undoActions.delete(id);
+    a.expire();
+  }
   const c = countdowns.get(id);
   if (c?.handle) clearTimeout(c.handle);
   countdowns.delete(id);
@@ -118,8 +131,27 @@ export const toast = {
   success: (message: string) => push("success", message),
   error: (message: string) => push("error", message),
   info: (message: string) => push("info", message),
+  /** "Deleted X · Undo" (final design check, 22 October; ISO 9241-110 error
+   * tolerance). The caller hides the row at once and does the real delete in
+   * `onExpire`, which runs when the toast's time runs out or it is put away;
+   * Undo runs `onUndo` instead and nothing is deleted. Closing the tab inside
+   * the window deletes nothing, which is the safe way to fail. */
+  undo: (message: string, actions: { onUndo: () => void; onExpire: () => void }) => {
+    const id = push("undo", message);
+    undoActions.set(id, { undo: actions.onUndo, expire: actions.onExpire });
+    return id;
+  },
+  /** What pressing Undo on toast `id` does. */
+  takeBack: (id: number) => undo(id),
   dismiss,
 };
+
+function undo(id: number) {
+  const a = undoActions.get(id);
+  undoActions.delete(id);
+  a?.undo();
+  dismiss(id);
+}
 
 /** Mounted once, at the app shell. */
 export function Toaster() {
@@ -149,7 +181,20 @@ export function Toaster() {
       onFocusCapture={pauseAll}
       onBlurCapture={resumeAll}
     >
-      {list.map((t) => (
+      {list.map((t) =>
+        t.kind === "undo" ? (
+          // Not one big button: Undo is the button, and the message beside
+          // it a label. Putting it away early (×) lets the delete go ahead.
+          <div key={t.id} className="toast" data-kind="undo" data-open={t.open}>
+            <span className="toast-msg">{t.message}</span>
+            <button type="button" className="toast-undo" onClick={() => undo(t.id)}>
+              Undo
+            </button>
+            <button type="button" className="toast-close" aria-label="Close" onClick={() => dismiss(t.id)}>
+              ×
+            </button>
+          </div>
+        ) : (
         // A button, because that is what it is: the whole surface dismisses
         // it. As a div it was unreachable by keyboard, which is worst for
         // the error toast -- the one somebody most wants to hold on to and
@@ -164,7 +209,8 @@ export function Toaster() {
         >
           {t.message}
         </button>
-      ))}
+        ),
+      )}
     </div>
   );
 }
