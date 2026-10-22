@@ -380,7 +380,7 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
                 style={{ border: 0, background: "none", cursor: "pointer", padding: 0, font: "inherit", color: "inherit", display: "inline-flex", alignItems: "center", gap: "0.3125rem" }}
               >
                 {it.name}
-                {it.running_low && <span style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: ".03em", color: "var(--cal-money)" }}>LOW</span>}
+                {it.running_low && <span style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: ".03em", color: "var(--cal-money-ink)" }}>LOW</span>}
               </button>
               <button
                 type="button"
