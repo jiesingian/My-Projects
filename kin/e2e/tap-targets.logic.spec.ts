@@ -89,3 +89,30 @@ for (const p of PALETTES) {
     });
   }
 }
+
+/** The on/off switch, off: its ring is the only thing that shows where the
+ * control is, so it reads at 3:1 against the card and the page in every
+ * theme (WCAG 1.4.11). Half the text colour, its first ring, was 2.4-2.9:1
+ * in Nord, Catppuccin, Solarized and Clay light (wrap-up check, 22 October). */
+for (const p of PALETTES) {
+  for (const mode of p.darkOnly ? (["dark"] as const) : (["light", "dark"] as const)) {
+    test(`${p.name} (${mode}): the switch's ring, off, can be seen`, async ({ page }) => {
+      test.skip(!css, "No production build in .next; run `npm run build` first.");
+      await page.emulateMedia({ colorScheme: mode });
+      await render(page, paletteCss(p.id), p.darkOnly ? "dark" : mode);
+      await page.evaluate(() => {
+        const sw = document.createElement("span");
+        sw.className = "kin-switch";
+        sw.id = "sw";
+        document.querySelector("main")!.append(sw);
+      });
+      const shadow = await page.locator("#sw").evaluate((e) => getComputedStyle(e).boxShadow);
+      const rgb = shadow.match(/rgba?\(([^)]+)\)/)?.[1].split(",").map((n) => Number(n.trim())) ?? [];
+      expect(rgb.length === 3 || rgb[3] === 1, `the ring is a solid colour (${shadow})`).toBe(true);
+      const hex = "#" + rgb.slice(0, 3).map((n) => n.toString(16).padStart(2, "0")).join("");
+      const m = p[p.darkOnly ? "dark" : mode];
+      expect(contrast(hex, m.surface), `ring ${hex} on the card ${m.surface}`).toBeGreaterThanOrEqual(3);
+      expect(contrast(hex, m.bg), `ring ${hex} on the page ${m.bg}`).toBeGreaterThanOrEqual(3);
+    });
+  }
+}
