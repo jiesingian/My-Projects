@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { constantTimeEquals } from "@/lib/security/crypto";
 import { deliver, vapidReady } from "@/lib/push";
+import { doseAlarmUrl, doseFromKey } from "@/lib/dose-alarm";
 import { reportError } from "@/lib/report-error";
 
 /** The five-minute reminder tick (20260926140000_reminders.sql).
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills, vault, remembrance, recap] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills, vault, remembrance, recap, doseRepeats] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -64,6 +65,10 @@ export async function POST(request: Request) {
     // ready. Names the month only; the figures are on the page, read in
     // each grown-up's own session (20261020001000).
     supabase.rpc("due_money_recap_reminders", { p_secret: secret }),
+    // The dose again 5 and 10 minutes after its time while it is still not
+    // ticked (20261022190000): on an iPhone the nearest a web app gets to an
+    // alarm that keeps ringing.
+    supabase.rpc("due_dose_repeats", { p_secret: secret }),
   ]);
   // Logged and carried on like the rest, never an early return: each due_*()
   // has already written its reminder_sends keys by now, so leaving here sent
@@ -82,8 +87,9 @@ export async function POST(request: Request) {
   if (refills.error) reportError("Reminders: due_refill_reminders failed", refills.error);
   if (vault.error) reportError("Reminders: due_vault_emergency_reminders failed", vault.error);
   if (remembrance.error) reportError("Reminders: due_remembrance_reminders failed", remembrance.error);
+  if (doseRepeats.error) reportError("Reminders: due_dose_repeats failed", doseRepeats.error);
   if (recap.error) reportError("Reminders: due_money_recap_reminders failed", recap.error);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? []), ...(remembrance.data ?? []), ...(recap.data ?? [])];
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? []), ...(remembrance.data ?? []), ...(recap.data ?? []), ...(doseRepeats.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the
@@ -97,8 +103,15 @@ export async function POST(request: Request) {
       // Someone asking to open the vault wakes the phone and stays on screen,
       // like an SOS, and is kept for longer if the phone is off.
       const urgent = r.key.startsWith("vault-emergency:");
-      const payload = JSON.stringify({ title: r.title.slice(0, 80), body: r.body.slice(0, 180), url: r.url.startsWith("/") ? r.url : "/today", tag: r.key, urgent: urgent || undefined });
-      const options = urgent ? { TTL: 60 * 60 * 12, urgency: "high" as const } : { TTL: 60 * 60 };
+      // A medicine dose rings like an alarm (22 October): sent at high
+      // urgency so a phone saving battery still shows it now, kept on screen
+      // where the phone allows it, and opening the full-screen dose alarm.
+      // Old news after 20 minutes -- the repeats and the missed-dose alert
+      // take over from there.
+      const dose = doseFromKey(r.key);
+      const url = dose ? doseAlarmUrl(dose) : r.url.startsWith("/") ? r.url : "/today";
+      const payload = JSON.stringify({ title: r.title.slice(0, 80), body: r.body.slice(0, 180), url, tag: r.key, urgent: urgent || undefined, alarm: dose ? true : undefined });
+      const options = urgent ? { TTL: 60 * 60 * 12, urgency: "high" as const } : dose ? { TTL: 20 * 60, urgency: "high" as const } : { TTL: 60 * 60 };
       const result = await deliver(rows, payload, options, async (endpoint) => {
         await supabase.rpc("cron_forget_endpoint", { p_secret: secret, p_endpoint: endpoint });
       });

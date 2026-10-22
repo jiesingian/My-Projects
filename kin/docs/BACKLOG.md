@@ -3,6 +3,32 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Medicine reminders ring like an alarm, 22 October (Jonathan)
+
+"The notification in medicine is not making the user really get notified
+... like an alarm clock: the whole screen and an alarm sound."
+
+- **Done (20261022190000):** the dose reminder comes back 5 and 10 minutes
+  after its time while the dose is untaken (due_dose_repeats, same people,
+  switch and clock as the first; probe dose-repeats.mjs). Dose reminders are
+  sent at high urgency (shown at once in battery saver) and expire after 20
+  minutes. Where the phone allows it (Android) the notification stays on
+  screen and buzzes long. Tapping it opens /today/dose: the whole screen, an
+  alarm tone made in the browser, a long buzz, one tap for Taken, Not now;
+  if Kin is already open, the alarm takes the screen when the dose is due.
+  Checked on dev as the QA household (throwaway medicine, removed).
+- **What a web app cannot do, on any phone:** ring through the lock screen
+  full-screen with an alarm sound. Every device saved in production is an
+  iPhone, where Kin's notification is the ordinary banner and sound, silent
+  on silent and in a Focus; no vibration pattern, no staying on screen.
+  The real alarm needs a native app: on iPhone, AlarmKit (iOS 26) or Critical
+  Alerts (an Apple entitlement); on Android, a full-screen notification.
+  That means the Apple Developer Program (US$99 a year) and the Play Console
+  (US$25 once) -- **a decision for Jonathan** (it spends money).
+- **Meanwhile, on an iPhone:** Settings → Notifications → Kin: Allow,
+  Sounds, Lock Screen and Banners (Persistent) on, and add Kin to any Focus
+  that should let medicine through.
+
 ## Wrap-up, 22 October
 
 The final design check (#847–#867) and the redo of skipped work (#855,

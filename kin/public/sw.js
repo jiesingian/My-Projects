@@ -224,6 +224,17 @@ self.addEventListener("push", (event) => {
       // An SOS (30 September) stays on screen the same way, with its own
       // pattern: three short, three long, three short.
       ...(data.urgent ? { requireInteraction: true, renotify: true, vibrate: [200, 100, 200, 100, 200, 300, 600, 100, 600, 100, 600, 300, 200, 100, 200, 100, 200] } : {}),
+      // A medicine dose (22 October) rings like an alarm clock where the
+      // phone allows it: stays on screen and buzzes long. An iPhone shows
+      // its ordinary banner, which is why the cron sends it again at 5 and
+      // 10 minutes until the dose is ticked.
+      ...(data.alarm ? { requireInteraction: true, renotify: true, vibrate: [1000, 500, 1000, 500, 1000, 500, 1000, 500, 1000] } : {}),
+    }).then(async () => {
+      // Kin already open on this phone: the alarm takes the screen there and
+      // then, with its sound, instead of waiting for the banner to be tapped.
+      if (!data.alarm) return;
+      const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of open) client.postMessage({ type: "kin:dose-alarm", url: data.url });
     }),
   );
 });

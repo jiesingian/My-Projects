@@ -8937,6 +8937,10 @@ export type Database = {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
+      due_dose_repeats: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
       cron_forget_endpoint: {
         Args: { p_secret: string; p_endpoint: string }
         Returns: undefined
