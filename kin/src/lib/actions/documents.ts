@@ -7,7 +7,7 @@ import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { explainVisibilityRefusal } from "@/lib/visibility";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 
 type UploadedFile =
@@ -41,7 +41,7 @@ export async function createDocEntryAction(input: {
       .insert({ family_id: me.family_id, name: clamp(input.newFolderName, 100) })
       .select()
       .single();
-    if (folderErr) return { error: folderErr.message };
+    if (folderErr) return { error: refusalMessage(folderErr) };
     folderId = folder.id;
   }
   if (!folderId || folderId === "__new__") return { error: "Choose or name a folder." };
@@ -66,7 +66,7 @@ export async function createDocEntryAction(input: {
   // Same as in health.ts: a "parents" entry from someone who is not a parent
   // is refused at the RETURNING and rolls back, and the policy's own wording
   // is not something a person can act on.
-  if (entryErr) return { error: explainVisibilityRefusal(entryErr.message) };
+  if (entryErr) return { error: explainVisibilityRefusal(refusalMessage(entryErr, RLS_EXPLAINED)) };
 
   if (input.expiresAt) {
     await syncRowToCalendars(
@@ -116,7 +116,7 @@ export async function updateDocEntryAction(input: {
     .eq("family_id", me.family_id);
   // Same as at creation: a "parents" visibility from someone who is not a
   // parent is refused at the RETURNING and rolls back.
-  if (error) return { error: explainVisibilityRefusal(error.message) };
+  if (error) return { error: explainVisibilityRefusal(refusalMessage(error, RLS_EXPLAINED)) };
   if (count === 0) return { error: "That document entry is no longer there — someone may have removed it." };
 
   if (input.expiresAt) {
@@ -151,7 +151,7 @@ export async function deleteDocEntryAction(entryId: string, folderId: string): P
   if (count && count > 0) return { error: "Remove its files first, then this entry can be deleted." };
 
   const { error } = await supabase.from("doc_entries").delete().eq("id", entryId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   await removeRowFromCalendars(me.family_id, "doc_entries", entryId);
   revalidatePath(`/family/documents/${folderId}`);
@@ -208,7 +208,7 @@ export async function attachDocFileAction(input: {
           created_by: me.id,
         },
   );
-  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${error.message}` };
+  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${refusalMessage(error)}` };
 
   revalidatePath("/family");
   return { error: null };
@@ -237,7 +237,7 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
 
   if (file.storage_provider === "supabase" && file.storage_path) {
     const { error: removeError } = await supabase.storage.from("documents").remove([file.storage_path]);
-    if (removeError) console.error(`Document ${file.storage_path} was left in storage after its record was deleted`, removeError.message);
+    if (removeError) reportError("Document was left in storage after its record was deleted", removeError, file.storage_path);
   } else if (file.storage_provider === "google_drive" && file.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, file.drive_file_id).catch(() => false) : false;
@@ -251,7 +251,7 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
   }
 
   const { error } = await supabase.from("doc_files").delete().eq("id", fileId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath(`/family/documents/${folderId}`);
   return { error: null };

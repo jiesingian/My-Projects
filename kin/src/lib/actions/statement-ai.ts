@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { KIN_AI_OFF, kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { STATEMENT_SCHEMA, capLines, normaliseStatementRows, statementPrompt } from "@/lib/statement-ai";
 import type { ParsedRow } from "@/lib/statement-import";
+import { reportError } from "@/lib/report-error";
 
 /** Maps the text lines of a PDF statement to rows for the review step
  * (#679). Only the lines arrive -- the PDF and its password stay on the
@@ -42,6 +43,9 @@ export async function mapStatementTextAction(lines: string[], bank: string): Pro
     try {
       parsed = JSON.parse(textOf(response.content));
     } catch {
+      // Not the parse error itself: it quotes the start of the answer, which
+      // is what was on the statement.
+      reportError("Statement map: the answer was not JSON", new Error("Statement map: the answer was not JSON"));
       return { error: "Kin couldn't make sense of that statement. A CSV of it, where the bank offers one, imports without Kin AI.", rows: [] };
     }
     const rows = normaliseStatementRows(parsed);
@@ -50,10 +54,10 @@ export async function mapStatementTextAction(lines: string[], bank: string): Pro
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return { error: "Too many imports just now. Give it a moment.", rows: [] };
     if (error instanceof Anthropic.APIError) {
-      console.error(`Statement map API error ${error.status}`, error);
+      reportError("Statement map API error", error, error.status);
       return { error: "Kin AI couldn't be reached. Try again.", rows: [] };
     }
-    console.error("Statement map failed", error);
+    reportError("Statement map failed", error);
     return { error: "Something went wrong reading that statement.", rows: [] };
   }
 }

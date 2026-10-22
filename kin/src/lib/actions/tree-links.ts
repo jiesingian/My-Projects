@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import type { BranchPerson } from "@/lib/queries/tree-links";
 
 // Every rule here lives in the database functions these call -- offering only
@@ -16,7 +16,7 @@ export async function offerTreePersonAction(personId: string, toFamilyId: string
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("offer_tree_person", { person: personId, to_family: toFamilyId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -25,7 +25,7 @@ export async function respondTreeOfferAction(matchId: string, accept: boolean, t
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("respond_tree_offer", { match: matchId, accept, their_person: theirPersonId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -36,7 +36,7 @@ export async function blockTreeOffersAction(matchId: string): Promise<ActionStat
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("block_tree_offers", { p_match: matchId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -45,7 +45,7 @@ export async function unblockTreeOffersAction(familyId: string): Promise<ActionS
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("unblock_tree_offers", { p_family: familyId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -54,7 +54,7 @@ export async function withdrawTreeMatchAction(matchId: string): Promise<ActionSt
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("withdraw_tree_match", { match: matchId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -68,7 +68,7 @@ export async function confirmTreeSuggestionAction(ourPersonId: string, otherFami
   const { error } = theirOfferId
     ? await supabase.rpc("respond_tree_offer", { match: theirOfferId, accept: true, their_person: ourPersonId })
     : await supabase.rpc("offer_tree_person", { person: ourPersonId, to_family: otherFamilyId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null, linked: !!theirOfferId };
 }
@@ -78,7 +78,7 @@ export async function dismissTreeSuggestionAction(ourPersonId: string, otherPers
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("dismiss_tree_suggestion", { p_person: ourPersonId, p_other_person: otherPersonId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -92,7 +92,7 @@ export async function getSharedBranchAction(matchId: string): Promise<{ error: s
     supabase.rpc("shared_branch", { match: matchId }),
     supabase.rpc("shared_branch_accounts", { match: matchId }),
   ]);
-  if (error) return { error: humanDatabaseError(error.message), people: [] };
+  if (error) return { error: databaseError(error), people: [] };
   const hasAccount = new Map((accounts ?? []).map((a) => [a.id, a.has_account]));
   return {
     error: null,

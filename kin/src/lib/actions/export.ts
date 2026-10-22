@@ -8,6 +8,7 @@ import { inKidView } from "@/lib/kid-view";
 import { buildZip } from "@/lib/export/zip";
 import { toCsv, withoutSecrets } from "@/lib/export/csv";
 import { myData } from "@/lib/export/my-files";
+import { reportError } from "@/lib/report-error";
 
 /** "Download my data" (approved by Jonathan, 28 September): the household's
  * records as a ZIP of spreadsheets, after the member types their password.
@@ -136,7 +137,7 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
       if (error) {
         // A section this member cannot read, or one that does not exist in
         // this database yet, is left out and said so -- not a failed export.
-        console.error(`Export: ${table} skipped`, error.message);
+        reportError("Export: a table was skipped", error, table);
         break;
       }
       rows.push(...(data ?? []));

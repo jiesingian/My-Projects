@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 
 type UploadedFile =
@@ -45,7 +45,7 @@ export async function createJournalEntryAction(input: {
     })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (input.people.length > 0) {
     const { data: validMembers } = await supabase.from("members").select("id").eq("family_id", me.family_id).in("id", input.people);
@@ -54,7 +54,7 @@ export async function createJournalEntryAction(input: {
     const { error: peopleError } = await supabase
       .from("journal_entry_people")
       .insert(people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
-    if (peopleError) return { error: `The entry was saved, but not who it is about. ${peopleError.message}` };
+    if (peopleError) return { error: `The entry was saved, but not who it is about. ${refusalMessage(peopleError)}` };
   }
 
   revalidatePath("/journal");
@@ -96,14 +96,14 @@ export async function updateJournalEntryAction(input: {
     .eq("family_id", me.family_id)
     .select()
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!entry) return { error: "Entry not found." };
 
   const { data: existing, error: peopleReadError } = await supabase
     .from("journal_entry_people")
     .select("member_id")
     .eq("entry_id", input.entryId);
-  if (peopleReadError) return { error: `The entry was saved, but who it is about could not be updated. ${peopleReadError.message}` };
+  if (peopleReadError) return { error: `The entry was saved, but who it is about could not be updated. ${refusalMessage(peopleReadError)}` };
 
   const { data: validMembers } = await supabase.from("members").select("id").eq("family_id", me.family_id).in("id", input.people);
   const validIds = new Set((validMembers ?? []).map((m) => m.id));
@@ -120,13 +120,13 @@ export async function updateJournalEntryAction(input: {
       .delete()
       .eq("entry_id", input.entryId)
       .in("member_id", toRemove);
-    if (removeError) return { error: `The entry was saved, but not everyone removed could be taken off it. ${removeError.message}` };
+    if (removeError) return { error: `The entry was saved, but not everyone removed could be taken off it. ${refusalMessage(removeError)}` };
   }
   if (toAdd.length > 0) {
     const { error: addError } = await supabase
       .from("journal_entry_people")
       .insert(toAdd.map((memberId) => ({ entry_id: input.entryId, member_id: memberId })));
-    if (addError) return { error: `The entry was saved, but not everyone new was added to it. ${addError.message}` };
+    if (addError) return { error: `The entry was saved, but not everyone new was added to it. ${refusalMessage(addError)}` };
   }
 
   revalidatePath("/journal");
@@ -149,7 +149,7 @@ export async function addEntryToHouseholdAction(entryId: string): Promise<{ erro
     .eq("visibility", "personal")
     .select("id, title")
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!entry) return { error: "That entry is not yours to add, or it is already in the household journal." };
 
   const { data: links } = await supabase.from("journal_entry_media").select("media_id").eq("entry_id", entryId);
@@ -160,7 +160,7 @@ export async function addEntryToHouseholdAction(entryId: string): Promise<{ erro
       .update({ visibility: "household" })
       .in("id", mediaIds)
       .eq("owner_person_id", me.person_id);
-    if (mediaError) return { error: `The entry is in the household journal, but its photos are still just yours. ${mediaError.message}` };
+    if (mediaError) return { error: `The entry is in the household journal, but its photos are still just yours. ${refusalMessage(mediaError)}` };
   }
 
   revalidatePath("/journal");
@@ -192,7 +192,7 @@ export async function takeEntryBackAction(entryId: string): Promise<{ error: str
     .eq("visibility", "household")
     .select("id")
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!entry) return { error: "Only the person who wrote this entry can make it just theirs again." };
 
   const mediaIds = (links ?? []).map((l) => l.media_id);
@@ -203,7 +203,7 @@ export async function takeEntryBackAction(entryId: string): Promise<{ error: str
       .in("id", mediaIds)
       .eq("owner_person_id", me.person_id)
       .eq("storage_provider", "supabase");
-    if (mediaError) return { error: `The entry is just yours again, but its photos are still in the household's. ${mediaError.message}` };
+    if (mediaError) return { error: `The entry is just yours again, but its photos are still in the household's. ${refusalMessage(mediaError)}` };
   }
 
   revalidatePath("/journal");
@@ -223,7 +223,7 @@ export async function setEntryMilestoneAction(entryId: string, on: boolean): Pro
     .eq("family_id", me.family_id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data) return { error: "Entry not found." };
   revalidatePath("/journal");
   return { error: null };
@@ -243,7 +243,7 @@ export async function setEntryPublicAction(entryId: string, on: boolean): Promis
     .eq("owner_person_id", me.person_id)
     .select("id")
     .maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data) return { error: "Only the person who wrote this entry can make it public." };
   revalidatePath("/journal");
   return { error: null };
@@ -301,7 +301,7 @@ export async function attachJournalMediaAction(input: {
     )
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   // The file is already uploaded and the media row already written; this is
   // the row that ties it to the entry. Losing it silently leaves the photo
@@ -312,7 +312,7 @@ export async function attachJournalMediaAction(input: {
     const { error: linkError } = await supabase
       .from("journal_entry_media")
       .insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
-    if (linkError) return { error: `The file was uploaded, but it is not attached to the entry. ${linkError.message}` };
+    if (linkError) return { error: `The file was uploaded, but it is not attached to the entry. ${refusalMessage(linkError)}` };
   }
 
   revalidatePath("/journal");
@@ -337,7 +337,7 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
 
   if (media.storage_provider === "supabase" && media.storage_path) {
     const { error: removeError } = await supabase.storage.from("journal").remove([media.storage_path]);
-    if (removeError) console.error(`Journal media ${media.storage_path} was left in storage after its record was deleted`, removeError.message);
+    if (removeError) reportError("Journal media was left in storage after its record was deleted", removeError, media.storage_path);
   } else if (media.storage_provider === "google_drive" && media.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, media.drive_file_id).catch(() => false) : false;
@@ -348,7 +348,8 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
           const { rootFolderId } = await ensureDriveFolderStructure(me.family_id, token, me.families.name);
           const folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
           driveFolderLink = `https://drive.google.com/drive/folders/${folderId}`;
-        } catch {
+        } catch (err) {
+          reportError("The journal's Drive folder could not be found or made", err);
           driveFolderLink = null;
         }
       }
@@ -360,7 +361,7 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
   }
 
   const { error } = await supabase.from("journal_media").delete().eq("id", mediaId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/journal");
   return { error: null };

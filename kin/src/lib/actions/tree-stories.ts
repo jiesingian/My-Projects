@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { UUID } from "@/lib/ids";
 import { sendTreeStoryPush } from "@/lib/push";
@@ -65,7 +65,7 @@ const revalidate = (personId: string) => {
 async function removeStoredFiles(supabase: Awaited<ReturnType<typeof createClient>>, paths: string[]) {
   if (paths.length === 0) return;
   const { error } = await supabase.storage.from("documents").remove(paths);
-  if (error) console.error(`${paths.length} story files were left in storage`, error.message);
+  if (error) reportError("Story files were left in storage", error, paths.length);
 }
 
 /** Lets go of files uploaded for a save that did not go through, so they
@@ -76,7 +76,7 @@ async function discardUploads(supabase: Awaited<ReturnType<typeof createClient>>
   if (paths.length === 0) return;
   const { data: kept, error } = await supabase.from("tree_person_story_files").select("storage_path").in("storage_path", paths);
   if (error) {
-    console.error(`${paths.length} story uploads were left in storage`, error.message);
+    reportError("Story uploads were left in storage", error, paths.length);
     return;
   }
   const keep = new Set((kept ?? []).map((k) => k.storage_path));
@@ -115,7 +115,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
     .select("id, family_id, full_name, member_id")
     .eq("id", input.personId)
     .maybeSingle();
-  if (personError) return { error: humanDatabaseError(personError.message) };
+  if (personError) return { error: databaseError(personError) };
   if (!person || person.family_id !== me.family_id) return { error: "That person could not be found." };
 
   const fields = {
@@ -145,7 +145,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
       .eq("story_id", input.storyId);
     if (countError) {
       await discardUploads(supabase, uploads);
-      return { error: humanDatabaseError(countError.message) };
+      return { error: databaseError(countError) };
     }
     if ((count ?? 0) - removeIds.length + files.length > STORY_FILES_MAX) {
       await discardUploads(supabase, uploads);
@@ -168,7 +168,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
       .maybeSingle();
     if (error || !updated) {
       await discardUploads(supabase, uploads);
-      return { error: error ? humanDatabaseError(error.message) : "Only whoever added a story can change it." };
+      return { error: error ? databaseError(error) : "Only whoever added a story can change it." };
     }
     storyId = updated.id;
 
@@ -181,7 +181,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
         .select("storage_path");
       if (removeError) {
         await discardUploads(supabase, uploads);
-        return { error: humanDatabaseError(removeError.message) };
+        return { error: databaseError(removeError) };
       }
       await removeStoredFiles(
         supabase,
@@ -200,7 +200,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
       .single();
     if (error) {
       await discardUploads(supabase, uploads);
-      return { error: humanDatabaseError(error.message) };
+      return { error: databaseError(error) };
     }
     storyId = created.id;
   }
@@ -224,7 +224,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
       // files are not, so nothing sits in storage that no row points at.
       await discardUploads(supabase, uploads);
       revalidate(person.id);
-      return { error: `The story was saved, but its files were not: ${humanDatabaseError(fileError.message)}`, id: storyId };
+      return { error: `The story was saved, but its files were not: ${databaseError(fileError)}`, id: storyId };
     }
   }
 
@@ -256,10 +256,10 @@ export async function deleteTreeStoryAction(storyId: string): Promise<ActionStat
   // say where they are. A failed read keeps the story rather than leave its
   // files in storage, still counted, with nothing pointing at them.
   const { data: fileRows, error: readError } = await supabase.from("tree_person_story_files").select("storage_path").eq("story_id", storyId);
-  if (readError) return { error: humanDatabaseError(readError.message) };
+  if (readError) return { error: databaseError(readError) };
 
   const { data: gone, error } = await supabase.from("tree_person_stories").delete().eq("id", storyId).eq("family_id", me.family_id).select("person_id").maybeSingle();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!gone) return { error: "Only whoever added a story, or a grown-up, can delete it." };
 
   await removeStoredFiles(

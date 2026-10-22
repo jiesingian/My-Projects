@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
 import { helperListWords, pushPayload, treeStoryWords } from "@/lib/push-words";
+import { reportError } from "@/lib/report-error";
 
 /** Web Push, in the session of whoever caused it.
  *
@@ -79,7 +80,7 @@ export async function sendPush(input: {
     });
     return result.sent;
   } catch (err) {
-    console.error("Push failed", err);
+    reportError("Push failed", err);
     return 0;
   }
 }
@@ -116,7 +117,7 @@ export async function sendChatPush(
       await deliver(targets.filter(named), mentionPayload, { TTL: 60 * 60 * 12 }, forget);
     }
   } catch (err) {
-    console.error("Chat push failed", err);
+    reportError("Chat push failed", err);
   }
 }
 
@@ -141,7 +142,7 @@ export async function sendCardStartedPush(card: { recipientId: string; opensOn: 
       await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
     });
   } catch (err) {
-    console.error("Card push failed", err);
+    reportError("Card push failed", err);
   }
 }
 
@@ -167,7 +168,7 @@ export async function sendTreeStoryPush(story: { id: string; personId: string; i
       await deliver(devices, payload, { TTL: 60 * 60 * 12 }, forget);
     }
   } catch (err) {
-    console.error("Story push failed", err);
+    reportError("Story push failed", err);
   }
 }
 
@@ -187,7 +188,7 @@ export async function sendHelperListPush(item: { id: string; familyId: string; n
       await supabase.rpc("forget_helper_push_endpoint", { p_endpoint: endpoint });
     });
   } catch (err) {
-    console.error("Helper push failed", err);
+    reportError("Helper push failed", err);
   }
 }
 
@@ -218,7 +219,7 @@ export async function deliver(
         }
         const service = new URL(d.endpoint).host;
         const body = String((err as { body?: unknown }).body ?? (err as Error).message ?? "").slice(0, 200);
-        console.error(`Push refused by ${service}: ${status ?? "no status"} ${body}`);
+        reportError("Push refused by the push service", new Error(`Push refused by ${service}: ${status ?? "no status"}`), body);
         result.failed.push(`${service} ${status ?? ""}`.trim());
       }
     }),

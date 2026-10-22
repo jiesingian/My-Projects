@@ -346,16 +346,18 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
   bills,
   currency,
   fmtDate,
+  today,
   days = 30,
 }: {
   bills: T[];
   currency: string;
   fmtDate: (d: string) => string;
+  /** The household's today, YYYY-MM-DD. */
+  today: string;
   days?: number;
 }) {
   const { bills: due, total } = billsDueWithin(bills, days);
   if (due.length === 0) return null;
-  const today = new Date();
 
   return (
     <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.875rem" }}>
@@ -365,14 +367,19 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem", marginTop: "0.5625rem" }}>
         {due.map((b) => {
-          const overdue = b.due_date !== null && new Date(b.due_date) < today;
+          // Overdue from the day after it is due, in the household's own day
+          // (new Date("2026-10-22") is midnight UTC, 08:00 in Manila, so the
+          // bill read "overdue" on its own due day).
+          const overdue = b.due_date !== null && b.due_date.slice(0, 10) < today;
           return (
-            <div key={b.id} style={{ display: "flex", justifyContent: "space-between", gap: "0.625rem", fontSize: "0.84375rem" }}>
+            // Wraps rather than squeezing the name to a few letters a line
+            // when the amount and date are wide (Simple Kin's larger text).
+            <div key={b.id} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", columnGap: "0.625rem", rowGap: "0.125rem", fontSize: "0.84375rem" }}>
               <span>
                 {b.name}
                 {overdue && <span style={{ color: "var(--color-accent-700)" }}> · overdue</span>}
               </span>
-              <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>
+              <span style={{ fontFamily: "var(--font-numeric)", flex: "none", marginLeft: "auto" }}>
                 {formatCurrency(Number(b.amount), currency)}
                 {b.due_date && ` · ${fmtDate(b.due_date)}`}
               </span>
@@ -387,7 +394,7 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 /* ----------------------------------------------------------------- cash flow */
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
-  const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
+  const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [cf, budget, accounts, who, nextBills] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
@@ -629,7 +636,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
       </Link>
 
-      <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
+      <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
       {grownUp && plus && <NextBillOffers offers={nextBills} currency={currency} />}
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
@@ -651,7 +658,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
               <Tag variant={b.status === "scheduled" ? "outline" : "accent"}>{b.status.toUpperCase()}</Tag>
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+          {/* Wraps: in Simple Kin at 320px, Settle, the reminder and Remove are
+              wider than the phone on one line (#833's checks, 22 October).
+              kin-bill-actions: Simple Kin's 44px, over their inline 2rem. */}
+          <div className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
             <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
             {b.due_date && <BillReminderPicker billId={b.id} days={b.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} />}
             <span style={{ marginLeft: "auto" }}>

@@ -7,6 +7,7 @@ import { getLockState } from "@/lib/security/gate";
 import { isGrownUp } from "@/lib/roles";
 import { emergencyError, isWaitDays, reasonProblem } from "@/lib/vault-emergency";
 import type { ActionState } from "@/lib/actions/auth";
+import { refusalMessage } from "@/lib/report-error";
 
 // Emergency access to the vault (20261015120000). Every rule -- who may name,
 // ask, answer or read, and whether a request is open -- is enforced by the
@@ -37,14 +38,14 @@ export async function nameTrustedPersonAction(memberId: string, waitDays: number
   if (!isWaitDays(waitDays)) return { error: "Choose a wait of 1, 3 or 7 days." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("name_vault_emergency_contact", { p_member: memberId, p_wait_days: waitDays });
-  return error ? { error: emergencyError(error.message) } : done();
+  return error ? { error: emergencyError(refusalMessage(error)) } : done();
 }
 
 export async function removeTrustedPersonAction(contactId: string): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("remove_vault_emergency_contact", { p_contact: contactId });
-  return error ? { error: emergencyError(error.message) } : done();
+  return error ? { error: emergencyError(refusalMessage(error)) } : done();
 }
 
 export async function answerEmergencyRequestAction(requestId: string, answer: "deny" | "allow" | "revoke"): Promise<ActionState> {
@@ -57,7 +58,7 @@ export async function answerEmergencyRequestAction(requestId: string, answer: "d
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("answer_vault_emergency_request", { p_request: requestId, p_answer: answer });
-  return error ? { error: emergencyError(error.message) } : done();
+  return error ? { error: emergencyError(refusalMessage(error)) } : done();
 }
 
 /** "Got it" on the notice that a trusted person from another household came
@@ -66,7 +67,7 @@ export async function dismissEmergencyNoticeAction(noticeId: string): Promise<Ac
   await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.rpc("dismiss_vault_emergency_notice", { p_notice: noticeId });
-  return error ? { error: emergencyError(error.message) } : done();
+  return error ? { error: emergencyError(refusalMessage(error)) } : done();
 }
 
 /** "Share in an emergency" on a parents-only document, from the list under
@@ -83,7 +84,7 @@ export async function setDocShareInEmergencyAction(entryId: string, shared: bool
     .eq("id", entryId)
     .eq("family_id", g.familyId)
     .eq("visibility", "parents");
-  if (error) return { error: emergencyError(error.message) };
+  if (error) return { error: emergencyError(refusalMessage(error)) };
   if (!count) return { error: "That document is not yours to change, or is no longer parents-only." };
   revalidatePath("/family", "layout");
   return done();
@@ -96,7 +97,7 @@ export async function requestEmergencyAccessAction(familyId: string, reason: str
   if (problem) return { error: problem };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_vault_emergency_access", { p_family: familyId, p_reason: reason.trim() });
-  return error ? { error: emergencyError(error.message) } : done();
+  return error ? { error: emergencyError(refusalMessage(error)) } : done();
 }
 
 export type OpenedPassword = { kind: "password"; id: string; group: string; label: string; username: string | null; secret: string; note: string | null };
@@ -126,7 +127,7 @@ export async function openEmergencyItemAction(
   if ("error" in g) return g;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("open_vault_emergency_item", { p_request: requestId, p_kind: kind, p_id: id });
-  if (error || !data || typeof data !== "object" || Array.isArray(data)) return { error: emergencyError(error?.message ?? "") };
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return { error: emergencyError(refusalMessage(error)) };
   const d = data as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" ? v : null);
   if (d.kind === "password") {
