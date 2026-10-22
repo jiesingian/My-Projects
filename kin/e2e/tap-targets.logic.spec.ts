@@ -97,10 +97,18 @@ for (const p of PALETTES) {
  * link colour (--color-accent-700) and the focus colour (--color-focus). */
 test("the fixed blue is only ever a fill, never a text colour or an outline", () => {
   test.skip(!css, "No production build in .next; run `npm run build` first.");
-  const inCss = [...css!.matchAll(/(?:^|[;{])\s*(color|outline|border|stroke)\s*:[^;}]*var\(--color-accent-solid\)/g)]
-    .map((m) => m[0].trim())
-    // A 22% wash of it as a tile's edge is decoration, not a boundary that has to be seen.
-    .filter((d) => !/color-mix\(/.test(d));
+  // Every declaration, with its selector. A 22% wash of the blue (a kid
+  // tile's edge) is decoration, not a boundary that has to be seen; the
+  // minifier also writes it out first without color-mix, as a fallback for
+  // browsers that lack it, so a plain declaration that has a color-mix twin
+  // for the same selector and property is that fallback, not a use.
+  const rules = [...css!.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] }));
+  const decls = rules.flatMap((r) => r.body.split(";").map((d) => ({ sel: r.sel, prop: d.split(":")[0].trim(), value: d.slice(d.indexOf(":") + 1) })));
+  const mixed = new Set(decls.filter((d) => /color-mix\(/.test(d.value)).map((d) => `${d.sel}|${d.prop}`));
+  const inCss = decls
+    .filter((d) => /^(color|outline|border|stroke)$/.test(d.prop) && d.value.includes("var(--color-accent-solid)"))
+    .filter((d) => !/color-mix\(/.test(d.value) && !mixed.has(`${d.sel}|${d.prop}`))
+    .map((d) => `${d.sel} { ${d.prop}:${d.value} }`);
   expect(inCss).toEqual([]);
   const src = path.join(process.cwd(), "src");
   const files = (fs.readdirSync(src, { recursive: true }) as string[]).filter((f) => /\.tsx?$/.test(f));
