@@ -41,8 +41,28 @@ frontend-design), read but never installed or run.
   GEDCOM keeps its own required form). People still see dates as
   22/10/2026.
 
-Proposals for Jonathan and Janine. These change the look, so they weren't
-built:
+**Proposals: all approved and built (Jonathan, 22 October: "proceed with
+all of the recommendations").** As written below, except where noted:
+
+- **Done (#860):** Fields have a visible edge in the theme's muted colour,
+  4.6:1 or more in all 16 themes. That's stronger than the proposed half
+  text colour, which fell to 2.1:1 in some themes.
+- **Done (#866):** The Planner month grid shows coloured dots. Each cell's
+  label reads the names out. Event rows' month abbreviation is 10.5px.
+- **Done (#862):** `--cal-money-ink` and `--cal-home-ink` colour the
+  status text (5:1 or more). Icons and stripes keep the bright colours.
+- **Done (#867):** Delete with Undo on Notes and the To-Buy list, with
+  the delete running only once the toast goes. Plans keep their confirm
+  sheet: a plan is deleted from its own page, which then leaves, so a
+  delayed delete would show the "deleted" plan on the Planner for
+  seconds.
+- **Done (#864):** ↑/↓ on every one-link-per-row list (Settings, Coming
+  up, a child's Today, Start here) and on the Notes board.
+- **Done (#863), found on the way:** the e2e sign-in puts the sample
+  member back to Simple Kin off before it checks Today. A run left it on,
+  and every PR's e2e then failed at sign-in.
+
+The proposals as first written:
 
 - **Input fields get a visible edge.** Every field is a 5% grey fill
   with no border: 1.1:1 against the card, under the 3:1 WCAG 1.4.11
