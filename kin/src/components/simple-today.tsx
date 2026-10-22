@@ -10,13 +10,8 @@ import { SosButton } from "@/components/sos-button";
 import { CallFamily, SimpleDoses } from "@/components/simple-today-parts";
 import { ArrivedButton } from "@/components/arrived-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
-import { ApprovalQueue } from "@/components/approval-queue";
-import { PromiseBanner } from "@/components/promise-banner";
 import { ChristmasOnToday } from "@/components/christmas-on-today";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
-import { getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
-import { getGoalRequestsFor, getPendingGoalClaims, getRewardDuties } from "@/lib/queries/goals";
-import { isGrownUp } from "@/lib/roles";
 
 /** Today in Simple Kin (lib/simple-mode, 19 October): the four things a lolo
  * or lola reaches for, each one a big target, and nothing else. Everything
@@ -26,20 +21,14 @@ export async function SimpleToday({ me, arrivedNow = false }: { arrivedNow?: boo
   const now = new Date();
   const today = familyDay(now, tz);
   const supabase = await createClient();
-  const grownUp = isGrownUp(me.role);
-  const [brief, { data: medicines }, checkIns, approvals, redemptions, goalRequests, goalClaims, rewardDuties] = await Promise.all([
+  const [brief, { data: medicines }, checkIns] = await Promise.all([
     getTodayBriefing(me.family_id, me.families.currency, me),
     // Their own medicines only: this screen ticks for the person holding it.
     supabase.from("health_medicines").select("id, member_id, name, dose, times, start_date, end_date").eq("member_id", me.id),
-    // What only this person can answer, as on the full Today: an "Are you
-    // okay?", a child's chore or reward waiting on a grown-up, a promised
-    // reward. Simple Kin hides the rest of Today, so these must not go too.
+    // An "Are you okay?" only this person can answer. Approvals and promised
+    // rewards are the Shop's (Planner → Goals → Shop), as on the full Today
+    // (Janine, 22 October).
     getMyPendingCheckIns(me.id),
-    grownUp ? getPendingApprovals(me.family_id) : Promise.resolve([]),
-    grownUp ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
-    getGoalRequestsFor(me.family_id, me),
-    grownUp ? getPendingGoalClaims(me.family_id, me) : Promise.resolve([]),
-    getRewardDuties(me.family_id, me),
   ]);
   const { data: doses } = medicines?.length
     ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).eq("dose_date", today)
@@ -59,7 +48,6 @@ export async function SimpleToday({ me, arrivedNow = false }: { arrivedNow?: boo
       <h2 style={{ fontSize: "min(2.25rem, 11vw)", margin: "0 0 1.25rem" }}>Hello, {first}</h2>
 
       <CheckInPrompt checkIns={checkIns} />
-      <PromiseBanner duties={rewardDuties} />
       {/* Pasko, 1 December to 1 January (lib/christmas.ts): the same big rows. */}
       <ChristmasOnToday simple />
 
@@ -100,10 +88,6 @@ export async function SimpleToday({ me, arrivedNow = false }: { arrivedNow?: boo
         {/* "Nakarating na ako", which the Action Button opens (/today?arrived=1). */}
         <ArrivedButton auto={arrivedNow} big />
       </section>
-
-      <div id="approvals">
-        <ApprovalQueue pending={approvals} redemptions={redemptions} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} goalClaims={goalClaims} />
-      </div>
 
       <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", marginTop: "1.5rem" }}>
         Simple Kin is on. <Link href="/settings/appearance">Change it in Settings</Link>.

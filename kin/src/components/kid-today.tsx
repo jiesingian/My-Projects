@@ -22,7 +22,7 @@ function forAChild(b: BriefItem): boolean {
 }
 
 /** Today in kid view (K2, 25 September): their own jobs with big ticks, their
- * stars and what they can spend them on, and what is coming up -- nothing
+ * coins and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
 export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolean; me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
   const [tasks, scores, rewards, brief, comingUp, checkIns, alkansya] = await Promise.all([
@@ -35,7 +35,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
     getAlkansya(me.family_id, me.id),
   ]);
   const mine = scores.find((s) => s.id === me.id);
-  const stars = mine?.spendable ?? 0;
+  const coins = mine?.spendable ?? 0;
   const first = me.full_name.split(" ")[0];
   // A child's coming-up is their own and the family's, not the grown-ups'.
   const next = [...brief, ...comingUp.filter((b) => b.whose !== "others")].filter(forAChild).slice(0, 6);
@@ -56,7 +56,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
       {/* A letter written to them years ago, on the day it opens. */}
       <LettersOpeningToday familyId={me.family_id} />
       <Link href="/planner?seg=goals&g=shop" className="kin-kid-stars">
-        <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
+        <span aria-hidden="true">🪙</span> {coins} coin{coins === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>
       </Link>
       {/* Their own notes: only they can read them, not a parent. */}
