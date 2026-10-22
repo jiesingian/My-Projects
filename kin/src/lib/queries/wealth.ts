@@ -357,6 +357,18 @@ export async function getIncomeSchedules(familyId: string) {
   }));
 }
 
+/** The household's regular incomes (income_groups). Grown-ups only by RLS:
+ * anyone else gets none. */
+export async function getIncomeGroups(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("income_groups").select("*").eq("family_id", familyId).order("created_at");
+  return data ?? [];
+}
+
+/** A group's own slice colour in the INCOME donut, in the order the groups
+ * were set up: the wealth palette, which the sources share. */
+const GROUP_SLICE_COLORS = ["var(--wealth-housing)", "var(--wealth-utilities)", "var(--wealth-dining)", "var(--wealth-transport)", "var(--wealth-health)", "var(--wealth-groceries)", "var(--wealth-shopping)"];
+
 /** Everything the Cash Flow tab renders: net money in vs. out for the
  * selected period, a history strip at whatever granularity (week/month/year)
  * the household switched to, expected and recently-received income, and
@@ -379,7 +391,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   const periods = recentPeriods(range, count);
   const historyStart = periods[0].start;
 
-  const [allAccounts, archivedAccounts, { data: transactions }, bills, incomeSchedules] = await Promise.all([
+  const [allAccounts, archivedAccounts, { data: transactions }, bills, incomeSchedules, incomeGroups] = await Promise.all([
     loadAccounts(familyId),
     getArchivedAccountsForFlow(familyId),
     supabase
@@ -390,6 +402,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
       .order("occurred_at", { ascending: false }),
     getBills(familyId),
     getIncomeSchedules(familyId),
+    getIncomeGroups(familyId),
   ]);
   // Archived accounts too: a bill paid from one is still the viewer's to see.
   const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
@@ -406,6 +419,23 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
 
   const history = periodHistory(confirmed, range, periods);
 
+  // Money in this period by where it came from: a regular income's
+  // payments under the group's own name, everything else by source.
+  // Transfers between the household's own accounts are not income.
+  const groupOf = new Map(incomeSchedules.filter((s) => s.group_id).map((s) => [s.id, s.group_id as string]));
+  const groupById = new Map(incomeGroups.map((g, i) => [g.id, { name: g.name, color: GROUP_SLICE_COLORS[i % GROUP_SLICE_COLORS.length] }]));
+  const slices = new Map<string, { category: string; earned: number; color?: string }>();
+  for (const t of thisPeriod) {
+    if (t.direction !== "in" || t.category === TRANSFER_CATEGORY) continue;
+    const group = t.source_table === "income_schedules" && t.source_id ? groupById.get(groupOf.get(t.source_id) ?? "") : undefined;
+    const key = group ? `group:${group.name}` : (t.category ?? "Other");
+    const slice = slices.get(key) ?? { category: group?.name ?? t.category ?? "Other", earned: 0, color: group?.color };
+    slice.earned += Number(t.amount);
+    slices.set(key, slice);
+  }
+  const thisMonthKey = periodKey(new Date(), "month");
+  const receivedAmount = new Map(confirmed.map((t) => [t.id, Number(t.amount)]));
+
   const periodIncome = thisPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0);
   const periodExpense = thisPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -418,12 +448,17 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     expectedIncome: visibleIncome.filter((s) => s.status !== "received"),
     receivedIncome: visibleIncome.filter((s) => s.status === "received").slice(0, 12),
     recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
-    // This period's money in by source, for the INCOME donut. Transfers
-    // between the household's own accounts are not income.
-    incomeByCategory: [...thisPeriod
-      .filter((t) => t.direction === "in" && t.category !== TRANSFER_CATEGORY)
-      .reduce((m, t) => m.set(t.category ?? "Other", (m.get(t.category ?? "Other") ?? 0) + Number(t.amount)), new Map<string, number>())]
-      .map(([category, earned]) => ({ category, earned })),
+    incomeByCategory: [...slices.values()],
+    // Each regular income with what it brought in this calendar month.
+    incomeGroups: incomeGroups.map((g) => ({
+      ...g,
+      thisMonth: visibleIncome
+        .filter((s) => s.group_id === g.id && s.status === "received" && s.received_at && periodKey(s.received_at, "month") === thisMonthKey)
+        // What actually arrived, where the ledger row is in hand; the
+        // amount expected otherwise.
+        .reduce((sum, s) => sum + (receivedAmount.get(s.transaction_id ?? "") ?? Number(s.amount)), 0),
+      next: visibleIncome.find((s) => s.group_id === g.id && s.status !== "received") ?? null,
+    })),
     openBills: visibleBills.filter((b) => b.status !== "paid"),
     settledBills: visibleBills.filter((b) => b.status === "paid").slice(0, 12),
     recentExpense: confirmed.filter((t) => t.direction === "out" && t.source_table !== "bills").slice(0, 8),

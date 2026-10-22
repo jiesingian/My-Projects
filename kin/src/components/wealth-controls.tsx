@@ -13,6 +13,7 @@ import {
   setAllocationAction,
   addBillAction,
   addIncomeScheduleAction,
+  addIncomeGroupAction,
   setBillReminderAction,
 } from "@/lib/actions/wealth";
 import {
@@ -20,6 +21,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
+  INCOME_FREQUENCY_LABELS,
   BILL_REMIND_DAYS,
   DEFAULT_BILL_REMIND_DAYS,
   knownAppsForType,
@@ -564,6 +566,9 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
+  // A regular income -- set up once, each payment lined up after the last
+  // (income_groups) -- or a single payment. Grown-ups only, like the logs.
+  const [mode, setMode] = useState<"once" | "regular">("once");
 
 
   return (
@@ -586,8 +591,25 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
           <div style={{ marginTop: "0.75rem" }}>
             <SheetLink href="/wealth/remittances" icon="wallet" label="Remittances from abroad" />
             <SheetLink href="/wealth/utang" icon="users" label="Utang & paluwagan" />
+            <div role="group" aria-label="What kind of income" style={{ display: "flex", gap: "0.5rem", marginTop: "0.875rem" }}>
+              {(["once", "regular"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  className={mode === m ? "btn btn-primary" : "btn btn-secondary"}
+                  style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+                  onClick={() => setMode(m)}
+                >
+                  {m === "once" ? "One payment" : "Regular income"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+        {grownUp && mode === "regular" ? (
+          <IncomeGroupForm accounts={accounts} onCancel={() => setOpen(false)} />
+        ) : (
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
           <Labelled label="Source">
@@ -645,8 +667,79 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
             </button>
           </div>
         </form>
+        )}
       </FormSheet>
     </>
+  );
+}
+
+/** A regular income, set up once: what it is, its usual amount, how often,
+ * when the next one comes, and if wanted a monthly target. */
+function IncomeGroupForm({ accounts, onCancel }: { accounts: { id: string; name: string }[]; onCancel: () => void }) {
+  const sym = useCurrencySymbol();
+  const [state, formAction] = useActionState(addIncomeGroupAction, initialState);
+  return (
+    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+      <ErrorText message={state.error} />
+      <Labelled label="Name">
+        <input className="input" name="name" required maxLength={80} placeholder="Rice business, Jonathan's salary" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label="Source" style={{ flex: 1 }}>
+          <select className="input" name="category" defaultValue="Business" style={{ minHeight: "2.625rem" }}>
+            {INCOME_SOURCES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+        <Labelled label="How often" style={{ flex: 1 }}>
+          <select className="input" name="frequency" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
+            {Object.entries(INCOME_FREQUENCY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+      </div>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label={`Usual amount (${sym})`} style={{ flex: 1 }}>
+          <input className="input" type="number" step="0.01" min="0" name="usual_amount" required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+        <Labelled label="Next one expected" style={{ flex: 1 }}>
+          <DateInput className="input" name="first_date" required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+      </div>
+      <Labelled label={`Monthly target (${sym}, optional)`}>
+        <input className="input" type="number" step="0.01" min="0" name="monthly_target" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
+      {accounts.length > 0 && (
+        <Labelled label="Usually lands in">
+          <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
+            <option value="">Not decided yet</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+      )}
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
+        <input type="checkbox" name="is_joint" defaultChecked />
+        Household income, not just mine
+      </label>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+          Set up
+        </SubmitButton>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 

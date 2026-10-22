@@ -5318,6 +5318,67 @@ export type Database = {
           },
         ]
       }
+      income_groups: {
+        Row: {
+          account_id: string | null
+          category: string | null
+          created_at: string
+          family_id: string
+          frequency: string
+          id: string
+          monthly_target: number | null
+          name: string
+          recorded_by: string | null
+          usual_amount: number
+        }
+        Insert: {
+          account_id?: string | null
+          category?: string | null
+          created_at?: string
+          family_id: string
+          frequency?: string
+          id?: string
+          monthly_target?: number | null
+          name: string
+          recorded_by?: string | null
+          usual_amount: number
+        }
+        Update: {
+          account_id?: string | null
+          category?: string | null
+          created_at?: string
+          family_id?: string
+          frequency?: string
+          id?: string
+          monthly_target?: number | null
+          name?: string
+          recorded_by?: string | null
+          usual_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_groups_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_groups_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_groups_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_schedules: {
         Row: {
           account_id: string | null
@@ -5326,6 +5387,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           family_id: string
+          group_id: string | null
           id: string
           is_joint: boolean
           name: string
@@ -5344,6 +5406,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id: string
+          group_id?: string | null
           id?: string
           is_joint?: boolean
           name: string
@@ -5362,6 +5425,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id?: string
+          group_id?: string | null
           id?: string
           is_joint?: boolean
           name?: string
@@ -5393,6 +5457,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "income_groups"
             referencedColumns: ["id"]
           },
           {

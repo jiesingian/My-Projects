@@ -120,6 +120,9 @@ export const EXPENSE_CATEGORIES = [
 /** Where money enters, when it comes from outside anything Kin tracks. */
 export const INCOME_SOURCES = ["Salary", "Remittance", "Business", "Gift", "Investment", "Refund", "Other"] as const;
 
+/** How often a regular income (income_groups) comes. */
+export const INCOME_FREQUENCY_LABELS: Record<string, string> = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly" };
+
 export const TRANSFER_CATEGORY = "Transfer";
 export const GOAL_CATEGORY = "Goal";
 
