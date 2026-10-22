@@ -944,8 +944,11 @@ textarea.input {
   background: color-mix(in srgb, var(--color-text) 16%, transparent);
   /* A ring at 3:1 or more against the card, off and on, so the switch and
      its state can be seen (WCAG 1.4.11): the track alone was 1.4:1 off and
-     the green 2.2:1 on (final design check, 22 October). */
-  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-text) 50%, transparent);
+     the green 2.2:1 on (final design check, 22 October). Off, the ring is
+     the theme's muted colour, as a field's edge is (4.5:1 or more on every
+     theme's card); half the text colour was 2.4-2.9:1 in Nord, Catppuccin,
+     Solarized and Clay light (wrap-up check, 22 October). */
+  box-shadow: inset 0 0 0 1.5px var(--color-neutral-600);
   transition: background 0.22s ease, box-shadow 0.22s ease;
 }
 .kin-switch::after {
