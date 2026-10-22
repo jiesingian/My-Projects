@@ -1,5 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 import fs from "node:fs";
+import { restAsQa } from "./support/qa-household";
 
 const STATE = "e2e/.auth/state.json";
 
@@ -41,6 +42,24 @@ setup("sign in", async ({ page }) => {
     } catch (e) {
       if (attempt === 3) throw e;
       await page.waitForTimeout(15_000 * attempt);
+    }
+  }
+  // Back to the baseline every spec expects: Simple Kin off, text at 100%.
+  // A spec that turns them on and dies before its own afterAll (a cancelled
+  // run, a timeout) leaves the sample member that way, and Simple Kin's
+  // Today has no "At a glance" (#857) -- so every later run failed to sign
+  // in (22 October). Only the sample member's own row, as itself.
+  const qa = await restAsQa();
+  if (qa) {
+    try {
+      const me = (await (await qa.ctx.get(`${qa.url}/auth/v1/user`, { headers: qa.headers })).json()) as { id: string };
+      const res = await qa.ctx.patch(`${qa.url}/rest/v1/members?auth_user_id=eq.${me.id}`, {
+        headers: { ...qa.headers, "Content-Type": "application/json" },
+        data: { simple_mode: false, text_scale: 100 },
+      });
+      expect(res.ok(), `could not put the sample member back to the baseline: ${res.status()} ${await res.text()}`).toBeTruthy();
+    } finally {
+      await qa.ctx.dispose();
     }
   }
   await page.goto("/today");
