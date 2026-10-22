@@ -655,7 +655,9 @@ function BudgetEditor({ memberId, current, label }: { memberId: string; current:
 
 /* ------------------------------------------------- accounts by owner */
 
-export type AccountSlice = { id: string; name: string; balance: number; ownerKey: string; ownerLabel: string; ownerSlot: number };
+/** One slice: an account, a goal, an asset or a debt. `detail` says what
+ * kind of thing it is where a list mixes kinds (A&L: "Goal", "Vehicle"). */
+export type BreakdownSlice = { id: string; name: string; balance: number; ownerKey: string; ownerLabel: string; ownerSlot: number; detail?: string };
 
 /** One hue per owner, in a fixed order -- Joint first, then each member in
  * the household's order -- so a person keeps their colour whichever Who is
@@ -681,13 +683,14 @@ const accountShade = (slot: number, nth: number) => {
   return mix === 100 ? ownerHue(slot) : `color-mix(in oklab, ${ownerHue(slot)} ${mix}%, var(--color-surface))`;
 };
 
-/** How the combined total splits, account by account, grouped by whose
- * each is (Janine, 22 October). The donut sits beside the headline figure;
+/** How a total splits, item by item, grouped by whose each is (Janine,
+ * 22 October): accounts on the Accounts tab; on A&L, what is owned and what
+ * is owed. The donut sits beside the headline figure;
  * under it, each owner's share and then each of their accounts with its
  * amount and percent. A tap on a slice or a row puts that account -- name,
  * owner, amount -- in the middle. Accounts at zero or below have no slice
  * (a pie can't hold a negative); they are named under the list instead. */
-export function AccountsByOwnerPie({ head, slices, currency }: { head: React.ReactNode; slices: AccountSlice[]; currency: string }) {
+export function OwnerBreakdownPie({ head, slices, currency, noun = "accounts" }: { head: React.ReactNode; slices: BreakdownSlice[]; currency: string; noun?: string }) {
   const [sel, setSel] = useState<string | null>(null);
   const positive = slices.filter((s) => s.balance > 0);
   const left = slices.filter((s) => s.balance <= 0);
@@ -730,7 +733,7 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
         {showPie && (
           <div style={{ flex: "0 0 auto", width: size, margin: "0 auto" }}>
             <p className="sr-only">
-              The total by account: {owners.map((o) => `${o.label} ${formatCurrency(o.sum, currency)} (${pct(o.sum)}%): ${o.accounts.map((a) => `${a.name} ${formatCurrency(a.balance, currency)}`).join(", ")}`).join("; ")}.
+              The total by {noun}, grouped by owner: {owners.map((o) => `${o.label} ${formatCurrency(o.sum, currency)} (${pct(o.sum)}%): ${o.accounts.map((a) => `${a.name} ${formatCurrency(a.balance, currency)}`).join(", ")}`).join("; ")}.
             </p>
             <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
               <g transform={`translate(${size / 2},${size / 2})`}>
@@ -749,7 +752,7 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
                   }
                 </Pie>
                 <text textAnchor="middle" y={-14} fontSize={9.5} letterSpacing=".04em" fill="var(--color-neutral-600)">
-                  {picked ? picked.ownerLabel.toUpperCase() : `${positive.length} ACCOUNTS`}
+                  {picked ? picked.ownerLabel.toUpperCase() : `${positive.length} ${noun.toUpperCase()}`}
                 </text>
                 <text textAnchor="middle" y={4} fontSize={11} fontWeight={600} fill="var(--color-text)">
                   {picked ? (picked.name.length > 16 ? `${picked.name.slice(0, 15)}…` : picked.name) : "Tap a slice"}
@@ -798,7 +801,10 @@ export function AccountsByOwnerPie({ head, slices, currency }: { head: React.Rea
                         }}
                       >
                         <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", background: a.fill, flex: "none" }} />
-                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</span>
+                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {a.name}
+                          {a.detail && <span style={{ color: "var(--color-neutral-600)" }}> · {a.detail}</span>}
+                        </span>
                         <span style={tabular}>{formatCurrency(a.balance, currency)}</span>
                         <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(a.balance)}%</span>
                       </button>
