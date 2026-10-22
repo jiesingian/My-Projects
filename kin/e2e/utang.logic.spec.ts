@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { currentRound, greetingName, paluwaganReminder, paymentProblem, pot, roundDate, utangLeft, utangReminder } from "@/lib/utang";
+import { currentRound, greetingName, instalmentPlan, paluwaganReminder, paymentProblem, pot, roundDate, utangLeft, utangReminder } from "@/lib/utang";
 
 /** Utang and paluwagan, without a browser or a database: what is left on a
  * loan, the paluwagan's round dates and pot, and the reminders Kin writes
@@ -72,4 +72,23 @@ test("greetingName keeps the honorific with the name", () => {
   expect(greetingName("Kuya Ben")).toBe("Kuya Ben");
   expect(greetingName("Joy Santos")).toBe("Joy");
   expect(greetingName("Lola")).toBe("Lola");
+});
+
+test("instalmentPlan: equal shares, leftover centavos last, payments applied in order", () => {
+  const plan = instalmentPlan(1000, 3, "monthly", "2026-11-05", 0, "2026-10-22");
+  expect(plan.map((i) => [i.n, i.due, i.amount, i.status])).toEqual([
+    [1, "2026-11-05", 333.33, "upcoming"],
+    [2, "2026-12-05", 333.33, "upcoming"],
+    [3, "2027-01-05", 333.34, "upcoming"],
+  ]);
+  // Two months on, one and a bit paid: the first covered, the second
+  // overdue though part of it is in, the third not due yet.
+  const later = instalmentPlan(1000, 3, "monthly", "2026-11-05", 400, "2026-12-10");
+  expect(later.map((i) => i.status)).toEqual(["paid", "overdue", "upcoming"]);
+  // Part of one that is not due yet is part-paid, not overdue.
+  expect(instalmentPlan(1000, 3, "monthly", "2026-11-05", 400, "2026-11-20").map((i) => i.status)).toEqual(["paid", "part", "upcoming"]);
+  // Paying it all at once covers every instalment, dates or not.
+  expect(instalmentPlan(1000, 3, "monthly", "2026-11-05", 1000, "2026-10-22").every((i) => i.status === "paid")).toBe(true);
+  // Kinsenas: the 15th and the 30th.
+  expect(instalmentPlan(600, 4, "semi_monthly", "2026-10-15", 0, "2026-10-01").map((i) => i.due)).toEqual(["2026-10-15", "2026-10-30", "2026-11-15", "2026-11-30"]);
 });
