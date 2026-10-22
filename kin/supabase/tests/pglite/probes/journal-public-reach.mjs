@@ -53,6 +53,8 @@ export default async function ({ db, as, check }) {
   await check("A pending request (one way, not accepted) does not", async () => !(await sees(dan)) && !(await fn(dan)));
   await check("A removed connection does not", async () => !(await sees(dee)));
   await check("A declined one does not", async () => !(await sees(eve)));
+  const reach = async (who) => (await as(who, "select public_entry_reaches_me($1, $2) v", [P("b1"), F("b")]))[0].v === true;
+  await check("public_entry_reaches_me: yes for a grown-up connection, no for a child on the tree or a stranger", async () => (await reach(ann)) && !(await reach(bea)) && !(await reach(cat)));
   await check("on_family_tree_as_me answers only for the caller", async () => (await as(cat, "select on_family_tree_as_me($1) v", [F("b")]))[0].v === false);
 
   await db.exec(`update family_links set status = 'removed' where requester_family_id = '${F("a")}' and addressee_family_id = '${F("b")}'`);
