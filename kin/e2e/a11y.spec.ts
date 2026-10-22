@@ -3,7 +3,7 @@ import { PALETTES } from "@/lib/palettes";
 import { restAsQa, type Rest } from "./support/qa-household";
 import AxeBuilder from "@axe-core/playwright";
 
-/** axe-core over the six main pages, in light and in dark.
+/** axe-core over the main pages, in light and in dark.
  *
  * Read-only: it opens each page as the sample household and asks axe for
  * WCAG 2.1 A and AA problems -- a control with no name a screen reader can
@@ -16,7 +16,9 @@ import AxeBuilder from "@axe-core/playwright";
  *
  * axe only sees what is on screen, so sheets that are closed, and rows the
  * household doesn't have, aren't checked here. */
-const PAGES = ["/today", "/planner", "/chat", "/wealth", "/household", "/journal", "/settings"];
+// Health (Family → Health) since the wrap-up check of 22 October: it was
+// never in this list, and its "Not recorded · add" links failed 2.5.3.
+const PAGES = ["/today", "/planner", "/chat", "/wealth", "/family?seg=health", "/household", "/journal", "/settings"];
 
 for (const path of PAGES) {
   for (const scheme of ["light", "dark"] as const) {

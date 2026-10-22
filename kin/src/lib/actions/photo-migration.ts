@@ -21,7 +21,13 @@ async function migrateOneFile(
   storagePath: string,
 ): Promise<string> {
   const { data: blob, error } = await supabase.storage.from("avatars").download(storagePath);
-  if (error || !blob) throw new Error(`Couldn't read "${storagePath}" from storage: ${error?.message ?? "not found"}`);
+  if (error || !blob) {
+    // The path ends in the uploader's own file name ("Lola Rosa wake.jpg"),
+    // and this message is recorded in app_errors by the catch below
+    // (reportError), so it names no path; the log keeps which one.
+    console.error("Photo migration: couldn't read from storage", storagePath);
+    throw new Error(`Couldn't read a photo from storage: ${error?.message ?? "not found"}`);
+  }
 
   const fileName = storagePath.split("/").pop() ?? storagePath;
   const uploaded = await uploadFileToDrive(accessToken, folderId, fileName, blob.type || "image/jpeg", blob);

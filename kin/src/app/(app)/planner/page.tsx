@@ -427,8 +427,10 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
             >
               {/* The label and the day number stop growing at what a seventh of a
                   phone can hold, so "Sept" and "25" never break at a large
-                  text size. */}
-              <span style={{ fontSize: "min(0.6875rem, 3vw)", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
+                  text size. The label never shrinks under Kin's 10.5px floor
+                  (PAGE_PATTERNS.md): 3vw alone was 9.6px on a 320px phone,
+                  and "Sept" at 10.5px still takes half its seventh. */}
+              <span style={{ fontSize: "max(10.5px, min(0.6875rem, 3vw))", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
                 {first ? monthShort(d.day) : weekdayInitial(d.day)}
               </span>
               <span
