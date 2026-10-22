@@ -25,10 +25,21 @@ frontend-design), read but never installed or run.
 - **Done (#851):** Spacing, type, radius and shadow tokens are written
   down in PAGE_PATTERNS.md. The Today fold and Wealth chevrons line up.
   Nothing scrolls sideways at 320, 390 or 1280px.
-- **Done (theme PR):** The on/off switch has a ring at 3:1 or more, off
+- **Done (#852):** The on/off switch has a ring at 3:1 or more, off
   and on. Before, the track was 1.4:1 off and 2.2:1 on (WCAG 1.4.11).
   Before and after: `docs/design-check/switch-before.png`,
   `switch-after.png`.
+
+- **Done (#853):** Copy on the newest screens (guest link, invite,
+  account deletion, Send me a test, the next-bill offer). These already
+  read well. Five messages no longer tell users "Jonathan adds it once",
+  the push-test errors are plainer, and the way out of deleting an
+  account says "Keep my account".
+- **Checked, nothing to change:** WCAG 3.3.8 (sign-in fields autofill
+  and accept paste), 3.2.6 (Ask Kin is in one place everywhere), and
+  ISO 8601 (exports, CSV and the calendar feed already use ISO dates;
+  GEDCOM keeps its own required form). People still see dates as
+  22/10/2026.
 
 Proposals for Jonathan and Janine. These change the look, so they weren't
 built:
@@ -48,6 +59,16 @@ built:
   (green) are 3.3–3.6:1 on white: fine for a stripe or an icon, short of
   4.5:1 for small text. axe found no text using them on the main screens
   today. If one is ever used for text, use the darker step.
+- **Undo after a delete (ISO 9241-110, error tolerance).** Deletes ask
+  first in a confirm sheet, but nothing can be undone afterwards. The
+  proposal is "Deleted. Undo" for a few seconds on the toast for list
+  rows (plans, to-buy items, notes), with the row put back if tapped.
+  That needs a soft delete per table, so it wasn't done in this check.
+- **More lists answer the arrow keys.** For now only the Planner's rail
+  and the chat list do. Others can opt in with `data-kin-arrows="list"`.
+- **Not done in this check:** a full sweep of inline sizes onto the
+  tokens. PAGE_PATTERNS.md says to do that file by file, when a file
+  is touched for another reason.
 
 ## Feature audit, 21 October (Jonathan: "proceed all recommended tasks")
 
