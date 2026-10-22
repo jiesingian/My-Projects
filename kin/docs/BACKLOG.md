@@ -24,7 +24,8 @@ it in the same pull request that finishes or adds an item.
   The real alarm needs a native app: on iPhone, AlarmKit (iOS 26) or Critical
   Alerts (an Apple entitlement); on Android, a full-screen notification.
   That means the Apple Developer Program (US$99 a year) and the Play Console
-  (US$25 once) -- **a decision for Jonathan** (it spends money).
+  (US$25 once) -- **a decision for Jonathan** (it spends money). On the
+  final-stage list ("Final stage: everything that costs money"), 22 October.
 - **Meanwhile, on an iPhone:** Settings → Notifications → Kin: Allow,
   Sounds, Lock Screen and Banners (Persistent) on, and add Kin to any Focus
   that should let medicine through.
@@ -68,7 +69,8 @@ on dev (#701).
 
 **Left, and for whom:**
 - Jonathan: everything on the review page that waits on him or on money
-  (the AI key, payments, TURN, business registration, the ad stage).
+  (the AI key, payments, TURN, business registration, the ad stage, the
+  native iPhone and Android apps: "Final stage: everything that costs money").
 - Real phone: the "Needs a real phone" list, now with Undo read out
   (below).
 - Not checked in a browser: #847 as a child sees it. The sample
@@ -1493,8 +1495,9 @@ One pull request each, in this order.
 ## Final stage: everything that costs money, done together
 
 Jonathan, 29 September: every paid switch waits for the final stage and is
-done in one go. All the code is built; each is a key or an account. Steps in
-docs/SETUP_FOR_JONATHAN.md.
+done in one go. For the first five the code is built and each is a key or
+an account (steps in docs/SETUP_FOR_JONATHAN.md); the native apps are new
+work, last.
 
 - **Kin AI and flyer scanning: `ANTHROPIC_API_KEY`** (SETUP section 4).
   Until it is set, Ask Kin says it isn't configured and scanning is off.
@@ -1505,14 +1508,39 @@ docs/SETUP_FOR_JONATHAN.md.
 - **Business registration for the legal pages** (DTI business name, BIR),
   which the payment providers also ask for. The details go in
   `src/lib/legal.ts`; until then the pages say "Being registered".
+- **Calls on mobile data: a TURN relay** (SETUP section 2). Calls connect
+  on most Wi-Fi today; on Globe or Smart data the phones often can't reach
+  each other without one.
+- **The ad stage** (Meta Pixel and Conversions API on the public pages):
+  the consent banner is built; the rest is under "Ad stage, when Jonathan
+  decides" above, and needs the registered business name.
+- **A native iPhone app (Apple Developer Program, US$99 a year)**, added to
+  this list 22 October (Jonathan: "do it on the last part of the project").
+  A web app on an iPhone gets one ordinary banner: no full screen, no sound
+  on silent, and no "Time Sensitive Notifications" switch -- Apple gives
+  that only to App Store apps (see "Medicine reminders ring like an alarm"
+  above). Kin wrapped as a TestFlight/App Store app keeps every page and
+  adds what only a native app can:
+  - **Medicine doses as real alarms (AlarmKit, iOS 26):** full screen and
+    sound even on silent, like the Clock app.
+  - **Kin calls ring like Messenger (CallKit + VoIP push):** the
+    full-screen incoming call, on silent too.
+  - **Time Sensitive notifications** for medicine, SOS and calls: through
+    Focus, kept on the Lock Screen for an hour.
+  - **Critical Alerts** for medicine and SOS, if Apple grants the
+    entitlement (applied for separately; meant for health and safety apps).
+  - **Home-screen and Lock Screen widgets** for shared lists and Today
+    (approved 30 September; was "Native app stage").
+- **An Android app (Google Play Console, US$25 once)**, same idea: a
+  full-screen alarm notification for doses and a full-screen incoming call.
+  Lower priority while every saved device is an iPhone.
+- **Free stopgap until then, not built:** a Kin-made Apple Shortcut that
+  turns a person's dose times into iPhone Clock alarms (ring on silent);
+  re-run when a medicine changes.
 - **Done (20 October, 21 October):** Kin AI switched from Opus to Haiku 4.5,
   then to Haiku 5.5, the model named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
   setting for Jonathan when the key is added (SETUP section 4).
 
-## Native app stage
-
-- **Home-screen and lock-screen widgets for shared lists and Today** (needs a
-  native app; approved 30 September).
 
 ## Design finalization
 
