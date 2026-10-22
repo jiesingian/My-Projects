@@ -30,7 +30,7 @@ export function JournalEntryPhotos({ photos, entryTitle, galleryHref }: { photos
           </button>
         ))}
         {overflow > 0 && galleryHref && (
-          <Link href={galleryHref} className="kin-photo-thumb kin-photo-more" aria-label={`See all ${photos.length} photos from ${entryTitle}`}>
+          <Link href={galleryHref} className="kin-photo-thumb kin-photo-more" aria-label={`+${overflow}: see all ${photos.length} photos from ${entryTitle}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photos[MAX - 1].url} alt="" style={{ width: "100%", height: 74, objectFit: "cover", display: "block" }} />
             <span aria-hidden="true">+{overflow}</span>
