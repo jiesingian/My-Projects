@@ -17,7 +17,7 @@ import {
   removeUtangPaymentAction,
   setUtangOptionsAction,
 } from "@/lib/actions/utang";
-import { FREQUENCY_LABEL, VISIBILITY_CHOICES, type PaluwaganFrequency } from "@/lib/utang";
+import { FREQUENCY_LABEL, VISIBILITY_CHOICES, instalmentPlan, type PaluwaganFrequency } from "@/lib/utang";
 import { formatCurrency } from "@/lib/format";
 import type { UtangView } from "@/lib/queries/utang";
 import type { ActionState } from "@/lib/actions/auth";
@@ -52,6 +52,7 @@ function Opener({ open, onToggle, text }: { open: boolean; onToggle: () => void;
 export function AddUtangForm({ today }: { today: string }) {
   const [open, setOpen] = useState(false);
   const [direction, setDirection] = useState<"lent" | "borrowed">("lent");
+  const [inInstalments, setInInstalments] = useState(false);
   const router = useRouter();
   const uid = useId();
   const [state, formAction] = useActionState(async (prev: ActionState, fd: FormData) => {
@@ -90,8 +91,35 @@ export function AddUtangForm({ today }: { today: string }) {
               <DateInput id={`${uid}-start`} name="started_on" defaultValue={today} className="input" style={field} />
             </span>
           </div>
-          <label htmlFor={`${uid}-due`} style={label}>To be paid back by (optional)</label>
-          <DateInput id={`${uid}-due`} name="due_on" className="input" style={field} />
+          <label style={{ display: "flex", gap: "0.375rem", alignItems: "center", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
+            <input type="checkbox" name="in_instalments" value="on" checked={inInstalments} onChange={(e) => setInInstalments(e.target.checked)} />
+            <span>Paid back in instalments</span>
+          </label>
+          {inInstalments ? (
+            <>
+              <div style={two}>
+                <span>
+                  <label htmlFor={`${uid}-count`} style={label}>How many</label>
+                  <input id={`${uid}-count`} className="input" type="number" name="instalments" required min={2} max={120} step={1} defaultValue={6} style={field} />
+                </span>
+                <span>
+                  <label htmlFor={`${uid}-freq`} style={label}>How often</label>
+                  <select id={`${uid}-freq`} name="instalment_frequency" className="input" defaultValue="monthly" style={field}>
+                    {(Object.keys(FREQUENCY_LABEL) as PaluwaganFrequency[]).map((f) => (
+                      <option key={f} value={f}>{FREQUENCY_LABEL[f]}</option>
+                    ))}
+                  </select>
+                </span>
+              </div>
+              <label htmlFor={`${uid}-first`} style={label}>First one due</label>
+              <DateInput id={`${uid}-first`} name="first_due_on" required className="input" style={field} />
+            </>
+          ) : (
+            <>
+              <label htmlFor={`${uid}-due`} style={label}>To be paid back by (optional)</label>
+              <DateInput id={`${uid}-due`} name="due_on" className="input" style={field} />
+            </>
+          )}
           <label htmlFor={`${uid}-note`} style={label}>Note (optional)</label>
           <input id={`${uid}-note`} className="input" name="note" maxLength={500} placeholder="For the hospital bill" style={field} />
           <Visibility id={`${uid}-vis`} />
@@ -134,7 +162,12 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
       router.refresh();
     });
   };
-  const overdue = !u.settled && u.dueOn !== null && u.dueOn < today;
+  const plan = u.instalments && u.instalmentFrequency && u.firstDueOn ? instalmentPlan(u.amount, u.instalments, u.instalmentFrequency, u.firstDueOn, u.paid, today) : null;
+  const [showPlan, setShowPlan] = useState(false);
+  // With instalments, past due as soon as one of them is; otherwise by the
+  // "by" date.
+  const overdue = !u.settled && (plan ? plan.some((i) => i.status === "overdue") : u.dueOn !== null && u.dueOn < today);
+  const next = plan?.find((i) => i.status !== "paid") ?? null;
   const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 
   return (
@@ -146,9 +179,18 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
           </span>
           <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
             {formatCurrency(u.amount, currency)} on {day(u.startedOn)}
-            {u.dueOn ? ` · by ${day(u.dueOn)}` : ""}
+            {plan && u.instalmentFrequency
+              ? ` · ${u.instalments} × ${FREQUENCY_LABEL[u.instalmentFrequency].toLowerCase()}`
+              : u.dueOn
+                ? ` · by ${day(u.dueOn)}`
+                : ""}
             {u.note ? ` · ${u.note}` : ""}
           </span>
+          {plan && !u.settled && next && (
+            <span style={{ display: "block", fontSize: "0.78125rem", marginTop: "0.125rem" }}>
+              {plan.filter((i) => i.status === "paid").length} of {plan.length} paid · next {formatCurrency(next.amount, currency)} on {day(next.due)}
+            </span>
+          )}
         </span>
         <span style={{ textAlign: "right", flex: "none" }}>
           <span style={{ display: "block", fontFamily: "var(--font-numeric)", fontWeight: 600, color: u.settled ? "var(--color-accent-700)" : undefined }}>
@@ -164,6 +206,11 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
         {!u.settled && (
           <button type="button" className="btn btn-secondary" style={{ ...small, minHeight: "1.875rem" }} onClick={() => setPaying((p) => !p)} aria-expanded={paying}>
             {paying ? "Cancel" : "Record a payment"}
+          </button>
+        )}
+        {plan && (
+          <button type="button" className="btn btn-ghost" style={{ ...small, minHeight: "1.875rem" }} onClick={() => setShowPlan((s) => !s)} aria-expanded={showPlan}>
+            Instalments
           </button>
         )}
         {u.payments.length > 0 && (
@@ -216,6 +263,23 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
             <SubmitButton style={small}>Save payment</SubmitButton>
           </div>
         </form>
+      )}
+
+      {showPlan && plan && (
+        <ol aria-label="Instalments" style={{ listStyle: "none", padding: 0, margin: "0.5rem 0 0" }}>
+          {plan.map((i) => (
+            <li key={i.n} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", padding: "0.25rem 0" }}>
+              <span style={{ width: "1.5rem", color: "var(--color-neutral-600)" }}>{i.n}.</span>
+              <span>{day(i.due)}</span>
+              {i.status === "overdue" && <Tag variant="accent">OVERDUE</Tag>}
+              {i.status === "part" && <Tag variant="outline">PART PAID</Tag>}
+              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", color: i.status === "paid" ? "var(--color-accent-700)" : undefined }}>
+                {i.status === "paid" ? "✓ " : ""}
+                {formatCurrency(i.amount, currency)}
+              </span>
+            </li>
+          ))}
+        </ol>
       )}
 
       {showHistory && (

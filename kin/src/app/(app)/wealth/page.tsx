@@ -63,6 +63,8 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { OwnerBreakdownPie, CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson, type BreakdownSlice } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
+import { getUtang } from "@/lib/queries/utang";
+import { instalmentPlan } from "@/lib/utang";
 import { isGone } from "@/lib/member-status";
 import { canMarkPaid, cycleStart, fundPlan, STATUS_TEXT } from "@/lib/sinking-fund";
 
@@ -424,6 +426,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     // "Add the next one?" for paid repeating bills: a grown-up's, on Plus.
     grownUp && plus ? getNextBillOffers(familyId) : Promise.resolve([]),
   ]);
+  // Money lent in instalments, each one expected back on its date
+  // (20261022180000): the household's, so under Who = everyone; grown-ups'.
+  const comingBack = grownUp && scope === "all"
+    ? (await getUtang(familyId, memberId))
+        .filter((u) => u.direction === "lent" && !u.settled && u.instalments && u.instalmentFrequency && u.firstDueOn)
+        .map((u) => {
+          const plan = instalmentPlan(u.amount, u.instalments!, u.instalmentFrequency!, u.firstDueOn!, u.paid, today);
+          const next = plan.find((i) => i.status !== "paid")!;
+          return { id: u.id, personName: u.personName, next, of: plan.length, overdue: plan.some((i) => i.status === "overdue") };
+        })
+        .sort((a, b) => a.next.due.localeCompare(b.next.due))
+    : [];
   // The band behind the cash-flow bars: each month's budget, household or
   // personal to match the Who picker. Monthly only -- a budget is a month's.
   const [budgetHistory, byPerson] = await Promise.all([
@@ -537,6 +551,29 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
               </div>
             );
           })}
+        </>
+      )}
+      {comingBack.length > 0 && (
+        <>
+          <SectionLabel>UTANG COMING BACK</SectionLabel>
+          {comingBack.map((u) => (
+            <Link
+              key={u.id}
+              href="/wealth/utang"
+              style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: "0.875rem", display: "block" }}>{u.personName}</span>
+                <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+                  Instalment {u.next.n} of {u.of} · due {fmtDate(u.next.due)}
+                </span>
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {u.overdue && <Tag variant="accent">OVERDUE</Tag>}
+                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(u.next.amount, currency)}</span>
+              </span>
+            </Link>
+          ))}
         </>
       )}
       {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (

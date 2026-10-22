@@ -85,6 +85,35 @@ export function currentRound(startsOn: string, frequency: PaluwaganFrequency, ro
   return n;
 }
 
+/** One instalment of an utang agreed as so many payments
+ * (20261022180000). */
+export type Instalment = {
+  n: number;
+  due: string;
+  amount: number;
+  /** paid: covered in full; part: some of it in; overdue: its date has
+   * passed and it is not covered; upcoming: not due yet. */
+  status: "paid" | "part" | "overdue" | "upcoming";
+};
+
+/** The instalments of an utang: dates on the paluwagan's rhythms
+ * (roundDate), equal amounts with any leftover centavos on the last one,
+ * and what has been paid so far applied to them in order -- so paying two
+ * at once covers two, and a short payment leaves one part-paid. */
+export function instalmentPlan(amount: number, count: number, frequency: PaluwaganFrequency, firstDue: string, paid: number, todayISO: string): Instalment[] {
+  const each = Math.floor((amount / count) * 100) / 100;
+  let dueSoFar = 0;
+  return Array.from({ length: count }, (_, i) => {
+    const n = i + 1;
+    const share = n === count ? centavos(amount - each * (count - 1)) : each;
+    const before = dueSoFar;
+    dueSoFar = centavos(dueSoFar + share);
+    const due = roundDate(firstDue, frequency, n);
+    const status: Instalment["status"] = paid >= dueSoFar ? "paid" : due < todayISO ? "overdue" : paid > before ? "part" : "upcoming";
+    return { n, due, amount: share, status };
+  });
+}
+
 /** The pot one member takes in their round. */
 export function pot(contribution: number, members: number): number {
   return centavos(contribution * members);

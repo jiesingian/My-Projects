@@ -7,7 +7,7 @@ import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
-import { paymentProblem, utangLeft } from "@/lib/utang";
+import { FREQUENCY_LABEL, paymentProblem, roundDate, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import type { ActionState } from "@/lib/actions/auth";
 
 /** Utang and paluwagan are grown-ups' records, Kin Plus (20261019110000).
@@ -39,10 +39,25 @@ export async function addUtangAction(_prev: ActionState, formData: FormData): Pr
   const personName = clamp(String(formData.get("person_name") ?? ""), 120);
   const amount = amountOf(formData, "amount");
   const startedOn = dateOf(formData, "started_on") ?? familyDay(new Date(), me.families.time_zone || undefined);
-  const dueOn = dateOf(formData, "due_on");
+  let dueOn = dateOf(formData, "due_on");
   if (direction !== "lent" && direction !== "borrowed") return { error: "Choose lent or borrowed." };
   if (!personName) return { error: "Who is it with?" };
   if (!(amount > 0)) return { error: "Enter how much." };
+
+  // Paid back in instalments (20261022180000): how many, how often, from
+  // when. The last one's date is the utang's "by" date.
+  let plan: { instalments: number; instalment_frequency: PaluwaganFrequency; first_due_on: string } | null = null;
+  if (formData.get("in_instalments") === "on") {
+    const count = Number(formData.get("instalments") ?? 0);
+    const frequency = String(formData.get("instalment_frequency") ?? "");
+    const firstDue = dateOf(formData, "first_due_on");
+    if (!Number.isInteger(count) || count < 2 || count > 120) return { error: "Instalments: between 2 and 120." };
+    if (!(frequency in FREQUENCY_LABEL)) return { error: "Choose how often the instalments come." };
+    if (!firstDue) return { error: "When is the first instalment due?" };
+    if (firstDue < startedOn) return { error: "The first instalment is before the day it started." };
+    plan = { instalments: count, instalment_frequency: frequency as PaluwaganFrequency, first_due_on: firstDue };
+    dueOn = roundDate(firstDue, plan.instalment_frequency, count);
+  }
   if (dueOn && dueOn < startedOn) return { error: "The due date is before the day it started." };
 
   const supabase = await createClient();
@@ -53,6 +68,7 @@ export async function addUtangAction(_prev: ActionState, formData: FormData): Pr
     amount,
     started_on: startedOn,
     due_on: dueOn,
+    ...plan,
     note: clamp(String(formData.get("note") ?? ""), 500) || null,
     is_private: isPrivate(formData),
     // A reminder is only ever for money someone owes us.

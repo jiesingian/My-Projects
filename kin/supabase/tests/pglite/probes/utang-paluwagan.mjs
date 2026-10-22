@@ -87,6 +87,15 @@ export default async function ({ as, check, refused }) {
     (await refused(() => utang(dan, P("d1")))) === true &&
     (await refused(() => as(dan, "insert into paluwagan_members (group_id, family_id, name, turn) values ($1, $2, 'x', 9)", [g, D]))) === true &&
     (await refused(() => as(dan, "insert into utang_payments (utang_id, family_id, amount, recorded_by) values ($1, $2, 1, $3)", [shared, D, P("d1")]))) === true);
+  await check("An utang can be agreed as instalments, all three set or none", async () => {
+    const plan = (n, freq, first) =>
+      as(ann, "insert into utang_entries (family_id, direction, person_name, amount, started_on, instalments, instalment_frequency, first_due_on, recorded_by) values ($1, 'lent', 'Tito Jun', 30000, '2026-10-01', $2, $3, $4, $5) returning id", [A, n, freq, first, annM]);
+    return (await plan(6, "monthly", "2026-11-01")).length === 1 &&
+      (await refused(() => plan(6, null, "2026-11-01"))) === true &&
+      (await refused(() => plan(1, "monthly", "2026-11-01"))) === true &&
+      (await refused(() => plan(6, "daily", "2026-11-01"))) === true &&
+      (await refused(() => plan(6, "monthly", "2026-09-01"))) === true;
+  });
   await check("Deleting the utang takes its payments with it", async () => {
     await as(ann, "delete from utang_entries where id = $1", [shared]);
     return (await as(ann, "select 1 from utang_payments where utang_id = $1", [shared])).length === 0;

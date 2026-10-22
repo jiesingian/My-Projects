@@ -8,6 +8,11 @@ export type UtangView = {
   amount: number;
   startedOn: string;
   dueOn: string | null;
+  /** Agreed as instalments (20261022180000): how many, how often, the first
+   * one's date. All null otherwise. */
+  instalments: number | null;
+  instalmentFrequency: PaluwaganFrequency | null;
+  firstDueOn: string | null;
   note: string | null;
   isPrivate: boolean;
   remind: boolean;
@@ -40,6 +45,9 @@ export async function getUtang(familyId: string, meId: string): Promise<UtangVie
       amount,
       startedOn: u.started_on,
       dueOn: u.due_on,
+      instalments: u.instalments,
+      instalmentFrequency: u.instalment_frequency as PaluwaganFrequency | null,
+      firstDueOn: u.first_due_on,
       note: u.note,
       isPrivate: u.is_private,
       remind: u.remind,

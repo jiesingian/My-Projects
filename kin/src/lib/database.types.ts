@@ -825,8 +825,11 @@ export type Database = {
           created_at: string
           direction: string
           due_on: string | null
+          first_due_on: string | null
           family_id: string
           id: string
+          instalment_frequency: string | null
+          instalments: number | null
           is_private: boolean
           note: string | null
           person_name: string
@@ -839,8 +842,11 @@ export type Database = {
           created_at?: string
           direction: string
           due_on?: string | null
+          first_due_on?: string | null
           family_id: string
           id?: string
+          instalment_frequency?: string | null
+          instalments?: number | null
           is_private?: boolean
           note?: string | null
           person_name: string
@@ -853,8 +859,11 @@ export type Database = {
           created_at?: string
           direction?: string
           due_on?: string | null
+          first_due_on?: string | null
           family_id?: string
           id?: string
+          instalment_frequency?: string | null
+          instalments?: number | null
           is_private?: boolean
           note?: string | null
           person_name?: string
