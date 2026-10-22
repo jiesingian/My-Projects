@@ -8457,7 +8457,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   color: var(--color-text);
   -webkit-tap-highlight-color: transparent;
 }
-.kin-goals-head:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; }
+.kin-goals-head:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .kin-goals-head-text { grid-area: text; font-size: 0.875rem; line-height: 1.25; }
 .kin-goals-title { font: 600 0.96875rem/1.25 var(--font-heading); }
 .kin-goals-count { color: var(--color-neutral-600); }
@@ -8485,7 +8485,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.kin-today-head:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; border-radius: 8px; }
+.kin-today-head:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
 
 .kin-today-count { font-size: 0.8125rem; color: var(--color-neutral-600); }
 .kin-today-count[data-urgent] { color: var(--cal-occasion); font-weight: 600; }
@@ -8514,7 +8514,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.kin-goal-main:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; border-radius: 8px; }
+.kin-goal-main:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
 .kin-goal-icon {
   flex: none;
   display: inline-flex;
@@ -8523,7 +8523,9 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   width: 1.75rem;
   height: 1.75rem;
   border-radius: 999px;
-  color: var(--color-accent-solid);
+  /* The theme's link colour: the fixed blue was 2.0-3.4:1 on the dark
+     themes' cards (wrap-up check, 22 October). The tint stays. */
+  color: var(--color-accent-700);
   background: color-mix(in srgb, var(--color-accent-solid) 12%, transparent);
 }
 .kin-goal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3125rem; }
@@ -8548,7 +8550,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   font-weight: 600;
   color: var(--color-neutral-600);
 }
-.kin-goals-done-head:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; border-radius: 8px; }
+.kin-goals-done-head:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
 .kin-goals-all {
   display: inline-block;
   margin-top: 0.5rem;
@@ -8593,7 +8595,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   justify-content: center;
   border-radius: 999px;
 }
-.kin-kid-mute:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; }
+.kin-kid-mute:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .kin-kid-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.625rem; }
 .kin-kid-tile {
   all: unset;
@@ -8613,7 +8615,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
 }
 .kin-kid-tile:active { transform: scale(0.96); }
-.kin-kid-tile:focus-visible { outline: 3px solid var(--color-accent-solid); outline-offset: 2px; }
+.kin-kid-tile:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
 .kin-kid-tile:disabled { opacity: 0.7; }
 .kin-kid-emoji { font-size: 3.25rem; line-height: 1.05; }
 .kin-kid-title { font-size: 0.875rem; font-weight: 600; line-height: 1.25; color: var(--color-text); }
@@ -8622,9 +8624,12 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 999px;
-  border: 2px solid var(--color-accent-solid);
+  /* Done or not: the pips carry the count, so they read at 3:1 or more in
+     every theme in the theme's link colour (the fixed blue was 2.0:1 on
+     Nord dark; wrap-up check, 22 October). */
+  border: 2px solid var(--color-accent-700);
 }
-.kin-kid-pip[data-on="true"] { background: var(--color-accent-solid); }
+.kin-kid-pip[data-on="true"] { background: var(--color-accent-700); }
 .kin-kid-more { font-size: 0.78125rem; color: var(--color-neutral-600); text-align: center; margin-top: 0.5rem; }
 .kin-kid-stickers {
   display: flex;
