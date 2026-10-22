@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { sendPush } from "@/lib/push";
 import { getWeather, type Weather } from "@/lib/weather";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
@@ -234,7 +234,7 @@ export async function askAreYouOkayAction(memberId: string): Promise<ActionState
   if (waiting) return { error: null, id: waiting.id };
 
   const { data, error } = await supabase.from("member_checkins").insert({ family_id: me.family_id, asked_by: me.id, member_id: memberId }).select("id").single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   after(() => sendPush(checkInAskPush(me.full_name, memberId, data.id)));
   revalidatePath("/today");
@@ -246,7 +246,7 @@ export async function answerCheckInAction(id: string, answer: "ok" | "call_me"):
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data: asker, error } = await supabase.rpc("answer_checkin", { p_id: id, p_answer: answer });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!asker) {
     revalidatePath("/today");
     return { error: null };

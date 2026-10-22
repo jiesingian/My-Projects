@@ -11,6 +11,7 @@ import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 import { pairOf } from "@/lib/queries/chat-rooms";
 import { KIN_AI_OFF, kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { MAX_SUMMARY_MESSAGES, cleanSummary, summaryPrompt, transcript, type SummaryLine } from "@/lib/chat-summary";
+import { reportError } from "@/lib/report-error";
 
 const THREAD = /^(household|family|dm:[0-9a-f-]{36}|group:[0-9a-f-]{36})$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
@@ -80,10 +81,10 @@ export async function summariseThreadAction(input: { thread: string; since: stri
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return { error: "Too many requests just now. Give it a moment.", summary: null, count: unread.length };
     if (error instanceof Anthropic.APIError) {
-      console.error(`Chat summary API error ${error.status}`, error);
+      reportError("Chat summary API error", error, error.status);
       return { error: "Kin AI couldn't be reached. Try again.", summary: null, count: unread.length };
     }
-    console.error("Chat summary failed", error);
+    reportError("Chat summary failed", error);
     return { error: "Something went wrong.", summary: null, count: unread.length };
   }
 }

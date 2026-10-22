@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { UUID } from "@/lib/ids";
 
@@ -25,13 +25,13 @@ export async function setEntryReactionAction(entryId: string, emoji: string | nu
   const supabase = await createClient();
   if (emoji === null) {
     const { error } = await supabase.from("journal_reactions").delete().eq("entry_id", entryId).eq("member_id", me.id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     if (!ALLOWED.has(emoji)) return { error: "That reaction isn't one Kin offers." };
     const { error } = await supabase
       .from("journal_reactions")
       .upsert({ entry_id: entryId, family_id: me.family_id, member_id: me.id, emoji }, { onConflict: "entry_id,member_id" });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   revalidatePath("/journal");
   return { error: null };
@@ -44,7 +44,7 @@ export async function addEntryCommentAction(entryId: string, body: string): Prom
   if (!text) return { error: "Write something first." };
   const supabase = await createClient();
   const { error } = await supabase.from("journal_comments").insert({ entry_id: entryId, family_id: me.family_id, member_id: me.id, body: text });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/journal");
   return { error: null };
 }
@@ -54,7 +54,7 @@ export async function deleteEntryCommentAction(commentId: string): Promise<Actio
   if (!UUID.test(commentId)) return { error: "That comment is no longer there." };
   const supabase = await createClient();
   const { error, count } = await supabase.from("journal_comments").delete({ count: "exact" }).eq("id", commentId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "Only whoever wrote it, or the household whose memory it is, can remove it." };
   revalidatePath("/journal");
   return { error: null };

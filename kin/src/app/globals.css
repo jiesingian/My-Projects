@@ -3503,8 +3503,9 @@ div.kin-tp-ghost {
 /* Quick add: four round buttons straight into the four most-used forms. */
 .kin-quick {
   display: grid;
-  /* Five across on a phone (the private Note joined the four, 19 October),
-     wrapping rather than squeezing a label on the narrowest screens. */
+  /* Four across on a phone, spread to the width (To buy left on 22 October:
+     the At a glance tile and the add line already reach the list), wrapping
+     rather than squeezing a label on the narrowest screens. */
   grid-template-columns: repeat(auto-fit, minmax(3.625rem, 1fr));
   gap: 0.375rem;
   margin: -0.5rem 0 1.625rem;
@@ -4732,6 +4733,8 @@ button.kin-initial:focus-visible {
    the 44px a finger needs. Width is left to the label, so nothing gets wider
    than a 320px phone. */
 .kin-simple .btn { min-height: 2.75rem; }
+/* A bill's Settle, reminder and Remove set 2rem inline; inline beats the rule above. */
+.kin-simple .kin-bill-actions :is(.btn, select) { min-height: 2.75rem !important; }
 .kin-simple .btn-icon { width: 2.75rem; height: 2.75rem; }
 .kin-simple .chip { min-height: 2.5rem; }
 .kin-simple .kin-brief-row { min-height: 3.5rem; }

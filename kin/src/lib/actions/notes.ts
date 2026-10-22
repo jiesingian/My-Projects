@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import type { ActionState } from "@/lib/actions/auth";
 import { cleanNote, NOTE_MAX } from "@/lib/personal-notes";
 
@@ -19,7 +19,7 @@ export async function addNoteAction(body: string): Promise<ActionState & { id?: 
   if (!text) return { error: typeof body === "string" && body.trim() ? TOO_LONG : "Write something first." };
   const supabase = await createClient();
   const { data, error } = await supabase.from("personal_notes").insert({ body: text }).select("id").single();
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't save." };
+  if (error || !data) return { error: error ? databaseError(error) : "That didn't save." };
   revalidatePath("/notes");
   return { error: null, id: data.id };
 }
@@ -34,7 +34,7 @@ export async function updateNoteAction(id: string, body: string): Promise<Action
     .update({ body: text, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That note isn't there any more." };
   revalidatePath("/notes");
   return { error: null };
@@ -47,7 +47,7 @@ export async function deleteNoteAction(id: string): Promise<ActionState> {
   // device) says so rather than reporting success.
   const { data, error } = await supabase.from("personal_notes").delete().eq("id", id).select("id");
   revalidatePath("/notes");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That note was already removed." };
   return { error: null };
 }

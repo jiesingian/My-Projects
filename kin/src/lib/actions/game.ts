@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { householdZone } from "@/lib/household-zone";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
 import { windowStart } from "@/lib/goals";
@@ -58,7 +58,7 @@ export async function gameTapAction(goalId: string, steps?: number): Promise<{ e
   // them now reach -- and the walk's steps, if given, added to the caller's.
   const supabase = await createClient();
   const { error } = await supabase.rpc("game_log", { p_goal: goal.id, p_steps: steps && steps > 0 ? Math.round(steps) : undefined });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null };
 }
@@ -79,7 +79,7 @@ export async function gameUntapAction(goalId: string): Promise<{ error: string |
     .maybeSingle();
   if (!last) return { error: "Nothing logged today to take back." };
   const { error } = await supabase.from("planner_goal_entries").delete().eq("id", last.id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (goal.owner_member_id && (await periodTotal(supabase, goal.id, start, today)) < Number(goal.target)) {
     await supabase.from("planner_goal_completions").delete().eq("goal_id", goal.id).eq("period_start", start).neq("status", "refused");
   }
@@ -135,7 +135,7 @@ export async function createGameGoalAction(_prev: GameGoalFormState, formData: F
     : who.map((id) => ({ ...base, owner_member_id: id, xp, points, helps_goal_id: helps(id) }));
   if (rows.some((r) => !r.helps_goal_id)) return { error: NEEDS_A_GOAL };
   const { error } = await supabase.from("planner_goals").insert(rows);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null, saved: rows.length };
 }
@@ -145,7 +145,7 @@ export async function setGameGoalActiveAction(goalId: string, active: boolean): 
   if (!isGrownUp(me.role)) return { error: "A grown-up pauses goals." };
   const supabase = await createClient();
   const { error } = await supabase.from("planner_goals").update({ active }).eq("id", goalId).eq("family_id", me.family_id).not("category", "is", null);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null };
 }
@@ -184,7 +184,7 @@ export async function gameStepsAction(goalId: string, value: number, mode: "set"
   const { error } = existing
     ? await supabase.from("health_vitals").update({ value_text: String(next) }).eq("id", existing.id).eq("family_id", me.family_id)
     : await supabase.from("health_vitals").insert({ family_id: me.family_id, member_id: owner, vital_type: "steps", reading_date: today, value_text: String(next), unit: "steps", source: "manual", visibility: "family", created_by: me.id });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   // The day as the game counts it: the larger of typed and synced.
   const { data: days } = await supabase.rpc("game_steps_days", { p_from: today, p_to: today });
@@ -195,7 +195,7 @@ export async function gameStepsAction(goalId: string, value: number, mode: "set"
   for (const part of ["half", "rest"] as const) {
     if (reached.has(part) && !have.has(part)) {
       const { error: claimError } = await supabase.from("planner_goal_completions").insert({ family_id: me.family_id, goal_id: goal.id, member_id: owner, period_start: today, part });
-      if (claimError) return { error: humanDatabaseError(claimError.message) };
+      if (claimError) return { error: databaseError(claimError) };
     }
     if (!reached.has(part) && have.has(part)) {
       await supabase.from("planner_goal_completions").delete().eq("goal_id", goal.id).eq("period_start", today).eq("part", part).neq("status", "refused");
@@ -237,7 +237,7 @@ export async function createStepsGoalAction(_prev: GameGoalFormState, formData: 
   }
   if (rows.some((r) => !r.helps_goal_id)) return { error: NEEDS_A_GOAL };
   const { error } = await supabase.from("planner_goals").insert(rows);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null, saved: rows.length };
 }
@@ -273,13 +273,13 @@ export async function updateGameGoalAction(goalId: string, formData: FormData): 
 
   if (target === Number(goal.target)) {
     const { error } = await supabase.from("planner_goals").update(changes).eq("id", goal.id).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     const { id: _old, created_at: _at, ...rest } = goal;
     void _old;
     void _at;
     const { data: made, error } = await supabase.from("planner_goals").insert({ ...rest, ...changes, target, created_by: me.id }).select("id").single();
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     const { data: links } = await supabase.from("planner_goal_links").select("goal_id, linked_goal_id").or(`goal_id.eq.${goal.id},linked_goal_id.eq.${goal.id}`);
     for (const l of links ?? []) {
       await supabase.from("planner_goal_links").insert({
@@ -290,7 +290,7 @@ export async function updateGameGoalAction(goalId: string, formData: FormData): 
       });
     }
     const { error: removeError } = await supabase.from("planner_goals").update({ active: false, removed_at: new Date().toISOString() }).eq("id", goal.id).eq("family_id", me.family_id);
-    if (removeError) return { error: humanDatabaseError(removeError.message) };
+    if (removeError) return { error: databaseError(removeError) };
   }
   done();
   return { error: null };
@@ -303,7 +303,7 @@ export async function removeGameGoalAction(goalId: string): Promise<{ error: str
   if (!isGrownUp(me.role)) return { error: "Targets are a grown-up's to remove." };
   const supabase = await createClient();
   const { error } = await supabase.from("planner_goals").update({ active: false, removed_at: new Date().toISOString() }).eq("id", goalId).eq("family_id", me.family_id).not("category", "is", null);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null };
 }
@@ -343,14 +343,14 @@ export async function startFreshFromGoalsAction(withRewards: boolean): Promise<{
     .is("helps_goal_id", null)
     .is("removed_at", null)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   let rewards = 0;
   if (withRewards) {
     const { data: shelf } = await supabase.from("rewards").select("id, title").eq("family_id", me.family_id).eq("active", true);
     const ids = (shelf ?? []).filter((r) => STARTER_REWARDS.includes(r.title.toLowerCase())).map((r) => r.id);
     if (ids.length > 0) {
       const { data: retired, error: rewardError } = await supabase.from("rewards").update({ active: false }).eq("family_id", me.family_id).in("id", ids).select("id");
-      if (rewardError) return { error: humanDatabaseError(rewardError.message) };
+      if (rewardError) return { error: databaseError(rewardError) };
       rewards = retired?.length ?? 0;
     }
   }
@@ -365,7 +365,7 @@ export async function markFamilyTreatAction(week: string): Promise<{ error: stri
   if (!isGrownUp(me.role)) return { error: "A grown-up marks the family treat." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("game_use_family_treat", { p_week: week });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   done();
   return { error: null };
 }

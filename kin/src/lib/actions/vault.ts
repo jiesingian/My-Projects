@@ -6,7 +6,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { getLockState } from "@/lib/security/gate";
 import { isGrownUp } from "@/lib/roles";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 
 // Who may write, and who may read what, is row-level security's call (see
 // 20260924100000_family_vault.sql) -- the browser holds the anon key and
@@ -72,7 +72,7 @@ export async function addVaultItemAction(fields: VaultFields): Promise<ActionSta
   const { error } = await supabase
     .from("family_vault_items")
     .insert({ ...c.row, family_id: g.familyId, created_by: g.memberId });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }
@@ -88,7 +88,7 @@ export async function updateVaultItemAction(id: string, fields: VaultFields): Pr
     .update({ ...c.row, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That item is gone — somebody may have removed it." };
   revalidatePath("/family");
   return { error: null };
@@ -99,7 +99,7 @@ export async function removeVaultItemAction(id: string): Promise<ActionState> {
   if ("error" in g) return g;
   const supabase = await createClient();
   const { error } = await supabase.from("family_vault_items").delete().eq("id", id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/family");
   return { error: null };
 }

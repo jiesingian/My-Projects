@@ -19,6 +19,7 @@ import type { Database } from "@/lib/database.types";
 import { familyDay, FAMILY_TZ } from "@/lib/time";
 import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
 import { activityRRule } from "@/lib/activity-repeat";
+import { reportError, refusalMessage } from "@/lib/report-error";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "bills" | "meal_plans" | "goals" | "routines" | "income_schedules";
@@ -34,7 +35,7 @@ export async function disconnectCalendarAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("calendar_links").update({ connected: false }).eq("member_id", me.id);
-  if (error) return { error: `Google Calendar could not be disconnected. ${error.message}` };
+  if (error) return { error: `Google Calendar could not be disconnected. ${refusalMessage(error)}` };
 
   // The link is off, so nothing will sync either way; a token left behind is
   // a credential we no longer need rather than a live connection. Worth
@@ -43,7 +44,7 @@ export async function disconnectCalendarAction(): Promise<ActionState> {
   if (admin) {
     const { error: tokenError } = await admin.from("calendar_tokens").delete().eq("member_id", me.id);
     if (tokenError) {
-      return { error: `Disconnected, but the stored Google token could not be removed. ${tokenError.message}` };
+      return { error: `Disconnected, but the stored Google token could not be removed. ${refusalMessage(tokenError)}` };
     }
   }
 
@@ -69,7 +70,7 @@ async function familyZone(supabase: Db, familyId: string): Promise<string> {
 async function resolveTargetMemberIds(supabase: Db, familyId: string, target: CalendarTarget): Promise<string[] | null> {
   const { data: connectedRows, error } = await supabase.from("calendar_links").select("member_id").eq("family_id", familyId).eq("connected", true);
   if (error) {
-    console.error(`Could not read which members have a connected calendar in family ${familyId}; leaving the calendars untouched`, error.message);
+    reportError("Could not read which members have a connected calendar; leaving the calendars untouched", error, familyId);
     return null;
   }
   const connected = new Set((connectedRows ?? []).map((r) => r.member_id));
@@ -103,7 +104,7 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
     // bounces the link and the event is taken back again, so it does not last
     // -- but it is a create and a delete on someone's calendar for nothing,
     // and the tidy-up loop below would see no links and remove nothing.
-    console.error(`Could not read the existing calendar links for ${table}/${rowId}; leaving the calendars as they are`, existingError.message);
+    reportError("Could not read the existing calendar links; leaving the calendars as they are", existingError, table, rowId);
     return;
   }
   const existingByMember = new Map((existingLinks ?? []).map((l) => [l.member_id, l]));
@@ -128,12 +129,12 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
           // so we would never update or delete it -- and the next pull would
           // read it as somebody's own event and make a duplicate activity out
           // of it. Take it back rather than leave that behind.
-          console.error(`Calendar link could not be recorded for ${table}/${rowId} -> member ${memberId}; removing the event again`, error.message);
+          reportError("Calendar link could not be recorded; removing the event again", error, table, rowId, memberId);
           await deleteCalendarEvent(accessToken, calendarId, googleEventId).catch(() => {});
         }
       }
     } catch (err) {
-      console.error(`Calendar push failed for ${table}/${rowId} -> member ${memberId}`, err);
+      reportError("Calendar push failed", err, table, rowId, memberId);
     }
   }
 
@@ -145,7 +146,7 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
       await deleteCalendarEvent(accessToken, linkRow?.calendar_id ?? "primary", link.google_event_id).catch(() => {});
     }
     const { error } = await supabase.from("calendar_event_links").delete().eq("id", link.id);
-    if (error) console.error(`Calendar link ${link.id} was not cleared after its event was deleted`, error.message);
+    if (error) reportError("Calendar link was not cleared after its event was deleted", error, link.id);
   }
 }
 
@@ -161,7 +162,7 @@ export async function removeRowFromCalendars(familyId: string, table: SourceTabl
     // never be updated or removed, and the next pull reads them as somebody's
     // own events and makes activities out of them. Leaving the links in place
     // keeps the row reachable for a later sync.
-    console.error(`Calendar links for ${table}/${rowId} could not be read; the events stay on the calendars and the links stay in place so a later sync can still clear them`, readError.message);
+    reportError("Calendar links could not be read; the events stay on the calendars and the links stay in place so a later sync can still clear them", readError, table, rowId);
     return;
   }
 
@@ -173,7 +174,7 @@ export async function removeRowFromCalendars(familyId: string, table: SourceTabl
     }
   }
   const { error } = await supabase.from("calendar_event_links").delete().eq("source_table", table).eq("source_id", rowId);
-  if (error) console.error(`Calendar links for ${table}/${rowId} were not cleared after the row was deleted`, error.message);
+  if (error) reportError("Calendar links were not cleared after the row was deleted", error, table, rowId);
 }
 
 // The household's own today, not UTC's. As the lower bound for what to pull
@@ -302,7 +303,7 @@ async function applyIncomingEvent(
   // constraint on (member_id, google_event_id) refuses the link and the create
   // undoes itself, so the retry is where it ends up anyway -- this just gets
   // there without writing a row first, and says which read failed.
-  if (linkError) return `could not check whether this event is already linked: ${linkError.message}`;
+  if (linkError) return `could not check whether this event is already linked: ${refusalMessage(linkError)}`;
 
   if (event.status === "cancelled") {
     if (!link) return null;
@@ -317,10 +318,10 @@ async function applyIncomingEvent(
         .eq("source_id", link.source_id);
       if (!count) {
         const { error } = await supabase.from(link.source_table).delete().eq("id", link.source_id);
-        if (error) return `could not remove the ${link.source_table} row nobody is linked to any more: ${error.message}`;
+        if (error) return `could not remove the ${link.source_table} row nobody is linked to any more: ${refusalMessage(error)}`;
       } else if (link.source_table === "activities") {
         const { error } = await supabase.from("activity_members").delete().eq("activity_id", link.source_id).eq("member_id", memberId);
-        if (error) return `could not take the member off the activity: ${error.message}`;
+        if (error) return `could not take the member off the activity: ${refusalMessage(error)}`;
       }
     }
     return null;
@@ -338,7 +339,7 @@ async function applyIncomingEvent(
       .insert({ family_id: familyId, title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null, applies_to_whole_family: false })
       .select()
       .single();
-    if (createError || !activity) return `could not create the activity: ${createError?.message ?? "no row came back"}`;
+    if (createError || !activity) return `could not create the activity: ${createError ? refusalMessage(createError) : "no row came back"}`;
 
     const { error: memberError } = await supabase.from("activity_members").insert({ activity_id: activity.id, member_id: memberId });
     const { error: linkError } = memberError
@@ -355,7 +356,7 @@ async function applyIncomingEvent(
       if (undoError) {
         // Now there is a half-made activity AND a retry coming. Say so loudly:
         // this is the one combination that produces a duplicate.
-        console.error(`Calendar pull: activity ${activity.id} was created but could not be undone after a partial failure; the retry may duplicate it`, undoError.message);
+        reportError("Calendar pull: activity was created but could not be undone after a partial failure; the retry may duplicate it", undoError, activity.id);
       }
       return `could not finish creating the activity: ${(memberError ?? linkError)!.message}`;
     }
@@ -433,7 +434,7 @@ async function pullMemberCalendar(
   // It must not be invisible though, because it is also what a missing table
   // looks like, and a sync that never sets anything aside looks identical to
   // one that never needed to.
-  if (priorError) console.error(`Prior calendar failure counts could not be read for member ${memberId}; every failure this batch will count as a first attempt and nothing will be set aside`, priorError.message);
+  if (priorError) reportError("Prior calendar failure counts could not be read; every failure this batch will count as a first attempt and nothing will be set aside", priorError, memberId);
   const priorAttempts = new Map((priorRows ?? []).map((r) => [r.google_event_id, r.attempts]));
 
   const retrying: string[] = [];
@@ -452,7 +453,7 @@ async function pullMemberCalendar(
           .delete()
           .eq("member_id", memberId)
           .eq("google_event_id", event.id);
-        if (error) console.error(`Recovered calendar event ${event.id} is still recorded as failing`, error.message);
+        if (error) reportError("Recovered calendar event is still recorded as failing", error, event.id);
       }
       continue;
     }
@@ -471,7 +472,7 @@ async function pullMemberCalendar(
     );
     // If the count cannot be kept, the event is retried rather than set aside:
     // losing the change is the worse of the two, and a stuck sync is visible.
-    if (recordError) console.error(`Attempt count for calendar event ${event.id} was not recorded`, recordError.message);
+    if (recordError) reportError("Attempt count for calendar event was not recorded", recordError, event.id);
 
     if (isQuarantined(attempts)) setAside.push(`${event.id} (${attempts} attempts) ${failed}`);
     else retrying.push(`${event.id} (attempt ${attempts}) ${failed}`);
@@ -495,17 +496,21 @@ async function pullMemberCalendar(
     .from("calendar_links")
     .update(syncLinkPatch(result.nextSyncToken, retrying.length, new Date().toISOString()))
     .eq("member_id", memberId);
-  if (error) console.error(`Calendar sync token was not saved for member ${memberId}; the next sync will replay this batch`, error.message);
+  if (error) reportError("Calendar sync token was not saved; the next sync will replay this batch", error, memberId);
 
   if (retrying.length > 0) {
-    console.error(
-      `Calendar pull: ${retrying.length} of ${result.events.length} changes could not be applied for member ${memberId}. Holding the sync token so Google sends them again.`,
+    reportError(
+      "Calendar pull: changes could not be applied. Holding the sync token so Google sends them again.",
+      new Error(`Calendar pull: ${retrying.length} of ${result.events.length} changes could not be applied`),
+      memberId,
       retrying,
     );
   }
   if (setAside.length > 0) {
-    console.error(
-      `Calendar pull: ${setAside.length} change(s) for member ${memberId} have failed ${QUARANTINE_AFTER} times and are being set aside so the rest of the sync can move on. They are in calendar_sync_failures; delete a row to try it again.`,
+    reportError(
+      `Calendar pull: changes have failed ${QUARANTINE_AFTER} times and are being set aside so the rest of the sync can move on. They are in calendar_sync_failures; delete a row to try it again.`,
+      new Error(`Calendar pull: ${setAside.length} change(s) set aside`),
+      memberId,
       setAside,
     );
   }
@@ -543,7 +548,7 @@ export async function syncGoogleCalendarIfStale(familyId: string, maxAgeMs: numb
     // works. But silence here would look exactly like a household with no
     // calendars connected, which is the state this is meant to skip.
     if (error) {
-      console.error(`Could not tell how stale family ${familyId}'s calendars are; skipping the opportunistic sync`, error.message);
+      reportError("Could not tell how stale a household's calendars are; skipping the opportunistic sync", error, familyId);
       return;
     }
     if (!links || links.length === 0) return;
@@ -551,7 +556,7 @@ export async function syncGoogleCalendarIfStale(familyId: string, maxAgeMs: numb
     if (Date.now() - stalest < maxAgeMs) return;
     await syncGoogleCalendarAction();
   } catch (err) {
-    console.error("Opportunistic calendar sync failed", err);
+    reportError("Opportunistic calendar sync failed", err);
   }
 }
 
@@ -568,7 +573,7 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   // These are different answers and used to be the same one. "Nobody has
   // connected" is a settled fact you act on by connecting; a read that failed
   // is a reason to press Sync now again.
-  if (connectedError) return { error: `Google Calendar could not be synced: the list of connected members could not be read. ${connectedError.message}` };
+  if (connectedError) return { error: `Google Calendar could not be synced: the list of connected members could not be read. ${refusalMessage(connectedError)}` };
   if (!connectedRows || connectedRows.length === 0) return { error: "No one in the household has connected Google Calendar yet." };
 
   // Every phase below used to swallow whatever went wrong and the action
@@ -581,7 +586,7 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   try {
     pushed = await backfillFamily(supabase, me.family_id);
   } catch (err) {
-    console.error("Calendar backfill push failed", err);
+    reportError("Calendar backfill push failed", err);
     trouble.push("some items could not be sent to Google");
   }
 
@@ -595,7 +600,7 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
       heldBack += counts.retrying;
       setAside += counts.setAside;
     } catch (err) {
-      console.error(`Calendar pull failed for member ${row.member_id}`, err);
+      reportError("Calendar pull failed", err, row.member_id);
       trouble.push("one member's calendar could not be read");
     }
   }

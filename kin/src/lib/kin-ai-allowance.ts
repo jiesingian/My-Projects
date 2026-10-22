@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { FREE_AI_PER_MONTH } from "@/lib/access";
+import { reportError } from "@/lib/report-error";
 
 /** Takes one Kin AI use -- a question to the assistant or a flyer scan --
  * from the household's month. Kin Plus is unlimited; Kin Free gets
@@ -14,7 +15,7 @@ import { FREE_AI_PER_MONTH } from "@/lib/access";
 export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data, error } = await supabase.rpc("use_kin_ai");
   if (error) {
-    console.error("use_kin_ai failed; letting this use through uncounted", error.message);
+    reportError("use_kin_ai failed; letting this use through uncounted", error);
     return { ok: true };
   }
   const result = data as { ok?: boolean } | null;

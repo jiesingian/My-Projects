@@ -12,7 +12,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { PASSWORD_MIN } from "@/lib/password";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, type DatabaseFailure, reportError, refusalMessage, failureText } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { REFERRAL_COOKIE, cleanReferralCode } from "@/lib/referral";
 import { isCountryCode } from "@/lib/countries";
@@ -86,14 +86,11 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     // than leaving somebody to discover it when the code is refused next
     // time, and record it where it can be traced -- never the code itself,
     // which is a credential.
-    console.error("create_family failed after its access code was already redeemed", {
-      household: householdName,
-      reason: error.message,
-    });
+    reportError("create_family failed after its access code was already redeemed", error, { household: householdName });
     return {
       error: accessCode
-        ? `${humanDatabaseError(error.message)} Your Kin code was already counted as used — ask for a fresh one if this keeps happening.`
-        : humanDatabaseError(error.message),
+        ? `${databaseError(error)} Your Kin code was already counted as used — ask for a fresh one if this keeps happening.`
+        : databaseError(error),
     };
   }
 
@@ -123,10 +120,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     // later as a paywall nobody can trace back to this moment.
     //
     // The code itself is deliberately not logged; it is a credential.
-    console.error("apply_code_grant_to_family failed during signup; household has no standing", {
-      household: householdName,
-      reason: grantError.message,
-    });
+    reportError("apply_code_grant_to_family failed during signup; household has no standing", grantError, { household: householdName });
   }
 
   // The family that invited this one, if they came by its link (app/r/[code]
@@ -139,7 +133,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   const referral = cleanReferralCode(jar.get(REFERRAL_COOKIE)?.value);
   if (referral) {
     const { error: referralError } = await supabase.rpc("claim_referral", { p_code: referral });
-    if (referralError) console.error("claim_referral failed during signup", { reason: referralError.message });
+    if (referralError) reportError("claim_referral failed during signup", referralError);
     jar.delete(REFERRAL_COOKIE);
   }
 
@@ -182,7 +176,8 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
 /** What start_own_household / move_to_household refuse, in words a person
  * can act on. Each names the household it is about where the database gives
  * it (after the colon). */
-function moveError(message: string): string {
+function moveError(error: DatabaseFailure): string {
+  const message = failureText(error);
   const household = message.split(": ").slice(1).join(": ").trim();
   if (/organizer must hand over first/i.test(message)) {
     return `You organize ${household}. Hand that role to another grown-up there first, in Settings → Household.`;
@@ -196,7 +191,7 @@ function moveError(message: string): string {
   if (/already in that household/i.test(message)) return "That's the household you're already in.";
   if (/invalid invite code/i.test(message)) return "That invite code didn't match a household. Double-check it and try again.";
   if (/household name required/i.test(message)) return "Give the new household a name.";
-  return humanDatabaseError(message);
+  return databaseError(error);
 }
 
 /** A household of your own (BACKLOG 28 September, item 1). Your profile,
@@ -209,7 +204,7 @@ export async function startOwnHouseholdAction(_prev: ActionState, formData: Form
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("start_own_household", { p_household_name: name });
-  if (error) return { error: moveError(error.message) };
+  if (error) return { error: moveError(error) };
   revalidatePath("/", "layout");
   redirect("/today");
 }
@@ -223,7 +218,7 @@ export async function moveToHouseholdAction(_prev: ActionState, formData: FormDa
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("move_to_household", { p_invite_code: inviteCode });
-  if (error) return { error: moveError(error.message) };
+  if (error) return { error: moveError(error) };
   revalidatePath("/", "layout");
   redirect("/onboarding/pending");
 }
@@ -246,7 +241,7 @@ export async function addManagedChildAction(_prev: ActionState, formData: FormDa
     p_dob: dob,
     p_relationship: relationship,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/onboarding/members");
   revalidatePath("/family/members");
@@ -317,7 +312,7 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
     // If this undo fails the address is claimed by a login that belongs to
     // nobody, and the parent cannot use it for the child on a second try.
     await admin.auth.admin.deleteUser(created.user.id).catch((err) => {
-      console.error(`Orphaned auth user ${created.user.id} could not be removed after a failed child creation; ${email} is now unusable`, err);
+      reportError("Orphaned auth user could not be removed after a failed child creation; its email is now unusable", err, created.user.id, email);
     });
     return { error: "We couldn't finish adding them. Nothing was saved — try again." };
   }
@@ -332,7 +327,7 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
   const { error } = await supabase.rpc("regenerate_invite_code");
   revalidatePath("/settings", "layout");
   revalidatePath("/onboarding/members");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Approves a pending join request, and says what they are joining as — RLS
@@ -356,7 +351,7 @@ export async function approveMemberAction(memberId: string, role: MemberRole = "
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Rejects a pending join request by removing it — RLS restricts this to
@@ -367,7 +362,7 @@ export async function rejectMemberAction(memberId: string): Promise<ActionState>
   const supabase = await createClient();
   const { error } = await supabase.from("members").delete().eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes an active or managed member from the household. This doesn't
@@ -385,7 +380,7 @@ export async function removeMemberAction(memberId: string): Promise<ActionState>
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "removed" }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Restores a previously removed member to active access. RLS restricts
@@ -396,7 +391,7 @@ export async function reinstateMemberAction(memberId: string): Promise<ActionSta
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** The two roles a member with a login can hold, and what turns on the
@@ -440,14 +435,14 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
     .maybeSingle();
   // A read that failed is not "no such member" -- saying so would send the
   // organizer looking for a member who is sitting right there.
-  if (readError) return { error: `That member could not be read, so nothing was changed. ${readError.message}` };
+  if (readError) return { error: `That member could not be read, so nothing was changed. ${refusalMessage(readError)}` };
   if (!target) return { error: "That member is no longer in the household." };
   if (target.auth_user_id === null) {
     return { error: `${target.full_name} is a managed profile without a login, so there is no role to give.` };
   }
 
   const { error, count } = await supabase.from("members").update({ role }, { count: "exact" }).eq("id", memberId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That member is no longer in this household." };
 
   revalidatePath("/family");
@@ -491,7 +486,7 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
     .eq("id", memberId)
     .eq("family_id", me.family_id)
     .maybeSingle();
-  if (readError) return { error: `That member could not be read, so nothing was changed. ${humanDatabaseError(readError.message)}` };
+  if (readError) return { error: `That member could not be read, so nothing was changed. ${databaseError(readError)}` };
   if (!target) return { error: "That member is no longer in the household." };
   if (target.auth_user_id === null) return { error: `${target.full_name} is already a managed profile.` };
 
@@ -503,7 +498,7 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
     .update({ auth_user_id: null, role: "child_managed", status: "managed" }, { count: "exact" })
     .eq("id", memberId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   // This one matters more than the rest of its kind. The read above can be
   // overtaken -- the member removed between the two statements -- and if the
   // update matched nothing, everything below still runs and deletes that
@@ -523,9 +518,9 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
   }
   const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId);
   if (deleteError) {
-    console.error(`Converted member ${memberId} but could not delete auth user`, deleteError.message);
+    reportError("Converted member but could not delete auth user", deleteError, memberId);
     return {
-      error: `${target.full_name} is now a managed profile, but their sign-in could not be deleted: ${deleteError.message}. It no longer opens this household.`,
+      error: `${target.full_name} is now a managed profile, but their sign-in could not be deleted: ${refusalMessage(deleteError)}. It no longer opens this household.`,
     };
   }
 
@@ -546,7 +541,7 @@ export async function updateMemberRelationshipAction(memberId: string, relations
     .eq("id", memberId)
     .eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Records a freshly uploaded household cover photo (already sitting in
@@ -573,13 +568,13 @@ export async function addFamilyBackgroundAction(uploaded: UploadedFile): Promise
 
   const { error: insertErr } = await supabase.from("family_backgrounds").insert(row);
   if (insertErr) {
-    console.error("family_backgrounds insert failed", { uploaded, row, insertErr });
-    return { error: insertErr.message };
+    reportError("family_backgrounds insert failed", insertErr, { uploaded, row });
+    return { error: refusalMessage(insertErr) };
   }
 
   const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, row) }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Makes a previously uploaded household photo the active background again
@@ -594,7 +589,7 @@ export async function setActiveFamilyBackgroundAction(backgroundId: string): Pro
 
   const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes a household photo from the album entirely. If it was the active
@@ -610,14 +605,14 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
 
   const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("family_backgrounds").delete().eq("id", backgroundId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (photo.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
   } else if (photo.storage_path) {
     const { error: removeError } = await supabase.storage.from("avatars").remove([photo.storage_path]);
-    if (removeError) console.error(`Background file ${photo.storage_path} was left in storage after its record was deleted`, removeError.message);
+    if (removeError) reportError("Background file was left in storage after its record was deleted", removeError, photo.storage_path);
   }
 
   const { data: family } = await supabase.from("families").select("background_url").eq("id", me.family_id).maybeSingle();
@@ -633,7 +628,7 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
     const { error } = await supabase.from("families").update({ background_url: fallbackUrl }).eq("id", me.family_id);
     // The photo is gone; if this does not follow, the household keeps showing
     // a background that no longer exists.
-    if (error) return { error: `The photo was removed, but the household background still points at it. ${error.message}` };
+    if (error) return { error: `The photo was removed, but the household background still points at it. ${refusalMessage(error)}` };
   }
 
   revalidatePath("/family");
@@ -649,7 +644,7 @@ export async function updateFamilyAboutAction(about: string): Promise<ActionStat
   const supabase = await createClient();
   const { error } = await supabase.from("families").update({ about: clamp(about, 2000) || null }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export type FamilyAddressFields = {
@@ -710,7 +705,7 @@ export async function addFamilyAddressAction(fields: FamilyAddressFields): Promi
     address_line: f.addressLine,
   });
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Edits an existing household address in place. Organizer only — RLS
@@ -740,7 +735,7 @@ export async function updateFamilyAddressAction(addressId: string, fields: Famil
     .eq("id", addressId)
     .eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes a household address. Organizer only — RLS enforces this too. */
@@ -751,7 +746,7 @@ export async function removeFamilyAddressAction(addressId: string): Promise<Acti
   const supabase = await createClient();
   const { error } = await supabase.from("family_addresses").delete().eq("id", addressId).eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export type EmergencyContactFields = { name: string; relationship: string; phone: string; note: string };
@@ -780,7 +775,7 @@ export async function addEmergencyContactAction(fields: EmergencyContactFields):
     created_by: me.id,
   });
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Edits an existing emergency contact in place. */
@@ -800,7 +795,7 @@ export async function updateEmergencyContactAction(contactId: string, fields: Em
     .eq("id", contactId)
     .eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes an emergency contact. */
@@ -810,7 +805,7 @@ export async function removeEmergencyContactAction(contactId: string): Promise<A
   const supabase = await createClient();
   const { error } = await supabase.from("emergency_contacts").delete().eq("id", contactId).eq("family_id", me.family_id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Permanently deletes the entire household — every member, journal entry,
@@ -833,10 +828,10 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
     // are the household's to remove, and the sweep below catches any the
     // list missed.
     const { data: healthFiles, error: forgetError } = await supabase.rpc("forget_household_health_photos");
-    if (forgetError) console.error(`Health photo rows could not be forgotten while deleting household ${me.family_id}: ${forgetError.message}`);
+    if (forgetError) reportError("Health photo rows could not be forgotten while deleting a household", forgetError, me.family_id);
     for (let i = 0; i < (healthFiles ?? []).length; i += 100) {
       const { error: removeError } = await supabase.storage.from("journal").remove((healthFiles ?? []).slice(i, i + 100));
-      if (removeError) console.error(`Health photo files were left behind while deleting household ${me.family_id}: ${removeError.message}`);
+      if (removeError) reportError("Health photo files were left behind while deleting a household", removeError, me.family_id);
     }
     // Every bucket, every level. This used to list one level of journal,
     // trip-photos and avatars and two of documents, so event and visit photos
@@ -845,14 +840,15 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
     // mean its files too.
     for (const bucket of HOUSEHOLD_BUCKETS) {
       const left = await removeFolder(supabase, bucket, me.family_id);
-      if (left > 0) console.error(`${left} files in ${bucket} were left behind while deleting household ${me.family_id}`);
+      if (left > 0) reportError("Files were left behind while deleting a household", new Error("Files were left behind while deleting a household"), left, bucket, me.family_id);
     }
-  } catch {
+  } catch (err) {
     // Best effort — the household record itself is what matters most.
+    reportError("Files could not be swept while deleting a household", err);
   }
 
   const { error } = await supabase.rpc("delete_household");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   redirect("/onboarding/profile");
 }
@@ -888,7 +884,7 @@ export async function addTreeMemberAction(memberId: string): Promise<ActionState
 
   const { error } = await supabase.from("family_tree_people").insert({ family_id: me.family_id, member_id: memberId, created_by: me.id });
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Puts the whole household on the tree in one go: a row for each active
@@ -919,7 +915,7 @@ export async function seedHouseholdTreeAction(): Promise<ActionState & { added?:
       .from("family_tree_people")
       .insert(plan.insert.map((m) => ({ family_id: me.family_id, member_id: m.id, created_by: me.id })))
       .select("id, member_id");
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     for (const r of created ?? []) if (r.member_id) rowByMember.set(r.member_id, r.id);
   }
 
@@ -933,7 +929,7 @@ export async function seedHouseholdTreeAction(): Promise<ActionState & { added?:
         supabase.from("family_tree_people").update({ spouse_id: a }).eq("id", b).eq("family_id", me.family_id),
       ]);
       const err = ra.error ?? rb.error;
-      if (err) return { error: humanDatabaseError(err.message) };
+      if (err) return { error: databaseError(err) };
       linked++;
     }
   }
@@ -945,7 +941,7 @@ export async function seedHouseholdTreeAction(): Promise<ActionState & { added?:
       .update({ father_id: c.father ? (rowByMember.get(c.father.id) ?? null) : null, mother_id: c.mother ? (rowByMember.get(c.mother.id) ?? null) : null })
       .eq("id", child)
       .eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     linked++;
   }
   revalidatePath("/family");
@@ -983,7 +979,7 @@ export async function addTreePersonAction(fields: TreePersonFields): Promise<Act
     created_by: me.id,
   });
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Edits a tree-only entry's own details. Refused for a member-linked row --
@@ -1015,7 +1011,7 @@ export async function updateTreePersonAction(id: string, fields: TreePersonField
     .update({ full_name: fullName, dob: dob || null, died_on: diedOn || null, notes: notes || null })
     .eq("id", id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export type TreeLinkFields = { fatherId: string | null; motherId: string | null; spouseId: string | null };
@@ -1045,7 +1041,7 @@ export async function setTreeLinksAction(id: string, fields: TreeLinkFields): Pr
     .update({ father_id: fields.fatherId, mother_id: fields.motherId, spouse_id: fields.spouseId })
     .eq("id", id);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export type Relation = "father" | "mother" | "spouse" | "child" | "sibling";
@@ -1134,12 +1130,12 @@ export async function addRelativeAction(input: {
       .insert({ family_id: me.family_id, full_name: parentName, created_by: me.id })
       .select("id")
       .single();
-    if (parentError || !parent) return { error: parentError ? humanDatabaseError(parentError.message) : "Their parent couldn't be added." };
+    if (parentError || !parent) return { error: parentError ? databaseError(parentError) : "Their parent couldn't be added." };
     const link = parentIs === "father" ? { father_id: parent.id } : { mother_id: parent.id };
     const { error: linkError } = await supabase.from("family_tree_people").update(link).eq("id", target.id);
     if (linkError) {
       await supabase.from("family_tree_people").delete().eq("id", parent.id);
-      return { error: humanDatabaseError(linkError.message) };
+      return { error: databaseError(linkError) };
     }
     addedParentId = parent.id;
     siblingParents = { father_id: parentIs === "father" ? parent.id : null, mother_id: parentIs === "mother" ? parent.id : null };
@@ -1165,7 +1161,7 @@ export async function addRelativeAction(input: {
     // Nothing half-done: the parent added for this sibling goes too, and
     // setting it null on the tapped person is what ON DELETE SET NULL does.
     if (addedParentId) await supabase.from("family_tree_people").delete().eq("id", addedParentId);
-    return { error: error ? humanDatabaseError(error.message) : "They couldn't be added." };
+    return { error: error ? databaseError(error) : "They couldn't be added." };
   }
 
   // The other half of the link, on the person who was tapped.
@@ -1176,7 +1172,7 @@ export async function addRelativeAction(input: {
     if (linkError) {
       // Take the new person back out rather than leave them floating unlinked.
       await supabase.from("family_tree_people").delete().eq("id", created.id);
-      return { error: humanDatabaseError(linkError.message) };
+      return { error: databaseError(linkError) };
     }
   }
   revalidatePath("/family");
@@ -1198,7 +1194,7 @@ export async function linkTreePersonToMemberAction(treePersonId: string, memberI
 
   const { error } = await supabase.from("family_tree_people").update({ member_id: memberId }).eq("id", treePersonId);
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** Removes a tree entry. Anyone linked to them as father, mother or spouse
@@ -1220,15 +1216,15 @@ export async function removeTreePersonAction(id: string): Promise<ActionState> {
     .from("tree_person_story_files")
     .select("storage_path, tree_person_stories!inner(person_id)")
     .eq("tree_person_stories.person_id", id);
-  if (readError) return { error: humanDatabaseError(readError.message) };
+  if (readError) return { error: databaseError(readError) };
 
   const { data: removed, error } = await supabase.from("family_tree_people").delete().eq("id", id).select("id");
   // Only once the person is really gone: a delete the database quietly
   // matched to nothing keeps their stories, and so their files.
   if (!error && (removed ?? []).length > 0 && storyFiles && storyFiles.length > 0) {
     const { error: removeError } = await supabase.storage.from("documents").remove(storyFiles.map((f) => f.storage_path));
-    if (removeError) console.error(`${storyFiles.length} story files were left in storage after taking a person off the tree`, removeError.message);
+    if (removeError) reportError("Story files were left in storage after taking a person off the tree", removeError, storyFiles.length);
   }
   revalidatePath("/family");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }

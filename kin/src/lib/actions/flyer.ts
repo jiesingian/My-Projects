@@ -8,7 +8,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { inKidView } from "@/lib/kid-view";
 import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError } from "@/lib/report-error";
 import { activityInstants } from "@/lib/planner-time";
 import { familyDay } from "@/lib/time";
 import { SCAN_SCHEMA, normaliseScan, scanPrompt, type ScannedItem } from "@/lib/flyer-scan";
@@ -49,6 +49,9 @@ async function readPicture(data: string, mediaType: ImageType, tz: string): Prom
     try {
       parsed = JSON.parse(textOf(response.content));
     } catch {
+      // Not the parse error itself: it quotes the start of the answer, which
+      // is what was in the picture.
+      reportError("Flyer scan: the answer was not JSON", new Error("Flyer scan: the answer was not JSON"));
       return { error: "Kin couldn't make sense of that photo. Try a sharper one.", items: [] };
     }
     const items = normaliseScan(parsed);
@@ -57,10 +60,10 @@ async function readPicture(data: string, mediaType: ImageType, tz: string): Prom
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return { error: "Too many scans just now. Give it a moment.", items: [] };
     if (error instanceof Anthropic.APIError) {
-      console.error(`Flyer scan API error ${error.status}`, error);
+      reportError("Flyer scan API error", error, error.status);
       return { error: "The scanner couldn't be reached. Try again.", items: [] };
     }
-    console.error("Flyer scan failed", error);
+    reportError("Flyer scan failed", error);
     return { error: "Something went wrong reading that photo.", items: [] };
   }
 }
@@ -141,7 +144,7 @@ export async function addScannedItemsAction(items: ScannedItem[]): Promise<{ err
       })
       .select("id")
       .single();
-    if (error) return { error: humanDatabaseError(error.message), added };
+    if (error) return { error: databaseError(error), added };
     added++;
     await syncRowToCalendars(
       me.family_id,
