@@ -11,7 +11,9 @@ export function GoalRing({
   fraction,
   size = 64,
   stroke = 7,
-  colour = "var(--color-accent-solid)",
+  // The theme's link colour, 5:1 or more on every theme's card; the fixed
+  // blue it replaces was 2.0-3.4:1 on the dark ones (22 October).
+  colour = "var(--color-accent-700)",
   index = 0,
   label,
   children,

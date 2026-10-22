@@ -89,3 +89,23 @@ for (const p of PALETTES) {
     });
   }
 }
+
+/** --color-accent-solid is one fixed blue in every theme, chosen to hold
+ * white text as a fill. As a text colour, an outline, a ring or a pip it
+ * fell to 2.0:1 on Nord dark and under 3:1 on most dark themes (wrap-up
+ * check, 22 October), so those use the theme's own colours instead: the
+ * link colour (--color-accent-700) and the focus colour (--color-focus). */
+test("the fixed blue is only ever a fill, never a text colour or an outline", () => {
+  test.skip(!css, "No production build in .next; run `npm run build` first.");
+  const inCss = [...css!.matchAll(/(?:^|[;{])\s*(color|outline|border|stroke)\s*:[^;}]*var\(--color-accent-solid\)/g)]
+    .map((m) => m[0].trim())
+    // A 22% wash of it as a tile's edge is decoration, not a boundary that has to be seen.
+    .filter((d) => !/color-mix\(/.test(d));
+  expect(inCss).toEqual([]);
+  const src = path.join(process.cwd(), "src");
+  const files = (fs.readdirSync(src, { recursive: true }) as string[]).filter((f) => /\.tsx?$/.test(f));
+  const inTsx = files.flatMap((f) =>
+    [...fs.readFileSync(path.join(src, f), "utf8").matchAll(/\b(color|colour|stroke|outline)\s*[:=]\s*"var\(--color-accent-solid\)"/g)].map((m) => `${f}: ${m[0]}`),
+  );
+  expect(inTsx).toEqual([]);
+});

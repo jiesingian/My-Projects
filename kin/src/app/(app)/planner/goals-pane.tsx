@@ -151,7 +151,7 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
   // A money goal filled from a savings goal on Wealth is the one kind that
   // only fills itself: money goes in on Wealth.
   const logs = !goal.savingsTitle;
-  const ringColour = colour ?? "var(--color-accent-solid)";
+  const ringColour = colour ?? "var(--color-accent-700)";
   const left = daysLeftText(goal.dueDate, today);
 
   return (
@@ -185,7 +185,7 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
               by {readableDate(goal.dueDate)}
             </div>
           )}
-          <div style={{ fontSize: "0.78125rem", color: "var(--color-accent-solid)", fontWeight: 600, marginTop: "0.25rem" }}>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-accent-700)", fontWeight: 600, marginTop: "0.25rem" }}>
             {targets > 0 ? `${targets} target${targets === 1 ? "" : "s"} ›` : "Add targets ›"}
           </div>
         </div>
@@ -231,7 +231,7 @@ export function SourceLine({ goal, meId, appleHealth }: { goal: GoalView; meId: 
       {connect && (
         <>
           {" "}
-          <Link href="/settings/connected" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>
+          <Link href="/settings/connected" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
             Connect Apple Health
           </Link>
         </>

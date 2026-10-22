@@ -125,7 +125,7 @@ function HelpsPicker({ goals, who, defaultValue }: { goals: HelpsGoal[]; who: st
     return (
       <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, margin: "0 0 0.75rem", padding: "0.5rem 0.625rem", borderRadius: 10, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)" }}>
         Every target helps a goal. Set a goal for {who.length > 1 ? "the whole family" : "this person"} first on{" "}
-        <Link href="/planner/goals/new" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>
+        <Link href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
           Goals → Set a goal
         </Link>
         .
