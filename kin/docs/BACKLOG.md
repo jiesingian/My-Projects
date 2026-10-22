@@ -461,8 +461,9 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   last 06:00 Manila and the browser's Date is fixed to it; only a baseline
   from the same frozen moment is compared (#830). **Fails on a real
   difference since 21 October** (Jonathan moved it up from 27 October): an
-  intended change is accepted with a `<slug> #<PR>` line in
-  `kin/e2e/visual-accept.txt` in the same PR, as the failure message says.
+  intended change is accepted with the screen's slug in
+  `kin/e2e/visual-accept/<PR>.txt` in the same PR, as the failure message
+  says (one file per PR: a shared list made parallel PRs conflict).
   `VISUAL_WARN_ONLY: "1"` on the e2e.yml step goes back to warning if noise
   returns.
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
