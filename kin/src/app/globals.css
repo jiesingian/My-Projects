@@ -917,7 +917,11 @@ textarea.input {
   flex: none;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-text) 16%, transparent);
-  transition: background 0.22s ease;
+  /* A ring at 3:1 or more against the card, off and on, so the switch and
+     its state can be seen (WCAG 1.4.11): the track alone was 1.4:1 off and
+     the green 2.2:1 on (final design check, 22 October). */
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-text) 50%, transparent);
+  transition: background 0.22s ease, box-shadow 0.22s ease;
 }
 .kin-switch::after {
   content: "";
@@ -933,6 +937,7 @@ textarea.input {
 }
 .kin-switch[data-on="true"] {
   background: var(--color-switch-on);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--color-switch-on) 70%, #000);
 }
 .kin-switch[data-on="true"]::after {
   transform: translateX(20px);

@@ -3,6 +3,52 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Final design check, 22 October (Jonathan: approved, decide and explain)
+
+What was checked, what was fixed, and what is left for Jonathan and
+Janine to decide. The reference reading was Anthropic's design skills
+(accessibility-review, design-critique, design-system, ux-copy,
+frontend-design), read but never installed or run.
+
+- **Done (#847, migration):** Journal Public reaches grown-ups only. A
+  child with a login no longer reads another writer's Public entries,
+  whether as a connection or tree-linked. Children still read what the
+  household shares.
+- **Done (#848):** Keyboard shortcuts on a computer: Ctrl/⌘+K or / for
+  Ask Kin, ? for the list, n to add, g then a letter to go to a place,
+  and arrows in the Planner and the chat list. Single-key shortcuts can
+  be switched off (WCAG 2.1.4) and start off in Simple Kin.
+- **Done (#850):** WCAG 2.2 AA. Every page now has a main landmark and an
+  h1, focus never sits under the tab bar, Today's initials are 24px
+  targets, the household photo crop moves without dragging, and the
+  axe check asks for 2.2.
+- **Done (#851):** Spacing, type, radius and shadow tokens are written
+  down in PAGE_PATTERNS.md. The Today fold and Wealth chevrons line up.
+  Nothing scrolls sideways at 320, 390 or 1280px.
+- **Done (theme PR):** The on/off switch has a ring at 3:1 or more, off
+  and on. Before, the track was 1.4:1 off and 2.2:1 on (WCAG 1.4.11).
+  Before and after: `docs/design-check/switch-before.png`,
+  `switch-after.png`.
+
+Proposals for Jonathan and Janine. These change the look, so they weren't
+built:
+
+- **Input fields get a visible edge.** Every field is a 5% grey fill
+  with no border: 1.1:1 against the card, under the 3:1 WCAG 1.4.11
+  asks of a control's boundary. The proposal is a 1px border at 50% of
+  the text colour (3.2:1 or more in Kin Classic and Kin Coral, light and
+  dark). The proposed screenshot shows 45%, which is 2.8:1 and a touch
+  lighter than the proposal. Now and proposed: `docs/design-check/input-now.png`,
+  `input-proposed.png`.
+- **The Planner month grid's 8.5px holiday and event names.** They are
+  the smallest text in Kin, and anything larger only truncates them more
+  in a seventh of a phone. The proposal is a coloured dot in the cell,
+  with the names in the selected day's list underneath.
+- **Status colours as text.** `--cal-money` (orange) and `--cal-home`
+  (green) are 3.3–3.6:1 on white: fine for a stripe or an icon, short of
+  4.5:1 for small text. axe found no text using them on the main screens
+  today. If one is ever used for text, use the darker step.
+
 ## Feature audit, 21 October (Jonathan: "proceed all recommended tasks")
 
 Every screen opened as the QA household at phone width; the findings and
