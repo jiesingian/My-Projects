@@ -90,7 +90,10 @@ function OfferForm({ offer, currency, onDone }: { offer: NextBillOffer; currency
 const question = (o: NextBillOffer) => `Add ${nextLabel(o.repeat)} ${o.name} for ${spellDate(o.dueDate) || o.dueDate}?`;
 
 /** The sheet a payment raises, and the list of paid bills still without a
- * next one. `offers` comes from getNextBillOffers, for a grown-up only. */
+ * next one. `offers` comes from getNextBillOffers, for a grown-up only.
+ * Three cards at most: a household that has just started paying in Kin
+ * could otherwise get a screen of forms; the rest follow as these go. */
+const MAX_SHOWN = 3;
 export function NextBillOffers({ offers, currency, heading }: { offers: NextBillOffer[]; currency: string; heading?: string }) {
   const [justPaid, setJustPaid] = useState<NextBillOffer | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -122,12 +125,17 @@ export function NextBillOffers({ offers, currency, heading }: { offers: NextBill
         )}
       </FormSheet>
       {shown.length > 0 && heading && <h3 className="kin-eyebrow">{heading}</h3>}
-      {shown.map((o) => (
+      {shown.slice(0, MAX_SHOWN).map((o) => (
         <div key={o.billId} data-next-bill={o.billId} style={{ padding: "0.75rem", margin: "0.5rem 0", borderRadius: 12, background: "color-mix(in srgb, var(--cal-money) 8%, transparent)" }}>
           <p style={{ margin: "0 0 0.5rem", fontSize: "0.875rem", fontWeight: 600 }}>{question(o)}</p>
           <OfferForm offer={o} currency={currency} onDone={(added) => done(o.billId, added)} />
         </div>
       ))}
+      {shown.length > MAX_SHOWN && (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+          {shown.length - MAX_SHOWN} more after these.
+        </p>
+      )}
     </>
   );
 }

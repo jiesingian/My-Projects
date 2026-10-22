@@ -9,7 +9,8 @@ import { familyDay } from "@/lib/time";
  * sees and what lands in the database: paying a repeating bill outside Kin
  * raises the sheet with the amount and the next date filled in; Add makes
  * exactly one next bill, at that date and amount; Not now makes nothing;
- * and a bill whose next one already exists raises nothing. Then the offer
+ * and a bill whose next one already exists raises nothing; Cash Flow lists
+ * the offer without Expenses being opened. Then the offer
  * card at 320px and 390px, Simple Kin off and on: nothing wider than the
  * phone, and in Simple Kin every button a finger reaches 44px tall.
  *
@@ -94,8 +95,10 @@ async function settleOutsideKin(page: Page, billId: string) {
 
 const today = () => familyDay(new Date(), session?.tz ?? "Asia/Manila");
 
-/** Cash Flow with its bills open: the paid one is there, settled, and no
- * offer for it -- so a page that failed to render cannot pass for "none". */
+/** Cash Flow with Expenses open (the offers sit above it, open; Expenses
+ * holds the settled bill this anchors on): the paid one is there, settled,
+ * and no offer for it -- so a page that failed to render cannot pass for
+ * "none". */
 async function expectNoOffer(page: Page, name: string, billId: string) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
@@ -225,6 +228,16 @@ for (const simple of [false, true]) {
     });
   }
 }
+
+test("Cash Flow shows the offer without opening Expenses", async ({ page }) => {
+  const name = `${RUN} seen`;
+  const billId = await addBill(name, today(), "paid");
+  await page.goto("/wealth?seg=cashflow");
+  await expect(page.locator(`[data-next-bill="${billId}"]`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Next bills to add" })).toBeVisible();
+  // Expenses is closed: its settled bills are not on the page.
+  await expect(page.getByText("SETTLED")).toHaveCount(0);
+});
 
 test("the question sheet fits 320px with Simple Kin on", async ({ page }) => {
   const name = `${RUN} sheet`;
