@@ -460,6 +460,12 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </div>
       <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} budgets={Object.fromEntries(budgetHistory)} />
 
+      {/* Open, above the groups: in EXPENSES they sat in a group that is
+          closed unless opened, so a paid repeating bill's "Add next
+          month's?" went unseen on Cash Flow (22 October). The cards are the
+          household's, so they show under Who = everyone only; the sheet a
+          payment raises lives here too, under any Who. */}
+      {grownUp && plus && <NextBillOffers offers={scope === "all" ? nextBills : []} currency={currency} heading="Next bills to add" />}
       <CollapsibleGroup title="INCOME" defaultOpen={false}>
       {!isJoint && (
         <>
@@ -637,7 +643,6 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </Link>
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
-      {grownUp && plus && <NextBillOffers offers={nextBills} currency={currency} />}
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}

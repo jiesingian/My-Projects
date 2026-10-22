@@ -212,8 +212,10 @@ the same day.
   mid-word (both rows wrap now); Settle and the reminder were 41.6px in
   Simple Kin (an inline 2rem beat its 2.75rem); and "Next 30 days" called a
   bill overdue from 08:00 Manila on the day it was due (a date compared
-  with the clock in UTC). The offers on Cash Flow sit in the EXPENSES
-  group, which is closed unless opened (Today shows them open).
+  with the clock in UTC). Since 22 October the offers on Cash
+  Flow sit above INCOME and EXPENSES, open (they were inside EXPENSES,
+  closed unless opened), under Who = everyone only, headed "Next bills to
+  add" there and on Today, three cards at a time with "N more after these".
 - **Decided and done (Jonathan, 21 October): Journal "Public" entries reach
   connections only, strictly.** A Public entry reaches the writer's accepted
   connections (are_connected: mutual and live, the household's other

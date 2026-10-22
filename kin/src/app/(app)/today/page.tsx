@@ -209,7 +209,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </TodayFold>
       )}
 
-      {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Bills that repeat" />}
+      {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Next bills to add" />}
 
       {/* At a glance: one figure from each part of the household. These took
           the place of five hub cards that opened the same places as the
