@@ -4,7 +4,7 @@ import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { familyDay } from "@/lib/time";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -50,17 +50,17 @@ export async function markTodayItemAction(itemKey: string, state: "done" | "skip
       .update({ status: state === "done" ? "completed" : "cancelled" })
       .eq("id", id)
       .eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   if (kind === "health" && state === "done") {
     const { error } = await supabase.from("health_schedule").update({ status: "given" }).eq("id", id).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   const { error } = await supabase
     .from("today_marks")
     .upsert({ family_id: me.family_id, item_key: itemKey, day: familyDay(new Date(), tz), state, marked_by: me.id }, { onConflict: "family_id,item_key,day" });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/today");
   return { error: null };
@@ -76,17 +76,17 @@ export async function unmarkTodayItemAction(itemKey: string): Promise<ActionStat
 
   if (kind === "activity" && !(await isRepeating(supabase, id, me.family_id))) {
     const { error } = await supabase.from("activities").update({ status: "upcoming" }).eq("id", id).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   if (kind === "health") {
     // Back to due; whether it was "due" or "due soon" before is not kept, and
     // due is the one that keeps it on Today.
     const { error } = await supabase.from("health_schedule").update({ status: "due" }).eq("id", id).eq("family_id", me.family_id).eq("status", "given");
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   const { error } = await supabase.from("today_marks").delete().eq("family_id", me.family_id).eq("item_key", itemKey).eq("day", familyDay(new Date(), tz));
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/today");
   return { error: null };

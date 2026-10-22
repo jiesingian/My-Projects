@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError } from "@/lib/report-error";
 import { isReaction, firstUrl, type LinkPreview } from "@/lib/chat";
 import { readListLine, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
 import { fetchLinkPreview } from "@/lib/link-preview";
@@ -68,7 +68,7 @@ export async function sendMessageAction(input: {
     .single();
   // Already sent by an earlier try of the same offline message.
   if (error && clientId && error.code === "23505") return { error: null, id: clientId, photoIds: [] };
-  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+  if (error || !data) return { error: error ? databaseError(error) : "That didn't send." };
 
   let photoIds: string[] = [];
   if (attachments.length > 0) {
@@ -92,7 +92,7 @@ export async function sendMessageAction(input: {
       // leave "here's the receipt" sitting in the thread with no receipt.
       await supabase.from("family_messages").update({ deleted_at: new Date().toISOString(), body: "" }).eq("id", data.id);
       await supabase.storage.from("documents").remove(attachments.map((a) => a.storagePath));
-      return { error: `The files didn't attach, so nothing was sent. ${humanDatabaseError(attachError.message)}` };
+      return { error: `The files didn't attach, so nothing was sent. ${databaseError(attachError)}` };
     }
   }
 
@@ -145,7 +145,7 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
     .eq("family_id", me.family_id)
     .eq("member_id", me.id)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!removed?.length) return { error: "That message isn't yours to withdraw." };
 
   // Withdrawing a photo has to take the photo with it. The thread would hide
@@ -157,7 +157,7 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
     .eq("message_id", messageId);
   if (files?.length) {
     const { error: storageError } = await supabase.storage.from("documents").remove(files.map((f) => f.storage_path));
-    if (storageError) console.error(`chat attachments for ${messageId} were left in storage after withdrawal`, storageError.message);
+    if (storageError) reportError("Chat attachments were left in storage after withdrawal", storageError, messageId);
     await supabase.from("family_message_attachments").delete().eq("message_id", messageId);
   }
 
@@ -187,7 +187,7 @@ export async function editMessageAction(messageId: string, body: string): Promis
     .eq("member_id", me.id)
     .is("deleted_at", null)
     .select("id");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!edited?.length) return { error: "That message can't be edited — it may have been withdrawn already." };
 
   revalidatePath("/chat", "layout");
@@ -218,17 +218,17 @@ export async function reactToMessageAction(messageId: string, emoji: string | nu
     .eq("id", messageId)
     .eq("family_id", me.family_id)
     .maybeSingle();
-  if (lookupError) return { error: humanDatabaseError(lookupError.message) };
+  if (lookupError) return { error: databaseError(lookupError) };
   if (!message) return { error: "That message isn't in this household's thread." };
 
   if (!emoji) {
     const { error } = await supabase.from("family_message_reactions").delete().eq("message_id", messageId).eq("member_id", me.id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     const { error } = await supabase
       .from("family_message_reactions")
       .upsert({ message_id: messageId, member_id: me.id, family_id: me.family_id, emoji }, { onConflict: "message_id,member_id" });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   revalidatePath("/chat", "layout");
@@ -243,7 +243,7 @@ export async function markChatReadAction(): Promise<ActionState> {
   const { error } = await supabase
     .from("family_message_reads")
     .upsert({ member_id: me.id, family_id: me.family_id, last_read_at: new Date().toISOString() }, { onConflict: "member_id" });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   return { error: null };
 }
 
@@ -260,7 +260,7 @@ export async function pinMessageAction(messageId: string): Promise<ActionState> 
       { family_id: me.family_id, message_id: messageId, pinned_by: me.id, pinned_at: new Date().toISOString() },
       { onConflict: "family_id" },
     );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/chat", "layout");
   return { error: null };
@@ -273,7 +273,7 @@ export async function unpinMessageAction(): Promise<ActionState> {
   const supabase = await createClient();
 
   const { error } = await supabase.from("family_chat_pins").delete().eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/chat", "layout");
   return { error: null };
@@ -336,7 +336,7 @@ export async function searchChatAction(query: string): Promise<{ error: string |
     .ilike("body", `%${literal}%`)
     .order("created_at", { ascending: false })
     .limit(50);
-  if (error) return { error: humanDatabaseError(error.message), hits: [] };
+  if (error) return { error: databaseError(error), hits: [] };
   return { error: null, hits: (data ?? []).map((m) => ({ id: m.id, memberId: m.member_id, body: m.body, createdAt: m.created_at })) };
 }
 
@@ -393,7 +393,7 @@ export async function sendPollAction(input: { question: string; options: string[
     .insert({ family_id: me.family_id, member_id: me.id, body: question, mentions: [] })
     .select("id")
     .single();
-  if (error || !message) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+  if (error || !message) return { error: error ? databaseError(error) : "That didn't send." };
 
   const withdraw = async (why: string) => {
     // A question with no answers to pick is not a poll. Take it back rather
@@ -407,12 +407,12 @@ export async function sendPollAction(input: { question: string; options: string[
     .insert({ message_id: message.id, family_id: me.family_id, question, allow_multiple: input.allowMultiple })
     .select("id")
     .single();
-  if (pollError || !poll) return withdraw(pollError ? humanDatabaseError(pollError.message) : "");
+  if (pollError || !poll) return withdraw(pollError ? databaseError(pollError) : "");
 
   const { error: optionsError } = await supabase
     .from("family_poll_options")
     .insert(options.map((label, position) => ({ poll_id: poll.id, family_id: me.family_id, label, position })));
-  if (optionsError) return withdraw(humanDatabaseError(optionsError.message));
+  if (optionsError) return withdraw(databaseError(optionsError));
 
   await markChatReadAction();
   revalidatePath("/chat", "layout");
@@ -434,18 +434,18 @@ export async function votePollAction(pollId: string, optionId: string): Promise<
 
   if (already) {
     const { error } = await supabase.from("family_poll_votes").delete().eq("poll_id", pollId).eq("option_id", optionId).eq("member_id", me.id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     // Changing your mind on a single-choice poll: the old answer goes first,
     // because the database will refuse a second one alongside it.
     if (!poll.allow_multiple && (mine ?? []).length > 0) {
       const { error } = await supabase.from("family_poll_votes").delete().eq("poll_id", pollId).eq("member_id", me.id);
-      if (error) return { error: humanDatabaseError(error.message) };
+      if (error) return { error: databaseError(error) };
     }
     const { error } = await supabase
       .from("family_poll_votes")
       .insert({ poll_id: pollId, option_id: optionId, member_id: me.id, family_id: me.family_id });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   revalidatePath("/chat", "layout");
   return { error: null };

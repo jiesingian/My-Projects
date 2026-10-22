@@ -2,6 +2,7 @@
 
 import { requireCurrentMember } from "@/lib/session";
 import { parseGiphy, type GifResult } from "@/lib/chat-media";
+import { reportError } from "@/lib/report-error";
 
 /** GIF search for the chat (29 September), through GIPHY. The key stays on
  * the server; the phone only ever sees the results. Off until
@@ -21,9 +22,14 @@ export async function searchGifsAction(query: string): Promise<{ results: GifRes
   const url = `https://api.giphy.com/v1/gifs/${q ? "search" : "trending"}?${params}`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(6000), next: { revalidate: 300 } });
-    if (!res.ok) return { results: [], error: res.status === 429 ? "Too many GIF searches this hour. Try again soon." : "GIFs didn't load. Try again." };
+    if (res.status === 429) return { results: [], error: "Too many GIF searches this hour. Try again soon." };
+    if (!res.ok) {
+      reportError("GIF search failed", new Error(`GIPHY answered ${res.status}`));
+      return { results: [], error: "GIFs didn't load. Try again." };
+    }
     return { results: parseGiphy(await res.json()), error: null };
-  } catch {
+  } catch (err) {
+    reportError("GIF search failed", err);
     return { results: [], error: "GIFs didn't load. Try again." };
   }
 }

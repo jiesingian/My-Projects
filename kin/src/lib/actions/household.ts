@@ -25,7 +25,7 @@ import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { familyDay, weekdayOf, addDays } from "@/lib/time";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
@@ -76,7 +76,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
     .single();
   // Already added by an earlier send of the same offline change.
   if (error && id && error.code === "23505") return { error: null };
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   const by = me.full_name.split(" ")[0];
   after(() => sendPush({ kind: "shopping", source: added.id, memberIds: "household", title: "Added to the list", body: `${name} · by ${by}`, url: "/household", tag: `list-${me.family_id}` }));
@@ -106,7 +106,7 @@ export async function updateBuyItemAction(
     }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That item is no longer on the list — someone may have removed it." };
 
   revalidatePath("/household");
@@ -117,7 +117,7 @@ export async function removeBuyItemAction(itemId: string): Promise<ActionState> 
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("buy_items").delete().eq("id", itemId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -135,7 +135,7 @@ export async function toggleBuyItemAction(itemId: string, checked: boolean) {
   // not save comes straight back and the person sees it. That is a better
   // answer than an error message, not a worse one, and it is the reason this
   // action returns nothing at all.
-  if (error) console.error(`Buy item ${itemId} did not change state`, error.message);
+  if (error) reportError("Buy item did not change state", error, itemId);
   // Bought: whatever was marked running low under that name no longer is.
   if (!error && checked) {
     const { data: item } = await supabase.from("buy_items").select("name").eq("id", itemId).eq("family_id", me.family_id).maybeSingle();
@@ -162,7 +162,7 @@ export async function setPantryLowAction(itemKey: string, low: boolean): Promise
     .eq("family_id", me.family_id)
     .eq("item_key", itemKey)
     .select("item_key");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That item is no longer in the pantry." };
   revalidatePath("/household");
   revalidatePath("/today");
@@ -184,7 +184,7 @@ export async function addLowItemsToListAction(): Promise<ActionState & { added?:
     .map((p) => ({ family_id: me.family_id, name: p.name, section: guessSection(p.name), source: "house", created_by: me.id }));
   if (rows.length === 0) return { error: null, added: 0 };
   const { error } = await supabase.from("buy_items").insert(rows);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   revalidatePath("/today");
   return { error: null, added: rows.length };
@@ -202,7 +202,7 @@ export async function clearCheckedAction() {
     .eq("family_id", me.family_id)
     .eq("checked", true)
     .eq("cleared", false);
-  if (error) console.error(`Checked items were not cleared for family ${me.family_id}`, error.message);
+  if (error) reportError("Checked items were not cleared", error, me.family_id);
   revalidatePath("/household");
 }
 
@@ -225,7 +225,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
     .insert({ family_id: me.family_id, plan_date: date, slot, dish, note, created_by: me.id })
     .select()
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   if (ingredients.length > 0) {
     // These are what the grocery list is generated from. A meal saved without
@@ -238,7 +238,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
         item_key: normalizeKey(ingredient_name),
       })),
     );
-    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
+    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${refusalMessage(ingredientError)}` };
     if (date >= familyDay(new Date(), me.families.time_zone)) {
       const listed = await putMealsOnList(supabase, me, [plan.id]);
       if (listed.error) return { error: `The meal was saved, but the shopping list wasn't updated. ${listed.error}` };
@@ -269,7 +269,7 @@ async function putMealsOnList(supabase: Supabase, me: { id: string; family_id: s
     supabase.from("buy_item_meals").select("buy_item_id, meal_plan_id, quantity").eq("family_id", me.family_id).in("meal_plan_id", mealIds),
     supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
   ]);
-  if (mealError) return { error: humanDatabaseError(mealError.message), added: 0 };
+  if (mealError) return { error: databaseError(mealError), added: 0 };
 
   const plan = planAdd(
     (meals ?? []).map((m) => ({ id: m.id, ingredients: m.meal_ingredients ?? [] })),
@@ -293,11 +293,11 @@ async function putMealsOnList(supabase: Supabase, me: { id: string; family_id: s
         created_by: me.id,
       })),
     );
-    if (error) return { error: `The shopping list could not be written. ${humanDatabaseError(error.message)}`, added: 0 };
+    if (error) return { error: `The shopping list could not be written. ${databaseError(error)}`, added: 0 };
   }
   for (const g of plan.grow) {
     const { error } = await supabase.from("buy_items").update({ quantity: g.quantity }).eq("id", g.id).eq("family_id", me.family_id);
-    if (error) return { error: `The shopping list could not be updated. ${humanDatabaseError(error.message)}`, added: 0 };
+    if (error) return { error: `The shopping list could not be updated. ${databaseError(error)}`, added: 0 };
   }
   const newLinks = [
     ...plan.links,
@@ -305,7 +305,7 @@ async function putMealsOnList(supabase: Supabase, me: { id: string; family_id: s
   ].map((l) => ({ ...l, family_id: me.family_id }));
   if (newLinks.length > 0) {
     const { error } = await supabase.from("buy_item_meals").insert(newLinks);
-    if (error) return { error: `The list was updated, but not which meals it is for. ${humanDatabaseError(error.message)}`, added: 0 };
+    if (error) return { error: `The list was updated, but not which meals it is for. ${databaseError(error)}`, added: 0 };
   }
   return { error: null, added: created.length + plan.grow.length };
 }
@@ -324,7 +324,7 @@ async function planMealOffList(
     .select("quantity, buy_items(id, quantity, source, checked, cleared)")
     .eq("family_id", familyId)
     .eq("meal_plan_id", mealId);
-  if (error) return { error: humanDatabaseError(error.message), ...none };
+  if (error) return { error: databaseError(error), ...none };
   const lines = (mine ?? []).flatMap((l) => (l.buy_items ? [{ ...l.buy_items, share: l.quantity }] : []));
   if (lines.length === 0) return { error: null, ...none };
 
@@ -334,7 +334,7 @@ async function planMealOffList(
     .eq("family_id", familyId)
     .neq("meal_plan_id", mealId)
     .in("buy_item_id", lines.map((l) => l.id));
-  if (othersError) return { error: humanDatabaseError(othersError.message), ...none };
+  if (othersError) return { error: databaseError(othersError), ...none };
   const count = new Map<string, number>();
   for (const o of others ?? []) count.set(o.buy_item_id, (count.get(o.buy_item_id) ?? 0) + 1);
 
@@ -344,11 +344,11 @@ async function planMealOffList(
 async function applyMealOffList(supabase: Supabase, familyId: string, { remove, shrink }: { remove: string[]; shrink: { id: string; quantity: number | null }[] }): Promise<string | null> {
   if (remove.length > 0) {
     const { error: removeError } = await supabase.from("buy_items").delete().eq("family_id", familyId).in("id", remove);
-    if (removeError) return humanDatabaseError(removeError.message);
+    if (removeError) return databaseError(removeError);
   }
   for (const s of shrink) {
     const { error: shrinkError } = await supabase.from("buy_items").update({ quantity: s.quantity }).eq("id", s.id).eq("family_id", familyId);
-    if (shrinkError) return humanDatabaseError(shrinkError.message);
+    if (shrinkError) return databaseError(shrinkError);
   }
   return null;
 }
@@ -385,7 +385,7 @@ export async function generateGroceryListAction(weekOf?: string): Promise<{ erro
     .eq("family_id", familyId)
     .gte("plan_date", weekStart)
     .lt("plan_date", weekEnd);
-  if (mealError) return { error: humanDatabaseError(mealError.message), added: 0 };
+  if (mealError) return { error: databaseError(mealError), added: 0 };
 
   // The same merge as picking a meal: whatever a meal already put on the
   // list is not added again, so this only catches up meals that never were
@@ -433,7 +433,7 @@ export async function setItemPriceAction(input: {
     },
     { onConflict: "family_id,item_key" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/household");
   return { error: null };
@@ -444,7 +444,7 @@ export async function resetItemPriceAction(itemKey: string): Promise<ActionState
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("price_list").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -459,7 +459,7 @@ export async function setBuyItemPriceAction(itemId: string, unitPrice: number | 
     .update({ unit_price_override: unitPrice }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That item is no longer on the list — someone may have removed it." };
   revalidatePath("/household");
   return { error: null };
@@ -483,7 +483,7 @@ export async function setPantryItemAction(input: { name: string; quantity?: numb
     },
     { onConflict: "family_id,item_key" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -492,7 +492,7 @@ export async function removePantryItemAction(itemKey: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -544,7 +544,7 @@ export async function addMealFromRecipeAction(input: {
     })
     .select()
     .single();
-  if (error || !plan) return { error: error ? humanDatabaseError(error.message) : "Could not save the meal." };
+  if (error || !plan) return { error: error ? databaseError(error) : "Could not save the meal." };
 
   if (recipe) {
     const { error: ingredientError } = await supabase.from("meal_ingredients").insert(
@@ -562,7 +562,7 @@ export async function addMealFromRecipeAction(input: {
         };
       }),
     );
-    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
+    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${refusalMessage(ingredientError)}` };
     // Picking the meal is writing the shopping list. A day already past is a
     // record of what was eaten, not something to shop for.
     if (input.date >= familyDay(new Date(), me.families.time_zone)) {
@@ -635,7 +635,7 @@ export async function planWeekFromPantryAction(weekOf: string): Promise<{ error:
       })),
     )
     .select("id, plan_date, dish");
-  if (error || !rows) return { error: error ? humanDatabaseError(error.message) : "Could not save the plan.", planned: [] };
+  if (error || !rows) return { error: error ? databaseError(error) : "Could not save the plan.", planned: [] };
 
   const recipeOn = new Map(plan.map(({ date, match }) => [date, match.recipe]));
   const ingredients = rows.flatMap((row) =>
@@ -652,7 +652,7 @@ export async function planWeekFromPantryAction(weekOf: string): Promise<{ error:
   );
   if (ingredients.length > 0) {
     const { error: ingredientError } = await supabase.from("meal_ingredients").insert(ingredients);
-    if (ingredientError) return { error: `The dinners were planned, but not what they need. ${ingredientError.message}`, planned: [] };
+    if (ingredientError) return { error: `The dinners were planned, but not what they need. ${refusalMessage(ingredientError)}`, planned: [] };
   }
   const listed = await putMealsOnList(supabase, me, rows.map((r) => r.id));
   if (listed.error) return { error: `The dinners were planned, but the shopping list wasn't updated. ${listed.error}`, planned: [] };
@@ -672,7 +672,7 @@ export async function removeMealAction(mealId: string): Promise<ActionState> {
   if (offList.error) return { error: `The meal is still here: its shopping couldn't be read. ${offList.error}` };
   await removeRowFromCalendars(me.family_id, "meal_plans", mealId);
   const { error } = await supabase.from("meal_plans").delete().eq("id", mealId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   const listError = await applyMealOffList(supabase, me.family_id, offList);
   if (listError) return { error: `The meal was removed, but what it added is still on the shopping list. ${listError}` };
   revalidatePath("/household");
@@ -710,7 +710,7 @@ async function saveRecipeIngredients(
     }));
   if (rows.length === 0) return null;
   const { error } = await supabase.from("family_recipe_ingredients").insert(rows);
-  return error ? `The recipe was saved, but its ingredients were not. ${error.message}` : null;
+  return error ? `The recipe was saved, but its ingredients were not. ${refusalMessage(error)}` : null;
 }
 
 /** Save a recipe into the household's book. Passing `baseKey` records it as
@@ -761,7 +761,7 @@ export async function saveRecipeAction(input: {
   let recipeId = input.id ?? null;
   if (recipeId) {
     const { error, count } = await supabase.from("family_recipes").update(row, { count: "exact" }).eq("id", recipeId).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     if (count === 0) return { error: "That recipe is no longer there — someone may have removed it." };
   } else {
     // Editing a shipped recipe twice should update the same row, not make a
@@ -771,7 +771,7 @@ export async function saveRecipeAction(input: {
       .upsert({ ...row, created_by: me.id }, { onConflict: "family_id,base_key" })
       .select("id")
       .single();
-    if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the recipe." };
+    if (error || !data) return { error: error ? databaseError(error) : "Could not save the recipe." };
     recipeId = data.id;
   }
 
@@ -816,7 +816,7 @@ export async function setShoppingDayAction(input: {
   let id = input.id ?? null;
   if (id) {
     const { error, count } = await supabase.from("activities").update(row, { count: "exact" }).eq("id", id).eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     if (count === 0) return { error: "That shopping day is no longer there — someone may have removed it." };
   } else {
     const { data, error } = await supabase
@@ -824,7 +824,7 @@ export async function setShoppingDayAction(input: {
       .insert({ ...row, created_by: me.id })
       .select("id")
       .single();
-    if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the shopping day." };
+    if (error || !data) return { error: error ? databaseError(error) : "Could not save the shopping day." };
     id = data.id;
   }
 
@@ -863,7 +863,7 @@ export async function moveShoppingRunAction(input: {
     },
     { onConflict: "routine_id,occurrence_date" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   const booked = await setShoppingDayAction({ date: input.date, time: input.time, title: input.title, budget: input.budget });
   if (booked.error) return booked;
@@ -880,7 +880,7 @@ export async function clearShoppingDayAction(id: string): Promise<ActionState> {
 
   await removeRowFromCalendars(me.family_id, "activities", id);
   const { error } = await supabase.from("activities").delete().eq("id", id).eq("family_id", me.family_id).eq("kind", "shopping");
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/household");
   revalidatePath("/planner");
@@ -911,7 +911,7 @@ export async function addRecipeCategoryAction(label: string): Promise<ActionStat
     // Its glaze follows the order they were made, so two in a row never come
     // out the same colour.
     .upsert({ family_id: me.family_id, key, label: clean, plate: (count ?? 0) % 6, created_by: me.id }, { onConflict: "family_id,key" });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/household");
   return { error: null };
@@ -923,7 +923,7 @@ export async function removeRecipeCategoryAction(key: string): Promise<ActionSta
   const supabase = await createClient();
 
   const { error } = await supabase.from("family_recipe_categories").delete().eq("family_id", me.family_id).eq("key", key);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   // Leaving the key on the recipes would file them under something that no
   // longer exists.
@@ -941,7 +941,7 @@ export async function removeRecipeCategoryAction(key: string): Promise<ActionSta
       .eq("family_id", me.family_id);
     // A recipe left filed under a category that no longer exists shows up
     // under a heading nobody can see.
-    if (error) return { error: `The category was removed, but recipe "${row.id}" is still filed under it. ${error.message}` };
+    if (error) return { error: `The category was removed, but recipe "${row.id}" is still filed under it. ${refusalMessage(error)}` };
   }
 
   revalidatePath("/household");
@@ -952,7 +952,7 @@ export async function deleteRecipeAction(recipeId: string): Promise<ActionState>
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("family_recipes").delete().eq("id", recipeId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -998,7 +998,7 @@ export async function setMealIngredientAction(input: {
     }, { count: "exact" })
     .eq("id", input.ingredientId)
     .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (count === 0) return { error: "That ingredient is no longer there — someone may have removed it." };
 
   revalidatePath("/household");
@@ -1010,7 +1010,7 @@ export async function removeMealIngredientAction(ingredientId: string): Promise<
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("meal_ingredients").delete().eq("id", ingredientId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -1039,7 +1039,7 @@ export async function addMealIngredientAction(input: { mealId: string; name: str
     unit,
     qty: amount == null ? unit : `${amount}${unit ? ` ${unit}` : ""}`,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/household");
   return { error: null };
@@ -1064,7 +1064,7 @@ export async function setRecipePhotoAction(recipeRef: string, storagePath: strin
     .eq("family_id", me.family_id)
     .eq("recipe_ref", recipeRef)
     .maybeSingle();
-  if (oldError) console.error(`Could not check for an earlier photo on recipe ${recipeRef}; if there was one, its file is now orphaned in storage`, oldError.message);
+  if (oldError) reportError("Could not check for an earlier photo on a recipe; if there was one, its file is now orphaned in storage", oldError, recipeRef);
 
   const { error } = await supabase
     .from("recipe_photos")
@@ -1072,12 +1072,12 @@ export async function setRecipePhotoAction(recipeRef: string, storagePath: strin
       { family_id: me.family_id, recipe_ref: recipeRef, storage_path: storagePath, created_by: me.id },
       { onConflict: "family_id,recipe_ref" },
     );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   // The one it replaced is nobody's now.
   if (old?.storage_path && old.storage_path !== storagePath) {
     const { error: removeError } = await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([old.storage_path]);
-    if (removeError) console.error(`Old recipe photo ${old.storage_path} was left in storage`, removeError.message);
+    if (removeError) reportError("Old recipe photo was left in storage", removeError, old.storage_path);
   }
 
   revalidatePath("/household");
@@ -1096,10 +1096,10 @@ export async function removeRecipePhotoAction(recipeRef: string): Promise<Action
     .maybeSingle();
   // Same as above: the row still goes, and the file it pointed at is left
   // behind. Worth a line in the log rather than nothing at all.
-  if (photoError) console.error(`Could not read the photo on recipe ${recipeRef} before removing it; its file is now orphaned in storage`, photoError.message);
+  if (photoError) reportError("Could not read the photo on a recipe before removing it; its file is now orphaned in storage", photoError, recipeRef);
 
   const { error } = await supabase.from("recipe_photos").delete().eq("family_id", me.family_id).eq("recipe_ref", recipeRef);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (photo?.storage_path) await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([photo.storage_path]);
 
   revalidatePath("/household");
@@ -1135,7 +1135,7 @@ async function saveLiquidIntake(
     { family_id: me.family_id, member_id: memberId, type, log_date: date, glasses, updated_at: new Date().toISOString() },
     { onConflict: "member_id,type,log_date" },
   );
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   revalidatePath("/household");
   revalidatePath("/planner");
@@ -1160,10 +1160,10 @@ export async function toggleIngredientAtHomeAction(rawName: string, atHome: bool
     const { error } = await supabase
       .from("pantry_items")
       .upsert({ family_id: me.family_id, item_key: key, name, updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "family_id,item_key" });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   } else {
     const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", key);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   revalidatePath("/household");
@@ -1205,13 +1205,13 @@ export async function setMealMembersAction(mealPlanId: string, memberIds: string
   }
 
   const { error: clearError } = await supabase.from("meal_plan_members").delete().eq("meal_plan_id", mealPlanId);
-  if (clearError) return { error: humanDatabaseError(clearError.message) };
+  if (clearError) return { error: databaseError(clearError) };
 
   if (verified.length > 0) {
     const { error } = await supabase
       .from("meal_plan_members")
       .insert(verified.map((member_id) => ({ meal_plan_id: mealPlanId, member_id, family_id: me.family_id })));
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
 
   revalidatePath("/household");
@@ -1249,11 +1249,11 @@ export async function saveLoyaltyCardAction(input: {
       .update(row, { count: "exact" })
       .eq("id", input.id)
       .eq("family_id", me.family_id);
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
     if (count === 0) return { error: "That card is no longer there — someone may have removed it." };
   } else {
     const { error } = await supabase.from("loyalty_cards").insert({ ...row, family_id: me.family_id, created_by: me.id });
-    if (error) return { error: humanDatabaseError(error.message) };
+    if (error) return { error: databaseError(error) };
   }
   revalidatePath("/household");
   return { error: null };
@@ -1264,7 +1264,7 @@ export async function removeLoyaltyCardAction(id: string): Promise<ActionState> 
   if (!isGrownUp(me.role)) return { error: "Ask a grown-up to take a card off." };
   const supabase = await createClient();
   const { error } = await supabase.from("loyalty_cards").delete().eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath("/household");
   return { error: null };
 }

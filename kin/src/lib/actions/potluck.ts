@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { UUID } from "@/lib/ids";
 import { isGrownUp } from "@/lib/roles";
 import { inKidView } from "@/lib/kid-view";
@@ -37,7 +37,7 @@ export async function addPotluckItemAction(eventId: string, text: string): Promi
     .from("potluck_items")
     .insert({ event_id: eventId, family_id: me.family_id, label: parsed.label, wanted: parsed.wanted, position: count ?? 0, created_by: me.id });
   refresh(eventId);
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export async function removePotluckItemAction(itemId: string): Promise<ActionState> {
@@ -46,7 +46,7 @@ export async function removePotluckItemAction(itemId: string): Promise<ActionSta
   const supabase = await createClient();
   const { data, error } = await supabase.from("potluck_items").delete().eq("id", itemId).eq("family_id", me.family_id).select("event_id");
   if (data?.[0]) refresh(data[0].event_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Only the household having the event can change its list." };
   return { error: null };
 }
@@ -59,7 +59,7 @@ export async function setPotluckRelativesAction(eventId: string, on: boolean): P
   const supabase = await createClient();
   const { data, error } = await supabase.from("events").update({ potluck_relatives: on === true }).eq("id", eventId).eq("family_id", me.family_id).select("id");
   refresh(eventId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "That event is no longer there." };
   return { error: null };
 }
@@ -90,7 +90,7 @@ export async function claimPotluckAction(itemId: string, qty: number): Promise<A
       .insert({ item_id: itemId, event_id: item.event_id, event_family_id: item.family_id, member_id: me.id, family_id: me.family_id, qty: n }));
   }
   refresh(item.event_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   if (!changed) return { error: "This potluck is closed: the event is over." };
   return { error: null };
 }

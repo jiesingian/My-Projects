@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError, reportError } from "@/lib/report-error";
 import { UUID } from "@/lib/ids";
 
 /** Photos on a calendar event (20260926150000_event_photos.sql). The browser
@@ -18,7 +18,7 @@ export async function addEventPhotoAction(eventId: string, storagePath: string):
   const supabase = await createClient();
   const { error } = await supabase.from("event_photos").insert({ family_id: me.family_id, event_id: eventId, storage_path: storagePath, created_by: me.id });
   revalidatePath("/planner");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 export async function deleteEventPhotoAction(id: string): Promise<ActionState> {
@@ -28,7 +28,7 @@ export async function deleteEventPhotoAction(id: string): Promise<ActionState> {
   const { data, error } = await supabase.from("event_photos").delete().eq("id", id).select("storage_path").maybeSingle();
   if (!error && data?.storage_path) await supabase.storage.from("journal").remove([data.storage_path]);
   revalidatePath("/planner");
-  return { error: error ? humanDatabaseError(error.message) : null };
+  return { error: error ? databaseError(error) : null };
 }
 
 /** A past event's photos into the Journal, as one entry (asked 12 October):
@@ -87,14 +87,14 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
   // a bare "isn't allowed here" twice over, with nothing recorded, is how
   // this took two rounds to find.
   if (error) {
-    console.error("addEventToJournal: entry", error.message);
-    return { error: `The Journal entry couldn't be made. ${humanDatabaseError(error.message)}` };
+    reportError("addEventToJournal: entry", error);
+    return { error: `The Journal entry couldn't be made. ${databaseError(error)}` };
   }
 
   if (people?.length) {
     const { error: peopleError } = await supabase.from("journal_entry_people").insert(people.map((p) => ({ entry_id: entry.id, member_id: p.member_id })));
-    if (peopleError) console.error("addEventToJournal: people", peopleError.message);
-    if (peopleError) return { error: `The entry was made, but not who was there. ${humanDatabaseError(peopleError.message)}`, entryId: entry.id };
+    if (peopleError) reportError("addEventToJournal: people", peopleError);
+    if (peopleError) return { error: `The entry was made, but not who was there. ${databaseError(peopleError)}`, entryId: entry.id };
   }
 
   let failed = 0;
@@ -103,7 +103,7 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
     const to = `${me.family_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-event.${ext}`;
     const { error: copyError } = await supabase.storage.from("journal").copy(photo.storage_path, to);
     if (copyError) {
-      console.error("addEventToJournal: copy", copyError.message);
+      reportError("addEventToJournal: copy", copyError);
       failed++;
       continue;
     }
@@ -113,14 +113,14 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
       .select("id")
       .single();
     if (mediaError) {
-      console.error("addEventToJournal: media", mediaError.message);
+      reportError("addEventToJournal: media", mediaError);
       await supabase.storage.from("journal").remove([to]);
       failed++;
       continue;
     }
     const { error: linkError } = await supabase.from("journal_entry_media").insert({ entry_id: entry.id, media_id: media.id, sort_order: i });
     if (linkError) {
-      console.error("addEventToJournal: link", linkError.message);
+      reportError("addEventToJournal: link", linkError);
       failed++;
     }
   }

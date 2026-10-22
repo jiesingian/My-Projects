@@ -8,6 +8,7 @@ import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
 import { NOCHE_BUENA_DISHES, nocheBuenaDate, nocheBuenaToAdd } from "@/lib/christmas";
 import { addMealFromRecipeAction } from "@/lib/actions/household";
+import { reportError } from "@/lib/report-error";
 
 /** "Plan Noche Buena" on Today (20261020212000): puts the chosen dishes on
  * the 24 December dinner through the meal plan, the way Meals does
@@ -35,7 +36,7 @@ export async function planNocheBuenaAction(keys: string[]): Promise<{ error: str
       // which is the part that can throw (Google unreachable). Keep going if
       // the dish got in; stop and say so if it did not.
       const { data: saved } = await supabase.from("meal_plans").select("id").eq("family_id", me.family_id).eq("plan_date", date).eq("slot", "dinner").eq("recipe_key", key).limit(1);
-      console.error("planNocheBuena: a dish's follow-up failed", { key, saved: !!saved?.length, reason: err instanceof Error ? err.message : String(err) });
+      reportError("planNocheBuena: a dish's follow-up failed", err, { key, saved: !!saved?.length });
       if (!saved?.length) return { error: "Kin couldn't plan that dish just now. Try again in a minute.", added };
     }
     added++;

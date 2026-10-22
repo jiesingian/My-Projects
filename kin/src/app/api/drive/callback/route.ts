@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDriveFolderStructure } from "@/lib/google-drive";
+import { reportError } from "@/lib/report-error";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
     await ensureDriveFolderStructure(me.family_id, tokens.access_token, me.families.name);
   } catch (err) {
     // Connection itself succeeded; folder setup can be retried on next upload.
-    console.error("Drive folder setup failed", err);
+    reportError("Drive folder setup failed", err);
   }
 
   return NextResponse.redirect(settingsUrl);

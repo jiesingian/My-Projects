@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { LIST_ADD_MAX_BODY_BYTES, LIST_ADD_MAX_CHARS, addedSentence, declaredTooLarge, readSpokenList, shortcutText } from "@/lib/list-add";
 import { sha256, toBase64Url } from "@/lib/security/crypto";
+import { reportError } from "@/lib/report-error";
 
 /** "Hey Siri, add rice to Kin": the "Add to Kin" Shortcut asks "What do you
  * need?" and posts the answer here (Get Contents of URL), then speaks what
@@ -39,7 +40,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   });
   const { data, error } = await supabase.rpc("add_to_list_by_link", { p_token_hash: toBase64Url(sha256(token)), p_items: items });
   if (error) {
-    console.error("Add to list by link failed", error.message);
+    reportError("Add to list by link failed", error);
     return text("Kin couldn't add that just now. Try again in a minute.", 503);
   }
   if (data === -1) return unknown();

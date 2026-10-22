@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { humanDatabaseError } from "@/lib/db-errors";
+import { databaseError } from "@/lib/report-error";
 import { sendPush } from "@/lib/push";
 import { sosWords } from "@/lib/push-words";
 import { cleanPosition } from "@/lib/member-card";
@@ -50,7 +50,7 @@ export async function sendSosAction(position: { lat: number; lng: number; accura
     .insert({ family_id: me.family_id, member_id: me.id, lat: where?.lat ?? null, lng: where?.lng ?? null, accuracy_m: where?.accuracy_m ?? null })
     .select("id")
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
 
   const name = me.full_name.split(" ")[0];
   const notified = grownUps.length
@@ -69,7 +69,7 @@ export async function sosAction(id: string, action: "safe" | "handling"): Promis
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data: sender, error } = await supabase.rpc("sos_act", { p_id: id, p_action: action });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) return { error: databaseError(error) };
   revalidatePath(`/today/sos/${id}`);
   if (!sender) return { error: null };
 
