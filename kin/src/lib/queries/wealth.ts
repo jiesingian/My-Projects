@@ -74,6 +74,33 @@ async function privateLeftOutOfAll(): Promise<string | null> {
   return me && me.wealth_include_private === false ? me.id : null;
 }
 
+/** Which ledger rows a Who view counts in its money in and out: rows on an
+ * account the viewer can see (with their own private ones left out of All
+ * if they chose), then by whose the row is -- Janine's salary paid into the
+ * joint account is Janine's (20261023120000). A row from before that, with
+ * no owner of its own yet, falls back to its account's. */
+/** "entry": by whose each row is (Cash Flow). "account": by whose account
+ * it moved through (the Accounts tab, whose figures are its accounts'). */
+export type FlowBy = "entry" | "account";
+
+function flowFilter(
+  accounts: { id: string; is_joint: boolean | null; owner_member_id: string | null; is_private: boolean | null; shared?: boolean }[],
+  scope: WealthScope,
+  leaveOut: string | null,
+  by: FlowBy,
+) {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  return (t: { account_id: string; is_joint: boolean | null; owner_member_id: string | null }) => {
+    const a = byId.get(t.account_id);
+    if (!a) return false;
+    // The Accounts tab walks its cash trend back from these accounts'
+    // balances, so there a row is whoever's account it moved through.
+    if (by === "account") return inTotalsScope(a, scope, leaveOut);
+    if (!inTotalsScope(a, "all", scope === "all" ? leaveOut : null)) return false;
+    return inScope(t.is_joint === null ? a : { is_joint: t.is_joint, owner_member_id: t.owner_member_id }, scope);
+  };
+}
+
 /** Archived accounts, deleted ones included (a deleted account is archived
  * too). Their balance is in no total -- the account is put away or closed --
  * but the money that moved through them really moved: their entries still
@@ -104,7 +131,7 @@ export async function getArchivedAccounts(familyId: string): Promise<AccountWith
 /** Everything the Joint and Mine panes render: the combined balance across
  * that scope's accounts, this month's flow against its budget, where the
  * money actually went, and six months of history behind it. */
-export async function getWealthPane(familyId: string, memberId: string, scope: WealthScope) {
+export async function getWealthPane(familyId: string, memberId: string, scope: WealthScope, by: FlowBy = "entry") {
   // Whose target to measure against when one person is named — their own.
   const targetMemberId = isHouseholdScope(scope) ? memberId : scope;
   const supabase = await createClient();
@@ -139,8 +166,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
 
   const leaveOut = await privateLeftOutOfAll();
   const accounts = allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut));
-  const accountIds = new Set([...accounts, ...archivedAccounts.filter((a) => inTotalsScope(a, scope, leaveOut))].map((a) => a.id));
-  const scoped = (transactions ?? []).filter((t) => accountIds.has(t.account_id));
+  const scoped = (transactions ?? []).filter(flowFilter([...allAccounts, ...archivedAccounts], scope, leaveOut, by));
   const thisMonth = scoped.filter((t) => t.status === "confirmed" && monthKey(t.occurred_at) === monthKey(new Date()));
 
   const spentByCategory = new Map<string, number>();
@@ -381,7 +407,7 @@ export async function getIncomeGroups(familyId: string) {
  * is left out for everyone but whoever can see the account (accounts RLS,
  * read as the viewer), as on Subscriptions: a private account is its
  * owner's alone (e2e/private-accounts.spec.ts). */
-export async function getCashFlowPane(familyId: string, range: CashFlowRange, scope: WealthScope = "all") {
+export async function getCashFlowPane(familyId: string, range: CashFlowRange, scope: WealthScope = "all", by: FlowBy = "entry") {
   const supabase = await createClient();
   const count = cashFlowRangeCount(range);
   const periods = recentPeriods(range, count);
@@ -407,8 +433,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   const visibleIncome = incomeSchedules.filter((s) => !s.account_id || canSee.has(s.account_id));
 
   const leaveOut = await privateLeftOutOfAll();
-  const accountIds = new Set([...allAccounts, ...archivedAccounts].filter((a) => inTotalsScope(a, scope, leaveOut)).map((a) => a.id));
-  const rows = (transactions ?? []).map(toLedgerEntry).filter((t) => accountIds.has(t.account_id));
+  const rows = (transactions ?? []).map(toLedgerEntry).filter(flowFilter([...allAccounts, ...archivedAccounts], scope, leaveOut, by));
   const confirmed = rows.filter((t) => t.status === "confirmed");
   const thisPeriodKey = periodKey(new Date(), range);
   const thisPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === thisPeriodKey);
@@ -643,7 +668,7 @@ export async function getSpendingByMember(familyId: string, year: number, month:
     getMemberBudgets(familyId, year, month),
     supabase
       .from("wealth_transactions")
-      .select("account_id, amount, category")
+      .select("account_id, amount, category, is_joint, owner_member_id")
       .eq("family_id", familyId)
       .eq("direction", "out")
       .eq("status", "confirmed")
@@ -654,7 +679,8 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   const spent = new Map<string | null, number>();
   for (const r of rows ?? []) {
     if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;
-    const who = ownerOf.get(r.account_id) ?? null;
+    // Whose the spending is (20261023120000), not whose account paid it.
+    const who = r.is_joint === null ? (ownerOf.get(r.account_id) ?? null) : r.is_joint ? null : r.owner_member_id;
     spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
   }
   const owners = new Set<string | null>(accounts.map((a) => (a.is_joint ? null : a.owner_member_id)));

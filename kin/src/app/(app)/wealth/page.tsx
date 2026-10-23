@@ -42,6 +42,7 @@ import {
   INCOME_SOURCES,
   categoryLabel,
   incomeSourceColor,
+  whoseOptions,
   periodOverPeriodChange,
   cashBalanceTrend,
   billsDueWithin,
@@ -419,6 +420,41 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 
 /* ----------------------------------------------------------------- cash flow */
 
+/** Each utang's next instalment, under INCOME (lent: who owes us) or
+ * EXPENSES (borrowed: whom we owe). Kin moves no money: these are what is
+ * expected, and each opens the utang page where payments are recorded. */
+function UtangInstalments({ heading, rows, currency, fmtDate }: {
+  heading: string;
+  rows: { id: string; direction: string; personName: string; next: { n: number; due: string; amount: number }; of: number; overdue: boolean }[];
+  currency: string;
+  fmtDate: (d: string) => string;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <>
+      <SectionLabel>{heading}</SectionLabel>
+      {rows.map((u) => (
+        <Link
+          key={u.id}
+          href="/wealth/utang"
+          style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: "0.875rem", display: "block" }}>{u.direction === "lent" ? `${u.personName} owes us` : `We owe ${u.personName}`}</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+              Instalment {u.next.n} of {u.of} · due {fmtDate(u.next.due)}
+            </span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {u.overdue && <Tag variant="accent">OVERDUE</Tag>}
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(u.next.amount, currency)}</span>
+          </span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
   const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [cf, budget, accounts, who, nextBills] = await Promise.all([
@@ -429,18 +465,22 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     // "Add the next one?" for paid repeating bills: a grown-up's, on Plus.
     grownUp && plus ? getNextBillOffers(familyId) : Promise.resolve([]),
   ]);
-  // Money lent in instalments, each one expected back on its date
-  // (20261022180000): the household's, so under Who = everyone; grown-ups'.
-  const comingBack = grownUp && scope === "all"
+  // Utang in instalments (20261022180000), each one's next instalment on
+  // its date: money lent coming back under INCOME, money borrowed going
+  // out under EXPENSES. The household's, so under Who = everyone;
+  // grown-ups'.
+  const instalmentsDue = grownUp && scope === "all"
     ? (await getUtang(familyId, memberId))
-        .filter((u) => u.direction === "lent" && !u.settled && u.instalments && u.instalmentFrequency && u.firstDueOn)
+        .filter((u) => !u.settled && u.instalments && u.instalmentFrequency && u.firstDueOn)
         .map((u) => {
           const plan = instalmentPlan(u.amount, u.instalments!, u.instalmentFrequency!, u.firstDueOn!, u.paid, today);
           const next = plan.find((i) => i.status !== "paid")!;
-          return { id: u.id, personName: u.personName, next, of: plan.length, overdue: plan.some((i) => i.status === "overdue") };
+          return { id: u.id, direction: u.direction, personName: u.personName, next, of: plan.length, overdue: plan.some((i) => i.status === "overdue") };
         })
         .sort((a, b) => a.next.due.localeCompare(b.next.due))
     : [];
+  const comingBack = instalmentsDue.filter((u) => u.direction === "lent");
+  const toPayBack = instalmentsDue.filter((u) => u.direction === "borrowed");
   // The band behind the cash-flow bars: each month's budget, household or
   // personal to match the Who picker. Monthly only -- a budget is a month's.
   const [budgetHistory, byPerson] = await Promise.all([
@@ -468,6 +508,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const categories = [...budget.allocations, ...budget.unbudgeted];
   const momChange = periodOverPeriodChange(cf.history);
 
+  // "Whose is it?" on the add forms: You, each other member, Family.
+  const whose = whoseOptions(who.active.map((m, i) => ({ id: m.id, label: who.labels[i] })), memberId);
   // INCOME's groups: the sources in their own order, then any other
   // source a row carries (an older or imported one) after them.
   const usedSources = [...cf.incomeGroups.map((g) => g.category ?? "Other"), ...cf.expectedIncome.map((x) => x.category ?? "Salary"), ...cf.receivedIncome.map((x) => x.category ?? "Salary"), ...cf.recentIncome.map((e) => e.category ?? "Other")];
@@ -612,32 +654,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           </FoldableSection>
         );
       })}
-      {comingBack.length > 0 && (
-        <>
-          <SectionLabel>UTANG COMING BACK</SectionLabel>
-          {comingBack.map((u) => (
-            <Link
-              key={u.id}
-              href="/wealth/utang"
-              style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: "0.875rem", display: "block" }}>{u.personName}</span>
-                <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                  Instalment {u.next.n} of {u.of} · due {fmtDate(u.next.due)}
-                </span>
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                {u.overdue && <Tag variant="accent">OVERDUE</Tag>}
-                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(u.next.amount, currency)}</span>
-              </span>
-            </Link>
-          ))}
-        </>
-      )}
+      <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
-      <AddIncomeScheduleForm accounts={bareAccounts} grownUp={grownUp} />
+      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} grownUp={grownUp} />
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
@@ -729,6 +749,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </Link>
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
+      <UtangInstalments heading="UTANG TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
@@ -784,7 +805,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           ))}
         </>
       )}
-      <AddBillForm />
+      <AddBillForm whose={whose} />
       </CollapsibleGroup>
     </>
   );
@@ -795,11 +816,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
   const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
     householdDateFormat(),
-    getWealthPane(familyId, memberId, scope),
+    getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
     // needs getCashFlowPane for its own history strip, at whichever range
     // the picker below is set to.
-    getCashFlowPane(familyId, range, scope),
+    getCashFlowPane(familyId, range, scope, "account"),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),

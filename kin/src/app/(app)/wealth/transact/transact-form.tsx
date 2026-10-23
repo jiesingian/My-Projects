@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
+import { categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type WhoseOption } from "@/lib/wealth";
+import { WhoseSelect } from "@/components/whose-select";
 import { currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
@@ -32,6 +33,7 @@ export function TransactForm({
   goals,
   defaultParticulars,
   defaultAmount,
+  whose: whoseChoices,
 }: {
   accounts: PickableAccount[];
   currency: string;
@@ -48,6 +50,8 @@ export function TransactForm({
    * starting point only: nothing moves until they press the button. */
   defaultParticulars?: string;
   defaultAmount?: number;
+  /** "Whose is it?" -- You, each household member, Family (joint). */
+  whose: WhoseOption[];
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
@@ -59,6 +63,7 @@ export function TransactForm({
   const [category, setCategory] = useState<string>(INCOME_SOURCES[0]);
   const [occurredOn, setOccurredOn] = useState(todayLocal());
   const [viaApp, setViaApp] = useState(true);
+  const [whose, setWhose] = useState("me");
   // "assets:<id>" or "goals:<id>", or empty for the ordinary case where the
   // money is not tied to either.
   const [against, setAgainst] = useState("");
@@ -101,6 +106,7 @@ export function TransactForm({
               viaApp: viaApp && canUseApp,
               againstTable: against ? (against.split(":")[0] as "assets" | "goals") : null,
               againstId: against ? against.split(":")[1] : null,
+              whose,
             });
 
       if (res.error) {
@@ -197,6 +203,12 @@ export function TransactForm({
               </option>
             ))}
           </select>
+        </Field>
+      )}
+
+      {mode !== "transfer" && (
+        <Field label="WHOSE IS IT?">
+          <WhoseSelect options={whoseChoices} value={whose} onChange={setWhose} />
         </Field>
       )}
 
