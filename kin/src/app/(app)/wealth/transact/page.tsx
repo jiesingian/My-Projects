@@ -5,6 +5,10 @@ import { toPickable } from "@/lib/account-picker";
 import { getAccounts, getAttributableTargets, getAccountNumbers } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { TransactForm } from "./transact-form";
+import { getMembers } from "@/lib/queries/family";
+import { isGone } from "@/lib/member-status";
+import { shortNames } from "@/lib/format";
+import { whoseOptions } from "@/lib/wealth";
 
 export default async function TransactPage({
   searchParams,
@@ -18,7 +22,9 @@ export default async function TransactPage({
   // at most two decimals, or nothing at all.
   const parsed = Number(rawAmount);
   const amount = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : undefined;
-  const [accounts, targets, numbers] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id), getAccountNumbers(me.family_id)]);
+  const [accounts, targets, numbers, members] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id), getAccountNumbers(me.family_id), getMembers(me.family_id)]);
+  const household = members.filter((m) => m.status !== "pending" && !isGone(m.status));
+  const names = shortNames(household.map((m) => m.full_name));
 
   return (
     <div>
@@ -38,6 +44,7 @@ export default async function TransactPage({
           accountNumbers={Object.fromEntries(numbers)}
           assets={targets.assets}
           goals={targets.goals}
+          whose={whoseOptions(household.map((m, i) => ({ id: m.id, label: names[i] })), me.id)}
           defaultParticulars={note?.slice(0, 200)}
           defaultAmount={amount}
         />

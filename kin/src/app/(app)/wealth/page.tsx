@@ -41,6 +41,7 @@ import {
   INCOME_FREQUENCY_LABELS,
   INCOME_SOURCES,
   incomeSourceColor,
+  whoseOptions,
   periodOverPeriodChange,
   cashBalanceTrend,
   billsDueWithin,
@@ -506,6 +507,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const categories = [...budget.allocations, ...budget.unbudgeted];
   const momChange = periodOverPeriodChange(cf.history);
 
+  // "Whose is it?" on the add forms: You, each other member, Family.
+  const whose = whoseOptions(who.active.map((m, i) => ({ id: m.id, label: who.labels[i] })), memberId);
   // INCOME's groups: the sources in their own order, then any other
   // source a row carries (an older or imported one) after them.
   const usedSources = [...cf.incomeGroups.map((g) => g.category ?? "Other"), ...cf.expectedIncome.map((x) => x.category ?? "Salary"), ...cf.receivedIncome.map((x) => x.category ?? "Salary"), ...cf.recentIncome.map((e) => e.category ?? "Other")];
@@ -653,7 +656,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
-      <AddIncomeScheduleForm accounts={bareAccounts} grownUp={grownUp} />
+      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} grownUp={grownUp} />
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
@@ -801,7 +804,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           ))}
         </>
       )}
-      <AddBillForm />
+      <AddBillForm whose={whose} />
       </CollapsibleGroup>
     </>
   );
@@ -812,11 +815,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
   const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
     householdDateFormat(),
-    getWealthPane(familyId, memberId, scope),
+    getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
     // needs getCashFlowPane for its own history strip, at whichever range
     // the picker below is set to.
-    getCashFlowPane(familyId, range, scope),
+    getCashFlowPane(familyId, range, scope, "account"),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),

@@ -327,6 +327,10 @@ create policy health_vitals_insert on health_vitals for insert with check (famil
 -- 20260929020000 made them, with kin_offer_done and family_has_plus cut down
 -- to what next_kin_offer() needs here.
 alter table bills add column if not exists created_at timestamptz not null default now();
+-- 20261023120000_entry_owner fills a bill's owner from the account it was paid from.
+alter table bills add column if not exists paid_from_account_id uuid;
+alter table income_schedules add column if not exists is_joint boolean not null default true;
+alter table income_schedules add column if not exists owner_member_id uuid;
 alter table accounts add column if not exists created_at timestamptz not null default now();
 alter table journal_entries add column if not exists created_at timestamptz not null default now();
 create table public.health_medicines (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), member_id uuid references members(id), name text default 'Medicine', dose text, times text[], start_date date, end_date date, visibility text, created_by uuid, created_at timestamptz not null default now());

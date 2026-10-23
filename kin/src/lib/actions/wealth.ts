@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -434,6 +434,8 @@ type LedgerInput = {
   sourceTable?: "bills" | "events" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | "assets" | "gift_list_items" | null;
   sourceId?: string | null;
   goalId?: string | null;
+  /** Whose it is; left out, the database takes the account's owner. */
+  owner?: { is_joint: boolean; owner_member_id: string | null } | null;
 };
 
 function ledgerRow(familyId: string, memberId: string, input: LedgerInput): TablesInsert<"wealth_transactions"> {
@@ -451,6 +453,7 @@ function ledgerRow(familyId: string, memberId: string, input: LedgerInput): Tabl
     source_id: input.sourceId ?? null,
     goal_id: input.goalId ?? null,
     recorded_by: memberId,
+    ...(input.owner ?? {}),
   };
 }
 
@@ -531,6 +534,8 @@ export async function recordMovementAction(input: {
    * most payments are not tied to either. */
   againstTable?: "assets" | "goals" | null;
   againstId?: string | null;
+  /** "me", "joint" or a member id: whose this money is (parseWhose). */
+  whose?: string;
 }): Promise<{ error: string | null; transactionId?: string; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -573,6 +578,7 @@ export async function recordMovementAction(input: {
     // own progress reads. Setting only source_table would show it in the
     // cashflow breakdown while the goal itself stayed where it was.
     goalId: sourceTable === "goals" ? sourceId : null,
+    owner: input.whose ? parseWhose(input.whose, me.id) : null,
   });
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
@@ -818,7 +824,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const { data: bill, error } = await supabase
     .from("bills")
     // The default is the column's own, so a bill left at 3 writes nothing new.
-    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
+    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, ...parseWhose(formData.get("whose"), me.id), ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
     .select()
     .single();
   if (error) return { error: databaseError(error) };
@@ -889,6 +895,8 @@ export async function payBillAction(input: {
     status,
     sourceTable: "bills",
     sourceId: bill.id,
+    // The payment is whoever the bill is for, whichever account paid it.
+    owner: bill.is_joint === null ? null : { is_joint: bill.is_joint, owner_member_id: bill.owner_member_id },
   });
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
@@ -947,6 +955,8 @@ export async function addNextBillAction(input: { fromBillId: string; amount: num
       remind_days_before: from.remind_days_before,
       status: "unpaid",
       created_by: me.id,
+      is_joint: from.is_joint,
+      owner_member_id: from.owner_member_id,
     })
     .select()
     .single();
@@ -1000,7 +1010,7 @@ export async function addIncomeScheduleAction(_prev: ActionState, formData: Form
   const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
   const requestedAccountId = String(formData.get("account_id") ?? "") || null;
-  const isJoint = formData.get("is_joint") === "on";
+  const whose = parseWhose(formData.get("whose"), me.id);
   if (!name) return { error: "Name and amount are required." };
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
 
@@ -1021,8 +1031,7 @@ export async function addIncomeScheduleAction(_prev: ActionState, formData: Form
       category,
       recurrence,
       account_id: accountId,
-      is_joint: isJoint,
-      owner_member_id: isJoint ? null : me.id,
+      ...whose,
       status: "expected",
       created_by: me.id,
     })
@@ -1074,6 +1083,8 @@ export async function receiveIncomeAction(input: {
     status,
     sourceTable: "income_schedules",
     sourceId: schedule.id,
+    // Whoever the income is for, whichever account it landed in.
+    owner: { is_joint: schedule.is_joint, owner_member_id: schedule.is_joint ? null : schedule.owner_member_id ?? me.id },
   });
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
@@ -1147,7 +1158,7 @@ export async function addIncomeGroupAction(_prev: ActionState, formData: FormDat
   const targetRaw = String(formData.get("monthly_target") ?? "").trim();
   const monthlyTarget = targetRaw ? Number(targetRaw) : null;
   const requestedAccountId = String(formData.get("account_id") ?? "") || null;
-  const isJoint = formData.get("is_joint") === "on";
+  const whose = parseWhose(formData.get("whose"), me.id);
   if (!isGrownUp(me.role)) return { error: "Only a grown-up of the household can set up a regular income." };
   if (!name) return { error: "Give it a name." };
   if (!(usualAmount > 0)) return { error: "Enter a usual amount greater than zero." };
@@ -1176,8 +1187,7 @@ export async function addIncomeGroupAction(_prev: ActionState, formData: FormDat
     category,
     recurrence: frequency,
     account_id: accountId,
-    is_joint: isJoint,
-    owner_member_id: isJoint ? null : me.id,
+    ...whose,
     next_date: firstDate,
     status: "expected",
     created_by: me.id,

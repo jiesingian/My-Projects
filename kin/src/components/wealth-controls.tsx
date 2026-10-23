@@ -1,5 +1,6 @@
 "use client";
 
+import { WhoseSelect } from "@/components/whose-select";
 import { FormSheet } from "@/components/form-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
@@ -21,6 +22,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
+  type WhoseOption,
   INCOME_FREQUENCY_LABELS,
   BILL_REMIND_DAYS,
   DEFAULT_BILL_REMIND_DAYS,
@@ -444,7 +446,7 @@ export function AddAccountForm({
  * "once" under REPEATS is how a one-off expense is entered here. Renamed
  * addBillAction/bills throughout the code would be a much bigger change for
  * no functional gain, so only the copy shown to a member changed. */
-export function AddBillForm() {
+export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
@@ -493,6 +495,9 @@ export function AddBillForm() {
               </select>
             </Labelled>
           </div>
+          <Labelled label="Whose is it?">
+            <WhoseSelect name="whose" options={whose} />
+          </Labelled>
           <Labelled label="Remind me">
             <select className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
               {BILL_REMIND_DAYS.map((d) => (
@@ -562,7 +567,7 @@ export function BillReminderPicker({ billId, days }: { billId: string; days: num
   );
 }
 
-export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts: { id: string; name: string }[]; grownUp?: boolean }) {
+export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; grownUp?: boolean }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
@@ -608,7 +613,7 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
           </div>
         )}
         {grownUp && mode === "regular" ? (
-          <IncomeGroupForm accounts={accounts} onCancel={() => setOpen(false)} />
+          <IncomeGroupForm accounts={accounts} whose={whose} onCancel={() => setOpen(false)} />
         ) : (
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
@@ -654,10 +659,9 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
               </select>
             </Labelled>
           )}
-          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
-            <input type="checkbox" name="is_joint" defaultChecked />
-            Household income, not just mine
-          </label>
+          <Labelled label="Whose is it?">
+            <WhoseSelect name="whose" options={whose} />
+          </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
               Save
@@ -675,7 +679,7 @@ export function AddIncomeScheduleForm({ accounts, grownUp = false }: { accounts:
 
 /** A regular income, set up once: what it is, its usual amount, how often,
  * when the next one comes, and if wanted a monthly target. */
-function IncomeGroupForm({ accounts, onCancel }: { accounts: { id: string; name: string }[]; onCancel: () => void }) {
+function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; onCancel: () => void }) {
   const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addIncomeGroupAction, initialState);
   return (
@@ -727,10 +731,9 @@ function IncomeGroupForm({ accounts, onCancel }: { accounts: { id: string; name:
           </select>
         </Labelled>
       )}
-      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
-        <input type="checkbox" name="is_joint" defaultChecked />
-        Household income, not just mine
-      </label>
+      <Labelled label="Whose is it?">
+        <WhoseSelect name="whose" options={whose} />
+      </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           Set up
