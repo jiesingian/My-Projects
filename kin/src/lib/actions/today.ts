@@ -24,7 +24,11 @@ import type { ActionState } from "@/lib/actions/auth";
  * Undo puts both back. Every write is the member's own session, so row-level
  * security keeps it inside their household. */
 
-const KEY = /^(activity|bill|health)-[0-9a-f-]{36}$|^buy$/;
+// Wealth's rows (23 October: an utang, a hulog, a loan or fund payment, an
+// expected income) are only ever skipped here; the money is recorded in
+// Wealth, as a bill is paid there.
+const KEY = /^(activity|bill|health|utang|paluwagan|loan|fund|income)-[0-9a-f-]{36}$|^buy$/;
+const MONEY = new Set(["bill", "utang", "paluwagan", "loan", "fund", "income"]);
 
 /** Does this plan repeat (lib/activity-repeat)? */
 async function isRepeating(supabase: Awaited<ReturnType<typeof createClient>>, id: string, familyId: string): Promise<boolean> {
@@ -41,6 +45,7 @@ export async function markTodayItemAction(itemKey: string, state: "done" | "skip
   const id = rest.join("-");
 
   if (kind === "bill" && state === "done") return { error: "Pay a bill from Wealth, so the money is recorded." };
+  if (MONEY.has(kind) && state === "done") return { error: "Record it in Wealth, so the money is recorded." };
 
   // A repeating plan is marked a day at a time (today_marks, below); setting
   // its row's status would close the whole series.

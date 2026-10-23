@@ -20,6 +20,8 @@ import { DoseRow } from "@/components/today-dose-row";
  * else that is due today. */
 export type TodayEntry = { kind: "task"; task: RoutineView } | { kind: "item"; item: BriefItem } | { kind: "dose"; dose: TodayDose };
 
+const ACTION_LABEL: Record<NonNullable<BriefItem["action"]>, string> = { done: "Done", pay: "Pay", shop: "Shop", record: "Record", confirm: "Confirm", receive: "Receive" };
+
 const TINT: Record<BriefItem["tint"], string> = {
   money: "var(--cal-money)",
   schedule: "var(--cal-schedule)",
@@ -139,10 +141,12 @@ function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
                 </button>
               ) : (
                 // Paying records money leaving an account, and shopping is
-                // ticking the list; both happen where they live.
+                // ticking the list; both happen where they live -- as do
+                // recording money coming back, confirming a payment made
+                // elsewhere and receiving income (23 October).
                 <Link href={item.href} className="btn btn-primary" style={small}>
-                  <Icon name={item.action === "pay" ? "wallet" : "basket"} size={14} />
-                  {item.action === "pay" ? "Pay" : "Shop"}
+                  <Icon name={item.action === "shop" ? "basket" : item.action === "confirm" ? "check" : "wallet"} size={14} />
+                  {ACTION_LABEL[item.action]}
                 </Link>
               )}
               <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => mark("skipped")} style={{ ...small, padding: "0 0.75rem" }}>
