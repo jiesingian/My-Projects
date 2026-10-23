@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { EXPENSE_CATEGORIES, INCOME_SOURCES, type WhoseOption } from "@/lib/wealth";
+import { EXPENSE_CATEGORIES, INCOME_SOURCES, categoryLabel, type WhoseOption } from "@/lib/wealth";
 import { WhoseSelect } from "@/components/whose-select";
 import { currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
@@ -195,11 +195,11 @@ export function TransactForm({
       )}
 
       {mode !== "transfer" && (
-        <Field label={mode === "in" ? "SOURCE" : "CATEGORY"}>
+        <Field label="CATEGORY">
           <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {(mode === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES).map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
@@ -212,7 +212,8 @@ export function TransactForm({
         </Field>
       )}
 
-      <Field label="Particulars" required={mode !== "transfer"} name="particulars">
+      {/* Money in names its source -- "Category - Source" on Cash Flow. */}
+      <Field label={mode === "in" ? "Source" : "Particulars"} required={mode !== "transfer"} name="particulars">
         <input
           className="input"
           value={particulars}
