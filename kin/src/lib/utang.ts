@@ -114,6 +114,21 @@ export function instalmentPlan(amount: number, count: number, frequency: Paluwag
   });
 }
 
+/** Where the household stands in a paluwagan: what "us" has put in, less
+ * the pot if our turn has come and gone. Positive is savings the group
+ * still owes us (an asset); negative, after taking the pot early, is what
+ * we still owe it (a liability). 0 for a group we are not in. */
+export function paluwaganPosition(
+  g: { contribution: number; frequency: PaluwaganFrequency; startsOn: string; members: { id: string; turn: number; isUs: boolean }[]; paidRounds: { memberId: string; round: number }[] },
+  todayISO: string,
+): number {
+  const us = g.members.find((m) => m.isUs);
+  if (!us) return 0;
+  const putIn = g.paidRounds.filter((p) => p.memberId === us.id).length * g.contribution;
+  const taken = currentRound(g.startsOn, g.frequency, g.members.length, todayISO) >= us.turn ? pot(g.contribution, g.members.length) : 0;
+  return centavos(putIn - taken);
+}
+
 /** The pot one member takes in their round. */
 export function pot(contribution: number, members: number): number {
   return centavos(contribution * members);

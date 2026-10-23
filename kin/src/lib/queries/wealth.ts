@@ -3,8 +3,9 @@ import type { Tables } from "@/lib/database.types";
 import { getCurrentMember } from "@/lib/session";
 import { catchUpOffers, type NextBillOffer } from "@/lib/bill-roll";
 import { familyDay } from "@/lib/time";
+import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -327,12 +328,18 @@ export async function getGoals(familyId: string) {
  * joint account already works. */
 export async function getNetWorth(familyId: string, scope: WealthScope = "all", today: string = new Date().toISOString().slice(0, 10)) {
   const supabase = await createClient();
-  const [{ data: rawAssets }, { data: assetItems }, { data: liabilities }, { data: goals }, accounts] = await Promise.all([
+  const [{ data: rawAssets }, { data: assetItems }, { data: liabilities }, { data: goals }, accounts, { data: utang }, { data: paluwagans }] = await Promise.all([
     supabase.from("assets").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId),
     supabase.from("asset_items").select("*").eq("family_id", familyId).order("acquired_on", { ascending: false, nullsFirst: false }),
     supabase.from("liabilities").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("balance", { ascending: false }),
     supabase.from("goals").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("created_at", { ascending: false }),
     loadAccounts(familyId),
+    // Utang and paluwagan (Janine, 23 October): money lent is owed to us,
+    // money borrowed we owe, and a paluwagan holds what we have put in.
+    // Grown-ups' records: a child's read returns none, and "just me" ones
+    // only their recorder's (their policies).
+    supabase.from("utang_entries").select("id, direction, amount, is_private, recorded_by, utang_payments(amount)").eq("family_id", familyId),
+    supabase.from("paluwagan_groups").select("id, contribution, frequency, starts_on, is_private, recorded_by, paluwagan_members(id, turn, is_us), paluwagan_payments(member_id, round)").eq("family_id", familyId),
   ]);
 
   // An asset is worth the place itself plus everything in it, each aged to
@@ -356,6 +363,32 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
   const goalTotal = scopedGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
   const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);
 
+  // Utang and paluwagan have no owner, only household or "just me": under
+  // Everyone all that can be seen, under Family the household ones, under a
+  // person their own "just me" ones.
+  const ledgerInScope = (r: { is_private: boolean; recorded_by: string | null }) =>
+    scope === "all" ? true : scope === WEALTH_FAMILY ? !r.is_private : r.is_private && r.recorded_by === scope;
+  const utangLeftOf = (u: { amount: number | string; utang_payments: { amount: number | string }[] | null }) => utangLeft(Number(u.amount), u.utang_payments ?? []).left;
+  const scopedUtang = (utang ?? []).filter(ledgerInScope);
+  const owedToUs = scopedUtang.filter((u) => u.direction === "lent").reduce((sum, u) => sum + utangLeftOf(u), 0);
+  const weOwe = scopedUtang.filter((u) => u.direction === "borrowed").reduce((sum, u) => sum + utangLeftOf(u), 0);
+  const paluwaganPositions = (paluwagans ?? []).filter(ledgerInScope).map((g) =>
+    paluwaganPosition(
+      {
+        contribution: Number(g.contribution),
+        frequency: g.frequency as PaluwaganFrequency,
+        startsOn: g.starts_on,
+        members: (g.paluwagan_members ?? []).map((m) => ({ id: m.id, turn: m.turn, isUs: m.is_us })),
+        paidRounds: (g.paluwagan_payments ?? []).map((p) => ({ memberId: p.member_id, round: p.round })),
+      },
+      today,
+    ),
+  );
+  const paluwaganIn = paluwaganPositions.filter((p) => p > 0).reduce((sum, p) => sum + p, 0);
+  const paluwaganOwed = paluwaganPositions.filter((p) => p < 0).reduce((sum, p) => sum - p, 0);
+  const receivables = owedToUs + paluwaganIn;
+  const payables = weOwe + paluwaganOwed;
+
   return {
     scope,
     assets: scopedAssets,
@@ -366,7 +399,16 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
     liabilityTotal,
     goalTotal,
     cashTotal,
-    netWorth: cashTotal + assetTotal + goalTotal - liabilityTotal,
+    /** Owed to us: utang lent, and paluwagan we have paid into and not yet
+     * taken. */
+    owedToUs,
+    paluwaganIn,
+    receivables,
+    /** We owe: utang borrowed, and paluwagan pots taken ahead of paying in. */
+    weOwe,
+    paluwaganOwed,
+    payables,
+    netWorth: cashTotal + assetTotal + goalTotal + receivables - liabilityTotal - payables,
   };
 }
 
@@ -762,7 +804,7 @@ export async function keepNetWorthCurrent(familyId: string, viewerMemberId: stri
     .eq("month", month)
     .maybeSingle();
   if (row && Date.now() - new Date(row.updated_at).getTime() < NET_WORTH_FRESH_MS) return;
-  const { cashTotal, goalTotal, assetTotal, liabilityTotal, netWorth } = await getNetWorth(familyId, "all", today);
+  const { cashTotal, goalTotal, assetTotal, liabilityTotal, receivables, payables, netWorth } = await getNetWorth(familyId, "all", today);
   await supabase.from("net_worth_snapshots").upsert(
     {
       viewer_member_id: viewerMemberId,
@@ -771,8 +813,10 @@ export async function keepNetWorthCurrent(familyId: string, viewerMemberId: stri
       month,
       cash: cashTotal,
       goals: goalTotal,
-      assets: assetTotal,
-      liabilities: liabilityTotal,
+      // Utang and paluwagan ride with assets and liabilities, so the parts
+      // still add up to the net worth beside them.
+      assets: assetTotal + receivables,
+      liabilities: liabilityTotal + payables,
       net_worth: netWorth,
       updated_at: new Date().toISOString(),
     },

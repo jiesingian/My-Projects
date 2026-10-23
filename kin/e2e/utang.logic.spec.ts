@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { currentRound, greetingName, instalmentPlan, paluwaganReminder, paymentProblem, pot, roundDate, utangLeft, utangReminder } from "@/lib/utang";
+import { currentRound, greetingName, instalmentPlan, paluwaganPosition, paluwaganReminder, paymentProblem, pot, roundDate, utangLeft, utangReminder } from "@/lib/utang";
 
 /** Utang and paluwagan, without a browser or a database: what is left on a
  * loan, the paluwagan's round dates and pot, and the reminders Kin writes
@@ -91,4 +91,21 @@ test("instalmentPlan: equal shares, leftover centavos last, payments applied in 
   expect(instalmentPlan(1000, 3, "monthly", "2026-11-05", 1000, "2026-10-22").every((i) => i.status === "paid")).toBe(true);
   // Kinsenas: the 15th and the 30th.
   expect(instalmentPlan(600, 4, "semi_monthly", "2026-10-15", 0, "2026-10-01").map((i) => i.due)).toEqual(["2026-10-15", "2026-10-30", "2026-11-15", "2026-11-30"]);
+});
+
+test("paluwaganPosition: what we have put in, less the pot once our turn has come", () => {
+  const members = [
+    { id: "joy", turn: 1, isUs: false },
+    { id: "us", turn: 2, isUs: true },
+    { id: "ben", turn: 3, isUs: false },
+  ];
+  const g = (paidRounds: { memberId: string; round: number }[]) => ({ contribution: 1000, frequency: "monthly" as const, startsOn: "2026-10-01", members, paidRounds });
+  // Round 1 on: we paid it; our turn (round 2) not yet -- ₱1,000 the group holds for us.
+  expect(paluwaganPosition(g([{ memberId: "us", round: 1 }]), "2026-10-15")).toBe(1000);
+  // Round 2: we paid both and took the ₱3,000 pot -- we still owe the group ₱1,000.
+  expect(paluwaganPosition(g([{ memberId: "us", round: 1 }, { memberId: "us", round: 2 }]), "2026-11-05")).toBe(-1000);
+  // Round 3 paid too: square.
+  expect(paluwaganPosition(g([1, 2, 3].map((round) => ({ memberId: "us", round }))), "2026-12-05")).toBe(0);
+  // A group we are not in counts for nothing.
+  expect(paluwaganPosition({ ...g([]), members: members.map((m) => ({ ...m, isUs: false })) }, "2026-12-05")).toBe(0);
 });
