@@ -347,7 +347,10 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
 export async function approveMemberAction(memberId: string, role: MemberRole = "adult"): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the household's organizer can approve a join request." };
-  if (role !== "parent" && role !== "adult") return { error: "A member joins as either a parent or an adult." };
+  // A child of any age may have a login of their own once the organizer
+  // approves them as one (Jonathan, 23 October): that approval is the
+  // parent's consent, and a child_self row starts in kid view (20260925120000).
+  if (role !== "parent" && role !== "adult" && role !== "child_self") return { error: "A member joins as a parent, an adult or a child." };
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");

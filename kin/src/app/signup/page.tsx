@@ -26,7 +26,7 @@ export default function SignupPage() {
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
         Your own account first: every member signs in with their own verified email. Next you start your
-        family or join one with its invite code. Children under 13 are added as managed profiles instead.
+        family or join one with its invite code. A child can join the same way; a parent approves them, and they start in kid view.
       </p>
       {/* Submitted from onSubmit rather than action= because React resets a
           form after its action runs, and on an error -- the mailer's hourly
