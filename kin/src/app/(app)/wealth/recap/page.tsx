@@ -172,7 +172,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
                 </span>
               </div>
             ) : (
-              <p style={sub}>Kin keeps your net worth from your visits to Wealth&apos;s Assets view; open it at least once a month and the change shows here.</p>
+              <p style={sub}>Kin keeps your net worth from your visits to Wealth; open it at least once a month and the change shows here.</p>
             )}
           </>
         )}

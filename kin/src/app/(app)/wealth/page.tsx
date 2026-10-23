@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
@@ -5,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -102,6 +103,11 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
+        {seg !== "assets" && (
+          <Suspense fallback={null}>
+            <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
+          </Suspense>
+        )}
       </div>
     </div>
   );
@@ -1025,6 +1031,14 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       </div>
     </>
   );
+}
+
+/** Draws nothing: brings this month's net-worth point up to date from Cash
+ * Flow and Accounts too, streamed so the page never waits on it. */
+async function NetWorthKeeper({ familyId, memberId }: { familyId: string; memberId: string }) {
+  const today = familyDay(new Date(), await householdZone());
+  await keepNetWorthCurrent(familyId, memberId, today).catch(() => undefined);
+  return null;
 }
 
 /* -------------------------------------------------------------------- A&L */
