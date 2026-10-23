@@ -48,7 +48,7 @@ export function ConvertToChild({ memberId, fullName }: { memberId: string; fullN
         {busy ? "…" : "Turn into a managed child profile"}
       </button>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
-        For someone too young for their own login. Removes their sign-in and keeps everything else.
+        For a child who shouldn&rsquo;t sign in on their own. Removes their sign-in and keeps everything else.
       </p>
       {/* The action reports a partly-done conversion here too -- the profile
           changed but the sign-in outlived it -- so this is not only failure. */}
