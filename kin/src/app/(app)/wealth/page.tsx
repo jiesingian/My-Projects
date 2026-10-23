@@ -41,6 +41,7 @@ import {
   CASH_FLOW_RANGE_LABELS,
   INCOME_FREQUENCY_LABELS,
   INCOME_SOURCES,
+  categoryLabel,
   incomeSourceColor,
   whoseOptions,
   periodOverPeriodChange,
@@ -332,7 +333,7 @@ function EntryRow({ entry, currency, dateFormat, showAccount, owner }: { entry: 
         <span style={{ fontSize: "0.875rem", display: "block" }}>{entry.particulars}</span>
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {formatDate(entry.occurred_at, dateFormat)}
-          {entry.category ? ` · ${entry.category}` : ""}
+          {entry.category ? ` · ${categoryLabel(entry.category)}` : ""}
           {showAccount && entry.accountName ? ` · ${entry.accountName}${owner ? ` (${owner})` : ""}` : ""}
         </span>
       </span>
@@ -587,7 +588,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         if (count === 0) return null;
         const earned = cf.incomeByCategory.find((c) => c.category === source)?.earned ?? 0;
         return (
-          <FoldableSection key={source} label={`${source.toUpperCase()} · ${count} · ${formatCurrency(earned, currency)}`} storageKey={`kin-income-${source}`} swatch={incomeSourceColor(source)}>
+          <FoldableSection key={source} label={`${categoryLabel(source).toUpperCase()} · ${count} · ${formatCurrency(earned, currency)}`} storageKey={`kin-income-${source}`} swatch={incomeSourceColor(source)}>
             {groups.map((g) => {
             const cap = g.monthly_target ? Number(g.monthly_target) : null;
             const pct = cap ? Math.min(100, Math.round((g.thisMonth / cap) * 100)) : 0;
@@ -597,7 +598,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{g.name}</span>
                     <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                      {g.category ?? "Other"} · {INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually {formatCurrency(Number(g.usual_amount), currency)}
+                      {categoryLabel(g.category ?? "Other")} · {INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually {formatCurrency(Number(g.usual_amount), currency)}
                       {g.next?.next_date ? ` · next ${fmtDate(g.next.next_date)}` : ""}
                     </span>
                   </span>
@@ -624,7 +625,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{s.name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {s.category ?? "Salary"}
+                {categoryLabel(s.category ?? "Salary")}
                 {s.next_date ? ` · expected ${fmtDate(s.next_date)}` : ""}
               </span>
             </span>
@@ -694,7 +695,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
                 aria-hidden="true"
                 style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: "0.4375rem", flex: "none" }}
               />
-              <span>{c.category}</span>
+              <span>{categoryLabel(c.category)}</span>
               {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
               <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                 {formatCurrency(c.spent, currency)}
@@ -766,7 +767,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {b.category ?? "Utilities"}
+                {categoryLabel(b.category ?? "Utilities")}
                 {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
               </span>
             </span>

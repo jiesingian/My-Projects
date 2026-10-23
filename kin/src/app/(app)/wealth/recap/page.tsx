@@ -6,6 +6,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Empty, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
+import { categoryLabel } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
 import { familyDay } from "@/lib/time";
 import { getMoneyRecap } from "@/lib/queries/money-recap";
@@ -92,7 +93,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
                 <div className="kin-eyebrow" style={{ margin: "1rem 0 0.375rem" }}>BIGGEST CHANGES FROM {monthLabel(monthBefore(month)).split(" ")[0].toUpperCase()}</div>
                 {r.changes.map((c) => (
                   <div key={c.category} style={row}>
-                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
+                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{categoryLabel(c.category)}</span>
                     <span style={sub}>
                       {c.kind === "new" ? "new this month" : c.kind === "gone" ? "nothing this month" : `${money(c.before)} → ${money(c.now)}`}
                     </span>
@@ -112,7 +113,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
               return (
                 <div key={c.category} style={{ padding: "0.5rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", columnGap: "0.5rem", alignItems: "baseline" }}>
-                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
+                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{categoryLabel(c.category)}</span>
                     {c.over && <Tag variant="accent">OVER</Tag>}
                     <span style={num}>
                       {money(c.spent)}

@@ -22,6 +22,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
+  categoryLabel,
   type WhoseOption,
   INCOME_FREQUENCY_LABELS,
   BILL_REMIND_DAYS,
@@ -465,23 +466,23 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
       <FormSheet open={open} onClose={() => setOpen(false)} title="Add expense">
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
-          <Labelled label="Expense">
+          <Labelled label="What it's for">
             <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
               <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
             </Labelled>
-            <Labelled label="DUE" style={{ flex: 1 }}>
+            <Labelled label="Due on" style={{ flex: 1 }}>
               <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
             </Labelled>
           </div>
           <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label="Category" style={{ flex: 1 }}>
+            <Labelled label="Spent on" style={{ flex: 1 }}>
               <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </select>
@@ -617,23 +618,23 @@ export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { ac
         ) : (
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
-          <Labelled label="Source">
-            <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
+          <Labelled label="What it is">
+            <input className="input" name="name" required placeholder="October salary, Ate's padala" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
               <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
             </Labelled>
-            <Labelled label="Expected" style={{ flex: 1 }}>
+            <Labelled label="Expected on" style={{ flex: 1 }}>
               <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
             </Labelled>
           </div>
           <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label="Category" style={{ flex: 1 }}>
+            <Labelled label="Type of income" style={{ flex: 1 }}>
               <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
                 {INCOME_SOURCES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </select>
@@ -689,11 +690,11 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
         <input className="input" name="name" required maxLength={80} placeholder="Rice business, Jonathan's salary" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Source" style={{ flex: 1 }}>
+        <Labelled label="Type of income" style={{ flex: 1 }}>
           <select className="input" name="category" defaultValue="Business" style={{ minHeight: "2.625rem" }}>
             {INCOME_SOURCES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
@@ -843,7 +844,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
           <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
