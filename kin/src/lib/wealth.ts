@@ -175,7 +175,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   Salary: "Salary & wages",
   Business: "Business income",
   "House (rent)": "Rent received",
-  Remittance: "Remittance received",
+  // Janine, 23 October: what Add income and Cash Flow call it.
+  Remittance: "Remittance from abroad",
   Investment: "Interest & dividends",
   Gift: "Gifts received",
   Refund: "Refunds & cashback",
@@ -196,6 +197,10 @@ export function parseWhose(raw: unknown, meId: string): { is_joint: boolean; own
   if (v === "me" || !/^[0-9a-f-]{36}$/i.test(v)) return { is_joint: false, owner_member_id: meId };
   return { is_joint: false, owner_member_id: v };
 }
+
+/** Add income's category for money borrowed or paid back -- saved to the
+ * utang log, not as an income of its own (income-category-extras). */
+export const UTANG_CATEGORY = "Utang & paluwagan";
 
 export type WhoseOption = { value: string; label: string };
 
