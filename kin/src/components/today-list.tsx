@@ -15,6 +15,7 @@ import type { BriefItem } from "@/lib/queries/today";
 import type { RoutineView } from "@/lib/queries/routines";
 import type { TodayDose } from "@/lib/today-doses";
 import { DoseRow } from "@/components/today-dose-row";
+import { RsvpButtons } from "@/components/rsvp-buttons";
 
 /** One entry in Today's list: a chore, a medicine (23 October), or anything
  * else that is due today. */
@@ -156,6 +157,7 @@ function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
           )}
         </div>
       )}
+      {item.rsvp && <RsvpButtons eventId={item.rsvp.eventId} memberId={item.rsvp.memberId} />}
       <ErrorText message={error} />
     </Blueprint>
   );

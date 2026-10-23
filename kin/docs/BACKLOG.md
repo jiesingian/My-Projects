@@ -104,14 +104,18 @@ all Jonathan's on 23 October, each the recommended option:
   money recap on the 1st–3rd; the week's in Coming up; lib/today-wealth.
   Migration 20261023235000: the "scheduled" bill and midnight all-day plan
   pushes.
-- **To do, in order:** PR 5 the other
-  rows (an RSVP waiting with Going / Can't, our own potluck, a vault
-  emergency request with Allow / Deny, an open SOS banner, a document
-  expiring, a card to sign, a failed scheduled message) and Coming up
-  (document renewals, utang, paluwagan, loans, sinking funds, expected
-  income, monito-monita outside December, linked households' birthdays),
-  plus the Google switch; PR 6 the Goals and Money tiles and today's meal
-  shortfall on the shopping tile; PR 7 the quick row per member and the
+- **Done (PR 5):** the other rows -- an event waiting on the reader's RSVP
+  with Going / Can't go on the row (Today and Coming up), our own potluck's
+  "who brings what? N still needed", a vault emergency request waiting (it
+  opens Privacy & lock: Allow needs the lock open, so no button on the
+  row), an open SOS as a banner above the fold, a document expired or
+  expiring (a passport a month ahead, the rest a week), a card to sign, a
+  scheduled message that failed, a linked household's birthday today; and
+  in Coming up the monito-monita's exchange day. lib/today-family.
+- **To do, in order:** PR 6 the Google switch (decision 2: a
+  calendar_links column, the sync honouring it, the switch on Settings →
+  Connected apps); PR 7 the Goals and Money tiles and today's meal
+  shortfall on the shopping tile; PR 8 the quick row per member and the
   type-it line reading an expense and a meal.
 - Kept off Today on purpose: meals (header), unread chat (tab badge),
   connection and link requests and pending members (Family), highlights,

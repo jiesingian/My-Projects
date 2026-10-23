@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
 import { PickButton } from "@/components/pick-button";
+import { RsvpButtons } from "@/components/rsvp-buttons";
 import type { BriefItem } from "@/lib/queries/today";
 
 /** Today's "Coming up", with the same Who dropdown as the Planner and
@@ -40,16 +41,24 @@ export function ComingUpPager({ items, people }: { items: BriefItem[]; people: {
           <p className="kin-pager-empty">Nothing coming up for {who === "all" ? "anyone" : who === "family" ? "the whole family" : label === "Me" ? "you" : label} this week.</p>
         ) : (
           rows.map((b) => (
-            <Link key={b.id} href={b.href} className="kin-brief-row">
-              <span className="kin-brief-ico" data-tint={b.tint}>
-                <Icon name={b.icon} size="1.0625rem" />
-              </span>
-              <span style={{ minWidth: 0 }}>
-                <span className="kin-brief-title">{b.title}</span>
-                <span className="kin-brief-meta">{b.meta}</span>
-              </span>
-              <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
-            </Link>
+            <div key={b.id}>
+              <Link href={b.href} className="kin-brief-row">
+                <span className="kin-brief-ico" data-tint={b.tint}>
+                  <Icon name={b.icon} size="1.0625rem" />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="kin-brief-title">{b.title}</span>
+                  <span className="kin-brief-meta">{b.meta}</span>
+                </span>
+                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
+              </Link>
+              {/* An event still waiting on the reader's answer (23 October). */}
+              {b.rsvp && (
+                <div style={{ padding: "0 0.75rem 0.625rem 3.25rem" }}>
+                  <RsvpButtons eventId={b.rsvp.eventId} memberId={b.rsvp.memberId} />
+                </div>
+              )}
+            </div>
           ))
         )}
       </div>
