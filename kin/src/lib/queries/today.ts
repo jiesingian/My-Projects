@@ -15,6 +15,8 @@ import { isGone } from "@/lib/member-status";
 import { dosesFor } from "@/lib/health-plan";
 import { medicineGlance } from "@/lib/medicine-glance";
 import { shopGlance } from "@/lib/shop-glance";
+import { eventIsCurrent } from "@/lib/planner-done";
+import { nextEventDate } from "@/lib/grocery";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -225,10 +227,11 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     });
   }
 
-  const monthDay = today.slice(5);
   for (const e of events.data ?? []) {
-    const isToday = e.recurs_yearly ? e.event_date.slice(5) === monthDay : e.event_date === today;
-    if (!isToday) continue;
+    // The Planner's rule (lib/planner-done): a yearly one on this year's turn,
+    // a 29 February one on 1 March when the year has no 29th -- matching
+    // month and day alone missed it three years in four (23 October).
+    if (!eventIsCurrent(e, today)) continue;
     if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
     // A birthday reads better with the number on it than without.
     const years = e.recurs_yearly ? Number(today.slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
@@ -337,8 +340,6 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const today = localDay(now, tz);
   const tomorrow = addDays(today, 1);
   const weekOut = addDays(today, 7);
-  const dayIndex = new Map<string, number>();
-  for (let i = 1; i <= 7; i++) dayIndex.set(addDays(today, i).slice(5), i);
 
   const [events, bills, health, tasks, meals, departed, potlucks, members] = await Promise.all([
     supabase
@@ -430,8 +431,10 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   // guide, 23 October: both sat one tap down and went unseen). Read only for
   // the events that made the week, and as the viewer.
   const soonEvents = (events.data ?? [])
-    .map((e) => ({ e, inDays: e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined }))
-    .filter((x): x is typeof x & { inDays: number } => !!x.inDays);
+    // Days until its next turn (a 29 February one on 1 March in a year
+    // without one, lib/grocery), keeping only the coming week's.
+    .map((e) => ({ e, inDays: Math.round((Date.parse(nextEventDate(e, today)) - Date.parse(today)) / 86_400_000) }))
+    .filter((x) => x.inDays >= 1 && x.inDays <= 7);
   const soonIds = soonEvents.map((x) => x.e.id);
   const [rsvps, guests, claims] = soonIds.length
     ? await Promise.all([

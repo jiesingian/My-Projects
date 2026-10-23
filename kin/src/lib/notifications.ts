@@ -6,7 +6,9 @@
  * put any key -- or any amount of them -- into their own row. */
 export const NOTIFICATION_DEFS = [
   { key: "events", name: "Events and schedules", sub: "Day before, and one hour ahead" },
-  { key: "health", name: "Health reminders", sub: "Vaccinations, check-ups, medication" },
+  // Only medicines are ever pushed (due_reminders' doses and their repeats);
+  // the line used to promise check-ups and vaccinations too (23 October).
+  { key: "health", name: "Health reminders", sub: "A medicine dose at its time" },
   { key: "bills", name: "Bills and utilities", sub: "Three days before due date" },
   { key: "journal", name: "Journal activity", sub: "When someone adds photos or a note" },
   { key: "shopping", name: "Shopping list", sub: "When an item is added by another member" },
