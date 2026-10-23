@@ -18,7 +18,7 @@ import { useId, useState, useTransition } from "react";
 import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
-import { expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
+import { categoryLabel, expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
 import { setMemberBudgetAction } from "@/lib/actions/wealth";
 
 const OUT_COLOR = "color-mix(in srgb, var(--color-text) 40%, transparent)";
@@ -340,7 +340,7 @@ export function CategoryDonut({
   return (
     <div style={{ marginBottom: "1rem" }}>
       <p className="sr-only">
-        {income ? "Income by source" : "Spending by category this month"}, total {formatCurrency(total, currency)}. {slices.map((c) => `${c.category}: ${formatCurrency(c.spent, currency)}, ${pct(c.spent)}%`).join("; ")}.
+        {income ? "Income by source" : "Spending by category this month"}, total {formatCurrency(total, currency)}. {slices.map((c) => `${categoryLabel(c.category)}: ${formatCurrency(c.spent, currency)}, ${pct(c.spent)}%`).join("; ")}.
       </p>
       <div style={{ maxWidth: size, margin: "0.25rem auto 0" }}>
         <svg viewBox={`0 0 ${size} ${size}`} style={{ width: "100%", height: "auto", display: "block" }} aria-hidden="true">
@@ -360,7 +360,7 @@ export function CategoryDonut({
               }
             </Pie>
             <text textAnchor="middle" y={-16} fontSize={10.5} letterSpacing=".06em" fill="var(--color-neutral-600)">
-              {picked ? picked.category.toUpperCase() : income ? "EARNED" : "SPENT"}
+              {picked ? categoryLabel(picked.category).toUpperCase() : income ? "EARNED" : "SPENT"}
             </text>
             <text textAnchor="middle" y={8} fontSize={20} fontWeight={600} fill="var(--color-text)" style={tabular}>
               {formatCurrency(picked ? picked.spent : total, currency)}
@@ -405,7 +405,7 @@ export function CategoryDonut({
               }}
             >
               <i aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: c.color ?? colorOf(c.category), flex: "none" }} />
-              <span style={{ flex: 1, minWidth: 0 }}>{c.category}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>{categoryLabel(c.category)}</span>
               <span style={tabular}>{formatCurrency(c.spent, currency)}</span>
               <span style={{ ...tabular, width: "2.6rem", textAlign: "right", color: "var(--color-neutral-600)" }}>{pct(c.spent)}%</span>
             </button>

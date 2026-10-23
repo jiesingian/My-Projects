@@ -99,29 +99,90 @@ export const LIABILITY_KIND_LABELS: Record<LiabilityKind, string> = {
 };
 
 /** Where money leaves the household. Budget allocations are set per category,
- * so these double as the budget-vs-actual axis. */
+ * so these double as the budget-vs-actual axis.
+ *
+ * These are the names saved on every entry, bill and budget, so an old one
+ * is never renamed here -- that would cut it off from what is already
+ * filed under it. What a person reads is CATEGORY_LABELS below. New ones
+ * may be added anywhere (Janine, 23 October: the common ones a Filipino
+ * household spends on). */
 export const EXPENSE_CATEGORIES = [
   "Groceries",
+  "Dining",
   "Utilities",
   "Housing",
   "Transport",
+  "Household help",
   "Health",
   "Education",
-  "Travel",
-  "Dining",
+  "Kids & baby",
+  "Personal care",
   "Shopping",
+  "Subscriptions",
+  "Entertainment",
+  "Travel",
   "Insurance",
   "Debt",
+  "Family support",
+  "Church & donations",
   // Christmas gifts and aguinaldo (20261019233300_gift_list.sql).
   "Gifts",
+  "Pets",
+  "Bank & service fees",
   "Other",
 ] as const;
 
-/** Where money enters, when it comes from outside anything Kin tracks. */
 /** Where money enters, when it comes from outside anything Kin tracks.
  * Also the groups of Cash Flow's INCOME and the slices of its donut, in
- * this order (Janine, 22 October: "House (rent)" for a place let out). */
-export const INCOME_SOURCES = ["Salary", "House (rent)", "Business", "Remittance", "Investment", "Gift", "Refund", "Other"] as const;
+ * this order (Janine, 22 October: "House (rent)" for a place let out).
+ * Saved names, like EXPENSE_CATEGORIES: never renamed, only relabelled. */
+export const INCOME_SOURCES = [
+  "Salary",
+  "Bonus & 13th month",
+  "Business",
+  "Freelance & side jobs",
+  "House (rent)",
+  "Remittance",
+  "Pension",
+  "Allowance",
+  "Investment",
+  "Utang paid back",
+  "Sold items",
+  "Gift",
+  "Government aid",
+  "Refund",
+  "Other",
+] as const;
+
+/** What a person reads for a saved category name, where the name alone
+ * says too little or reads like the wrong side of the ledger: "House
+ * (rent)" read like rent we pay, "Debt" like money we owe rather than a
+ * payment on it, "Gift" and "Gifts" like the same thing. Anything not
+ * here reads as it is saved. */
+export const CATEGORY_LABELS: Record<string, string> = {
+  // Money out
+  Groceries: "Groceries & palengke",
+  Dining: "Eating out & delivery",
+  Utilities: "Bills & utilities",
+  Housing: "Rent & housing",
+  Transport: "Transport & fuel",
+  Health: "Health & medicine",
+  Education: "School & tuition",
+  Travel: "Travel & vacations",
+  Debt: "Loan & card payments",
+  Gifts: "Gifts given",
+  // Money in
+  Salary: "Salary & wages",
+  Business: "Business income",
+  "House (rent)": "Rent received",
+  Remittance: "Remittance received",
+  Investment: "Interest & dividends",
+  Gift: "Gifts received",
+  Refund: "Refunds & cashback",
+};
+export function categoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] ?? category;
+}
 
 /** How often a regular income (income_groups) comes. */
 export const INCOME_FREQUENCY_LABELS: Record<string, string> = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly" };
@@ -283,7 +344,8 @@ export function explainLedgerRefusal(message: string): string {
  * side (checked with the same colourblind-safety method --cal-* already
  * uses), so the categories a household logs against every week get their
  * own colour and the occasional ones -- Education, Travel, Insurance, Debt,
- * plus the literal Other bucket -- share a neutral instead of a hue nobody
+ * the categories added 23 October, plus the literal Other bucket -- share
+ * a neutral instead of a hue nobody
  * could actually distinguish from its neighbour. The CSS variables are
  * defined once, in globals.css, so light/dark swap in one place. */
 const EXPENSE_CATEGORY_COLOR_VAR: Record<string, string> = {

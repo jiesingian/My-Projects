@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
+import { categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
 import { currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
@@ -189,11 +189,11 @@ export function TransactForm({
       )}
 
       {mode !== "transfer" && (
-        <Field label={mode === "in" ? "SOURCE" : "CATEGORY"}>
+        <Field label={mode === "in" ? "TYPE OF INCOME" : "SPENT ON"}>
           <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {(mode === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES).map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
