@@ -2,6 +2,9 @@ import { getMemberLocations } from "@/lib/queries/family";
 import { getLiquidIntake, getMealsForDay } from "@/lib/queries/household";
 import { getWeather, type Weather } from "@/lib/weather";
 import { LIQUID_INTAKE_TYPES, type LiquidIntakeType } from "@/lib/liquid-intake";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
+import { parseISODate } from "@/lib/routines";
 
 export type FamilyPanelPerson = {
   id: string;
@@ -24,11 +27,6 @@ export type FamilyPanel = {
   weatherNear: string | null;
 };
 
-function todayISO(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
-
 /** The Family panel on Today: who is in the household, where they are if
  * they chose to say, what everyone has drunk, and what is being cooked.
  *
@@ -40,11 +38,13 @@ function todayISO(): string {
  * capital city.
  */
 export async function getFamilyPanel(familyId: string): Promise<FamilyPanel> {
-  const date = todayISO();
+  // The household's day, as the rest of Today reads it: "Eating today" and
+  // the glasses used to follow the server's date (23 October).
+  const date = familyDay(new Date(), await householdZone());
   const [locations, intake, mealsResult] = await Promise.all([
     getMemberLocations(familyId),
     getLiquidIntake(familyId, date),
-    getMealsForDay(familyId),
+    getMealsForDay(familyId, parseISODate(date)),
   ]);
 
   const glassesById = new Map(

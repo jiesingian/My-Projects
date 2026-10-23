@@ -1940,7 +1940,7 @@ Decided against in the same review: revising Journal (item 6) and Planner
   is put by here), water (liquid_intake_log), steps and weight (vitals /
   Apple Health), gym (sessions ticked, counted per week) or anything
   countable. A goal can carry a reward, set when the goal is made; it counts
-  once a parent or another adult says yes, on the goal or in Today's queue,
+  once a parent or another adult says yes, on the goal (the queue was Today's until 21 October, then Goals → Shop),
   and nobody approves their own (on a household goal, not whoever asked).
   The policies hold that, not the app (supabase/tests/rls_planner_goals.sql,
   32 cases, run on dev inside a rolled-back transaction). What a goal
@@ -1975,7 +1975,7 @@ Decided against in the same review: revising Journal (item 6) and Planner
   monthly goal can be worth points each time it is met, set by a grown-up
   on someone's goal (never a household or one-off goal). The owner claims
   the period once the ring is full ("Done today +5"); a grown-up's claim
-  counts at once, a child's waits on Today's queue like a chore. Points go
+  counts at once, a child's waits in Goals → Shop like a chore (Today's queue until 21 October). Points go
   into the same balance (loadPoints, kind "goal") and a daily goal's run of
   claims earns the household's 7- and 30-day streak bonus; the card shows
   "🔥 5 days in a row". What a claim is worth is copied from the goal when

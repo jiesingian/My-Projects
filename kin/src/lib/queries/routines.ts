@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { FAMILY_FILTER } from "@/lib/queries/planner";
-import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
+import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, parseISODate, toISODate, type RoutineRule } from "@/lib/routines";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
 import { bonusOn, choreStreak, type ChoreStreak, type DayState, type StreakBonusRate } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
 import { streakMilestones } from "@/lib/goals";
@@ -57,9 +59,19 @@ export async function getStreakBonusRates(familyId: string): Promise<StreakBonus
   return (data ?? []).map((r) => ({ from: r.effective_from, bonus: { 7: r.seven, 30: r.thirty } }));
 }
 
+/** The household's calendar day as a local-midnight Date, so the day
+ * arithmetic below (local getters throughout lib/routines) runs on the day
+ * the household is in, not the day the server is in. Today's briefing and
+ * the Planner already ask householdZone(); a chore's "today" used to be the
+ * server's, so a household abroad saw its chores change day at Manila's
+ * midnight (23 October). */
+async function householdToday(): Promise<Date> {
+  return parseISODate(familyDay(new Date(), await householdZone()));
+}
+
 export async function getRoutines(familyId: string, memberId?: string): Promise<RoutineView[]> {
   const supabase = await createClient();
-  const today = new Date();
+  const today = await householdToday();
   const historyStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - HISTORY_DAYS);
 
   const [{ data: rows }, { data: logs }, rates] = await Promise.all([
@@ -357,7 +369,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
   // said yes to it, the same as the chore's own points.
   const children = new Set((members ?? []).filter((m) => isChild(m.role)).map((m) => m.id));
   const bonusBy = new Map<string, number>();
-  const today = new Date();
+  const today = await householdToday();
   const todayISO = toISODate(today);
   const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
   for (const r of chores ?? []) {
