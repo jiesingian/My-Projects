@@ -135,6 +135,7 @@ const MIGRATIONS = [
   "20261023100000_buy_items_store.sql",
   "20261023120000_entry_owner.sql",
   "20261023140000_badges_straight_away.sql",
+  "20261023200000_buy_items_budget.sql",
 ];
 
 const only = process.argv[2];
