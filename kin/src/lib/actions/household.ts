@@ -419,6 +419,78 @@ async function applyMealOffList(supabase: Supabase, familyId: string, { remove, 
 
 /** `weekOf` is any day in the week to build from — the week the meal plan is
  * showing, which is not always this one. */
+/** Copies last week's meals into the week being looked at, day for day and
+ * slot for slot, with their ingredients and who each is for (the feature
+ * guide, 23 October: planning took a few minutes every week). A dish already
+ * in the same day and slot is not copied twice. The shopping list is left to
+ * Generate grocery list, as for any planned week. */
+export async function copyLastWeekMealsAction(weekOf?: string): Promise<{ error: string | null; copied: number }> {
+  const tz = await householdZone();
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const anchor = weekOf?.trim() || familyDay(new Date(), tz);
+  const dow = weekdayOf(anchor);
+  if (dow === null) return { error: "That week could not be read.", copied: 0 };
+  const weekStart = addDays(anchor, -((dow + 6) % 7));
+  const lastStart = weekStart && addDays(weekStart, -7);
+  const weekEnd = weekStart && addDays(weekStart, 7);
+  if (!weekStart || !lastStart || !weekEnd) return { error: "That week could not be read.", copied: 0 };
+
+  const [{ data: last, error: readError }, { data: already }] = await Promise.all([
+    supabase
+      .from("meal_plans")
+      .select("id, plan_date, slot, dish, note, position, recipe_key, family_recipe_id, meal_ingredients(ingredient_name, item_key, qty, qty_amount, unit, section), meal_plan_members(member_id)")
+      .eq("family_id", me.family_id)
+      .gte("plan_date", lastStart)
+      .lt("plan_date", weekStart),
+    supabase.from("meal_plans").select("plan_date, slot, dish").eq("family_id", me.family_id).gte("plan_date", weekStart).lt("plan_date", weekEnd),
+  ]);
+  if (readError) return { error: databaseError(readError), copied: 0 };
+  if (!last?.length) return { error: "Nothing was planned the week before.", copied: 0 };
+
+  const taken = new Set((already ?? []).map((m) => `${m.plan_date}|${m.slot}|${normalizeKey(m.dish)}`));
+  const copies = last
+    .map((m) => ({ from: m, date: addDays(m.plan_date, 7), id: crypto.randomUUID() }))
+    .filter((c): c is typeof c & { date: string } => !!c.date && !taken.has(`${c.date}|${c.from.slot}|${normalizeKey(c.from.dish)}`));
+  if (copies.length === 0) return { error: null, copied: 0 };
+
+  const { error } = await supabase.from("meal_plans").insert(
+    copies.map((c) => ({
+      id: c.id,
+      family_id: me.family_id,
+      plan_date: c.date,
+      slot: c.from.slot,
+      dish: c.from.dish,
+      note: c.from.note,
+      position: c.from.position,
+      recipe_key: c.from.recipe_key,
+      family_recipe_id: c.from.family_recipe_id,
+      created_by: me.id,
+    })),
+  );
+  if (error) return { error: databaseError(error), copied: 0 };
+
+  const ingredients = copies.flatMap((c) =>
+    (c.from.meal_ingredients ?? []).map((i) => ({ ...i, meal_plan_id: c.id, family_id: me.family_id })),
+  );
+  const people = copies.flatMap((c) =>
+    (c.from.meal_plan_members ?? []).map((p) => ({ meal_plan_id: c.id, member_id: p.member_id, family_id: me.family_id })),
+  );
+  const [{ error: ingredientError }, { error: peopleError }] = await Promise.all([
+    ingredients.length ? supabase.from("meal_ingredients").insert(ingredients) : Promise.resolve({ error: null }),
+    people.length ? supabase.from("meal_plan_members").insert(people) : Promise.resolve({ error: null }),
+  ]);
+  if (ingredientError || peopleError) {
+    return { error: `The meals were copied, but not everything in them. ${refusalMessage((ingredientError ?? peopleError)!)}`, copied: copies.length };
+  }
+
+  after(() =>
+    Promise.all(copies.map((c) => syncRowToCalendars(me.family_id, "meal_plans", c.id, allDayEvent(c.from.dish, c.date), { kind: "all" }))).catch(() => undefined),
+  );
+  revalidatePath("/household");
+  return { error: null, copied: copies.length };
+}
+
 export async function generateGroceryListAction(weekOf?: string): Promise<{ error: string | null; added: number }> {
   const tz = await householdZone();
   // Both the household and the author come from the session. As arguments,

@@ -13,7 +13,7 @@ import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@
 import { HubHeader } from "@/components/hub-header";
 import { BuyList } from "@/components/buy-list";
 import { Blueprint, Tag } from "@/components/ui";
-import { GenerateGroceryButton } from "@/components/generate-grocery-button";
+import { CopyLastWeekButton, GenerateGroceryButton } from "@/components/generate-grocery-button";
 import { PriceRowControl, AddPriceControl, PantryControls } from "@/components/household-price-controls";
 import { SheetButton, Collapsible } from "@/components/sheet";
 import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book";
@@ -324,6 +324,7 @@ async function MealsPane({
       <CookFromPantry date={anchorISO} suggestions={suggestions} />
 
       <div style={{ marginTop: "1.125rem" }}>
+        <CopyLastWeekButton weekOf={anchorISO} />
         <GenerateGroceryButton weekOf={anchorISO} />
       </div>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
