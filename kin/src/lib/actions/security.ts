@@ -167,6 +167,38 @@ export async function removeDocumentsPinAction(): Promise<ActionState> {
   return { error: null };
 }
 
+/** The way back when the PIN is forgotten, or the device that unlocks is not
+ * to hand (the feature guide, 23 October): the account password, checked the
+ * way Download my data checks it. It opens the documents and clears the PIN,
+ * so a new one can be set in Settings without the old one. Face ID and
+ * fingerprint devices stay as they are. The password is the stronger secret
+ * of the two, so this asks nothing a thief with the phone could answer more
+ * easily than the PIN itself; wrong passwords are slowed by Supabase Auth. */
+export async function unlockWithPasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const password = String(formData.get("password") ?? "");
+  if (!password) return { error: "Enter your Kin password." };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const email = auth.user?.email;
+  if (!email) return { error: "Sign in again, then try once more." };
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) {
+    return {
+      error: /rate|too many/i.test(signInError.message)
+        ? "Too many tries. Wait a few minutes, then try again."
+        : "That password isn't right.",
+    };
+  }
+  const { error } = await supabase
+    .from("member_security")
+    .update({ pin_hash: null, pin_salt: null, pin_set_at: null, failed_attempts: 0, locked_until: null, updated_at: new Date().toISOString() })
+    .eq("member_id", me.id);
+  if (error) return { error: databaseError(error) };
+  revalidatePath("/settings", "layout");
+  return grantUnlock(me.id);
+}
+
 // -- Face, fingerprint, device passcode --------------------------------
 
 /** A challenge the server issued, kept where the page cannot read it. Both
