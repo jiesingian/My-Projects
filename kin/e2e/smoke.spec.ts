@@ -129,6 +129,7 @@ const NEW_SCREENS: NewScreen[] = [
   { name: "Year book", path: "/journal/year-book" },
   { name: "Tree file (GEDCOM)", path: "/family/tree-file" },
   { name: "Utang & paluwagan", path: "/wealth/utang" },
+  { name: "Family statements", path: "/wealth/statements" },
   { name: "A paluwagan", from: "/wealth/utang", links: ["/wealth/paluwagan/"] },
   { name: "Alkansya & baon", path: "/planner/alkansya" },
   { name: "A child's alkansya", from: "/planner/alkansya", links: ["/planner/alkansya/"] },

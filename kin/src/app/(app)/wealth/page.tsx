@@ -758,6 +758,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
         </Link>
       )}
+      {/* Income and expenses, where the cash went, net worth like the SALN,
+          and a BIR-ready year (23 October). */}
+      {grownUp && (
+        <Link
+          href="/wealth/statements"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="receipt" size={18} />
+          <span style={{ flex: 1 }}>Family statements: income, cash, net worth, BIR summary</span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
 
       {/* Snap a receipt or an e-wallet screenshot (20 October, Kin Plus):
           Kin AI reads it, the member checks it, an expense or bill is saved. */}
@@ -1104,6 +1116,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
+      <Link href="/wealth/statements" style={{ display: "inline-block", fontSize: "0.8125rem", margin: "0.25rem 0 0.5rem" }}>
+        See the family statements ›
+      </Link>
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <FoldableSection label={groupLabel("Cash & savings", cashAccounts.length, cashTotal)} storageKey="kin-al-cash">

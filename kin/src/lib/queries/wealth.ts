@@ -412,6 +412,42 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
   };
 }
 
+/** Every confirmed ledger entry from `start` up to `end` (YYYY-MM-DD,
+ * end excluded) that the household view Everyone counts -- the same
+ * accounts Cash Flow's Everyone reads -- for the family statements
+ * (lib/statements.ts). Read as the viewer, so only what they can see. */
+export async function getStatementEntries(familyId: string, start: string, end: string) {
+  const supabase = await createClient();
+  const [allAccounts, archivedAccounts, { data: transactions }, leaveOut] = await Promise.all([
+    loadAccounts(familyId),
+    getArchivedAccountsForFlow(familyId),
+    supabase
+      .from("wealth_transactions")
+      .select("*, accounts(name, owner_member_id, is_joint, is_archived, deleted_at), members:recorded_by(full_name)")
+      .eq("family_id", familyId)
+      .eq("status", "confirmed")
+      .gte("occurred_at", `${start}T00:00:00`)
+      .lt("occurred_at", `${end}T00:00:00`),
+    privateLeftOutOfAll(),
+  ]);
+  return (transactions ?? []).map(toLedgerEntry).filter(flowFilter([...allAccounts, ...archivedAccounts], "all", leaveOut, "entry"));
+}
+
+/** This viewer's Everyone net worth as it stood at the end of a month
+ * (YYYY-MM), from the monthly snapshots -- the start line for "how net
+ * worth changed". Null when no snapshot was kept for it. */
+export async function getNetWorthAtMonthEnd(viewerMemberId: string, month: string): Promise<number | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("net_worth_snapshots")
+    .select("net_worth")
+    .eq("viewer_member_id", viewerMemberId)
+    .eq("scope", "all")
+    .eq("month", `${month}-01`)
+    .maybeSingle();
+  return data ? Number(data.net_worth) : null;
+}
+
 export async function getIncomeSchedules(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
