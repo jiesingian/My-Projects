@@ -128,7 +128,18 @@ jobs:
   #
   # The workflow-level group above still cancels a pull request's own
   # superseded runs; this one only decides whose turn it is on dev.
+  #
+  # NOT ON PULL REQUESTS since 23 October (Jonathan). One turn at a time on
+  # dev, with GitHub keeping only one waiter, meant a busy morning's pull
+  # requests merged one every 15-25 minutes (six of them waited three hours
+  # on 23 October with nothing wrong in them). A pull request is now gated by
+  # smoke-private-db below -- the same smoke on a database of its own, every
+  # pull request at once. This job still runs here on main after every merge
+  # (automerge.yml dispatches it) and on demand, so dev's own settings,
+  # Realtime (chat-live), push targets and the real sample household are
+  # still checked within minutes of a merge, one run at a time as before.
   e2e:
+    if: ${{ github.event_name != 'pull_request' }}
     concurrency:
       group: e2e-dev
       cancel-in-progress: false
@@ -258,10 +269,11 @@ jobs:
       #   - It runs INSIDE this job, after the smoke run, with one worker: no
       #     new job racing the e2e-dev turn-lock (#656/#701/#704), ten page
       #     loads on top of smoke's forty-odd, and Simple Kin is flipped on
-      #     the sample member only while nothing else is loading pages. The
-      #     private-database trial below is not its home yet: that database
-      #     has an empty household, and an empty Today looks the same on
-      #     every branch.
+      #     the sample member only while nothing else is loading pages.
+      #     Since 23 October pull requests take theirs in smoke-private-db
+      #     below (an empty household, compared with main's run of that job);
+      #     this job no longer runs on pull requests, so here the steps only
+      #     keep main's real-household pictures as a record.
       #   - IT FAILS ON A REAL DIFFERENCE (since 21 October). It was warn-only
       #     from 20 October, meant to last until 27 October; Jonathan moved
       #     the date up. The warn-only days: 4 warnings in 35 pull-request
@@ -374,14 +386,21 @@ jobs:
   #      create_family(), as a person signing up would;
   #   5. build against it and run the same smoke + logic specs.
   #
-  # It is a TRIAL: continue-on-error, so it can never block a merge while it
-  # proves itself. Once it has run green for a while, the job above can be
-  # pointed at it and dev left to people. Nothing here writes to dev.
+  # It was a TRIAL (continue-on-error) from 19 October. Its record when it
+  # became the pull-request gate (23 October, Jonathan): 150 runs over
+  # 22-23 October, 121 green, 24 cancelled as superseded, 5 red -- three
+  # real (two broken specs, one migration timestamped behind one already on
+  # dev) and two the port clash fixed below. Nothing here writes to dev.
+  #
+  # It now also takes the phone-width screenshots on pull requests (the
+  # visual steps, moved from the job above), against main's screenshots from
+  # this same job. Its household is empty, so the pictures are of every
+  # screen's frame and empty states, the same on every run -- no live data
+  # to move them.
   smoke-private-db:
     if: ${{ !inputs.base_url }}
-    continue-on-error: true
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: kin
@@ -414,9 +433,44 @@ jobs:
           # hand-built tables from September). The schema comes from dev below.
           mkdir -p ci-db/supabase && cp "$GITHUB_WORKSPACE/kin/supabase/config.toml" ci-db/supabase/
           cd ci-db
-          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
+          # "failed to bind host port 0.0.0.0:54322: address already in use"
+          # on a fresh runner (22 and 23 October, 2 runs in 150). Nothing was
+          # listening there: Linux hands out 32768-60999 as the source ports
+          # of outgoing connections, Supabase's 54320-54329 sit inside that
+          # range, and the image pulls just before open hundreds of them.
+          # Reserving the range keeps the kernel off it; one retry, after a
+          # clean stop, covers anything else that was transient.
+          sudo sysctl -q -w net.ipv4.ip_local_reserved_ports=54320-54329
+          for attempt in 1 2; do
+            if supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit; then break; fi
+            [ "$attempt" = 2 ] && exit 1
+            echo "::warning::supabase start failed; stopping and trying once more."
+            supabase stop --no-backup || true
+            sleep 10
+          done
           supabase status -o env > "$RUNNER_TEMP/local.env"
-      - name: Copy dev's schema (structure only, no rows)
+      # Dev's schema, kept a week (23 October). The dump took dev about 90
+      # seconds of work on every run of every pull request. Dev's schema
+      # only changes through migrations in this repository (migrate.yml), so
+      # an older copy plus the migrations that came after it -- which the
+      # next step applies from this checkout -- is the same schema, and they
+      # get tested on the way. Main's run saves a fresh copy once a week
+      # (caches saved on main are the ones every pull request can read); a
+      # pull request only dumps dev itself if no copy exists at all.
+      - name: This week's key for dev's schema
+        id: schema-key
+        run: echo "key=dev-schema-v1-$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      - name: Dev's schema from the cache
+        id: schema-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ runner.temp }}/schema.sql
+            ${{ runner.temp }}/applied.txt
+          key: ${{ steps.schema-key.outputs.key }}
+          restore-keys: dev-schema-v1-
+      - name: Copy dev's schema (structure only, no rows), if there is no copy
+        if: ${{ steps.schema-cache.outputs.cache-hit != 'true' && (github.event_name != 'pull_request' || steps.schema-cache.outputs.cache-matched-key == '') }}
         env:
           DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
         run: |
@@ -424,7 +478,38 @@ jobs:
           [ -n "$DEV_DB_URL" ] || { echo "::error::DEV_DB_URL is not set, so there is no schema to copy."; exit 1; }
           supabase db dump --db-url "$DEV_DB_URL" --schema public -f "$RUNNER_TEMP/schema.sql"
           psql "$DEV_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by version" > "$RUNNER_TEMP/applied.txt"
-          echo "Schema: $(grep -c '^CREATE TABLE' "$RUNNER_TEMP/schema.sql") tables; dev has $(wc -l < "$RUNNER_TEMP/applied.txt") migrations recorded."
+          echo "fresh=1" >> "$GITHUB_ENV"
+      - name: Keep it for the week
+        if: ${{ env.fresh == '1' && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ runner.temp }}/schema.sql
+            ${{ runner.temp }}/applied.txt
+          key: ${{ steps.schema-key.outputs.key }}
+      # The one thing a week-old copy cannot say: whether this branch's new
+      # migration is timestamped behind one dev has run since (migrate.mjs
+      # refuses that on merge; 23 October's #909 was caught here). Dev's list
+      # of applied versions is one small query, so it is read every time.
+      - name: This branch's migrations come after dev's
+        env:
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+        run: |
+          set -euo pipefail
+          echo "Schema: $(grep -c '^CREATE TABLE' "$RUNNER_TEMP/schema.sql") tables; the copy records $(wc -l < "$RUNNER_TEMP/applied.txt") migrations."
+          [ -n "$DEV_DB_URL" ] || exit 0
+          psql "$DEV_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by version" > "$RUNNER_TEMP/dev-now.txt"
+          newest=$(tail -1 "$RUNNER_TEMP/dev-now.txt")
+          late=""
+          for f in "$GITHUB_WORKSPACE"/kin/supabase/migrations/*.sql; do
+            v=$(basename "$f" | cut -d_ -f1)
+            grep -qx "$v" "$RUNNER_TEMP/dev-now.txt" && continue
+            [[ "$v" < "$newest" ]] && late="$late $(basename "$f")"
+          done
+          if [ -n "$late" ]; then
+            echo "::error::Pending migration(s) older than $newest, which dev has already run:$late. Rename them with a timestamp later than that, so they run in the order they were written in."
+            exit 1
+          fi
       - name: Load it, then add this PR's migrations
         run: |
           set -euo pipefail
@@ -480,4 +565,54 @@ jobs:
         with:
           name: playwright-report-private-db
           path: kin/playwright-report/
+          retention-days: 7
+
+      # ── Phone-width screenshots on this database (23 October) ───────────
+      # The same steps, rules and accept file as in the job above (see its
+      # long comment), with one difference: the baseline is main's run of
+      # THIS job, `visual-baseline-private`, so an empty household is only
+      # ever compared with an empty household.
+      - name: Main's screenshots, to compare with
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VISUAL_ARTIFACT: visual-baseline-private
+        run: bash scripts/visual-baseline.sh
+      - name: Freeze the clock for the screenshots
+        run: |
+          (sudo apt-get install -y -q faketime >/dev/null 2>&1 || (sudo apt-get update -q >/dev/null && sudo apt-get install -y -q faketime >/dev/null)) && command -v faketime
+          if [ "$(date -u +%H)" -ge 22 ]; then day=$(date -u +%F); else day=$(date -u -d yesterday +%F); fi
+          echo "VISUAL_FROZEN_AT=$day 22:00:00" >> "$GITHUB_ENV"
+          echo "Screenshots at $day 22:00 UTC (06:00 the next morning in Manila)."
+      - name: Phone-width screenshots (five screens, Simple Kin off and on)
+        env:
+          VISUAL_PR: ${{ github.event.pull_request.number }}
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-visual
+        run: npx playwright test e2e/visual.spec.ts --workers=1
+      - name: Keep these as main's baseline
+        if: ${{ github.ref == 'refs/heads/main' && !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: visual-baseline-private
+          path: |
+            kin/visual-out/*.png
+            kin/visual-out/frozen-at.txt
+            !kin/visual-out/*-diff.png
+          retention-days: 30
+      - name: Before and after, on the pull request
+        if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/visual-comment.sh
+      - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: visual-screenshots
+          path: |
+            kin/visual-out/
+            kin/playwright-report-visual/
           retention-days: 7

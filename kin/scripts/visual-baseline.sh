@@ -7,8 +7,11 @@
 # Exits 0 whether or not a baseline was found: with none, the spec records
 # "no baseline" for every screen and compares nothing. That is the state for
 # the first run after this lands, and for a week after any screen is added.
-# Needs: gh (GH_TOKEN), unzip, and REPO=owner/name.
+# Needs: gh (GH_TOKEN), unzip, and REPO=owner/name. VISUAL_ARTIFACT picks
+# which baseline: `visual-baseline` (dev's job) by default, or
+# `visual-baseline-private` (the private-database job, 23 October).
 set -uo pipefail
+NAME="${VISUAL_ARTIFACT:-visual-baseline}"
 REPO="${REPO:-${GITHUB_REPOSITORY:-}}"
 DEST="e2e/visual-baseline"
 [ -n "$REPO" ] || { echo "REPO is not set."; exit 0; }
@@ -18,7 +21,7 @@ mkdir -p "$DEST"
 # stopped before its screenshots, and an older good set beats none.
 RUNS=$(gh api "repos/$REPO/actions/workflows/e2e.yml/runs?branch=main&status=success&per_page=15" --jq '.workflow_runs[].id' 2>/dev/null || true)
 for run in $RUNS; do
-  ART=$(gh api "repos/$REPO/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name == "visual-baseline" and .expired == false) | .id' 2>/dev/null | head -1 || true)
+  ART=$(gh api "repos/$REPO/actions/runs/$run/artifacts" --jq '.artifacts[] | select(.name == "'"$NAME"'" and .expired == false) | .id' 2>/dev/null | head -1 || true)
   [ -n "$ART" ] || continue
   if gh api "repos/$REPO/actions/artifacts/$ART/zip" > "$RUNNER_TEMP/visual-baseline.zip" 2>/dev/null \
      && unzip -o -q "$RUNNER_TEMP/visual-baseline.zip" -d "$DEST"; then
@@ -26,5 +29,5 @@ for run in $RUNS; do
     exit 0
   fi
 done
-echo "::notice::No visual-baseline artifact from a successful End-to-end run on main yet; the screenshots will be taken but compared with nothing."
+echo "::notice::No $NAME artifact from a successful End-to-end run on main yet; the screenshots will be taken but compared with nothing."
 exit 0

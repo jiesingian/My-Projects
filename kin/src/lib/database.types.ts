@@ -1776,6 +1776,8 @@ export type Database = {
       }
       buy_items: {
         Row: {
+          actual_cost: number | null
+          budget: number | null
           checked: boolean
           checked_at: string | null
           cleared: boolean
@@ -1801,6 +1803,8 @@ export type Database = {
           unit_price_override: number | null
         }
         Insert: {
+          actual_cost?: number | null
+          budget?: number | null
           checked?: boolean
           checked_at?: string | null
           cleared?: boolean
@@ -1826,6 +1830,8 @@ export type Database = {
           unit_price_override?: number | null
         }
         Update: {
+          actual_cost?: number | null
+          budget?: number | null
           checked?: boolean
           checked_at?: string | null
           cleared?: boolean
@@ -1877,6 +1883,60 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buy_trips: {
+        Row: {
+          actual: number
+          budget: number
+          checked_out_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          item_count: number
+          items: Json
+          paid: number | null
+          savings: number
+        }
+        Insert: {
+          actual?: number
+          budget?: number
+          checked_out_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          item_count?: number
+          items?: Json
+          paid?: number | null
+          savings?: number
+        }
+        Update: {
+          actual?: number
+          budget?: number
+          checked_out_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          item_count?: number
+          items?: Json
+          paid?: number | null
+          savings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_trips_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_trips_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
