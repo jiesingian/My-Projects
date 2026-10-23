@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEmergencyContacts, getMembers } from "@/lib/queries/family";
 import { DetailHeader } from "@/components/hub-header";
 import { EmergencyCardActions } from "@/components/emergency-card-actions";
-import { formatAge } from "@/lib/format";
+import { formatAge, spellDate } from "@/lib/format";
 import { familyDay } from "@/lib/time";
 import { activeOn } from "@/lib/health-plan";
 import { isGone } from "@/lib/member-status";
@@ -16,7 +16,9 @@ import { isGone } from "@/lib/member-status";
  * screen that reads at arm's length (26 September): blood type, allergies,
  * the medicines being taken now, ongoing conditions, the doctor, insurance,
  * and who to call. Everything here is already in Health; this only gathers
- * it. Share sends it as text, and Print makes a wallet card. */
+ * it. Share sends it as text, and Print makes a wallet card. Both carry the
+ * day it was made ("As of ..."), so a card kept in a wallet shows its age
+ * once a medicine has changed. */
 export default async function EmergencyCardPage({ params }: { params: Promise<{ id: string }> }) {
   const tz = await householdZone();
   await keepKidViewOut();
@@ -53,10 +55,12 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
     ["Insurance", member.insurance_info, about],
   ];
   const filled = facts.filter(([, v]) => v).length;
+  const asOf = `As of ${spellDate(today)}`;
   const text = [
     `EMERGENCY CARD: ${member.full_name}${member.dob ? `, born ${member.dob}` : ""}`,
     ...facts.map(([k, v]) => `${k}: ${v ?? "not recorded"}`),
     ...calls.map((c) => `Call ${c.name} (${c.relationship}): ${c.phone}`),
+    asOf,
   ].join("\n");
 
   return (
@@ -92,6 +96,7 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
               {filled} of {facts.length} filled in. {filled === 0 ? "A blank card is no help at the hospital; " : ""}Tap a line to add it.
             </p>
           )}
+          <p className="kin-sos-asof">{asOf}</p>
           {calls.length > 0 && (
             <div className="kin-sos-calls">
               <div className="kin-sos-calls-title">Who to call</div>
