@@ -58,13 +58,14 @@ export const HELP_GUIDE: HelpTab[] = [
             "name": "Members and roles",
             "tags": [],
             "what": "Everyone in the household with their role: organizer, adult, or a managed child whose profile a parent writes.",
-            "how": "Family → Profile → the member list. Invite a grown-up with the code in Settings → Household; add a child as a managed profile.",
+            "how": "Family → Profile → the member list. Invite a grown-up with the code in Settings → Household; add a young child as a managed profile, or let a child join with the code and approve them as \"Child (own login, kid view)\".",
             "pros": [
               "Children are in the app from birth without needing a phone or an email.",
+              "A child of any age can have their own login once a parent approves it, starting in kid view.",
               "The week a managed child turns 13, Kin tells the grown-ups they can have their own login."
             ],
             "cons": [
-              "A managed child signs in only once they have a login of their own."
+              "A managed child doesn't sign in; approve a child's own join request to give them a login."
             ],
             "tips": []
           },
@@ -1526,13 +1527,13 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Kid view",
             "tags": [],
-            "what": "A simpler Kin for children: their jobs, coins, rewards and what is coming, plus Chat, Journal, the tree and their own theme. Money, vault, health and household settings are hidden.",
-            "how": "A child's own login opens in kid view.",
+            "what": "A simpler Kin for children with their own login, of any age once a parent approves it: their jobs, coins, rewards and what is coming, plus Chat, Journal, the tree and their own theme. Money, vault, health and household settings are hidden.",
+            "how": "A child who joins with the household's code and is approved as a child opens in kid view; a grown-up can switch it in Settings → Kid view.",
             "pros": [
               "Children use Kin without seeing the family's money or papers."
             ],
             "cons": [
-              "For children with a login of their own."
+              "For children with a login of their own; younger ones stay managed profiles a parent writes."
             ],
             "tips": []
           }
