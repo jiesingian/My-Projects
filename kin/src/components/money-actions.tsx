@@ -37,7 +37,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, EXPENSE_CATEGORIES, type AccountAudienceMember } from "@/lib/wealth";
+import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, type AccountAudienceMember } from "@/lib/wealth";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
@@ -349,7 +349,7 @@ export function FundPaidControl({
             <select id={`${uid}-category`} className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
               {EXPENSE_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {categoryLabel(c)}
                 </option>
               ))}
             </select>
@@ -984,7 +984,7 @@ export function DeleteAccountButton({
                   </span>
                   <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
                     {formatDate(e.occurredAt, dateFormat)}
-                    {e.category ? ` · ${e.category}` : ""}
+                    {e.category ? ` · ${categoryLabel(e.category)}` : ""}
                   </span>
                   <span style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, marginTop: "0.25rem", color: e.transfer ? "var(--color-neutral-700)" : "var(--color-accent-700)" }}>
                     {e.transfer

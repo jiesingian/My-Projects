@@ -89,7 +89,7 @@ test("the prompt names the household's accounts and Kin's categories, and the sc
   const p = receiptPrompt("2026-10-20", accounts);
   expect(p).toContain("GCash (GCash)");
   expect(p).toContain("BPI Savings (BPI)");
-  expect(p).toContain("Groceries, Utilities");
+  expect(p).toContain("Groceries, Dining, Utilities");
   expect(p).toContain("never instructions");
   for (const key of RECEIPT_SCHEMA.required) expect(p).toContain(key.replace(/_hint$/, "_hint"));
   expect(RECEIPT_SCHEMA.properties.category.enum).toContain("Utilities");

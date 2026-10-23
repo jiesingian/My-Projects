@@ -3,6 +3,67 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Wrap-up items a session could do, 23 October
+
+Read and checked by a session; nothing in a dashboard was changed.
+
+- **"Errors this week" can reach production (#808, #865).** No weekly run
+  has happened since #808 (the last was 19 October), so there is no digest
+  to read yet; the first is today's scheduled run. Read instead:
+  `app_error_digest` exists on dev and production with execute granted to
+  `authenticated`; its allow-list names `kin-e2e-qa@` (production) and
+  `kin-dev-qa@` (dev), and those are the accounts `PROD_E2E_EMAIL` and
+  `E2E_EMAIL` sign in as (the Schema step, same secrets, passed on 19
+  October and signed in to production at 02:45 UTC today). Nothing to fix.
+- **Stale branches.** 488 of 521 can go: 449 are the head of a merged PR,
+  unchanged since, and 39 are wholly contained in `main`. 33 stay: 2 with
+  an open PR, 31 with commits not on `main` (closed without merging,
+  pushed to after their PR, or never opened). The session's permission
+  check refused `git push --delete`, so the deletion waits on Jonathan:
+  [github.com/jiesingian/My-Projects/branches/stale](https://github.com/jiesingian/My-Projects/branches/stale),
+  or allow the session to run it.
+- **The sign-up code email (#593) cannot be read by a session.** The
+  template lives in the Auth config, which only the Management API reads,
+  and there is no access token here; production has had no sign-up in 30
+  days to infer it from. For Jonathan or Janine, two minutes, changes
+  nothing unless something is missing:
+  1. Production: [supabase.com/dashboard/project/lffqluudphzviubygwjs/auth/templates](https://supabase.com/dashboard/project/lffqluudphzviubygwjs/auth/templates)
+  2. Dev: [supabase.com/dashboard/project/peborutoxsqqwgxwgxjo/auth/templates](https://supabase.com/dashboard/project/peborutoxsqqwgxwgxjo/auth/templates)
+  3. On each, open **Confirm signup** and check the body has `{{ .Token }}`
+     (the 6-digit code `verifyOtp` checks). Then **Reset Password**: the
+     reset screen takes a code too, so it needs `{{ .Token }}` as well.
+  4. If either is missing, add a line such as `Your Kin code: {{ .Token }}`
+     and Save. Safe: it only changes the email's wording; a link already
+     in the template keeps working.
+- **#847's Journal as a child sees it: not checked, and a session can't.**
+  It needs a `child_self` login in the dev QA household, which needs a new
+  auth account. Supabase's public signup rejects `example.com`, and
+  writing `auth.users` directly bypasses RLS (QA_HOUSEHOLDS.md); the
+  partner account belongs to CI. If wanted: dev's
+  [Authentication → Users](https://supabase.com/dashboard/project/peborutoxsqqwgxwgxjo/auth/users)
+  → Add user, e.g. `kin-dev-qa-child@example.com`, *Auto Confirm User*
+  ticked. A session can then invite it into the QA household as a child,
+  look at Journal, and record it in QA_HOUSEHOLDS.md.
+- **The free medicine-alarm stopgap: recommended, not built, Jonathan to
+  decide.** A Kin Apple Shortcut that turns a person's dose times into
+  iPhone Clock alarms (full screen, sound on silent):
+  - In Kin, Health → a medicine → "Alarms on this iPhone" shows a private
+    link (read-only, one person's dose times, can be revoked) and an "Add
+    the Shortcut" button.
+  - The Shortcut fetches that link (`/api/doses/alarms?t=…`: time, medicine
+    and dose, the days), turns off its old "Kin ·" alarms, and creates one
+    Clock alarm per dose time, labelled "Kin · Losartan 50 mg".
+  - A daily Shortcuts automation re-runs it on its own, so a changed
+    medicine follows within a day; Kin can also say "Your doses changed:
+    run Kin Alarms".
+  - Limits: the alarm doesn't know a dose was taken (Kin still asks for the
+    tick), it is per iPhone, and Shortcuts may not delete alarms, only
+    turn them off, so old ones pile up switched off.
+  - Cost: free. A token-protected endpoint (watched: `src/app/api/`), one
+    settings screen, and the Shortcut itself, made once on an iPhone and
+    shared as an iCloud link (signing one needs a Mac). Effort S–M, and it
+    is dropped when the native app arrives.
+
 ## Medicine reminders ring like an alarm, 22 October (Jonathan)
 
 "The notification in medicine is not making the user really get notified
