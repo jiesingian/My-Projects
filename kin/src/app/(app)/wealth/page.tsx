@@ -1279,7 +1279,19 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
               −{formatCurrency(Number(l.balance), currency)}
             </span>
           </div>
-          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
+            {/* Paying it from here splits the payment into interest and
+                what pays the loan down, and lowers the balance
+                (20261023220000). */}
+            {Number(l.balance) > 0 && (
+              <Link
+                href={`/wealth/transact?mode=out&against=liabilities:${l.id}${l.monthly_payment ? `&amount=${Number(l.monthly_payment)}` : ""}`}
+                className="btn btn-secondary"
+                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}
+              >
+                Record a payment
+              </Link>
+            )}
             <LoanScheduleControl
               id={l.id}
               monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}

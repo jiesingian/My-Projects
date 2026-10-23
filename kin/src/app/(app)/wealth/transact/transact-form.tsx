@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { EXPENSE_CATEGORIES, INCOME_SOURCES, categoryLabel, type WhoseOption } from "@/lib/wealth";
+import { categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, loanPaymentSplit, type WhoseOption } from "@/lib/wealth";
+import type { PayableLoan } from "@/lib/queries/wealth";
+import { formatCurrency } from "@/lib/format";
 import { WhoseSelect } from "@/components/whose-select";
 import { currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
@@ -31,6 +33,8 @@ export function TransactForm({
   accountNumbers = {},
   assets,
   goals,
+  loans = [],
+  defaultAgainst,
   defaultParticulars,
   defaultAmount,
   whose: whoseChoices,
@@ -46,6 +50,10 @@ export function TransactForm({
   accountNumbers?: Record<string, string>;
   assets: { id: string; name: string }[];
   goals: { id: string; name: string }[];
+  /** Loans with something still owed, to pay down (20261023220000). */
+  loans?: PayableLoan[];
+  /** "liabilities:<id>" from a loan's own "Record a payment". */
+  defaultAgainst?: string;
   /** Carried in from a chat message someone chose to record as money. A
    * starting point only: nothing moves until they press the button. */
   defaultParticulars?: string;
@@ -58,15 +66,37 @@ export function TransactForm({
   const startId = accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId! : (accounts[0]?.id ?? "");
   const [accountId, setAccountId] = useState(startId);
   const [toAccountId, setToAccountId] = useState(accounts.find((a) => a.id !== startId)?.id ?? startId);
-  const [amount, setAmount] = useState<number>(defaultAmount ?? 0);
-  const [particulars, setParticulars] = useState(defaultParticulars ?? "");
-  const [category, setCategory] = useState<string>(INCOME_SOURCES[0]);
+  const startLoan = defaultAgainst?.startsWith("liabilities:") ? loans.find((l) => `liabilities:${l.id}` === defaultAgainst) : undefined;
+  const [amount, setAmount] = useState<number>(defaultAmount ?? startLoan?.monthlyPayment ?? 0);
+  // Remounts the amount box when a loan fills it in.
+  const [amountKey, setAmountKey] = useState(0);
+  const [particulars, setParticulars] = useState(defaultParticulars ?? (startLoan ? `${startLoan.name} payment` : ""));
+  const [category, setCategory] = useState<string>(startLoan ? "Debt" : INCOME_SOURCES[0]);
   const [occurredOn, setOccurredOn] = useState(todayLocal());
   const [viaApp, setViaApp] = useState(true);
   const [whose, setWhose] = useState("me");
-  // "assets:<id>" or "goals:<id>", or empty for the ordinary case where the
-  // money is not tied to either.
-  const [against, setAgainst] = useState("");
+  // "assets:<id>", "goals:<id>" or "liabilities:<id>", or empty for the
+  // ordinary case where the money is not tied to any.
+  const [against, setAgainst] = useState(startLoan ? `liabilities:${startLoan.id}` : "");
+  // Paying a loan: the part that pays it down, when the person changed
+  // Kin's split; null follows the split as the amount changes.
+  const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
+  const loan = against.startsWith("liabilities:") ? loans.find((l) => `liabilities:${l.id}` === against) : undefined;
+  const split = loan ? loanPaymentSplit(loan.balance, loan.interestRate, amount) : null;
+  const principal = split ? (principalOverride ?? split.principal) : null;
+
+  function pickAgainst(value: string) {
+    setAgainst(value);
+    setPrincipalOverride(null);
+    const picked = value.startsWith("liabilities:") ? loans.find((l) => `liabilities:${l.id}` === value) : undefined;
+    if (!picked) return;
+    setCategory("Debt");
+    if (!(amount > 0) && picked.monthlyPayment) {
+      setAmount(picked.monthlyPayment);
+      setAmountKey((k) => k + 1);
+    }
+    if (!particulars.trim()) setParticulars(`${picked.name} payment`);
+  }
   const [error, setError] = useState<string | null>(null);
   // Which field the error is about, so it is outlined in red and focused
   // rather than only named at the top (Janine, 12 October).
@@ -79,6 +109,8 @@ export function TransactForm({
   function switchMode(next: Mode) {
     setMode(next);
     setCategory(next === "in" ? INCOME_SOURCES[0] : EXPENSE_CATEGORIES[0]);
+    // A loan is only ever paid with money going out.
+    if (next !== "out" && against.startsWith("liabilities:")) setAgainst("");
   }
 
   function submit() {
@@ -104,8 +136,9 @@ export function TransactForm({
               category,
               occurredAt,
               viaApp: viaApp && canUseApp,
-              againstTable: against ? (against.split(":")[0] as "assets" | "goals") : null,
+              againstTable: against ? (against.split(":")[0] as "assets" | "goals" | "liabilities") : null,
               againstId: against ? against.split(":")[1] : null,
+              principal: loan ? principal : null,
               whose,
             });
 
@@ -157,7 +190,7 @@ export function TransactForm({
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label={`Amount (${currencySymbol(currency)})`} style={{ flex: 1 }} required name="amount">
-          <AmountInput defaultValue={defaultAmount} onValueChange={(v) => { setAmount(v); if (bad === "amount") setBad(null); }} style={{ minHeight: "2.75rem" }} required invalid={bad === "amount"} />
+          <AmountInput key={amountKey} defaultValue={amount || defaultAmount} onValueChange={(v) => { setAmount(v); setPrincipalOverride(null); if (bad === "amount") setBad(null); }} style={{ minHeight: "2.75rem" }} required invalid={bad === "amount"} />
         </Field>
         <Field label="Date" style={{ flex: 1 }}>
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.75rem" }} />
@@ -168,15 +201,24 @@ export function TransactForm({
           was *for* was not, unless a hub posted it -- so a payment on the car
           and a contribution to a savings goal both landed as anonymous
           expenses. Optional, because most payments are neither. */}
-      {mode !== "transfer" && (assets.length > 0 || goals.length > 0) && (
-        <Field label={mode === "in" ? "INCOME FROM (OPTIONAL)" : "AGAINST (OPTIONAL)"}>
-          <select className="input" value={against} onChange={(e) => setAgainst(e.target.value)} style={{ minHeight: "2.75rem" }}>
+      {mode !== "transfer" && (assets.length > 0 || goals.length > 0 || (mode === "out" && loans.length > 0)) && (
+        <Field label={mode === "in" ? "INCOME FROM (OPTIONAL)" : "FOR (OPTIONAL)"}>
+          <select className="input" value={against} onChange={(e) => pickAgainst(e.target.value)} style={{ minHeight: "2.75rem" }}>
             <option value="">Nothing in particular</option>
             {assets.length > 0 && (
               <optgroup label="Assets">
                 {assets.map((a) => (
                   <option key={a.id} value={`assets:${a.id}`}>
                     {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {mode === "out" && loans.length > 0 && (
+              <optgroup label="Paying a loan">
+                {loans.map((l) => (
+                  <option key={l.id} value={`liabilities:${l.id}`}>
+                    {l.name}
                   </option>
                 ))}
               </optgroup>
@@ -192,6 +234,31 @@ export function TransactForm({
             )}
           </select>
         </Field>
+      )}
+
+      {/* A loan payment is two things (20261023220000): interest, the cost,
+          and principal, which only pays the loan down. Kin works out the
+          split from the loan's rate on what is still owed; the bank's own
+          statement wins if it says otherwise. */}
+      {loan && split && principal !== null && (
+        <div style={{ border: "1px solid var(--color-divider)", borderRadius: 10, padding: "0.75rem", margin: "0 0 14px", fontSize: "0.8125rem" }}>
+          <div style={{ color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
+            {formatCurrency(loan.balance, currency)} still owed
+            {loan.interestRate != null ? ` · ${loan.interestRate}% a year` : " · no interest rate saved, so all of it pays the loan down"}
+          </div>
+          <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-end" }}>
+            <Field label="PAYS THE LOAN DOWN" style={{ flex: 1 }}>
+              <AmountInput key={`${against}-${amountKey}-${amount}`} defaultValue={principal} onValueChange={(v) => setPrincipalOverride(v)} style={{ minHeight: "2.5rem" }} />
+            </Field>
+            <div style={{ flex: 1, paddingBottom: "0.625rem" }}>
+              <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>INTEREST (THE COST)</div>
+              <div style={{ fontFamily: "var(--font-numeric)", fontWeight: 600 }}>{formatCurrency(Math.max(0, Math.round((amount - principal) * 100) / 100), currency)}</div>
+            </div>
+          </div>
+          <div style={{ color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>
+            After this, {formatCurrency(Math.max(0, Math.round((loan.balance - principal) * 100) / 100), currency)} will be owed. Only the interest lowers your net worth.
+          </div>
+        </div>
       )}
 
       {mode !== "transfer" && (
