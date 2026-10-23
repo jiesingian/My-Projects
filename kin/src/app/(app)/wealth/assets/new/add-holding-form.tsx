@@ -10,7 +10,7 @@ import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
-export function AddHoldingForm({ defaultKind }: { defaultKind: string }) {
+export function AddHoldingForm({ defaultKind, assets = [] }: { defaultKind: string; assets?: { id: string; name: string }[] }) {
   const [mode, setMode] = useState<"asset" | "liability">(defaultKind === "liability" ? "liability" : "asset");
 
   return (
@@ -23,7 +23,7 @@ export function AddHoldingForm({ defaultKind }: { defaultKind: string }) {
           Liability
         </button>
       </div>
-      {mode === "asset" ? <AssetForm /> : <LiabilityForm />}
+      {mode === "asset" ? <AssetForm /> : <LiabilityForm assets={assets} />}
     </div>
   );
 }
@@ -120,7 +120,7 @@ function AssetForm() {
   );
 }
 
-function LiabilityForm() {
+function LiabilityForm({ assets }: { assets: { id: string; name: string }[] }) {
   const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addLiabilityAction, initialState);
   const [isJoint, setIsJoint] = useState(true);
@@ -167,6 +167,20 @@ function LiabilityForm() {
       <Field label="Interest rate (% a year)">
         <input className="input" type="number" step="0.001" min="0" max="100" inputMode="decimal" name="interest_rate" placeholder="e.g. 6.5" style={{ minHeight: "2.75rem" }} />
       </Field>
+      {/* The house a housing loan is on, the car a car loan bought: A&L
+          then shows what is truly yours in it -- its value less this. */}
+      {assets.length > 0 && (
+        <Field label="What it paid for (optional)">
+          <select className="input" name="asset_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
+            <option value="">Nothing in particular</option>
+            {assets.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="Note">
         <input className="input" name="note" style={{ minHeight: "2.75rem" }} />

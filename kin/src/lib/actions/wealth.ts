@@ -1670,6 +1670,8 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
     ...Object.fromEntries(Object.entries(schedule).filter(([, v]) => v !== null)),
     lender: String(formData.get("lender") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
+    // What it paid for (20261023231000); the database keeps it in-household.
+    asset_id: String(formData.get("asset_id") ?? "") || null,
     is_joint: isJoint,
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
@@ -1801,6 +1803,22 @@ export async function deleteAssetAction(assetId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("assets").delete().eq("id", assetId).eq("family_id", me.family_id);
   if (error) return { error: databaseError(error) };
+  revalidateWealth();
+  return { error: null };
+}
+
+/** Links a loan to the asset it paid for, or unlinks it (null) -- so A&L
+ * can show the asset's equity: its value less what is still owed on it. */
+export async function setLiabilityAssetAction(liabilityId: string, assetId: string | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("liabilities")
+    .update({ asset_id: assetId }, { count: "exact" })
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message.includes("liability_asset_not_in_family") ? "That asset isn't this household's." : databaseError(error) };
+  if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
 }

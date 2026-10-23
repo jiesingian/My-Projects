@@ -67,6 +67,7 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
+import { LoanAssetPicker } from "@/components/loan-asset-picker";
 import { getUtang } from "@/lib/queries/utang";
 import { instalmentPlan } from "@/lib/utang";
 import { isGone } from "@/lib/member-status";
@@ -1048,6 +1049,11 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
   const mine = scope === memberId;
+  // What is still owed on each asset, from the loans linked to it
+  // (20261023231000): its value less this is the household's equity in it.
+  const owedOn = new Map<string, number>();
+  for (const l of liabilities) if (l.asset_id) owedOn.set(l.asset_id, (owedOn.get(l.asset_id) ?? 0) + Number(l.balance));
+  const assetChoices = assets.map((a) => ({ id: a.id, name: a.name }));
   const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
   // What is owned and what is owed, each as a donut grouped by owner.
   const owned: BreakdownItem[] = [
@@ -1208,6 +1214,12 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.worth.total, currency)}</span>
           </div>
           <AssetWorthLine asset={a} currency={currency} />
+          {(owedOn.get(a.id) ?? 0) > 0 && (
+            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
+              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)} · yours after the loan:{" "}
+              <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
             <AssetBreakdownControl
               assetId={a.id}
@@ -1270,6 +1282,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
                 {ownerOf(l.owner_member_id, l.is_joint) ? ` · ${ownerOf(l.owner_member_id, l.is_joint)}` : ""}
                 {l.lender ? ` · ${l.lender}` : ""}
+                {l.asset_id && assets.find((a) => a.id === l.asset_id) ? ` · on ${assets.find((a) => a.id === l.asset_id)!.name}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
                 {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
               </span>
@@ -1292,6 +1305,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 Record a payment
               </Link>
             )}
+            <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
             <LoanScheduleControl
               id={l.id}
               monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}
