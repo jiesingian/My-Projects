@@ -21,6 +21,8 @@ import { eventIsCurrent } from "@/lib/planner-done";
 import { nextEventDate } from "@/lib/grocery";
 import { rsvpOpen } from "@/lib/event-rsvp";
 import { potluckLines } from "@/lib/potluck";
+import { getGame } from "@/lib/queries/game";
+import { weekStartOf } from "@/lib/week";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -97,7 +99,8 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
   const [year, month] = localDay(now, tz).split("-").map(Number);
   const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`, tz) ?? now).toISOString();
 
-  const [budgetPeriod, monthSpend, shop, { data: low }] = await Promise.all([
+  const today = localDay(now, tz);
+  const [budgetPeriod, monthSpend, shop, { data: low }, { data: weekBills }, { data: todayMeals }] = await Promise.all([
     supabase
       .from("budget_periods")
       .select("budget_amount")
@@ -115,22 +118,47 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
     getPricedBuyList(familyId),
     // Running low in the pantry: said on the tile, not a card of its own.
     supabase.from("pantry_items").select("name").eq("family_id", familyId).eq("running_low", true),
+    // With no budget set, the tile says what the week asks instead (23
+    // October): the bills due in the next seven days.
+    supabase.from("bills").select("amount, due_date").eq("family_id", familyId).eq("status", "unpaid").gte("due_date", today).lte("due_date", addDays(today, 7)).order("due_date", { ascending: true }),
+    // Today's meals against the house and the list (decision 7, 23 October):
+    // a shortfall is said on the tile, as tomorrow's is in Coming up.
+    supabase.from("meal_plans").select("id, dish, meal_ingredients(item_key, ingredient_name)").eq("family_id", familyId).eq("plan_date", today).order("position", { ascending: true }),
   ]);
 
   const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
   const target = budgetPeriod.data ? Number(budgetPeriod.data.budget_amount) : 0;
+  const bills = weekBills ?? [];
+  const billsLine =
+    bills.length > 0
+      ? `${bills.length} bill${bills.length === 1 ? "" : "s"} by ${weekdayOf(bills[bills.length - 1].due_date!).slice(0, 3)} · ${formatAccounting(bills.reduce((sum, b) => sum + Number(b.amount), 0), currency)}`
+      : null;
   const money: GlanceTile =
     target > 0
       ? spent > target
         ? { id: "money", icon: "wallet", value: formatAccounting(spent - target, currency), label: "over this month's budget", href: "/wealth", progress: 1, warn: true }
         : { id: "money", icon: "wallet", value: formatAccounting(target - spent, currency), label: "left this month", href: "/wealth", progress: spent / target }
-      : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
+      : billsLine
+        ? { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: `spent this month · ${billsLine}`, href: "/wealth?seg=cashflow&open=expenses" }
+        : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
 
   // Today's one mention of the shopping list (Janine, 21 October).
   const open = shop.items.filter((i) => !i.checked);
   const listed = new Set(open.map((i) => i.name.trim().toLowerCase()));
   const lowCount = (low ?? []).filter((p) => !listed.has(p.name.trim().toLowerCase())).length;
   const said = shopGlance({ open: open.map((i) => i.name), estimate: shop.estimatedRemaining, unpriced: shop.unpricedCount, low: lowCount }, (n) => formatAccounting(n, currency));
+  // Today's meal missing things not in the house and not on the list.
+  const planned = (todayMeals ?? []).filter((m) => m.dish && (m.meal_ingredients ?? []).length > 0);
+  if (planned.length > 0) {
+    const { data: pantry } = await supabase.from("pantry_items").select("item_key").eq("family_id", familyId);
+    const have = new Set((pantry ?? []).map((p) => p.item_key));
+    for (const m of planned) {
+      const missing = (m.meal_ingredients ?? []).filter((i) => !(i.item_key && have.has(i.item_key)) && !listed.has(i.ingredient_name.trim().toLowerCase())).length;
+      if (missing === 0) continue;
+      said.label = `${said.label} · ${m.dish} needs ${missing}`;
+      break;
+    }
+  }
   const shopTile: GlanceTile = { id: "shop", icon: "basket", value: said.value, label: said.label, href: "/household?seg=buy" };
 
   return { money, shop: shopTile };
@@ -681,6 +709,19 @@ export function capComingUp(items: BriefItem[]): BriefItem[] {
       perPage.set(i.whose, n + 1);
       return n < 6;
     });
+}
+
+/** "At a glance" Goals (Jonathan, 23 October, decision 3): the reader's
+ * daily targets today, "2 of 3", from the same count the Target view shows
+ * (queries/game); with no targets asked today, the plain way to Goals it
+ * was (Janine, 21 October: no ring, no percentage). */
+export async function getGoalsTile(me: { id: string; family_id: string; families: { week_start?: string | null } }): Promise<GlanceTile> {
+  const plain: GlanceTile = { id: "goal", icon: "target", value: "Goals", label: "your goals and targets", href: "/planner?seg=goals" };
+  const game = await getGame(me.family_id, weekStartOf(me.families.week_start));
+  const player = game.players.find((p) => p.id === me.id);
+  if (!player || player.dailiesTotal === 0) return plain;
+  const done = player.dailiesDone === player.dailiesTotal;
+  return { id: "goal", icon: "target", value: `${player.dailiesDone} of ${player.dailiesTotal}`, label: done ? "targets today · all done" : "targets today", href: "/planner?seg=goals&g=game" };
 }
 
 /** The household's relatives on the tree who have passed, for Undas and
