@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, loanPaymentSplit, type WhoseOption } from "@/lib/wealth";
+import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_LABELS, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, loanPaymentSplit, type WhoseOption } from "@/lib/wealth";
 import type { PayableLoan } from "@/lib/queries/wealth";
 import { formatCurrency } from "@/lib/format";
 import { WhoseSelect } from "@/components/whose-select";
@@ -81,6 +81,10 @@ export function TransactForm({
   // Paying a loan: the part that pays it down, when the person changed
   // Kin's split; null follows the split as the amount changes.
   const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
+  // Money out for an asset: buying it, adding to it, or upkeep
+  // (20261023232000). Upkeep, the everyday case, unless they say otherwise.
+  const [assetUse, setAssetUse] = useState<"buy" | "add" | "upkeep">("upkeep");
+  const [itemKind, setItemKind] = useState<string>("improvement");
   const loan = against.startsWith("liabilities:") ? loans.find((l) => `liabilities:${l.id}` === against) : undefined;
   const split = loan ? loanPaymentSplit(loan.balance, loan.interestRate, amount) : null;
   const principal = split ? (principalOverride ?? split.principal) : null;
@@ -139,6 +143,8 @@ export function TransactForm({
               againstTable: against ? (against.split(":")[0] as "assets" | "goals" | "liabilities") : null,
               againstId: against ? against.split(":")[1] : null,
               principal: loan ? principal : null,
+              assetUse: mode === "out" && against.startsWith("assets:") ? assetUse : undefined,
+              assetItemKind: assetUse === "add" ? itemKind : undefined,
               whose,
             });
 
@@ -234,6 +240,49 @@ export function TransactForm({
             )}
           </select>
         </Field>
+      )}
+
+      {/* Money spent on an asset is one of three things (20261023232000):
+          buying it or a down payment (its value is already on record, so
+          this only moves cash into it), adding to it (it becomes one of the
+          asset's items and the asset is worth more), or upkeep -- the only
+          one that is a living cost. */}
+      {mode === "out" && against.startsWith("assets:") && (
+        <div style={{ border: "1px solid var(--color-divider)", borderRadius: 10, padding: "0.75rem", margin: "0 0 14px", fontSize: "0.8125rem" }}>
+          <div role="radiogroup" aria-label="What was it?" style={{ display: "grid", gap: "0.375rem" }}>
+            {([
+              ["upkeep", "Upkeep", "Repairs, dues, insurance, fuel -- a living cost."],
+              ["add", "Adding to it", "A renovation, an appliance, an upgrade -- it is now worth more."],
+              ["buy", "Buying it, or a down payment", "Its value is already on record; this only moves cash into it."],
+            ] as const).map(([value, label, hint]) => (
+              <label key={value} style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", cursor: "pointer" }}>
+                <input type="radio" name="asset_use" value={value} checked={assetUse === value} onChange={() => setAssetUse(value)} style={{ marginTop: "0.1875rem" }} />
+                <span>
+                  <span style={{ fontWeight: 600, display: "block" }}>{label}</span>
+                  <span style={{ color: "var(--color-neutral-600)" }}>{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {assetUse === "add" && (
+            <Field label="WHAT KIND" style={{ marginTop: "0.625rem", marginBottom: 0 }}>
+              <select className="input" value={itemKind} onChange={(e) => setItemKind(e.target.value)} style={{ minHeight: "2.5rem" }}>
+                {ASSET_ITEM_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {ASSET_ITEM_KIND_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {assetUse !== "upkeep" && (
+            <div style={{ color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
+              {assetUse === "add"
+                ? "Not a living cost: the asset will be worth this much more."
+                : "Not a living cost: it is part of the asset's value you already entered."}
+            </div>
+          )}
+        </div>
       )}
 
       {/* A loan payment is two things (20261023220000): interest, the cost,
