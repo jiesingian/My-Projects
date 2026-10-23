@@ -103,6 +103,9 @@ export type QueuedOp =
       section?: string;
       /** The event it is for, if one was picked. */
       eventId?: string;
+      /** The kind of store and the store's name, if given. */
+      storeKind?: string;
+      storeName?: string;
     }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
   /** A medicine dose ticked taken, or unticked, from Health or the simple

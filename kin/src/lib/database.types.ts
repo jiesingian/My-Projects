@@ -1789,6 +1789,8 @@ export type Database = {
           quantity: number | null
           section: string
           source: string
+          store_kind: string | null
+          store_name: string | null
           unit: string | null
           unit_price_override: number | null
         }
@@ -1812,6 +1814,8 @@ export type Database = {
           quantity?: number | null
           section?: string
           source: string
+          store_kind?: string | null
+          store_name?: string | null
           unit?: string | null
           unit_price_override?: number | null
         }
@@ -1835,6 +1839,8 @@ export type Database = {
           quantity?: number | null
           section?: string
           source?: string
+          store_kind?: string | null
+          store_name?: string | null
           unit?: string | null
           unit_price_override?: number | null
         }

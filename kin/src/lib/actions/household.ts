@@ -9,7 +9,7 @@ import { UUID } from "@/lib/ids";
 import { sendHelperListPush, sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
-import { MARKET_SECTIONS, guessSection } from "@/lib/grocery";
+import { MARKET_SECTIONS, guessSection, isStoreKind, cleanStoreName } from "@/lib/grocery";
 import { normalizeKey } from "@/lib/pricebook";
 import {
   MEAL_SLOTS,
@@ -53,6 +53,10 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId) ? clientId : undefined;
   // Which event it is for, if any. The database checks it is this household's.
   const eventId = asEventId(formData.get("event_id"));
+  // The kind of store and its name, if given. A line with no kind gets the
+  // database's guess from its section (20261023100000).
+  const storeKind = formData.get("store_kind");
+  const storeName = cleanStoreName(formData.get("store_name"));
   if (!name) return { error: "Name the item." };
 
   // An empty section means the member didn't pick one — file it themselves.
@@ -70,6 +74,8 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
       source,
       // Only sent when chosen, so adding a plain item never depends on it.
       ...(eventId ? { event_id: eventId } : {}),
+      ...(isStoreKind(storeKind) ? { store_kind: storeKind } : {}),
+      ...(storeName ? { store_name: storeName } : {}),
       created_by: me.id,
     })
     .select("id")
@@ -87,7 +93,15 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
 
 export async function updateBuyItemAction(
   itemId: string,
-  input: { name: string; quantity: number | null; unit: string | null; section: string; eventId?: string | null },
+  input: {
+    name: string;
+    quantity: number | null;
+    unit: string | null;
+    section: string;
+    eventId?: string | null;
+    storeKind?: string;
+    storeName?: string | null;
+  },
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -103,6 +117,8 @@ export async function updateBuyItemAction(
       section: (MARKET_SECTIONS as readonly string[]).includes(input.section) ? input.section : "Other",
       // Left alone unless the editor sent it, so other callers keep the event.
       ...(input.eventId !== undefined ? { event_id: asEventId(input.eventId) } : {}),
+      ...(isStoreKind(input.storeKind) ? { store_kind: input.storeKind } : {}),
+      ...(input.storeName !== undefined ? { store_name: cleanStoreName(input.storeName) } : {}),
     }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);

@@ -5,7 +5,22 @@ import { useRouter } from "next/navigation";
 import { useBuyListLive } from "@/lib/buy-list-live";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
-import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity, groupByAisle } from "@/lib/grocery";
+import {
+  MARKET_SECTIONS,
+  UNITS,
+  STORE_KINDS,
+  STORE_KIND_LABEL,
+  guessSection,
+  guessStoreKind,
+  storeKindOf,
+  formatQuantity,
+  groupByAisle,
+  groupByStoreKind,
+  groupWithinStoreKind,
+  storeNameSuggestions,
+  isStoreKind,
+  type StoreKind,
+} from "@/lib/grocery";
 import { BuyItemPriceButton, BuyItemPriceEditor } from "@/components/household-price-controls";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -24,17 +39,20 @@ import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/
 
 const initialState: ActionState = { error: null };
 
-type ListOrder = "aisle" | "event";
-const ORDER_KEY = "kin.buy-list.order";
-// Kept here too, so the toggle still works where storage is blocked (a
+/** What the list is shopping for (23 October, Janine): everything, one kind
+ * of store, or what is for an event. It replaced the By aisle / By event
+ * chips; By aisle reads as All items now. */
+type ListOrder = "all" | StoreKind | "event";
+const ORDER_KEY = "kin.buy-list.shopping-for";
+const OLD_ORDER_KEY = "kin.buy-list.order";
+// Kept here too, so the picker still works where storage is blocked (a
 // private window); it is just not remembered there.
-let orderNow: ListOrder = "aisle";
+let orderNow: ListOrder = "all";
 const orderListeners = new Set<() => void>();
 function readOrder(): ListOrder {
   try {
-    const saved = localStorage.getItem(ORDER_KEY);
-    // "added" was a third order until 12 October; it reads as By aisle now.
-    if (saved === "aisle" || saved === "event") orderNow = saved;
+    const saved = localStorage.getItem(ORDER_KEY) ?? (localStorage.getItem(OLD_ORDER_KEY) === "event" ? "event" : null);
+    if (saved === "all" || saved === "event" || isStoreKind(saved)) orderNow = saved;
   } catch {}
   return orderNow;
 }
@@ -95,7 +113,6 @@ function sourcesOf(items: Tables<"buy_items">[]): string {
 export function BuyList({
   familyId,
   groups,
-  openCount,
   doneCount,
   accounts,
   currency,
@@ -106,6 +123,7 @@ export function BuyList({
   trip,
   pricesSlot,
   cards = [],
+  usedStores = [],
   canEditCards = false,
   tripIsToday = false,
   startAdding = false,
@@ -142,6 +160,8 @@ export function BuyList({
   pricesSlot: React.ReactNode;
   /** The household's suki and loyalty cards, for the counter. */
   cards?: LoyaltyCard[];
+  /** The stores the household has named before, for the store box. */
+  usedStores?: { store_kind: string | null; store_name: string | null }[];
   /** Grown-ups add and change cards; everyone else shows them. */
   canEditCards?: boolean;
   /** The shopping day is today: the cards come out on the list itself. */
@@ -162,6 +182,12 @@ export function BuyList({
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");
   const [eventChoice, setEventChoice] = useState("");
+  // The kind of store follows the section until the member picks one; the
+  // store's name is kept between adds, for writing one shop's list in a go.
+  const [storeKindTouched, setStoreKindTouched] = useState(false);
+  const [storeKindChoice, setStoreKindChoice] = useState<StoreKind>("grocery");
+  const [storeName, setStoreName] = useState("");
+  const storeListId = useId();
   // Ticks and adds made offline wait in the queue (lib/offline/live) and are
   // shown from it until the replay settles them.
   const queue = useQueue();
@@ -201,6 +227,8 @@ export function BuyList({
         unit: String(form.get("unit") ?? ""),
         section: String(form.get("section") ?? ""),
         ...(form.get("event_id") ? { eventId: String(form.get("event_id")) } : {}),
+        storeKind: String(form.get("store_kind") ?? ""),
+        storeName: String(form.get("store_name") ?? ""),
       });
       if (!why) {
         setNewName("");
@@ -226,10 +254,10 @@ export function BuyList({
   // Someone else's tick or add -- the helper's at the market included --
   // shows without reopening the page.
   useBuyListLive(familyId);
-  // Walked aisle by aisle, or read in the order things were added. Starts by
-  // aisle -- which is also what the server draws -- and the choice is
+  // All items, one kind of store, or what is for an event. Starts on All
+  // items -- which is also what the server draws -- and the choice is
   // remembered on this phone only.
-  const order = useSyncExternalStore(subscribeOrder, readOrder, () => "aisle" as ListOrder);
+  const order = useSyncExternalStore(subscribeOrder, readOrder, () => "all" as ListOrder);
 
   // What the basket comes to, and what the whole list would. Both are
   // estimates built from the price book, so a line Kin cannot price is
@@ -239,8 +267,10 @@ export function BuyList({
   const hidden = useHiddenRows();
   const allItems = groups.flatMap((g) => g.items).filter((i) => !hidden.has(i.id));
   const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
-  const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
-  const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  // Checking out clears every ticked line, whichever store is showing, so
+  // what it suggests paying is the whole basket.
+  const wholeBasketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const wholeListTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
   const eventById = new Map(events.map((e) => [e.id, e]));
   const eventOf = (item: { event_id: string | null }) => (item.event_id ? eventById.get(item.event_id) ?? null : null);
   // By event: each event with something on the list, soonest first, each
@@ -256,9 +286,23 @@ export function BuyList({
         items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items),
       }))
       .filter((g) => g.items.length > 0);
-  const shown: ShownGroup[] = order === "event" ? byEvent() : groupByAisle(allItems);
   // Grouping by event is only worth offering once there is an event to group under.
   const canGroupByEvent = events.length > 0 || allItems.some((i) => i.event_id);
+  // "For an event" once nothing is for one falls back to All items, since
+  // the picker no longer offers it to choose back out of.
+  const view: ListOrder = order === "event" && !canGroupByEvent ? "all" : order;
+  const shown: ShownGroup[] =
+    view === "event" ? byEvent() : view === "all" ? groupByStoreKind(allItems) : groupWithinStoreKind(view, allItems);
+  // The lines the card above counts: the ones showing.
+  const viewItems = view === "all" ? allItems : view === "event" ? allItems.filter((i) => eventOf(i)) : allItems.filter((i) => storeKindOf(i) === view);
+  const basketTotal = viewItems.filter((i) => isChecked(i)).reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const listTotal = viewItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const viewDone = viewItems.filter((i) => isChecked(i)).length;
+  const viewUnpriced = view === "all" ? unpriced : viewItems.filter((i) => prices[i.id]?.estimated == null).length;
+  const viewLabel = view === "all" ? "This list" : view === "event" ? "For events" : STORE_KIND_LABEL[view];
+  const kindCount = (kind: StoreKind) => allItems.filter((i) => storeKindOf(i) === kind).length;
+  // A store group's lines all share its name, so the line need not say it.
+  const groupIsStore = (g: ShownGroup) => isStoreKind(view) && g.items.every((i) => i.store_name && i.store_name.toLowerCase() === g.name.toLowerCase());
 
   // The section follows what's being typed until the member overrides it.
   const section = sectionTouched ? sectionChoice : guessSection(newName);
@@ -266,6 +310,15 @@ export function BuyList({
     setSectionTouched(true);
     setSectionChoice(value);
   };
+  // Adding while one store is showing files the line there; otherwise the
+  // store follows the section.
+  const storeKind: StoreKind = storeKindTouched ? storeKindChoice : isStoreKind(view) ? view : guessStoreKind(section);
+  const setStoreKind = (value: StoreKind) => {
+    if (value !== storeKind) setStoreName("");
+    setStoreKindTouched(true);
+    setStoreKindChoice(value);
+  };
+  const storeNames = storeNameSuggestions(usedStores, cards.map((c) => c.store), storeKind);
 
   return (
     <>
@@ -276,7 +329,7 @@ export function BuyList({
       <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
           <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
-            This list
+            {viewLabel}
           </span>
           <span style={{ marginLeft: "auto", font: "600 1.5rem/1 var(--font-heading)" }}>{formatCurrency(listTotal, currency)}</span>
         </div>
@@ -289,16 +342,16 @@ export function BuyList({
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: "0.8125rem" }}>
           <span>
             <strong style={{ fontWeight: 600 }}>{formatCurrency(basketTotal, currency)}</strong>
-            <span style={{ color: "var(--color-neutral-700)" }}> in the basket · {doneCount} of {doneCount + openCount}</span>
+            <span style={{ color: "var(--color-neutral-700)" }}> in the basket · {viewDone} of {viewItems.length}</span>
           </span>
           <span style={{ marginLeft: "auto", color: "var(--color-neutral-700)" }}>
             {formatCurrency(listTotal - basketTotal, currency)} still to buy
           </span>
         </div>
 
-        {unpriced > 0 && (
+        {viewUnpriced > 0 && (
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", marginTop: "0.375rem" }}>
-            {unpriced === 1 ? "One item has no price yet" : `${unpriced} items have no price yet`} — the totals leave them out.
+            {viewUnpriced === 1 ? "One item has no price yet" : `${viewUnpriced} items have no price yet`} — the totals leave them out.
           </div>
         )}
 
@@ -311,10 +364,10 @@ export function BuyList({
             </span>
             {trip &&
               (trip.budget != null ? (
-                <span style={{ fontSize: "0.78125rem", flex: "none", color: listTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
-                  {listTotal > trip.budget
-                    ? `${formatCurrency(listTotal - trip.budget, currency)} over budget`
-                    : `${formatCurrency(trip.budget - listTotal, currency)} under`}
+                <span style={{ fontSize: "0.78125rem", flex: "none", color: wholeListTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
+                  {wholeListTotal > trip.budget
+                    ? `${formatCurrency(wholeListTotal - trip.budget, currency)} over budget`
+                    : `${formatCurrency(trip.budget - wholeListTotal, currency)} under`}
                 </span>
               ) : (
                 // Still said, just not in a paragraph of its own: the budget
@@ -357,29 +410,36 @@ export function BuyList({
           doneCount={doneCount}
           accounts={accounts}
           currency={currency}
-          suggested={basketTotal}
+          suggested={wholeBasketTotal}
           onClose={() => setCheckingOut(false)}
         />
       )}
 
       {allItems.length > 0 && (
-        <div role="group" aria-label="Order the list" style={{ display: "flex", gap: "0.375rem", marginBottom: "0.875rem" }}>
-          <button type="button" className="chip" data-active={order === "aisle"} aria-pressed={order === "aisle"} onClick={() => chooseOrder("aisle")}>
-            By aisle
-          </button>
-          {canGroupByEvent && (
-            <button type="button" className="chip" data-active={order === "event"} aria-pressed={order === "event"} onClick={() => chooseOrder("event")}>
-              By event
-            </button>
-          )}
-        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+          <span style={{ flex: "none" }}>Shopping for</span>
+          <select
+            className="input"
+            value={view}
+            onChange={(e) => chooseOrder(e.target.value as ListOrder)}
+            style={{ minHeight: "2.5rem", flex: 1, minWidth: 0 }}
+          >
+            <option value="all">All items ({allItems.length})</option>
+            {STORE_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {STORE_KIND_LABEL[k]} ({kindCount(k)})
+              </option>
+            ))}
+            {canGroupByEvent && <option value="event">For an event ({allItems.filter((i) => eventOf(i)).length})</option>}
+          </select>
+        </label>
       )}
 
       {shown.map((g) => {
         // Every group starts folded to its header and opens on a tap
         // (Jonathan, 12 October); the set holds the open ones.
-        const isOpen = expanded.has(order === "event" ? `event:${g.name}` : g.name);
-        const toggleKey = order === "event" ? `event:${g.name}` : g.name;
+        const toggleKey = `${view}:${g.name}`;
+        const isOpen = expanded.has(toggleKey);
         const inBasket = g.items.filter((i) => i.checked).length;
         // What an event's shopping comes to, from the same estimates as the
         // card above; lines with no price are counted, not guessed.
@@ -525,7 +585,14 @@ export function BuyList({
                     ) : null}
                     {/* The event it is for -- said on the line except when the
                         list is already grouped under it. */}
-                    {order !== "event" && eventOf(item) ? (
+                    {/* The store it is named for, unless its group is that store. */}
+                    {item.store_name && !groupIsStore(g) ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Icon name="basket" size={11} style={{ flex: "none" }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{view === "event" ? `${STORE_KIND_LABEL[storeKindOf(item)]} · ${item.store_name}` : item.store_name}</span>
+                      </span>
+                    ) : null}
+                    {view !== "event" && eventOf(item) ? (
                       <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", whiteSpace: "nowrap" }}>
                         <Icon name="calendarDays" size={11} style={{ flex: "none" }} />
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>For {eventLabel(eventOf(item)!)}</span>
@@ -568,14 +635,22 @@ export function BuyList({
                 {pricing === item.id && (
                   <BuyItemPriceEditor itemId={item.id} unitPrice={prices[item.id]?.unitPrice ?? null} onClose={() => setPricing(null)} />
                 )}
-                {editing === item.id && <EditItemRow item={item} events={events} onClose={() => setEditing(null)} />}
+                {editing === item.id && (
+                  <EditItemRow item={item} events={events} usedStores={usedStores} cardStores={cards.map((c) => c.store)} onClose={() => setEditing(null)} />
+                )}
                 </div>
               ))}
           </div>
         );
       })}
 
-      {order === "event" && shown.length === 0 && allItems.length > 0 && (
+      {isStoreKind(view) && shown.length === 0 && allItems.length > 0 && (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 1.125rem" }}>
+          Nothing on the list is for the {STORE_KIND_LABEL[view].toLowerCase()} yet. Add an item below, or tap an item to change its store.
+        </p>
+      )}
+
+      {view === "event" && shown.length === 0 && allItems.length > 0 && (
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 1.125rem" }}>
           Nothing on the list is for an event yet. Pick one under &ldquo;For an event&rdquo; when adding an item, or tap an item to set it.
         </p>
@@ -646,6 +721,34 @@ export function BuyList({
               ))}
             </select>
           )}
+          {/* Which kind of store, and which store, if it matters. The kind
+              follows the section; the name is offered from the stores the
+              household has used and its loyalty cards. */}
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <select aria-label="Kind of store" className="input" name="store_kind" value={storeKind} onChange={(e) => setStoreKind(e.target.value as StoreKind)} style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }}>
+              {STORE_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {STORE_KIND_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <input
+              aria-label="Store name"
+              className="input"
+              name="store_name"
+              placeholder="Store name (optional)"
+              list={`${storeListId}-add`}
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              maxLength={80}
+              style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }}
+            />
+            <datalist id={`${storeListId}-add`}>
+              {storeNames.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
             <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
@@ -674,8 +777,8 @@ export function BuyList({
       )}
       <ErrorText message={addState.error} />
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
-        Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
-        quantity, section or the event it is for. Ticked items stay until cleared.
+        Sections follow the order you walk the market. Items are filed by name automatically — tap any item to fix its quantity, section,
+        store or the event it is for. Ticked items stay until cleared.
       </div>
     </>
   );
@@ -683,14 +786,29 @@ export function BuyList({
 
 /** Tapping an item opens this — fix the quantity, the unit, or which section
  * it was filed under when it came off a meal plan. */
-function EditItemRow({ item, events, onClose }: { item: Tables<"buy_items">; events: ListEvent[]; onClose: () => void }) {
+function EditItemRow({
+  item,
+  events,
+  usedStores,
+  cardStores,
+  onClose,
+}: {
+  item: Tables<"buy_items">;
+  events: ListEvent[];
+  usedStores: { store_kind: string | null; store_name: string | null }[];
+  cardStores: string[];
+  onClose: () => void;
+}) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity === null ? "" : String(item.quantity));
   const [unit, setUnit] = useState(item.unit ?? "pc");
   const [section, setSection] = useState(item.section);
   const [eventId, setEventId] = useState(item.event_id ?? "");
+  const [storeKind, setStoreKind] = useState<StoreKind>(storeKindOf(item));
+  const [storeName, setStoreName] = useState(item.store_name ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const storeListId = useId();
 
   function save() {
     startTransition(async () => {
@@ -701,6 +819,8 @@ function EditItemRow({ item, events, onClose }: { item: Tables<"buy_items">; eve
         section,
         // Sent only when it changed, so an ordinary edit never touches it.
         ...(eventId !== (item.event_id ?? "") ? { eventId: eventId || null } : {}),
+        storeKind,
+        storeName: storeName.trim() || null,
       });
       onClose();
       router.refresh();
@@ -739,6 +859,30 @@ function EditItemRow({ item, events, onClose }: { item: Tables<"buy_items">; eve
           ))}
         </select>
       )}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <select aria-label="Kind of store" className="input" value={storeKind} onChange={(e) => setStoreKind(e.target.value as StoreKind)} style={{ minHeight: "2.5rem", flex: 1, minWidth: 0 }}>
+          {STORE_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {STORE_KIND_LABEL[k]}
+            </option>
+          ))}
+        </select>
+        <input
+          aria-label="Store name"
+          className="input"
+          placeholder="Store name (optional)"
+          list={storeListId}
+          value={storeName}
+          onChange={(e) => setStoreName(e.target.value)}
+          maxLength={80}
+          style={{ minHeight: "2.5rem", flex: 1, minWidth: 0 }}
+        />
+        <datalist id={storeListId}>
+          {storeNameSuggestions(usedStores, cardStores, storeKind).map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+      </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
           {MARKET_SECTIONS.map((s) => (

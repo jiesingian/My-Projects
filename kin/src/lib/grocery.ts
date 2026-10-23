@@ -180,3 +180,128 @@ export function nextEventDate(
   const thisYear = on(year);
   return thisYear >= today ? thisYear : on(year + 1);
 }
+
+/** The kinds of store a line is bought at (23 October, Janine): the list is
+ * read one store at a time from the "Shopping for" picker. Market is the
+ * palengke, Grocery the supermarket. The order is the picker's. */
+export const STORE_KINDS = ["market", "grocery", "bookstore", "pharmacy", "baby", "pet", "gadgets", "other"] as const;
+
+export type StoreKind = (typeof STORE_KINDS)[number];
+
+export const STORE_KIND_LABEL: Record<StoreKind, string> = {
+  market: "Market",
+  grocery: "Grocery",
+  bookstore: "Bookstore",
+  pharmacy: "Drugstore / Pharmacy",
+  baby: "Baby store",
+  pet: "Pet shop",
+  gadgets: "Gadgets shop",
+  other: "Other",
+};
+
+export function isStoreKind(value: unknown): value is StoreKind {
+  return (STORE_KINDS as readonly unknown[]).includes(value);
+}
+
+/** Where a line is bought when nobody said: fresh food at the market,
+ * medicines and personal care at the drugstore, baby and pet things at their
+ * own shops, everything else at the supermarket. The database makes the same
+ * guess for lines added without one (20261023100000_buy_items_store). */
+export function guessStoreKind(section: string, medicineId?: string | null): StoreKind {
+  if (medicineId) return "pharmacy";
+  switch (section) {
+    case "Produce":
+    case "Meat":
+    case "Fish & Seafood":
+      return "market";
+    case "Personal Care":
+      return "pharmacy";
+    case "Baby":
+      return "baby";
+    case "Pet":
+      return "pet";
+    default:
+      return "grocery";
+  }
+}
+
+type StoreLine = { section: string; store_kind?: string | null; store_name?: string | null; medicine_id?: string | null };
+
+/** A line's store kind: the one it was given, or the guess. */
+export function storeKindOf(item: StoreLine): StoreKind {
+  return isStoreKind(item.store_kind) ? item.store_kind : guessStoreKind(item.section, item.medicine_id);
+}
+
+/** A store's name as kept: trimmed, spaces collapsed, at most 80 characters;
+ * blank is no name at all. */
+export function cleanStoreName(value: unknown): string | null {
+  const name = String(value ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+  return name || null;
+}
+
+/** The list under "All items": one group per kind of store, in picker order,
+ * only the ones with something in them; each still walked by aisle. */
+export function groupByStoreKind<T extends StoreLine>(items: T[]): { kind: StoreKind; name: string; items: T[] }[] {
+  return STORE_KINDS.map((kind) => ({
+    kind,
+    name: STORE_KIND_LABEL[kind],
+    items: groupByAisle(items.filter((i) => storeKindOf(i) === kind)).flatMap((g) => g.items),
+  })).filter((g) => g.items.length > 0);
+}
+
+/** Lines with no store name, grouped last under one kind of store. */
+export const ANY_STORE = "Any store";
+
+/** One kind of store's lines. Named stores each get a group (A to Z, the
+ * spelling first used), and the unnamed ones come last as "Any store". With
+ * no names at all, the market and the supermarket are walked by aisle and
+ * the rest are one plain list under the kind's own name. */
+export function groupWithinStoreKind<T extends StoreLine>(kind: StoreKind, items: T[]): { name: string; items: T[] }[] {
+  const mine = items.filter((i) => storeKindOf(i) === kind);
+  const named = new Map<string, { name: string; items: T[] }>();
+  const unnamed: T[] = [];
+  for (const item of mine) {
+    const name = cleanStoreName(item.store_name);
+    if (!name) {
+      unnamed.push(item);
+      continue;
+    }
+    const key = name.toLowerCase();
+    const group = named.get(key) ?? { name, items: [] };
+    group.items.push(item);
+    named.set(key, group);
+  }
+  if (named.size === 0) {
+    if (kind === "market" || kind === "grocery") return groupByAisle(mine);
+    return mine.length > 0 ? [{ name: STORE_KIND_LABEL[kind], items: groupByAisle(mine).flatMap((g) => g.items) }] : [];
+  }
+  const walked = (list: T[]) => groupByAisle(list).flatMap((g) => g.items);
+  const groups = [...named.values()]
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
+    .map((g) => ({ name: g.name, items: walked(g.items) }));
+  if (unnamed.length > 0) groups.push({ name: ANY_STORE, items: walked(unnamed) });
+  return groups;
+}
+
+/** Names to offer in the store box: the ones the household has used for this
+ * kind of store first, then its other stores and its loyalty cards' stores.
+ * Each name once, whatever its capitals. */
+export function storeNameSuggestions(
+  used: { store_kind: string | null; store_name: string | null }[],
+  cardStores: string[],
+  kind: StoreKind,
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (value: unknown) => {
+    const name = cleanStoreName(value);
+    if (name && !seen.has(name.toLowerCase())) {
+      seen.add(name.toLowerCase());
+      out.push(name);
+    }
+  };
+  used.filter((u) => u.store_kind === kind).forEach((u) => add(u.store_name));
+  used.forEach((u) => add(u.store_name));
+  cardStores.forEach(add);
+  return out;
+}
