@@ -157,7 +157,7 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 /** An account as every breakdown names it: bank or e-wallet, then the
  * account -- "BPI - Payroll" (Janine, 23 October). */
-function accountLabel(a: { name: string; institution: string | null }) {
+function accountLabel(a: { name: string; institution?: string | null }) {
   return a.institution && a.institution.trim().toLowerCase() !== a.name.trim().toLowerCase() ? `${a.institution} - ${a.name}` : a.name;
 }
 
@@ -480,8 +480,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // its date: money lent coming back under INCOME, money borrowed going
   // out under EXPENSES. The household's, so under Who = everyone;
   // grown-ups'.
+  const utang = grownUp ? await getUtang(familyId, memberId) : [];
+  // Money lent and not yet all back: what Add income's "Paid back to me" picks from.
+  const openLent = utang.filter((u) => u.direction === "lent" && !u.settled).map((u) => ({ id: u.id, personName: u.personName, left: u.amount - u.paid }));
   const instalmentsDue = grownUp && scope === "all"
-    ? (await getUtang(familyId, memberId))
+    ? utang
         .filter((u) => !u.settled && u.instalments && u.instalmentFrequency && u.firstDueOn)
         .map((u) => {
           const plan = instalmentPlan(u.amount, u.instalments!, u.instalmentFrequency!, u.firstDueOn!, u.paid, today);
@@ -507,7 +510,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     .filter((p) => p.memberId !== null || p.hasVisibleAccounts)
     .sort((a, b) => a.order - b.order);
   const pickable = toPickable(accounts, memberId);
-  const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
+  // Named as every breakdown names them -- "BPI - Payroll" -- no balances.
+  const bareAccounts = pickable.map((a) => ({ id: a.id, name: accountLabel(a) }));
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const mine = scope === memberId;
   const isJoint = isHouseholdScope(scope);
@@ -688,7 +692,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
-      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} grownUp={grownUp} />
+      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} openLent={openLent} currency={currency} grownUp={grownUp} />
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
