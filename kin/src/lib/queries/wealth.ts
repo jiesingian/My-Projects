@@ -77,7 +77,7 @@ async function privateLeftOutOfAll(): Promise<string | null> {
 /** Which ledger rows a Who view counts in its money in and out: rows on an
  * account the viewer can see (with their own private ones left out of All
  * if they chose), then by whose the row is -- Janine's salary paid into the
- * joint account is Janine's (20261023120000). A row from before that, with
+ * joint account is Janine's (20261023210000). A row from before that, with
  * no owner of its own yet, falls back to its account's. */
 /** "entry": by whose each row is (Cash Flow). "account": by whose account
  * it moved through (the Accounts tab, whose figures are its accounts'). */
@@ -695,7 +695,7 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   const spent = new Map<string | null, number>();
   for (const r of rows ?? []) {
     if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;
-    // Whose the spending is (20261023120000), not whose account paid it.
+    // Whose the spending is (20261023210000), not whose account paid it.
     const who = r.is_joint === null ? (ownerOf.get(r.account_id) ?? null) : r.is_joint ? null : r.owner_member_id;
     spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
   }

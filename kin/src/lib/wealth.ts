@@ -188,7 +188,7 @@ export function categoryLabel(category: string): string {
 export const INCOME_FREQUENCY_LABELS: Record<string, string> = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly" };
 
 /** Whose an income, an expense or a bill is, as the forms send it: "me",
- * "joint" (Family), or a household member's id (20261023120000). The
+ * "joint" (Family), or a household member's id (20261023210000). The
  * database checks the member is in the household. */
 export function parseWhose(raw: unknown, meId: string): { is_joint: boolean; owner_member_id: string | null } {
   const v = String(raw ?? "me");

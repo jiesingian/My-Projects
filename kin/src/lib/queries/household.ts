@@ -12,6 +12,7 @@ import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { nextEventDate } from "@/lib/grocery";
 import type { LoyaltyCard } from "@/lib/loyalty-cards";
+import { readTripLines } from "@/lib/buy-budget";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -262,3 +263,32 @@ export async function getUsedStoreNames(familyId: string): Promise<{ store_kind:
     .limit(300);
   return data ?? [];
 }
+
+/** The week's checkouts, newest first (20261023210000_buy_trips). The
+ * database reads only the last seven days back. */
+export async function getRecentTrips(familyId: string) {
+  const supabase = await createClient();
+  const tz = await householdZone();
+  // Said in the household's own zone here, so the server and the phone print
+  // the same day and time.
+  const when = (iso: string) =>
+    new Date(iso).toLocaleString("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  const { data } = await supabase
+    .from("buy_trips")
+    .select("id, checked_out_at, budget, actual, savings, paid, item_count, items")
+    .eq("family_id", familyId)
+    .order("checked_out_at", { ascending: false })
+    .limit(50);
+  return (data ?? []).map((t) => ({
+    id: t.id,
+    when: when(t.checked_out_at),
+    budget: Number(t.budget),
+    actual: Number(t.actual),
+    savings: Number(t.savings),
+    paid: t.paid == null ? null : Number(t.paid),
+    itemCount: t.item_count,
+    items: readTripLines(t.items),
+  }));
+}
+
+export type RecentTrip = Awaited<ReturnType<typeof getRecentTrips>>[number];

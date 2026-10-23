@@ -11,7 +11,9 @@ import {
   removeBuyItemAction,
   setBuyItemActualAction,
   setItemPriceAction,
+  removeBuyTripAction,
 } from "@/lib/actions/household";
+import type { RecentTrip } from "@/lib/queries/household";
 import { budgetSummary, differsFromBook, lineActual, lineBudget, lineSavings, parseAmount, type BudgetLine } from "@/lib/buy-budget";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import {
@@ -132,6 +134,7 @@ export function BuyList({
   pricesSlot,
   cards = [],
   usedStores = [],
+  trips = [],
   canEditCards = false,
   tripIsToday = false,
   startAdding = false,
@@ -170,6 +173,8 @@ export function BuyList({
   cards?: LoyaltyCard[];
   /** The stores the household has named before, for the store box. */
   usedStores?: { store_kind: string | null; store_name: string | null }[];
+  /** The week's checkouts, newest first. */
+  trips?: RecentTrip[];
   /** Grown-ups add and change cards; everyone else shows them. */
   canEditCards?: boolean;
   /** The shopping day is today: the cards come out on the list itself. */
@@ -870,6 +875,8 @@ export function BuyList({
         Sections follow the order you walk the market. Items are filed by name automatically — tap any item to fix its quantity, section,
         store or the event it is for. Ticked items stay until cleared.
       </div>
+
+      {trips.length > 0 && <PastTrips trips={trips} currency={currency} />}
     </>
   );
 }
@@ -1138,6 +1145,83 @@ function ActualRow({
   );
 }
 
+/** The week's checkouts (Janine, 23 October): each with its budget, what it
+ * cost and what it saved, and its lines a tap away. Kept seven days, then
+ * gone (20261023210000_buy_trips). */
+function PastTrips({ trips, currency }: { trips: RecentTrip[]; currency: string }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const router = useRouter();
+  // A removed trip goes at once, with Undo for a few seconds (lib/undo-delete).
+  const hidden = useHiddenRows();
+  const shownTrips = trips.filter((t) => !hidden.has(t.id));
+  const stores = (t: RecentTrip) => {
+    const names = [...new Set(t.items.map((i) => i.store_name ?? (isStoreKind(i.store_kind) ? STORE_KIND_LABEL[i.store_kind] : "Other")))];
+    return names.length > 3 ? `${names.slice(0, 3).join(" · ")} +${names.length - 3}` : names.join(" · ");
+  };
+  return (
+    <section style={{ marginTop: "1.5rem" }} aria-label="Past trips">
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", borderBottom: "1px solid var(--color-divider)", paddingBottom: "0.375rem", marginBottom: "0.25rem" }}>
+        <span style={{ font: "600 0.9375rem/1.3 var(--font-heading)" }}>Past trips</span>
+        <span style={{ marginLeft: "auto", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>kept for a week</span>
+      </div>
+      {shownTrips.map((t) => {
+        const isOpen = open === t.id;
+        return (
+          <div key={t.id} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpen(isOpen ? null : t.id)}
+              style={{ width: "100%", background: "none", border: 0, padding: "0.625rem 0", cursor: "pointer", textAlign: "left", color: "inherit", display: "grid", gap: "0.3125rem" }}
+            >
+              <span style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>{t.when}</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{stores(t)}</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", flex: "none" }}>
+                  {t.itemCount} item{t.itemCount === 1 ? "" : "s"}
+                </span>
+              </span>
+              <span style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", font: "400 0.78125rem/1.3 var(--font-numeric)", color: "var(--color-neutral-700)" }}>
+                <span>Budget {formatCurrency(t.budget, currency)}</span>
+                <span>Actual {formatCurrency(t.actual, currency)}</span>
+                <span style={{ color: t.savings < 0 ? "var(--cal-money)" : t.savings > 0 ? "var(--color-switch-on)" : undefined, fontWeight: 600 }}>
+                  {t.savings < 0 ? `Over ${formatCurrency(-t.savings, currency)}` : `Saved ${formatCurrency(t.savings, currency)}`}
+                </span>
+                {t.paid != null && Math.abs(t.paid - t.actual) >= 0.01 && <span>Paid {formatCurrency(t.paid, currency)}</span>}
+              </span>
+            </button>
+            {isOpen && (
+              <div style={{ padding: "0 0 0.75rem" }}>
+                {t.items.map((i, n) => (
+                  <div key={n} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", columnGap: "0.75rem", fontSize: "0.8125rem", padding: "0.25rem 0" }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {i.name}
+                      {i.quantity != null && <span style={{ color: "var(--color-neutral-600)" }}> · {formatQuantity(i.quantity, i.unit)}</span>}
+                    </span>
+                    <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-neutral-600)" }}>{i.budget == null ? "—" : formatCurrency(i.budget, currency)}</span>
+                    <span style={{ fontFamily: "var(--font-numeric)", minWidth: "4rem", textAlign: "right" }}>{i.actual == null ? "—" : formatCurrency(i.actual, currency)}</span>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.375rem", marginTop: "0.375rem", color: "var(--color-accent-700)" }}
+                  onClick={() => {
+                    setOpen(null);
+                    deleteWithUndo({ id: t.id, message: `Removed the trip of ${t.when}`, remove: () => removeBuyTripAction(t.id), onDeleted: () => router.refresh() });
+                  }}
+                >
+                  Remove this trip
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 /** Clearing the trolley is the moment the shop actually cost something, so
  * that's where the spend is captured and taken out of a real account. */
 function ClearCheckedPanel({
@@ -1176,7 +1260,7 @@ function ClearCheckedPanel({
           sourceId: null,
         });
       }
-      await clearCheckedAction();
+      await clearCheckedAction(withSpend && amount > 0 ? amount : null);
       // The basket is empty now, so the till closes with it.
       onClose();
       router.refresh();
