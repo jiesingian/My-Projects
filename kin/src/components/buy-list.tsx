@@ -3,7 +3,16 @@
 import { useActionState, useId, useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useBuyListLive } from "@/lib/buy-list-live";
-import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
+import {
+  addBuyItemAction,
+  toggleBuyItemAction,
+  clearCheckedAction,
+  updateBuyItemAction,
+  removeBuyItemAction,
+  setBuyItemActualAction,
+  setItemPriceAction,
+} from "@/lib/actions/household";
+import { budgetSummary, differsFromBook, lineActual, lineBudget, lineSavings, parseAmount, type BudgetLine } from "@/lib/buy-budget";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import {
   MARKET_SECTIONS,
@@ -119,7 +128,6 @@ export function BuyList({
   prices,
   mealsFor = {},
   events = [],
-  unpriced,
   trip,
   pricesSlot,
   cards = [],
@@ -173,6 +181,8 @@ export function BuyList({
   const [checkingOut, setCheckingOut] = useState(false);
   // Which line's price is being set. One at a time, under its own row.
   const [pricing, setPricing] = useState<string | null>(null);
+  // The line just ticked, whose "what did it cost" box is open under it.
+  const [actualFor, setActualFor] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [optimisticChecked, setOptimisticChecked] = useOptimistic(
     new Map<string, boolean>(),
@@ -204,8 +214,10 @@ export function BuyList({
     setQueueError(null);
     if (isOffline()) return later();
     // Ticked on screen the moment the thumb lands; the server's answer
-    // replaces it when it comes back.
+    // replaces it when it comes back. Ticking asks what it cost, every time
+    // (Janine, 23 October); unticking closes the question.
     setOptimisticChecked([item.id, checked]);
+    setActualFor(checked ? item.id : null);
     try {
       await toggleBuyItemAction(item.id, checked);
     } catch (e) {
@@ -229,6 +241,7 @@ export function BuyList({
         ...(form.get("event_id") ? { eventId: String(form.get("event_id")) } : {}),
         storeKind: String(form.get("store_kind") ?? ""),
         storeName: String(form.get("store_name") ?? ""),
+        budget: String(form.get("budget") ?? ""),
       });
       if (!why) {
         setNewName("");
@@ -266,11 +279,16 @@ export function BuyList({
   // so the totals drop with it.
   const hidden = useHiddenRows();
   const allItems = groups.flatMap((g) => g.items).filter((i) => !hidden.has(i.id));
-  const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
+  // A line's budget, what it cost and what it saved (lib/buy-budget.ts).
+  const budgetLine = (i: Tables<"buy_items">): BudgetLine => ({
+    checked: isChecked(i),
+    budget: i.budget == null ? null : Number(i.budget),
+    estimated: prices[i.id]?.estimated ?? null,
+    actual: i.actual_cost == null ? null : Number(i.actual_cost),
+  });
   // Checking out clears every ticked line, whichever store is showing, so
   // what it suggests paying is the whole basket.
-  const wholeBasketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
-  const wholeListTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const whole = budgetSummary(allItems.map(budgetLine));
   const eventById = new Map(events.map((e) => [e.id, e]));
   const eventOf = (item: { event_id: string | null }) => (item.event_id ? eventById.get(item.event_id) ?? null : null);
   // By event: each event with something on the list, soonest first, each
@@ -295,10 +313,7 @@ export function BuyList({
     view === "event" ? byEvent() : view === "all" ? groupByStoreKind(allItems) : groupWithinStoreKind(view, allItems);
   // The lines the card above counts: the ones showing.
   const viewItems = view === "all" ? allItems : view === "event" ? allItems.filter((i) => eventOf(i)) : allItems.filter((i) => storeKindOf(i) === view);
-  const basketTotal = viewItems.filter((i) => isChecked(i)).reduce((sum, i) => sum + estimateOf(i.id), 0);
-  const listTotal = viewItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
-  const viewDone = viewItems.filter((i) => isChecked(i)).length;
-  const viewUnpriced = view === "all" ? unpriced : viewItems.filter((i) => prices[i.id]?.estimated == null).length;
+  const summary = budgetSummary(viewItems.map(budgetLine));
   const viewLabel = view === "all" ? "This list" : view === "event" ? "For events" : STORE_KIND_LABEL[view];
   const kindCount = (kind: StoreKind) => allItems.filter((i) => storeKindOf(i) === kind).length;
   // A store group's lines all share its name, so the line need not say it.
@@ -331,27 +346,42 @@ export function BuyList({
           <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
             {viewLabel}
           </span>
-          <span style={{ marginLeft: "auto", font: "600 1.5rem/1 var(--font-heading)" }}>{formatCurrency(listTotal, currency)}</span>
+          <span style={{ marginLeft: "auto", fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
+            {summary.bought} of {summary.lines} bought
+          </span>
         </div>
 
-        {/* How far round the shop you are: the filled part is in the basket. */}
+        {/* Budget, what the bought lines cost, and what that saved -- the
+            saving only over what is bought, so the unbought never reads as
+            saved (Janine, 23 October). */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.5rem", marginTop: "0.5rem" }}>
+          {[
+            { label: "Budget", value: formatCurrency(summary.budget, currency), tone: "var(--color-text)" },
+            { label: "Actual", value: formatCurrency(summary.actual, currency), tone: "var(--color-text)" },
+            {
+              label: summary.savings < 0 ? "Over" : "Savings",
+              value: formatCurrency(Math.abs(summary.savings), currency),
+              tone: summary.savings < 0 ? "var(--cal-money)" : summary.savings > 0 ? "var(--color-switch-on)" : "var(--color-text)",
+            },
+          ].map((f) => (
+            <div key={f.label} style={{ display: "grid", gap: "0.1875rem", minWidth: 0 }}>
+              <span style={{ fontSize: "0.6875rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{f.label}</span>
+              <span style={{ font: "600 1.0625rem/1.1 var(--font-numeric)", color: f.tone, overflowWrap: "anywhere" }}>{f.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* How far round the shop you are: the filled part is bought. */}
         <div style={{ height: 7, borderRadius: 999, overflow: "hidden", background: "color-mix(in srgb, var(--color-text) 9%, transparent)", margin: "9px 0 7px" }}>
-          <div style={{ height: "100%", width: `${listTotal > 0 ? Math.min(100, (basketTotal / listTotal) * 100) : 0}%`, background: "var(--color-switch-on)" }} />
+          <div style={{ height: "100%", width: `${summary.lines > 0 ? (summary.bought / summary.lines) * 100 : 0}%`, background: "var(--color-switch-on)" }} />
         </div>
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: "0.8125rem" }}>
-          <span>
-            <strong style={{ fontWeight: 600 }}>{formatCurrency(basketTotal, currency)}</strong>
-            <span style={{ color: "var(--color-neutral-700)" }}> in the basket · {viewDone} of {viewItems.length}</span>
-          </span>
-          <span style={{ marginLeft: "auto", color: "var(--color-neutral-700)" }}>
-            {formatCurrency(listTotal - basketTotal, currency)} still to buy
-          </span>
-        </div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>{formatCurrency(summary.toBuy, currency)} still to buy</div>
 
-        {viewUnpriced > 0 && (
+        {summary.noBudget > 0 && (
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", marginTop: "0.375rem" }}>
-            {viewUnpriced === 1 ? "One item has no price yet" : `${viewUnpriced} items have no price yet`} — the totals leave them out.
+            {summary.noBudget === 1 ? "One item has no budget or price yet" : `${summary.noBudget} items have no budget or price yet`} — the
+            budget leaves them out.
           </div>
         )}
 
@@ -364,10 +394,10 @@ export function BuyList({
             </span>
             {trip &&
               (trip.budget != null ? (
-                <span style={{ fontSize: "0.78125rem", flex: "none", color: wholeListTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
-                  {wholeListTotal > trip.budget
-                    ? `${formatCurrency(wholeListTotal - trip.budget, currency)} over budget`
-                    : `${formatCurrency(trip.budget - wholeListTotal, currency)} under`}
+                <span style={{ fontSize: "0.78125rem", flex: "none", color: whole.budget > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
+                  {whole.budget > trip.budget
+                    ? `${formatCurrency(whole.budget - trip.budget, currency)} over budget`
+                    : `${formatCurrency(trip.budget - whole.budget, currency)} under`}
                 </span>
               ) : (
                 // Still said, just not in a paragraph of its own: the budget
@@ -410,7 +440,8 @@ export function BuyList({
           doneCount={doneCount}
           accounts={accounts}
           currency={currency}
-          suggested={wholeBasketTotal}
+          suggested={whole.actual}
+          budget={allItems.filter((i) => isChecked(i)).reduce((sum, i) => sum + (lineBudget(budgetLine(i)) ?? 0), 0)}
           onClose={() => setCheckingOut(false)}
         />
       )}
@@ -441,10 +472,9 @@ export function BuyList({
         const toggleKey = `${view}:${g.name}`;
         const isOpen = expanded.has(toggleKey);
         const inBasket = g.items.filter((i) => i.checked).length;
-        // What an event's shopping comes to, from the same estimates as the
-        // card above; lines with no price are counted, not guessed.
-        const groupTotal = g.items.reduce((sum, i) => sum + estimateOf(i.id), 0);
-        const groupUnpriced = g.items.filter((i) => prices[i.id]?.estimated == null).length;
+        // The group's budget, and once anything in it is bought, what that
+        // cost and saved -- the same sums as the card above.
+        const gs = budgetSummary(g.items.map(budgetLine));
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
             {/* One header for every grouping: what the group is (an event's
@@ -500,13 +530,21 @@ export function BuyList({
                 {inBasket > 0 && <span>{inBasket === g.items.length ? "all" : inBasket} in basket</span>}
               </span>
               <span style={{ display: "grid", justifyItems: "end", gap: "0.1875rem", minWidth: "3.75rem" }}>
-                {groupUnpriced === g.items.length ? (
-                  <span style={{ font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price</span>
+                {gs.noBudget === g.items.length ? (
+                  <span style={{ font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No budget</span>
                 ) : (
-                  <strong style={{ font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
+                  <strong style={{ font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(gs.budget, currency)}</strong>
                 )}
-                {groupUnpriced > 0 && groupUnpriced < g.items.length && (
-                  <span style={{ font: "400 0.6875rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>+{groupUnpriced} unpriced</span>
+                {gs.bought > 0 ? (
+                  <span style={{ font: "400 0.6875rem/1.3 var(--font-body)", color: gs.savings < 0 ? "var(--cal-money)" : "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
+                    Actual {formatCurrency(gs.actual, currency)}
+                    {gs.savings !== 0 && ` · ${gs.savings < 0 ? "over" : "saved"} ${formatCurrency(Math.abs(gs.savings), currency)}`}
+                  </span>
+                ) : (
+                  gs.noBudget > 0 &&
+                  gs.noBudget < g.items.length && (
+                    <span style={{ font: "400 0.6875rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>+{gs.noBudget} no budget</span>
+                  )
                 )}
               </span>
             </button>
@@ -585,6 +623,14 @@ export function BuyList({
                     ) : null}
                     {/* The event it is for -- said on the line except when the
                         list is already grouped under it. */}
+                    {/* Bought: against its budget. */}
+                    {isChecked(item) && lineSavings(budgetLine(item)) != null ? (
+                      <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", color: lineSavings(budgetLine(item))! < 0 ? "var(--cal-money)" : "var(--color-neutral-600)" }}>
+                        Budget {formatCurrency(lineBudget(budgetLine(item))!, currency)}
+                        {lineSavings(budgetLine(item))! !== 0 &&
+                          ` · ${lineSavings(budgetLine(item))! < 0 ? "over" : "saved"} ${formatCurrency(Math.abs(lineSavings(budgetLine(item))!), currency)}`}
+                      </span>
+                    ) : null}
                     {/* The store it is named for, unless its group is that store. */}
                     {item.store_name && !groupIsStore(g) ? (
                       <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", whiteSpace: "nowrap" }}>
@@ -624,14 +670,46 @@ export function BuyList({
                   {/* The button's padding pulled in, so the figure sits flush
                       under its group's total. */}
                   <span style={{ justifySelf: "end", marginRight: "-0.5rem" }}>
-                    <BuyItemPriceButton
-                      estimated={prices[item.id]?.estimated ?? null}
-                      source={prices[item.id]?.source ?? "unknown"}
-                      editing={pricing === item.id}
-                      onToggle={() => setPricing(pricing === item.id ? null : item.id)}
-                    />
+                    {isChecked(item) ? (
+                      // Bought: what it cost, and a tap asks again.
+                      <button
+                        type="button"
+                        aria-label={`What ${item.name} cost`}
+                        aria-expanded={actualFor === item.id}
+                        onClick={() => setActualFor(actualFor === item.id ? null : item.id)}
+                        style={{ border: 0, background: "none", cursor: "pointer", padding: "0.375rem 0.5rem", margin: "-6px 0", fontSize: "0.84375rem", color: "var(--color-neutral-700)", fontFamily: "var(--font-body)" }}
+                      >
+                        {lineActual(budgetLine(item)) == null ? "cost?" : formatCurrency(lineActual(budgetLine(item))!, currency)}
+                      </button>
+                    ) : item.budget != null ? (
+                      // Its own budget, changed where it was set.
+                      <button
+                        type="button"
+                        aria-label={`Change the budget for ${item.name}`}
+                        onClick={() => setEditing(editing === item.id ? null : item.id)}
+                        style={{ border: 0, background: "none", cursor: "pointer", padding: "0.375rem 0.5rem", margin: "-6px 0", fontSize: "0.84375rem", fontWeight: 600, color: "var(--color-neutral-700)", fontFamily: "var(--font-body)" }}
+                      >
+                        {formatCurrency(Number(item.budget), currency)}
+                      </button>
+                    ) : (
+                      <BuyItemPriceButton
+                        estimated={prices[item.id]?.estimated ?? null}
+                        source={prices[item.id]?.source ?? "unknown"}
+                        editing={pricing === item.id}
+                        onToggle={() => setPricing(pricing === item.id ? null : item.id)}
+                      />
+                    )}
                   </span>
                 </div>
+                {actualFor === item.id && isChecked(item) && (
+                  <ActualRow
+                    item={item}
+                    line={budgetLine(item)}
+                    book={prices[item.id] ?? null}
+                    currency={currency}
+                    onClose={() => setActualFor(null)}
+                  />
+                )}
                 {pricing === item.id && (
                   <BuyItemPriceEditor itemId={item.id} unitPrice={prices[item.id]?.unitPrice ?? null} onClose={() => setPricing(null)} />
                 )}
@@ -750,8 +828,20 @@ export function BuyList({
             </datalist>
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
+            {/* What it may cost. Blank lets the price book's estimate stand in. */}
+            <input
+              aria-label="Budget"
+              className="input"
+              name="budget"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              placeholder="Budget"
+              style={{ minHeight: "2.625rem", width: 92, flex: "none" }}
+            />
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
-            <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
+            <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }}>
               {MARKET_SECTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -806,6 +896,7 @@ function EditItemRow({
   const [eventId, setEventId] = useState(item.event_id ?? "");
   const [storeKind, setStoreKind] = useState<StoreKind>(storeKindOf(item));
   const [storeName, setStoreName] = useState(item.store_name ?? "");
+  const [budget, setBudget] = useState(item.budget == null ? "" : String(item.budget));
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const storeListId = useId();
@@ -821,6 +912,7 @@ function EditItemRow({
         ...(eventId !== (item.event_id ?? "") ? { eventId: eventId || null } : {}),
         storeKind,
         storeName: storeName.trim() || null,
+        budget: parseAmount(budget),
       });
       onClose();
       router.refresh();
@@ -883,14 +975,29 @@ function EditItemRow({
           ))}
         </datalist>
       </div>
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <input
+          aria-label="Budget"
+          className="input"
+          type="number"
+          step="0.01"
+          min="0"
+          inputMode="decimal"
+          placeholder="Budget"
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+          style={{ minHeight: "2.5rem", width: 92, flex: "none" }}
+        />
+        <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1, minWidth: 0 }}>
           {MARKET_SECTIONS.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
           ))}
         </select>
+      </div>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <span style={{ flex: 1 }} />
         <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.875rem" }} onClick={save}>
           {pending ? "…" : "Save"}
         </button>
@@ -922,6 +1029,115 @@ function EditItemRow({
   );
 }
 
+/** Ticking a line asks what it cost (Janine, 23 October): a box under the
+ * row, already holding its budget, so the common case is one tap. A figure
+ * the price book does not have is then offered to it -- asked every time,
+ * never written on its own. */
+function ActualRow({
+  item,
+  line,
+  book,
+  currency,
+  onClose,
+}: {
+  item: Tables<"buy_items">;
+  line: BudgetLine;
+  book: { estimated: number | null; unitPrice: number | null } | null;
+  currency: string;
+  onClose: () => void;
+}) {
+  const start = lineActual(line);
+  const [value, setValue] = useState(start == null ? "" : String(start));
+  const [asking, setAsking] = useState<{ unitPrice: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const amount = parseAmount(value);
+  const budget = lineBudget(line);
+  const saved = budget != null && amount != null ? Math.round((budget - amount) * 100) / 100 : null;
+  const unit = item.unit || "pc";
+
+  function save() {
+    if (amount == null) return onClose();
+    startTransition(async () => {
+      // The budget is what a ticked line costs anyway, so only a different
+      // figure is kept.
+      const r = await setBuyItemActualAction(item.id, amount === budget ? null : amount);
+      if (r.error) return setError(r.error);
+      router.refresh();
+      const qty = item.quantity == null || Number(item.quantity) <= 0 ? 1 : Number(item.quantity);
+      if (amount > 0 && differsFromBook(amount, book?.estimated ?? null)) setAsking({ unitPrice: Math.round((amount / qty) * 100) / 100 });
+      else onClose();
+    });
+  }
+
+  function updateBook(unitPrice: number) {
+    startTransition(async () => {
+      const r = await setItemPriceAction({ name: item.name, unitPrice, unit, section: item.section });
+      if (r.error) return setError(r.error);
+      onClose();
+      router.refresh();
+    });
+  }
+
+  const box: React.CSSProperties = { display: "grid", gap: "0.4375rem", padding: "0.5rem 0 0.75rem 2.1875rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" };
+
+  if (asking) {
+    return (
+      <div style={box}>
+        <span style={{ fontSize: "0.8125rem" }}>
+          {book?.unitPrice != null
+            ? `The price book has ${formatCurrency(book.unitPrice, currency)} per ${unit}. Use ${formatCurrency(asking.unitPrice, currency)} per ${unit} from now on?`
+            : `Save ${formatCurrency(asking.unitPrice, currency)} per ${unit} as the usual price of ${item.name}?`}
+        </span>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={() => updateBook(asking.unitPrice)}>
+            {pending ? "…" : "Update price book"}
+          </button>
+          <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={onClose}>
+            Just this time
+          </button>
+        </div>
+        <ErrorText message={error} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={box}>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <label style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", flex: "none" }} htmlFor={`actual-${item.id}`}>
+          Actual
+        </label>
+        <input
+          id={`actual-${item.id}`}
+          className="input"
+          type="number"
+          step="0.01"
+          min="0"
+          inputMode="decimal"
+          placeholder="What it cost"
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+          style={{ minHeight: "2.25rem", width: 110 }}
+        />
+        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.25rem", fontSize: "0.8125rem", paddingInline: "0.875rem" }} onClick={save}>
+          {pending ? "…" : "OK"}
+        </button>
+      </div>
+      {budget != null && (
+        <span style={{ fontSize: "0.75rem", color: saved != null && saved < 0 ? "var(--cal-money)" : "var(--color-neutral-600)" }}>
+          Budget {formatCurrency(budget, currency)}
+          {saved != null && saved !== 0 && ` · ${saved < 0 ? "over" : "saved"} ${formatCurrency(Math.abs(saved), currency)}`}
+        </span>
+      )}
+      <ErrorText message={error} />
+    </div>
+  );
+}
+
 /** Clearing the trolley is the moment the shop actually cost something, so
  * that's where the spend is captured and taken out of a real account. */
 function ClearCheckedPanel({
@@ -929,6 +1145,7 @@ function ClearCheckedPanel({
   accounts,
   currency,
   suggested,
+  budget,
   onClose,
 }: {
   doneCount: number;
@@ -937,6 +1154,8 @@ function ClearCheckedPanel({
   /** What the basket was estimated at — the till usually agrees closely
    * enough that this is the right number to start from. */
   suggested: number;
+  /** What the basket was budgeted at, to show what the shop saved. */
+  budget: number;
   onClose: () => void;
 }) {
   const [amount, setAmount] = useState(Math.round(suggested * 100) / 100);
@@ -969,6 +1188,12 @@ function ClearCheckedPanel({
       <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.625rem" }}>
         <span style={{ fontSize: "0.84375rem", flex: 1, minWidth: 0 }}>
           {doneCount} item{doneCount === 1 ? "" : "s"} in the basket — what did the shop come to?
+          {budget > 0 && (
+            <span style={{ display: "block", marginTop: "0.25rem", fontSize: "0.78125rem", color: amount > budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
+              Budget {formatCurrency(budget, currency)} · Paid {formatCurrency(amount, currency)} ·{" "}
+              {amount > budget ? `${formatCurrency(amount - budget, currency)} over` : `saved ${formatCurrency(budget - amount, currency)}`}
+            </span>
+          )}
         </span>
         <button type="button" className="btn btn-ghost" style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.375rem" }} onClick={onClose}>
           Not yet

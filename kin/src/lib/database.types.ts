@@ -1776,6 +1776,8 @@ export type Database = {
       }
       buy_items: {
         Row: {
+          actual_cost: number | null
+          budget: number | null
           checked: boolean
           checked_at: string | null
           cleared: boolean
@@ -1801,6 +1803,8 @@ export type Database = {
           unit_price_override: number | null
         }
         Insert: {
+          actual_cost?: number | null
+          budget?: number | null
           checked?: boolean
           checked_at?: string | null
           cleared?: boolean
@@ -1826,6 +1830,8 @@ export type Database = {
           unit_price_override?: number | null
         }
         Update: {
+          actual_cost?: number | null
+          budget?: number | null
           checked?: boolean
           checked_at?: string | null
           cleared?: boolean

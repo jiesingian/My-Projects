@@ -10,6 +10,7 @@ import { sendHelperListPush, sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection, isStoreKind, cleanStoreName } from "@/lib/grocery";
+import { parseAmount } from "@/lib/buy-budget";
 import { normalizeKey } from "@/lib/pricebook";
 import {
   MEAL_SLOTS,
@@ -57,6 +58,8 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   // database's guess from its section (20261023100000).
   const storeKind = formData.get("store_kind");
   const storeName = cleanStoreName(formData.get("store_name"));
+  // What it may cost; blank leaves the price book's estimate to stand in.
+  const budget = parseAmount(formData.get("budget"));
   if (!name) return { error: "Name the item." };
 
   // An empty section means the member didn't pick one — file it themselves.
@@ -76,6 +79,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
       ...(eventId ? { event_id: eventId } : {}),
       ...(isStoreKind(storeKind) ? { store_kind: storeKind } : {}),
       ...(storeName ? { store_name: storeName } : {}),
+      ...(budget != null ? { budget } : {}),
       created_by: me.id,
     })
     .select("id")
@@ -101,6 +105,7 @@ export async function updateBuyItemAction(
     eventId?: string | null;
     storeKind?: string;
     storeName?: string | null;
+    budget?: number | null;
   },
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -119,6 +124,7 @@ export async function updateBuyItemAction(
       ...(input.eventId !== undefined ? { event_id: asEventId(input.eventId) } : {}),
       ...(isStoreKind(input.storeKind) ? { store_kind: input.storeKind } : {}),
       ...(input.storeName !== undefined ? { store_name: cleanStoreName(input.storeName) } : {}),
+      ...(input.budget !== undefined ? { budget: parseAmount(input.budget) } : {}),
     }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
@@ -143,7 +149,8 @@ export async function toggleBuyItemAction(itemId: string, checked: boolean) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("buy_items")
-    .update({ checked, checked_at: checked ? new Date().toISOString() : null })
+    // Unticked, it was not bought after all, so it cost nothing yet.
+    .update({ checked, checked_at: checked ? new Date().toISOString() : null, ...(checked ? {} : { actual_cost: null }) })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
   // Deliberately left as it was, and deliberately not given a row count: the
@@ -461,6 +468,22 @@ export async function resetItemPriceAction(itemKey: string): Promise<ActionState
   const supabase = await createClient();
   const { error } = await supabase.from("price_list").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
   if (error) return { error: databaseError(error) };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** What a ticked line really cost at the store. Null puts it back to its
+ * budget. */
+export async function setBuyItemActualAction(itemId: string, actual: number | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("buy_items")
+    .update({ actual_cost: parseAmount(actual) }, { count: "exact" })
+    .eq("id", itemId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  if (count === 0) return { error: "That item is no longer on the list — someone may have removed it." };
   revalidatePath("/household");
   return { error: null };
 }
