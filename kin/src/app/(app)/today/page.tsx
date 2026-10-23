@@ -8,7 +8,8 @@ import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
-import { getGlance, getMedicineTile, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getGlance, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, type GlanceTile } from "@/lib/queries/today";
+import { doseAt } from "@/lib/today-doses";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { TodayFold } from "@/components/today-fold";
@@ -60,15 +61,18 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, medicine, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, medicine, doses, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
     // Chores that are the reader's (lib/for-me): theirs, the whole family's,
     // and for a grown-up the children's -- not another grown-up's own.
     getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
-    // The reader's own medicines today, for "At a glance" (21 October).
+    // The medicines the reader gives today -- their own and, for a grown-up,
+    // the children's -- as the tile's count (21 October) and as rows of the
+    // list with their next dose to tick (Jonathan, 23 October).
     getMedicineTile(me),
+    getTodayDoses(me),
     getFamilyPanel(me.family_id),
     getComingUp(me.family_id, me.families.currency, me),
     getOnThisDay(me.family_id),
@@ -111,6 +115,13 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         group: task.today?.status ? 2 : 1,
         at: minutes(task.timeOfDay),
       })),
+    // A medicine: late first, then at its next dose's time, sunk once every
+    // dose of the day is taken.
+    ...doses.map((dose) => ({
+      entry: { kind: "dose" as const, dose },
+      group: dose.next === null ? 2 : dose.late ? 0 : 1,
+      at: doseAt(dose),
+    })),
   ];
   const entries = ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.entry);
   // Behind on other days, whether or not it also falls today: a daily chore

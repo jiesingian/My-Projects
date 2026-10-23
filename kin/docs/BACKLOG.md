@@ -64,6 +64,54 @@ Read and checked by a session; nothing in a dashboard was changed.
     shared as an iCloud link (signing one needs a Mac). Effort S–M, and it
     is dropped when the native app arrives.
 
+## Today finalised, 23 October (Jonathan: "finalize today tab")
+
+Every tab was swept for anything dated or waiting on someone, and compared
+with what Today lists. The rule the series follows: **the list holds
+everything due today that a person can answer; a tile holds a standing
+figure, never a task; nothing due today lives only on a tile.** Decisions,
+all Jonathan's on 23 October, each the recommended option:
+
+1. **Doses as rows.** The reader's own and, for a grown-up, the children's
+   (as far as Health's policies show them -- the people the dose push
+   reaches), one row per medicine with its next dose and Taken; the tile
+   becomes the household count. A child with a login gets their own in
+   kid view. Simple Kin stays own-only (Janine, 21 October).
+2. **Google events:** the connecting member chooses whether their synced
+   events are the whole family's (on by default) or theirs alone.
+3. **Goals tile** shows a count ("2 of 3 targets today"), no ring.
+4. **Quick add row** is each member's own pick from the Action Button list
+   (Settings); the default stays Milestone · Event · Expense · Note.
+5. **Wealth rows** (utang, paluwagan, loan and sinking-fund dates, expected
+   income, a bill awaiting confirmation, the monthly recap line) for
+   grown-ups with Wealth access, as bills are.
+6. **29 February:** birthdays, Today, the Planner and the pushes use 1 March
+   in a year without one; remembrance days keep 28 February. Both stay.
+7. **"Tomorrow's meal needs N things"** stays in Coming up; today's shortfall
+   goes on the shopping tile.
+
+- **Done (#937, #938):** the bugs found on the way -- chores and the
+  header followed the server's day; 29 February birthdays never matched;
+  anniversaries never pushed; trips under way, booked check-ups and all-day
+  plans were missing or wrong on Today; the behind count skipped a chore
+  also due today; the Planner's calendar showed a birthday only in the
+  year of birth.
+- **Done (PR 3):** doses as rows and the household medicine tile
+  (decision 1); a doctor's visit booked today as a timed row.
+- **To do, in order:** PR 4 Wealth rows + Coming up + one migration (the
+  "scheduled" bill push, the midnight all-day plan push); PR 5 the other
+  rows (an RSVP waiting with Going / Can't, our own potluck, a vault
+  emergency request with Allow / Deny, an open SOS banner, a document
+  expiring, a card to sign, a failed scheduled message) and Coming up
+  (document renewals, utang, paluwagan, loans, sinking funds, expected
+  income, monito-monita outside December, linked households' birthdays),
+  plus the Google switch; PR 6 the Goals and Money tiles and today's meal
+  shortfall on the shopping tile; PR 7 the quick row per member and the
+  type-it line reading an expense and a meal.
+- Kept off Today on purpose: meals (header), unread chat (tab badge),
+  connection and link requests and pending members (Family), highlights,
+  story prompts, vitals and growth, approvals (Goals → Shop).
+
 ## Medicine reminders ring like an alarm, 22 October (Jonathan)
 
 "The notification in medicine is not making the user really get notified
