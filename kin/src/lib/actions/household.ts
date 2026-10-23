@@ -12,6 +12,7 @@ import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calend
 import { MARKET_SECTIONS, guessSection, isStoreKind, cleanStoreName, storeKindOf } from "@/lib/grocery";
 import { buildTrip, parseAmount } from "@/lib/buy-budget";
 import { normalizeKey } from "@/lib/pricebook";
+import { rememberedSectionFor, rememberedSections, sectionFor } from "@/lib/queries/buy-sections";
 import {
   MEAL_SLOTS,
   RECIPE_CATEGORIES,
@@ -63,8 +64,9 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   const budget = parseAmount(formData.get("budget"));
   if (!name) return { error: "Name the item." };
 
-  // An empty section means the member didn't pick one — file it themselves.
-  const section = (MARKET_SECTIONS as readonly string[]).includes(sectionRaw) ? sectionRaw : guessSection(name);
+  // An empty section means the member didn't pick one: file it where this
+  // household last put the same name, or else by the keyword guess.
+  const section = (MARKET_SECTIONS as readonly string[]).includes(sectionRaw) ? sectionRaw : await rememberedSectionFor(supabase, me.family_id, name);
 
   const { data: added, error } = await supabase
     .from("buy_items")
@@ -203,9 +205,10 @@ export async function addLowItemsToListAction(): Promise<ActionState & { added?:
     supabase.from("buy_items").select("name").eq("family_id", me.family_id).eq("checked", false).eq("cleared", false),
   ]);
   const onList = new Set((open ?? []).map((b) => normalizeKey(b.name)));
+  const remembered = await rememberedSections(supabase, me.family_id);
   const rows = (low ?? [])
     .filter((p) => !onList.has(normalizeKey(p.name)))
-    .map((p) => ({ family_id: me.family_id, name: p.name, section: guessSection(p.name), source: "house", created_by: me.id }));
+    .map((p) => ({ family_id: me.family_id, name: p.name, section: sectionFor(p.name, remembered), source: "house", created_by: me.id }));
   if (rows.length === 0) return { error: null, added: 0 };
   const { error } = await supabase.from("buy_items").insert(rows);
   if (error) return { error: databaseError(error) };
