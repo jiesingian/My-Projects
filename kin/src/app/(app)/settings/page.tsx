@@ -73,6 +73,8 @@ export default async function SettingsPage({
       // Replays the guided tour on Today (guided-tour.tsx). Not in Kid view,
       // whose Today is a different page.
       { href: "/today?tour=1", icon: "info", tint: undefined, title: "Show me around", value: "A quick tour of Kin" },
+      // Every feature, how to use it, pros, cons and tips (23 October).
+      { href: "/settings/help", icon: "info", tint: undefined, title: "Help", value: "Every feature, tab by tab" },
     ],
     [
       { href: "/subscribe", icon: "sparkle", tint: "money", title: "Your plan", value: planLabel(readAccess(me.families)) },
@@ -88,7 +90,7 @@ export default async function SettingsPage({
   // Kid view keeps Appearance, Notifications and their own Account (to sign
   // out); the household's settings, connected apps and the lock are a
   // grown-up's, and those pages send a child back to Today anyway.
-  const KID_ALLOWED = ["/settings/appearance", "/settings/notifications", "/settings/account"];
+  const KID_ALLOWED = ["/settings/appearance", "/settings/notifications", "/settings/help", "/settings/account"];
   const groups = kid ? allGroups.map((g) => g.filter((r) => KID_ALLOWED.includes(r.href))).filter((g) => g.length > 0) : allGroups;
 
   return (
