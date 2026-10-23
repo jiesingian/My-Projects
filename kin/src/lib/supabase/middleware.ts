@@ -58,6 +58,9 @@ export async function updateSession(request: NextRequest) {
     // And "Add to Kin" (app/api/list-add): the Shortcut posts what was said
     // to the member's own add-to-list link, again with no cookie.
     path.startsWith("/api/list-add/") ||
+    // And "Kin Alarms" (app/api/dose-alarms): the Shortcut reads the dose
+    // times from the member's own read-only link, with no cookie.
+    path.startsWith("/api/dose-alarms/") ||
     // Likewise an iPhone Shortcut sending Apple Health readings: the link's
     // key is the credential (app/api/health/apple).
     path.startsWith("/api/health/apple/") ||

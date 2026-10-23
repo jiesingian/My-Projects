@@ -299,7 +299,7 @@ function OpenShortcuts() {
   );
 }
 
-function CopyLink({ label, url }: { label: string; url: string }) {
+export function CopyLink({ label, url }: { label: string; url: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="kin-quickbtn-shortcut">
