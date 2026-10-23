@@ -112,11 +112,18 @@ all Jonathan's on 23 October, each the recommended option:
   expiring (a passport a month ahead, the rest a week), a card to sign, a
   scheduled message that failed, a linked household's birthday today; and
   in Coming up the monito-monita's exchange day. lib/today-family.
-- **To do, in order:** PR 6 the Google switch (decision 2: a
-  calendar_links column, the sync honouring it, the switch on Settings →
-  Connected apps); PR 7 the Goals and Money tiles and today's meal
-  shortfall on the shopping tile; PR 8 the quick row per member and the
-  type-it line reading an expense and a meal.
+- **Done (#948):** the Google switch (decision 2): calendar_links.
+  share_with_family (20261023236000, on to begin with), the sync making a
+  pulled event the whole family's or the member's alone, and "Show my
+  Google events to the whole family" on Settings → Connected apps, which
+  also moves the events already pulled.
+- **Done (PR 7):** the tiles (decisions 3 and 7): Goals shows the reader's
+  targets today ("2 of 3", from the Target view's count; the plain link
+  when none are asked); Money, with no budget set, says the week's bills
+  ("2 bills by Fri · ₱6,900"); the shopping tile says today's meal
+  shortfall ("adobo needs 2"); tomorrow's stays in Coming up.
+- **To do:** PR 8 the quick row per member and the type-it line reading
+  an expense and a meal.
 - Kept off Today on purpose: meals (header), unread chat (tab badge),
   connection and link requests and pending members (Family), highlights,
   story prompts, vitals and growth, approvals (Goals → Shop).

@@ -8,7 +8,7 @@ import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
-import { getGlance, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, capComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getGlance, getGoalsTile, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, capComingUp, type GlanceTile } from "@/lib/queries/today";
 import { getTodayWealth } from "@/lib/queries/today-wealth";
 import { getTodayFamily } from "@/lib/queries/today-family";
 import { SosOpenBanner } from "@/components/sos-open-banner";
@@ -64,7 +64,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, medicine, doses, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, medicine, doses, goals, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -76,6 +76,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     // list with their next dose to tick (Jonathan, 23 October).
     getMedicineTile(me),
     getTodayDoses(me),
+    // The reader's targets today, "2 of 3" (decision 3, 23 October).
+    getGoalsTile(me),
     getFamilyPanel(me.family_id),
     getComingUp(me.family_id, me.families.currency, me),
     getOnThisDay(me.family_id),
@@ -152,10 +154,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     year: "numeric",
   }).toUpperCase();
 
-  // At a glance (Janine, 21 October): the reader's medicines today, a way to
-  // Goals, the shopping and the money. Approvals and rewards are the Shop's
-  // (Planner → Goals → Shop), not Today's.
-  const goalsTile: GlanceTile = { id: "goal", icon: "target", value: "Goals", label: "your goals and targets", href: "/planner?seg=goals" };
+  // At a glance (Janine, 21 October): the reader's medicines today, their
+  // targets today (23 October), the shopping and the money. Approvals and
+  // rewards are the Shop's (Planner → Goals → Shop), not Today's.
   // Today's meal stands in for an empty shopping list: the Household tile
   // still says something worth a glance.
   const meal = brief.find((b) => b.id.startsWith("meal-"));
@@ -163,7 +164,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     glance.shop.value === "List clear" && meal ? { id: "shop", icon: "bowl", value: meal.title, label: `on today's menu · list clear`, href: "/household?seg=meals" } : glance.shop;
   // Medicine, then in the order of the tabs: Planner's Goals, Household's
   // shopping, Wealth's money.
-  const tiles = [medicine, goalsTile, shopOrMeal, glance.money];
+  const tiles = [medicine, goals, shopOrMeal, glance.money];
   // Coming up's Who dropdown: the same names, and "Me", as the Planner's.
   const people = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status));
   const peopleLabels = shortNames(people.map((m) => m.full_name)).map((l, i) => ({ id: people[i].id, label: selfLabel(l, people[i].id === me.id) }));
