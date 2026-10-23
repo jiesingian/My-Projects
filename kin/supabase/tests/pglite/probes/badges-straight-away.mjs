@@ -47,6 +47,10 @@ export default async function ({ db, as, check, refused }) {
   await check("Kid cannot hand himself a badge", async () =>
     (await refused(() => as(kid, `select public.game_badges_now('${M("a2")}', '${A}')`))) === true &&
     (await refused(() => as(kid, `insert into game_member_badges (member_id, badge_id, family_id, earned_on) values ('${M("a2")}', 'streak_3', '${A}', current_date)`))) === true);
+  await check("Nobody calls the helpers directly: game_day_so_far, the trigger's planner_goal_completions_badges", async () =>
+    (await refused(() => as(kid, `select * from public.game_day_so_far('${M("a2")}', '${A}', current_date, 'Asia/Manila')`))) === true &&
+    (await refused(() => as(dan, `select * from public.game_day_so_far('${M("a1")}', '${A}', current_date, 'Asia/Manila')`))) === true &&
+    (await refused(() => as(ann, "select public.planner_goal_completions_badges()"))) === true);
   await check("Dan, another household, cannot call it for House A", async () =>
     (await refused(() => as(dan, `select public.game_badges_now('${M("a1")}', '${A}')`))) === true);
 
