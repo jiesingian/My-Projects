@@ -5716,6 +5716,13 @@ button.kin-initial:focus-visible {
   font-size: 0.8125rem;
   color: var(--color-neutral-600);
 }
+/* The day the card was made, so a printed one shows its age. */
+.kin-sos-asof {
+  margin: 0;
+  padding: 0.375rem 1rem 0;
+  font-size: 0.75rem;
+  color: var(--color-neutral-600);
+}
 .kin-sos-calls {
   padding: 0.75rem 1rem 1rem;
 }
