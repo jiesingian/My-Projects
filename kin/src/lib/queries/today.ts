@@ -426,17 +426,41 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     if (r.inDays > 0) items.push({ id: `soon-${r.id}`, icon: "candle", tint: "occasion", title: r.title, meta: r.meta, href: "/family?seg=tree", at: r.inDays, whose: "family", memberIds: [] });
   }
 
-  for (const e of events.data ?? []) {
+  // Who is coming and who brings food, said on the row itself (the feature
+  // guide, 23 October: both sat one tap down and went unseen). Read only for
+  // the events that made the week, and as the viewer.
+  const soonEvents = (events.data ?? [])
+    .map((e) => ({ e, inDays: e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined }))
+    .filter((x): x is typeof x & { inDays: number } => !!x.inDays);
+  const soonIds = soonEvents.map((x) => x.e.id);
+  const [rsvps, guests, claims] = soonIds.length
+    ? await Promise.all([
+        supabase.from("event_rsvps").select("event_id").eq("answer", "going").in("event_id", soonIds),
+        supabase.from("event_guests").select("event_id, headcount").eq("answer", "going").in("event_id", soonIds),
+        supabase.from("potluck_claims").select("event_id, member_id, guest_id, member_name").in("event_id", soonIds),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+  const coming = new Map<string, number>();
+  for (const r of rsvps.data ?? []) coming.set(r.event_id, (coming.get(r.event_id) ?? 0) + 1);
+  for (const g of guests.data ?? []) coming.set(g.event_id, (coming.get(g.event_id) ?? 0) + Math.max(1, g.headcount ?? 1));
+  const bringers = new Map<string, Set<string>>();
+  for (const c of claims.data ?? []) {
+    const who = c.member_id ?? c.guest_id ?? c.member_name;
+    bringers.set(c.event_id, (bringers.get(c.event_id) ?? new Set()).add(who));
+  }
+
+  for (const { e, inDays } of soonEvents) {
     const tagged = taggedFrom(e.event_members);
     const whose = whoseFor(me, e.applies_to_whole_family, tagged);
-    const inDays = e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined;
-    if (!inDays) continue;
     const on = inDays === 1 ? "tomorrow" : `on ${weekdayOf(addDays(today, inDays))}`;
     const years = e.recurs_yearly ? Number(addDays(today, inDays).slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
     const what =
       e.kind === "birthday" && years > 0 ? `Turns ${years} ${on}` : e.kind === "anniversary" && years > 0 ? `${years} years ${on}` : `${on[0].toUpperCase()}${on.slice(1)}`;
     const nudge = e.kind === "birthday" || e.kind === "anniversary" ? " · a gift or a greeting?" : "";
-    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${nudge}`, href: "/planner", at: inDays, whose, memberIds: e.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
+    const going = coming.get(e.id) ?? 0;
+    const bringing = bringers.get(e.id)?.size ?? 0;
+    const counts = [going ? `${going} coming` : "", bringing ? `${bringing} bringing food` : ""].filter(Boolean).join(" · ");
+    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${counts ? ` · ${counts}` : nudge}`, href: `/planner/add?type=event&id=${e.id}`, at: inDays, whose, memberIds: e.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
   }
 
   const billsInWindow = (bills.data ?? [])
