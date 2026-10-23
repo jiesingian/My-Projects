@@ -106,6 +106,8 @@ export type QueuedOp =
       /** The kind of store and the store's name, if given. */
       storeKind?: string;
       storeName?: string;
+      /** The budget typed for it, if any. */
+      budget?: string;
     }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
   /** A medicine dose ticked taken, or unticked, from Health or the simple

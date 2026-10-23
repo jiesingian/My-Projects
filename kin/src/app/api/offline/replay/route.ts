@@ -104,6 +104,7 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
       if (typeof op.eventId === "string") form.set("event_id", op.eventId);
       if (typeof op.storeKind === "string") form.set("store_kind", op.storeKind);
       if (typeof op.storeName === "string") form.set("store_name", op.storeName);
+      if (typeof op.budget === "string") form.set("budget", op.budget);
       const r = await addBuyItemAction({ error: null }, form);
       return r.error ? skip(r.error) : done;
     }
