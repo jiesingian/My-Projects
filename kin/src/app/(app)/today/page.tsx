@@ -113,7 +113,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       })),
   ];
   const entries = ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.entry);
-  const behind = tasks.filter((t) => !t.today && t.overdue.length > 0).length;
+  // Behind on other days, whether or not it also falls today: a daily chore
+  // missed all week was not counted while today's row showed (23 October).
+  const behind = tasks.filter((t) => t.overdue.length > 0).length;
   const counts = todayCounts(entries);
 
   // The household's day, not the server's (which is pinned to Manila): a

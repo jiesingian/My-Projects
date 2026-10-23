@@ -10,6 +10,7 @@ import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 import { loanPaymentDates, paidFromVisibleFilter } from "@/lib/wealth";
 import { formatCurrency } from "@/lib/format";
 import { householdZone } from "@/lib/household-zone";
+import { nextEventDate } from "@/lib/grocery";
 import { addDays, familyDay, familyInstant, familyMidnight } from "@/lib/time";
 import { bucketByDay, countsByMonth, dayAfterMonths, daysFrom, monthsAround, weekStartDay, type PlannerMonth } from "@/lib/planner-days";
 import { parseISODate, toISODate } from "@/lib/routines";
@@ -71,12 +72,14 @@ async function fetchCalendarItems(familyId: string, startDate: string, endDate: 
       .eq("family_id", familyId)
       .lt("start_at", endISO)
       .or(`start_at.gte.${startISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${startDate}))`),
+    // Events in range, and every yearly one (a birthday is stored on the
+    // date of birth): its turn in range is worked out below. Before, the
+    // calendar only ever showed the year someone was born (23 October).
     supabase
       .from("events")
       .select("*, event_members(members(id, full_name))")
       .eq("family_id", familyId)
-      .gte("event_date", startDate)
-      .lt("event_date", endDate),
+      .or(`and(event_date.gte.${startDate},event_date.lt.${endDate}),recurs_yearly.eq.true`),
     supabase.from("bills").select("*").eq("family_id", familyId).not("due_date", "is", null).gte("due_date", startDate).lt("due_date", endDate),
     supabase.from("meal_plans").select("*").eq("family_id", familyId).gte("plan_date", startDate).lt("plan_date", endDate),
     supabase
@@ -158,6 +161,10 @@ async function fetchCalendarItems(familyId: string, startDate: string, endDate: 
   }
 
   for (const e of events ?? []) {
+    // A yearly event on its turn in this range (29 February on 1 March in a
+    // year without one, lib/grocery); none this time round, and it is out.
+    const day = e.recurs_yearly ? nextEventDate(e, startDate) : e.event_date;
+    if (day < startDate || day >= endDate) continue;
     const memberIds = (e.event_members ?? [])
       .map((em) => (em.members as unknown as { id: string } | null)?.id)
       .filter((v): v is string => !!v);
@@ -167,8 +174,8 @@ async function fetchCalendarItems(familyId: string, startDate: string, endDate: 
     items.push({
       id: e.id,
       table: "events",
-      day: e.event_date,
-      date: dayStart(e.event_date),
+      day,
+      date: dayStart(day),
       allDay: true,
       title: e.title,
       location: null,

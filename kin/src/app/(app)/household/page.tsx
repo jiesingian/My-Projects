@@ -105,6 +105,9 @@ async function BuyPane({
         when: run.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
       }
     : null;
+  // The household's day, not the server's (23 October): the checkout cards
+  // said "today" by Manila's calendar.
+  const todayISO = familyDay(new Date(), await householdZone());
 
   return (
     <>
@@ -121,7 +124,7 @@ async function BuyPane({
         usedStores={usedStores}
         trips={trips}
         canEditCards={canEditCards}
-        tripIsToday={trip != null && trip.iso === toISODate(new Date())}
+        tripIsToday={trip != null && trip.iso === todayISO}
         /* Server-rendered, handed to the client card as a slot: the sheet's
            contents are a server component and cannot be built inside one. */
         pricesSlot={

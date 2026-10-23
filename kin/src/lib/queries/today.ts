@@ -164,12 +164,13 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     // Birthdays and anniversaries are stored on the date they first happened
     // and marked recurring, so matching on event_date alone would only ever
     // find someone's actual birth. Recurring ones are few — one per person —
-    // so they come back whole and the month and day are compared here.
+    // so they come back whole and the day is settled here. A trip or any
+    // other multi-day event under way (end_date) is today's too (23 October).
     supabase
       .from("events")
-      .select("id, title, kind, event_date, recurs_yearly, sub_note, applies_to_whole_family, event_members(member_id, members(role))")
+      .select("id, title, kind, event_date, end_date, recurs_yearly, sub_note, applies_to_whole_family, event_members(member_id, members(role))")
       .eq("family_id", familyId)
-      .or(`event_date.eq.${today},recurs_yearly.eq.true`),
+      .or(`event_date.eq.${today},recurs_yearly.eq.true,and(event_date.lte.${today},end_date.gte.${today})`),
     supabase
       .from("bills")
       .select("id, name, amount, due_date")
@@ -179,10 +180,15 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .order("due_date", { ascending: true })
       .limit(4),
     supabase
+      // Today's: due by today (or with no date), a check-up booked for today
+      // or missed, and one given today (marked here). Without the date
+      // filter, "due soon" next month sat on Today as "due" every day and
+      // again in Coming up (23 October).
       .from("health_schedule")
       .select("id, what, when_date, status, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
       .eq("family_id", familyId)
-      .in("status", ["due", "due_soon", "given"])
+      .in("status", ["due", "due_soon", "planned", "scheduled", "given"])
+      .or(`when_date.is.null,when_date.lte.${today}`)
       .order("when_date", { ascending: true })
       .limit(6),
     supabase
@@ -213,6 +219,12 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     // one is marked a day at a time (today_marks), never as a whole, so its
     // row's status does not hide it.
     if (!repeats(a) && a.status !== "upcoming" && !marked.has(key)) continue;
+    // A plan at the household's midnight is an all-day one -- a Google
+    // all-day event is stored that way (lib/calendar-shape) -- so it reads
+    // without a time and sits with the day's all-day things, not "12:00 am"
+    // at the top (23 October).
+    const clock = familyClock(start, tz);
+    const allDay = clock === "00:00";
     items.push({
       id: key,
       action: "done",
@@ -221,9 +233,9 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       tint: "schedule",
       title: a.title,
       // Written the way the chores beside it are ("6:00 pm"), not "6:00 PM".
-      meta: [formatTimeOfDay(familyClock(start, tz)), a.location].filter(Boolean).join(" · "),
+      meta: [allDay ? null : formatTimeOfDay(clock), a.location].filter(Boolean).join(" · "),
       href: "/planner",
-      at: start.getTime(),
+      at: allDay ? undefined : start.getTime(),
     });
   }
 
@@ -235,7 +247,13 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
     // A birthday reads better with the number on it than without.
     const years = e.recurs_yearly ? Number(today.slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
-    const ordinal = e.kind === "birthday" && years > 0 ? `Turns ${years} today` : e.kind === "anniversary" && years > 0 ? `${years} years today` : "Today";
+    // A multi-day event says how long it runs; its last day says so.
+    const multiDay = !e.recurs_yearly && !!e.end_date && e.end_date > e.event_date;
+    const ordinal =
+      e.kind === "birthday" && years > 0 ? `Turns ${years} today`
+      : e.kind === "anniversary" && years > 0 ? `${years} years today`
+      : multiDay ? (e.end_date! > today ? `Until ${weekdayOf(e.end_date!)}` : "Last day")
+      : "Today";
     items.push({
       id: `event-${e.id}`,
       // No Done or Skip (Jonathan, 28 September): a birthday or an event is
@@ -286,7 +304,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       icon: "activity",
       tint: "occasion",
       title: `${who} · ${h.what}`,
-      meta: h.when_date && h.when_date < today ? "overdue" : "due",
+      meta: h.when_date && h.when_date < today ? "overdue" : h.status === "scheduled" || h.status === "planned" ? "booked for today" : "due",
       // The person's own schedule, where the appointment is, rather than the
       // Family tab's front page.
       href: `/family/members/${h.member_id}?view=health&seg=schedule`,
@@ -359,9 +377,10 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .order("due_date", { ascending: true }),
     supabase
       .from("health_schedule")
-      .select("id, what, when_date, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
+      .select("id, what, when_date, status, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
       .eq("family_id", familyId)
-      .in("status", ["due", "due_soon"])
+      // Due this week, or already booked for a day this week (23 October).
+      .in("status", ["due", "due_soon", "planned", "scheduled"])
       .gt("when_date", today)
       .lte("when_date", weekOut)
       .order("when_date", { ascending: true })
@@ -486,7 +505,20 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   for (const h of health.data ?? []) {
     const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
     const inDays = Math.round((Date.parse(h.when_date!) - Date.parse(today)) / 86_400_000);
-    items.push({ id: `soon-health-${h.id}`, icon: "activity", tint: "occasion", title: `${who} · ${h.what}`, meta: `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`, href: "/family", at: inDays, whose: h.member_id === me.id ? "mine" : "others", memberIds: [h.member_id] });
+    const on = inDays === 1 ? "tomorrow" : `on ${weekdayOf(h.when_date!)}`;
+    const booked = h.status === "scheduled" || h.status === "planned";
+    items.push({
+      id: `soon-health-${h.id}`,
+      icon: "activity",
+      tint: "occasion",
+      title: `${who} · ${h.what}`,
+      meta: booked ? `Booked for ${on}` : `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`,
+      // The person's own schedule, as Today's row opens (23 October).
+      href: `/family/members/${h.member_id}?view=health&seg=schedule`,
+      at: inDays,
+      whose: h.member_id === me.id ? "mine" : "others",
+      memberIds: [h.member_id],
+    });
   }
 
   // Tomorrow's first thing, if it starts early enough to plan the evening
@@ -497,7 +529,9 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     // A one-off still to do, or a repeating one whose rule falls tomorrow.
     if (!repeats(a) && a.status !== "upcoming") continue;
     const start = repeats(a) ? occurrenceStarts(a, new Date(a.start_at), tomorrow, tomorrow, tz)[0] : new Date(a.start_at);
-    if (!start || localDay(start, tz) !== tomorrow || Number(familyClock(start, tz).slice(0, 2)) >= 10) continue;
+    // An all-day plan sits at midnight (lib/calendar-shape); it is no early start.
+    const clock = familyClock(start, tz);
+    if (!start || localDay(start, tz) !== tomorrow || clock === "00:00" || Number(clock.slice(0, 2)) >= 10) continue;
     const tagged = taggedFrom(a.activity_members);
     const whose = whoseFor(me, a.applies_to_whole_family, tagged);
     items.push({ id: `soon-task-${a.id}`, icon: "clock", tint: "schedule", title: a.title, meta: ["Early start tomorrow", localTime(start, tz), a.location].filter(Boolean).join(" · "), href: "/planner", at: 1, whose, memberIds: a.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
