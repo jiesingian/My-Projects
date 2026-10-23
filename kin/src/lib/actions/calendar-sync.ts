@@ -296,6 +296,9 @@ async function applyIncomingEvent(
   memberId: string,
   event: GoogleCalendarEvent,
   tz: string,
+  // calendar_links.share_with_family (23 October): a new event is the whole
+  // family's, or tagged to this member alone.
+  shareWithFamily: boolean,
 ): Promise<string | null> {
   const { data: link, error: linkError } = await supabase.from("calendar_event_links").select("*").eq("member_id", memberId).eq("google_event_id", event.id).maybeSingle();
   // Treating this as "not linked yet" would send an edit down the create path
@@ -336,12 +339,14 @@ async function applyIncomingEvent(
   if (!link) {
     const { data: activity, error: createError } = await supabase
       .from("activities")
-      .insert({ family_id: familyId, title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null, applies_to_whole_family: false })
+      .insert({ family_id: familyId, title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null, applies_to_whole_family: shareWithFamily })
       .select()
       .single();
     if (createError || !activity) return `could not create the activity: ${createError ? refusalMessage(createError) : "no row came back"}`;
 
-    const { error: memberError } = await supabase.from("activity_members").insert({ activity_id: activity.id, member_id: memberId });
+    // The whole family's needs no tag; the member's own is tagged to them, so
+    // Today and the reminders (lib/for-me) know whose it is.
+    const { error: memberError } = shareWithFamily ? { error: null } : await supabase.from("activity_members").insert({ activity_id: activity.id, member_id: memberId });
     const { error: linkError } = memberError
       ? { error: null }
       : await supabase
@@ -408,7 +413,7 @@ async function pullMemberCalendar(
   const accessToken = await getValidCalendarAccessToken(memberId);
   if (!accessToken) return { applied: 0, retrying: 0, setAside: 0 };
 
-  const { data: link, error: linkError } = await supabase.from("calendar_links").select("calendar_id, sync_token").eq("member_id", memberId).maybeSingle();
+  const { data: link, error: linkError } = await supabase.from("calendar_links").select("calendar_id, sync_token, share_with_family").eq("member_id", memberId).maybeSingle();
   // Returning zeros would report this member as synced with nothing to do.
   // Throwing lands in the caller's catch, which already says one member's
   // calendar could not be read and carries it into what "Sync now" reports.
@@ -442,7 +447,7 @@ async function pullMemberCalendar(
   const tz = await familyZone(supabase, familyId);
 
   for (const event of result.events) {
-    const failed = await applyIncomingEvent(supabase, familyId, memberId, event, tz);
+    const failed = await applyIncomingEvent(supabase, familyId, memberId, event, tz, link.share_with_family);
 
     if (!failed) {
       // It worked. Any record of it failing before is history, and leaving it

@@ -65,6 +65,35 @@ export async function setSimpleModeAction(on: boolean): Promise<ActionState> {
   return { error: null };
 }
 
+/** Whose the events from the member's own Google Calendar are (Jonathan, 23
+ * October, decision 2): the whole family's, on to begin with, or theirs
+ * alone, which the for-me rule keeps off the other grown-up's Today. The
+ * events already pulled move with the switch: a shared one loses its tag,
+ * one kept to the member is tagged to them (calendar_event_links says which
+ * activities came from their calendar). */
+export async function setCalendarShareAction(on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const share = on === true;
+  const { error } = await supabase.from("calendar_links").update({ share_with_family: share }).eq("member_id", me.id);
+  if (error) return { error: `That did not save. ${refusalMessage(error)}` };
+
+  const { data: links } = await supabase.from("calendar_event_links").select("source_id").eq("member_id", me.id).eq("source_table", "activities");
+  const ids = (links ?? []).map((l) => l.source_id);
+  if (ids.length > 0) {
+    const { error: moveError } = await supabase.from("activities").update({ applies_to_whole_family: share }).in("id", ids).eq("family_id", me.family_id);
+    if (moveError) return { error: `Saved, but the events already pulled could not be moved. ${refusalMessage(moveError)}` };
+    const { error: tagError } = share
+      ? await supabase.from("activity_members").delete().in("activity_id", ids).eq("member_id", me.id)
+      : await supabase.from("activity_members").upsert(ids.map((activity_id) => ({ activity_id, member_id: me.id })), { onConflict: "activity_id,member_id", ignoreDuplicates: true });
+    if (tagError) return { error: `Saved, but the events already pulled could not be moved. ${refusalMessage(tagError)}` };
+  }
+  revalidatePath("/settings", "layout");
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
 /** The member's colour theme. Saved to their row, so it follows them to every
  * device, and to a cookie, so the root layout can switch a dark-only palette
  * into dark mode before anything paints. Like text size, the settings page

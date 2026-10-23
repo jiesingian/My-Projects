@@ -3,7 +3,7 @@
 import { useHouseholdZone } from "@/components/household-zone";
 import { useEffect, useId, useTransition } from "react";
 import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, updateRememberTheDepartedAction,
-  updateChristmasOnTodayAction, setKidViewAction, setSimpleModeAction } from "@/lib/actions/settings";
+  updateChristmasOnTodayAction, setKidViewAction, setSimpleModeAction, setCalendarShareAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -693,16 +693,54 @@ function MigratePhotosButton() {
   );
 }
 
-export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string | null; lastSyncedAt: string | null }) {
+export function CalendarConnectedPanel({ email, lastSyncedAt, shareWithFamily }: { email: string | null; lastSyncedAt: string | null; shareWithFamily: boolean }) {
   const tz = useHouseholdZone();
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
+  const [share, setShare] = useState(shareWithFamily);
+  const [sharePending, startShare] = useTransition();
+  const [shareFailed, setShareFailed] = useState<string | null>(null);
   return (
     <>
       <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-divider)", padding: "0.5625rem 0.6875rem", marginBottom: "0.75rem" }}>
         <div style={{ fontSize: "0.6875rem", letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
         <div style={{ fontSize: "0.875rem" }}>{email ?? "—"}</div>
       </div>
+      {/* Whose the pulled events are (Jonathan, 23 October): the whole
+          family's, or this member's alone -- which the for-me rule keeps off
+          the other grown-up's Today. Moves the events already pulled too. */}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={share}
+        disabled={sharePending}
+        onClick={() => {
+          const next = !share;
+          setShare(next);
+          setShareFailed(null);
+          startShare(async () => {
+            const result = await setCalendarShareAction(next);
+            if (result.error) {
+              setShare(!next);
+              setShareFailed(result.error);
+            }
+          });
+        }}
+        style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "none", border: 0, padding: "0.5rem 0 0.75rem", display: "flex", flexWrap: "wrap", gap: "0.375rem 0.875rem", alignItems: "center", font: "inherit", color: "inherit" }}
+      >
+        <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+          <span style={{ fontSize: "0.9375rem", display: "block" }}>Show my Google events to the whole family</span>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+            {share ? "They are the family's: on everyone's Today and reminders." : "They are yours alone: the Planner shows them to everyone, Today and the reminders only to you."}
+          </span>
+        </span>
+        <span className="kin-switch" data-on={share} />
+      </button>
+      {shareFailed && (
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "0 0 0.75rem" }}>
+          {shareFailed}
+        </p>
+      )}
       <SyncCalendarButton />
       <button
         type="button"

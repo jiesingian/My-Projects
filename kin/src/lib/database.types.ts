@@ -2030,6 +2030,7 @@ export type Database = {
           family_id: string
           last_synced_at: string | null
           member_id: string
+          share_with_family: boolean
           sync_token: string | null
           updated_at: string
         }
@@ -2040,6 +2041,7 @@ export type Database = {
           family_id: string
           last_synced_at?: string | null
           member_id: string
+          share_with_family?: boolean
           sync_token?: string | null
           updated_at?: string
         }
@@ -2050,6 +2052,7 @@ export type Database = {
           family_id?: string
           last_synced_at?: string | null
           member_id?: string
+          share_with_family?: boolean
           sync_token?: string | null
           updated_at?: string
         }

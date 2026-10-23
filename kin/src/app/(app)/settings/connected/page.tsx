@@ -99,7 +99,7 @@ export default async function ConnectedSettingsPage({
             <p style={{ fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.625rem" }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
           )}
           {calendarLink?.connected ? (
-            <CalendarConnectedPanel email={calendarLink.account_email} lastSyncedAt={calendarLink.last_synced_at} />
+            <CalendarConnectedPanel email={calendarLink.account_email} lastSyncedAt={calendarLink.last_synced_at} shareWithFamily={calendarLink.share_with_family} />
           ) : (
             <>
               <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>
