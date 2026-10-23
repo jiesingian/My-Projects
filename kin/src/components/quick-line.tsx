@@ -7,19 +7,24 @@ import { parseQuickLine, readableClock, type QuickMember, type QuickParse } from
 import { quickAddAction } from "@/lib/actions/quick-add";
 import { readableDay } from "@/lib/time";
 import { formatQuantity } from "@/lib/grocery";
+import { formatCurrency } from "@/lib/format";
 
 const KIND: Record<QuickParse["kind"], { label: string; icon: IconName; tint: string }> = {
   task: { label: "Task", icon: "calendarDays", tint: "schedule" },
   event: { label: "Event", icon: "gift", tint: "occasion" },
   shopping: { label: "To buy", icon: "basket", tint: "home" },
+  expense: { label: "Expense", icon: "receipt", tint: "money" },
+  meal: { label: "Meal", icon: "bowl", tint: "home" },
 };
+
+const SLOT_LABEL: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", morning_snack: "Snack", afternoon_snack: "Merienda" };
 
 const EVENT_LABEL: Record<string, string> = { birthday: "Birthday", anniversary: "Anniversary", travel: "Travel" };
 
 /** One-line add: type a sentence, see what Kin read, then save it. The
  * reading is lib/quick-line.ts -- rules, not AI -- and nothing is saved until
  * the person has seen it. */
-export function QuickLine({ members, meId, today, defaultDate }: { members: QuickMember[]; meId: string; today: string; defaultDate?: string }) {
+export function QuickLine({ members, meId, today, defaultDate, currency = "PHP" }: { members: QuickMember[]; meId: string; today: string; defaultDate?: string; currency?: string }) {
   const [text, setText] = useState("");
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -32,6 +37,10 @@ export function QuickLine({ members, meId, today, defaultDate }: { members: Quic
     const q = formatQuantity(parsed.quantity, parsed.unit);
     if (q) parts.push(q);
     parts.push(parsed.section);
+  } else if (parsed?.kind === "expense") {
+    parts.push(parsed.particulars, formatCurrency(parsed.amount, currency), parsed.date === today ? "Today" : readableDay(parsed.date));
+  } else if (parsed?.kind === "meal") {
+    parts.push(parsed.dish, SLOT_LABEL[parsed.slot] ?? parsed.slot, parsed.date === today ? "Today" : readableDay(parsed.date));
   } else if (parsed) {
     parts.push(parsed.title);
     if (parsed.kind === "event") parts.push(EVENT_LABEL[parsed.eventKind] ?? "Event");
@@ -44,16 +53,21 @@ export function QuickLine({ members, meId, today, defaultDate }: { members: Quic
   const fullForm =
     parsed?.kind === "shopping"
       ? "/household?seg=buy&add=1"
-      : parsed
-        ? `/planner/add?${new URLSearchParams({ type: parsed.kind, date: parsed.date, title: parsed.title })}`
-        : null;
+      : parsed?.kind === "expense"
+        ? `/wealth/transact?${new URLSearchParams({ mode: "out", amount: String(parsed.amount), note: parsed.particulars })}`
+        : parsed?.kind === "meal"
+          ? "/household/meals/new"
+          : parsed
+            ? `/planner/add?${new URLSearchParams({ type: parsed.kind, date: parsed.date, title: parsed.title })}`
+            : null;
 
   const save = () => {
     if (!parsed || pending) return;
     setMessage(null);
     start(async () => {
       const res = await quickAddAction(parsed);
-      // Tasks and events go on to the Planner; only a shopping item returns.
+      // Tasks and events go on to the Planner, a meal to Household and an
+      // expense to its form; only a shopping item returns.
       if (res?.error) setMessage({ error: true, text: res.error });
       else if (parsed.kind === "shopping") {
         setMessage({ error: false, text: `Added ${parsed.name} to the list.` });
@@ -81,7 +95,7 @@ export function QuickLine({ members, meId, today, defaultDate }: { members: Quic
             setText(e.target.value);
             setMessage(null);
           }}
-          placeholder='Type it: "Ben dentist Tue 3pm"'
+          placeholder='Type it: "Ben dentist Tue 3pm", "paid Meralco 2300"'
           aria-label="Add in one line"
           enterKeyHint="done"
           autoComplete="off"

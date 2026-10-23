@@ -15,7 +15,7 @@ import { simpleModeTextScale } from "@/lib/simple-mode";
 import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes";
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart, isTimeZone } from "@/lib/household-prefs";
-import { MENU_MAX, WIDGET_MAX, cleanActions } from "@/lib/quick-button";
+import { MENU_MAX, QUICK_DEFAULTS, TODAY_MAX, WIDGET_MAX, cleanActions } from "@/lib/quick-button";
 import { buildBrief, type BriefItem, type BriefRoutine } from "@/lib/brief";
 import { familyDay } from "@/lib/time";
 
@@ -293,15 +293,18 @@ export async function removeCalendarFeedAction(): Promise<ActionState> {
 /** Which Kin actions the member wants in the Action Button's pop-up and on
  * the Home Screen widget (quick-button.ts). Only Kin's own actions are kept,
  * so the /go links can only ever send the member to one of Kin's pages. */
-export async function setQuickButtonAction(prefs: { menu: string[]; widget: string[] }): Promise<ActionState> {
+export async function setQuickButtonAction(prefs: { menu: string[]; widget: string[]; today?: string[] }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const menu = cleanActions(prefs.menu, MENU_MAX);
   const widget = cleanActions(prefs.widget, WIDGET_MAX);
-  if (!menu || !widget) return { error: `Pick at least one, and at most ${MENU_MAX}.` };
+  // Today's Quick add row (23 October); a row saved before it has the default.
+  const today = cleanActions(prefs.today ?? QUICK_DEFAULTS.today, TODAY_MAX);
+  if (!menu || !widget || !today) return { error: `Pick at least one, and at most ${MENU_MAX}.` };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ quick_actions: { menu, widget } }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ quick_actions: { menu, widget, today } }).eq("id", me.id);
   if (error) return { error: `That did not save. ${databaseError(error)}` };
   revalidatePath("/settings");
+  revalidatePath("/today");
   return { error: null };
 }
 

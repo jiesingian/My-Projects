@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon } from "@/components/icons";
 import {
   createBriefLinkAction,
   createListAddLinkAction,
@@ -13,21 +13,13 @@ import {
   setQuickButtonAction,
 } from "@/lib/actions/settings";
 import { speak, speechOutSupported, stopSpeaking } from "@/lib/speech";
-import { MENU_MAX, QUICK_ACTIONS, WIDGET_MAX, quickAction, type QuickActionId, type QuickPrefs } from "@/lib/quick-button";
+import { MENU_MAX, QUICK_ACTIONS, QUICK_ICONS, TODAY_MAX, WIDGET_MAX, quickAction, type QuickActionId, type QuickPrefs } from "@/lib/quick-button";
 
 const noSubscribe = () => () => {};
 
-const ICONS: Record<QuickActionId, IconName> = {
-  open: "house",
-  ask: "sparkle",
-  talk: "mic",
-  "family-chat": "message",
-  arrived: "mapPin",
-  buy: "basket",
-  expense: "receipt",
-  event: "calendarDays",
-  journal: "images",
-};
+type QuickList = "menu" | "widget" | "today";
+
+const ICONS = QUICK_ICONS;
 
 /** Settings → Action Button & widget: what the Action Button's pop-up and the
  * Home Screen widget offer, a picture of each, and the one-time setup. */
@@ -39,8 +31,8 @@ export function QuickButtonSettings({ initial, briefOn, listAddOn, sendOn, plus 
   // Shortcuts; the origin is only known in the browser.
   const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
 
-  function toggle(list: "menu" | "widget", id: QuickActionId) {
-    const max = list === "menu" ? MENU_MAX : WIDGET_MAX;
+  function toggle(list: QuickList, id: QuickActionId) {
+    const max = list === "menu" ? MENU_MAX : list === "widget" ? WIDGET_MAX : TODAY_MAX;
     const has = prefs[list].includes(id);
     if (has && prefs[list].length === 1) return setFailed("Keep at least one.");
     if (!has && prefs[list].length >= max) return setFailed(`That's the most it holds (${max}).`);
@@ -76,6 +68,14 @@ export function QuickButtonSettings({ initial, briefOn, listAddOn, sendOn, plus 
         <Picker list="widget" picked={prefs.widget} pending={pending} onToggle={toggle} />
       </section>
 
+      {/* Today's Quick add row (23 October, decision 4): the same list, four
+          at most, in the order Kin keeps them. */}
+      <section className="kin-quickbtn-section" aria-labelledby="qb-today">
+        <h2 id="qb-today" className="kin-quickbtn-h">Today&rsquo;s Quick add</h2>
+        <p className="kin-quickbtn-lead">The row of buttons under At a glance on Today. Pick up to {TODAY_MAX}; everyone picks their own.</p>
+        <Picker list="today" picked={prefs.today} pending={pending} onToggle={toggle} />
+      </section>
+
       {failed && (
         <p role="alert" className="kin-quickbtn-error">
           {failed}
@@ -105,14 +105,15 @@ function Picker({
   pending,
   onToggle,
 }: {
-  list: "menu" | "widget";
+  list: QuickList;
   picked: QuickActionId[];
   pending: boolean;
-  onToggle: (list: "menu" | "widget", id: QuickActionId) => void;
+  onToggle: (list: QuickList, id: QuickActionId) => void;
 }) {
   return (
-    <div className="kin-quickbtn-picker" role="group" aria-label={list === "menu" ? "In the pop-up" : "On the widget"}>
-      {QUICK_ACTIONS.map((a) => {
+    <div className="kin-quickbtn-picker" role="group" aria-label={list === "menu" ? "In the pop-up" : list === "widget" ? "On the widget" : "On Today"}>
+      {/* "Open Kin" means nothing on a row that is already in Kin. */}
+      {QUICK_ACTIONS.filter((a) => list !== "today" || a.id !== "open").map((a) => {
         const on = picked.includes(a.id);
         return (
           <button key={a.id} type="button" aria-pressed={on} disabled={pending} className="kin-quickbtn-chip" onClick={() => onToggle(list, a.id)}>

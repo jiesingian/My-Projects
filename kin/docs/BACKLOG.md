@@ -122,8 +122,12 @@ all Jonathan's on 23 October, each the recommended option:
   when none are asked); Money, with no budget set, says the week's bills
   ("2 bills by Fri · ₱6,900"); the shopping tile says today's meal
   shortfall ("adobo needs 2"); tomorrow's stays in Coming up.
-- **To do:** PR 8 the quick row per member and the type-it line reading
-  an expense and a meal.
+- **Done (#952):** the Quick add row is each member's own pick from the
+  Action Button's list (Settings → Action Button & widget, "Today's Quick
+  add", up to four; Milestone and Note joined the list; the default row
+  is unchanged), and the type-it line reads an expense ("paid Meralco
+  2300", opening the expense form filled in) and a meal ("dinner adobo
+  tomorrow", onto the plan). The series is complete.
 - Kept off Today on purpose: meals (header), unread chat (tab badge),
   connection and link requests and pending members (Family), highlights,
   story prompts, vitals and growth, approvals (Goals → Shop).

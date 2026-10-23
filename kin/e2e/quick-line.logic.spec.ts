@@ -78,3 +78,21 @@ test("empty lines read as nothing; the preview's clock reads back in 12-hour", (
   expect(readableClock("15:00")).toBe("3:00 pm");
   expect(readableClock("00:30")).toBe("12:30 am");
 });
+
+test("an expense: a leading paid, or a peso amount anywhere; the rest is what it was for (23 October)", () => {
+  expect(read("paid Meralco 2300")).toEqual({ kind: "expense", amount: 2300, particulars: "Meralco", date: today });
+  expect(read("₱150 grab")).toEqual({ kind: "expense", amount: 150, particulars: "Grab", date: today });
+  expect(read("spent 1,250.50 for groceries yesterday")).toEqual({ kind: "expense", amount: 1250.5, particulars: "Groceries", date: "2026-10-06" });
+  expect(read("php 500 tuition")).toEqual({ kind: "expense", amount: 500, particulars: "Tuition", date: today });
+  // A bare number with no "paid" is not money: a quantity or a title.
+  expect(read("buy 3 eggs")?.kind).toBe("shopping");
+  expect(read("room 2300 tomorrow")?.kind).toBe("task");
+});
+
+test("a meal: the slot word, in English or Filipino, and the dish; a time or a person makes it a plan instead", () => {
+  expect(read("dinner adobo tomorrow")).toEqual({ kind: "meal", slot: "dinner", dish: "Adobo", date: "2026-10-08" });
+  expect(read("almusal: tapsilog")).toEqual({ kind: "meal", slot: "breakfast", dish: "Tapsilog", date: today });
+  expect(read("merienda turon Fri")).toEqual({ kind: "meal", slot: "afternoon_snack", dish: "Turon", date: "2026-10-09" });
+  expect(read("dinner with Ben 7pm")?.kind).toBe("task");
+  expect(read("lunch")).toEqual(expect.objectContaining({ kind: "task" }));
+});

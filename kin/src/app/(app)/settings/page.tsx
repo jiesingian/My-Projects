@@ -67,7 +67,7 @@ export default async function SettingsPage({
   const allGroups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
     [
       { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%${me.simple_mode ? " · Simple Kin" : ""}` },
-      { href: "/settings/quick-button", icon: "phone", tint: "schedule", title: "Action Button & widget", value: `Pop-up: ${quick.menu.length} · Widget: ${quick.widget.length}` },
+      { href: "/settings/quick-button", icon: "phone", tint: "schedule", title: "Action Button & widget", value: `Pop-up: ${quick.menu.length} · Widget: ${quick.widget.length} · Today: ${quick.today.length}` },
       { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${notifDefs.length} on` },
       { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
       // Replays the guided tour on Today (guided-tour.tsx). Not in Kid view,

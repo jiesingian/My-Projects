@@ -3,7 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { createActivityAction, createEventAction } from "@/lib/actions/planner";
-import { addBuyItemAction } from "@/lib/actions/household";
+import { addBuyItemAction, addMealPlanAction } from "@/lib/actions/household";
+import { redirect } from "next/navigation";
 import type { ActionState } from "@/lib/actions/auth";
 import type { QuickParse } from "@/lib/quick-line";
 
@@ -23,6 +24,20 @@ export async function quickAddAction(item: QuickParse): Promise<ActionState> {
     form.set("section", item.section);
     form.set("source", "house");
     return addBuyItemAction({ error: null }, form);
+  }
+
+  // Money leaves a named account, so the expense form opens filled in
+  // (23 October); the person picks the account and saves there.
+  if (item.kind === "expense") {
+    redirect(`/wealth/transact?${new URLSearchParams({ mode: "out", amount: String(item.amount), note: item.particulars })}`);
+  }
+  // A meal goes on the household's plan, and lands on Household → Meals as
+  // the form does.
+  if (item.kind === "meal") {
+    form.set("date", item.date);
+    form.set("dish", item.dish);
+    form.set("slot", item.slot);
+    return addMealPlanAction({ error: null }, form);
   }
 
   // The ids came from the phone: keep only people in this household.
