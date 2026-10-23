@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { loanPaymentSplit, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -431,9 +431,12 @@ type LedgerInput = {
   occurredAt?: string | null;
   status?: "pending" | "confirmed";
   transferGroupId?: string | null;
-  sourceTable?: "bills" | "events" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | "assets" | "gift_list_items" | null;
+  sourceTable?: "bills" | "events" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | "assets" | "gift_list_items" | "liabilities" | null;
   sourceId?: string | null;
   goalId?: string | null;
+  /** On a loan payment, the part that pays the loan down; the rest is
+   * interest (20261023220000). */
+  principal?: number | null;
   /** Whose it is; left out, the database takes the account's owner. */
   owner?: { is_joint: boolean; owner_member_id: string | null } | null;
 };
@@ -452,6 +455,7 @@ function ledgerRow(familyId: string, memberId: string, input: LedgerInput): Tabl
     source_table: input.sourceTable ?? null,
     source_id: input.sourceId ?? null,
     goal_id: input.goalId ?? null,
+    principal_amount: input.sourceTable === "liabilities" ? (input.principal ?? null) : null,
     recorded_by: memberId,
     ...(input.owner ?? {}),
   };
@@ -497,6 +501,14 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
     if (next) return next;
   }
 
+  // A loan payment's principal pays the loan down; its interest is the
+  // cost. Only once confirmed, like a bill: money still waiting in a banking
+  // app has not reached the lender yet.
+  if (entry.source_table === "liabilities" && entry.source_id && Number(entry.principal_amount) > 0) {
+    const { error } = await supabase.rpc("adjust_liability_balance", { p_liability_id: entry.source_id, p_delta: -Number(entry.principal_amount) });
+    if (error) return `The payment was recorded, but the loan's balance was not lowered. ${refusalMessage(error)}`;
+  }
+
   if (entry.goal_id) {
     const goalError = await recalcGoalTotal(supabase, entry.goal_id);
     if (goalError) return `The money moved, but the goal total was not brought up to date. ${refusalMessage(goalError)}`;
@@ -532,8 +544,11 @@ export async function recordMovementAction(input: {
   /** What this money was for, beyond which account it moved through: an
    * asset the household owns, or a goal they are saving into. Optional --
    * most payments are not tied to either. */
-  againstTable?: "assets" | "goals" | null;
+  againstTable?: "assets" | "goals" | "liabilities" | null;
   againstId?: string | null;
+  /** Paying a loan: the part that pays it down (the rest is interest).
+   * Left out, Kin works it out from the loan's rate (loanPaymentSplit). */
+  principal?: number | null;
   /** "me", "joint" or a member id: whose this money is (parseWhose). */
   whose?: string;
 }): Promise<{ error: string | null; transactionId?: string; appUrl?: string | null }> {
@@ -545,9 +560,25 @@ export async function recordMovementAction(input: {
 
   // The id comes from a form, so it is checked against this household rather
   // than trusted -- the same reason the routine log verifies its member.
-  let sourceTable: "assets" | "goals" | null = null;
+  let sourceTable: "assets" | "goals" | "liabilities" | null = null;
   let sourceId: string | null = null;
-  if (input.againstTable && input.againstId) {
+  let principal: number | null = null;
+  if (input.againstTable === "liabilities" && input.againstId) {
+    if (input.direction !== "out") return { error: "A loan is paid with money going out." };
+    const { data: loan } = await supabase
+      .from("liabilities")
+      .select("id, balance, interest_rate")
+      .eq("id", input.againstId)
+      .eq("family_id", me.family_id)
+      .maybeSingle();
+    if (!loan) return { error: "That isn't one of your household's loans." };
+    const split = loanPaymentSplit(Number(loan.balance), loan.interest_rate == null ? null : Number(loan.interest_rate), input.amount);
+    principal = input.principal == null ? split.principal : Math.round(input.principal * 100) / 100;
+    if (!(principal >= 0 && principal <= input.amount)) return { error: "The part that pays the loan down has to be between zero and the whole payment." };
+    if (principal > Number(loan.balance)) return { error: "That pays down more than is still owed on the loan." };
+    sourceTable = "liabilities";
+    sourceId = loan.id;
+  } else if (input.againstTable && input.againstId) {
     const { data: target } = await supabase
       .from(input.againstTable)
       .select("id")
@@ -574,6 +605,7 @@ export async function recordMovementAction(input: {
     status,
     sourceTable,
     sourceId,
+    principal,
     // A contribution to a goal is also a goal_id, which is what the goal's
     // own progress reads. Setting only source_table would show it in the
     // cashflow breakdown while the goal itself stayed where it was.
@@ -720,6 +752,12 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
       .eq("id", entry.source_id)
       .eq("family_id", familyId);
     if (error) return `The income schedule could not be reopened, so the entry was left in place. ${refusalMessage(error)}`;
+  }
+  // A confirmed loan payment had lowered the balance; undoing it owes that
+  // principal again. A pending one never touched it.
+  if (entry.source_table === "liabilities" && entry.source_id && entry.status === "confirmed" && Number(entry.principal_amount) > 0) {
+    const { error } = await supabase.rpc("adjust_liability_balance", { p_liability_id: entry.source_id, p_delta: Number(entry.principal_amount) });
+    if (error) return `The loan's balance could not be put back, so the payment was left in place. ${refusalMessage(error)}`;
   }
   return null;
 }

@@ -612,15 +612,29 @@ export async function summariseSources(familyId: string, rows: LedgerEntry[]): P
 
 /** Just enough of the assets and goals to fill a picker. The full loaders
  * bring owners and balances that a dropdown has no use for. */
-export async function getAttributableTargets(familyId: string): Promise<{ assets: { id: string; name: string }[]; goals: { id: string; name: string }[] }> {
+export type PayableLoan = { id: string; name: string; balance: number; interestRate: number | null; monthlyPayment: number | null };
+
+export async function getAttributableTargets(familyId: string): Promise<{ assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: PayableLoan[] }> {
   const supabase = await createClient();
-  const [{ data: assets }, { data: goals }] = await Promise.all([
+  const [{ data: assets }, { data: goals }, { data: loans }] = await Promise.all([
     supabase.from("assets").select("id, name").eq("family_id", familyId).order("name"),
     supabase.from("goals").select("id, title").eq("family_id", familyId).order("title"),
+    // Loans with something still owed: what a payment can pay down.
+    supabase.from("liabilities").select("id, name, balance, interest_rate, monthly_payment").eq("family_id", familyId).gt("balance", 0).order("name"),
   ]);
   // A goal's name lives in `title`. The picker wants one shape, so the
   // difference is flattened here rather than in the component.
-  return { assets: assets ?? [], goals: (goals ?? []).map((g) => ({ id: g.id, name: g.title })) };
+  return {
+    assets: assets ?? [],
+    goals: (goals ?? []).map((g) => ({ id: g.id, name: g.title })),
+    loans: (loans ?? []).map((l) => ({
+      id: l.id,
+      name: l.name,
+      balance: Number(l.balance),
+      interestRate: l.interest_rate == null ? null : Number(l.interest_rate),
+      monthlyPayment: l.monthly_payment == null ? null : Number(l.monthly_payment),
+    })),
+  };
 }
 
 export type RemittanceWithAllocations = Tables<"remittances"> & { allocations: Tables<"remittance_allocations">[] };

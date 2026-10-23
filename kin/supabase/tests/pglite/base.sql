@@ -243,6 +243,15 @@ insert into assets (id, family_id, name, kind, value) values
  ('a5000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','House in San Juan','property',8000000),
  ('d5000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan condo','property',4000000);
 
+-- Liabilities (the table predates the migrations folder), as household-wide
+-- as assets above: only the columns the loan-payment probe needs.
+create table public.liabilities (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, kind text not null default 'other', balance numeric not null default 0, interest_rate numeric, monthly_payment numeric, is_joint boolean not null default true, owner_member_id uuid references members(id), updated_at timestamptz not null default now());
+alter table liabilities enable row level security;
+create policy liabilities_all on liabilities for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+insert into liabilities (id, family_id, name, kind, balance, interest_rate, monthly_payment) values
+ ('a6000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','Pag-IBIG housing loan','mortgage',2000000,6.5,25000),
+ ('d6000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan car loan','auto_loan',500000,8,15000);
+
 -- Kin Plus access and awards, as 20260928150000_kin_free_and_plus and
 -- 20260929020000_kin_offers made them (those files lean on far more of the
 -- schema than is stood in here), for the Start here bonus. Every household

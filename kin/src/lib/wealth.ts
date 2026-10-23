@@ -871,6 +871,19 @@ export function remittancesByMonth<T extends { sent_on: string; php_received: nu
 
 /** A loan's payment schedule as entered: monthly from `nextPaymentDate`,
  * `paymentsRemaining` of them. Null when either is missing. */
+/** How one payment on a loan splits (20261023220000): this month's interest
+ * on what is still owed -- the balance times the yearly rate over twelve,
+ * how Philippine banks amortise a housing or car loan -- and the rest pays
+ * the loan down, never past what is owed. A payment smaller than the
+ * interest pays no principal. No rate, no interest: all of it is principal.
+ * Interest is a cost; principal only turns cash into less debt. */
+export function loanPaymentSplit(balance: number, ratePct: number | null, payment: number): { interest: number; principal: number } {
+  const owed = Math.max(0, balance);
+  const interest = Math.min(payment, cents(owed * ((ratePct ?? 0) / 100 / 12)));
+  const principal = Math.min(owed, cents(payment - interest));
+  return { interest: cents(payment - principal), principal };
+}
+
 export type LoanSchedule = { next_payment_date: string | null; payments_remaining: number | null };
 
 /** Every payment date in the schedule, first to last (YYYY-MM-DD). A 31st

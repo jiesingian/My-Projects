@@ -8333,6 +8333,7 @@ export type Database = {
           owner_member_id: string | null
           occurred_at: string
           particulars: string
+          principal_amount: number | null
           recorded_by: string | null
           source_id: string | null
           source_table: string | null
@@ -8352,6 +8353,7 @@ export type Database = {
           owner_member_id?: string | null
           occurred_at?: string
           particulars: string
+          principal_amount?: number | null
           recorded_by?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -8371,6 +8373,7 @@ export type Database = {
           owner_member_id?: string | null
           occurred_at?: string
           particulars?: string
+          principal_amount?: number | null
           recorded_by?: string | null
           source_id?: string | null
           source_table?: string | null
@@ -8413,6 +8416,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_liability_balance: {
+        Args: { p_delta: number; p_liability_id: string }
+        Returns: number
+      }
       import_wealth_transactions: {
         Args: { p_account: string; p_rows: Json }
         Returns: { imported: number; skipped: number }[]
