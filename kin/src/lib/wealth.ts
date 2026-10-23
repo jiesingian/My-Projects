@@ -126,6 +126,24 @@ export const INCOME_SOURCES = ["Salary", "House (rent)", "Business", "Remittance
 /** How often a regular income (income_groups) comes. */
 export const INCOME_FREQUENCY_LABELS: Record<string, string> = { monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly" };
 
+/** Whose an income, an expense or a bill is, as the forms send it: "me",
+ * "joint" (Family), or a household member's id (20261023120000). The
+ * database checks the member is in the household. */
+export function parseWhose(raw: unknown, meId: string): { is_joint: boolean; owner_member_id: string | null } {
+  const v = String(raw ?? "me");
+  if (v === "joint") return { is_joint: true, owner_member_id: null };
+  if (v === "me" || !/^[0-9a-f-]{36}$/i.test(v)) return { is_joint: false, owner_member_id: meId };
+  return { is_joint: false, owner_member_id: v };
+}
+
+export type WhoseOption = { value: string; label: string };
+
+/** The choices for "Whose is it?": You, everyone else in the household in
+ * its own order (children too), then Family (joint). */
+export function whoseOptions(members: { id: string; label: string }[], meId: string): WhoseOption[] {
+  return [{ value: "me", label: "You" }, ...members.filter((m) => m.id !== meId).map((m) => ({ value: m.id, label: m.label })), { value: "joint", label: "Family (joint)" }];
+}
+
 export const TRANSFER_CATEGORY = "Transfer";
 export const GOAL_CATEGORY = "Goal";
 

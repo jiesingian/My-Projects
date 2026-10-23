@@ -1567,6 +1567,8 @@ export type Database = {
           due_date: string | null
           family_id: string
           id: string
+          is_joint: boolean | null
+          owner_member_id: string | null
           name: string
           paid_at: string | null
           paid_by_member_id: string | null
@@ -1585,6 +1587,8 @@ export type Database = {
           due_date?: string | null
           family_id: string
           id?: string
+          is_joint?: boolean | null
+          owner_member_id?: string | null
           name: string
           paid_at?: string | null
           paid_by_member_id?: string | null
@@ -1603,6 +1607,8 @@ export type Database = {
           due_date?: string | null
           family_id?: string
           id?: string
+          is_joint?: boolean | null
+          owner_member_id?: string | null
           name?: string
           paid_at?: string | null
           paid_by_member_id?: string | null
@@ -8263,6 +8269,8 @@ export type Database = {
           family_id: string
           goal_id: string | null
           id: string
+          is_joint: boolean | null
+          owner_member_id: string | null
           occurred_at: string
           particulars: string
           recorded_by: string | null
@@ -8280,6 +8288,8 @@ export type Database = {
           family_id: string
           goal_id?: string | null
           id?: string
+          is_joint?: boolean | null
+          owner_member_id?: string | null
           occurred_at?: string
           particulars: string
           recorded_by?: string | null
@@ -8297,6 +8307,8 @@ export type Database = {
           family_id?: string
           goal_id?: string | null
           id?: string
+          is_joint?: boolean | null
+          owner_member_id?: string | null
           occurred_at?: string
           particulars?: string
           recorded_by?: string | null
