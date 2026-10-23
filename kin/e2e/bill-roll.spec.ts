@@ -101,8 +101,10 @@ const today = () => familyDay(new Date(), session?.tz ?? "Asia/Manila");
  * "none". */
 async function expectNoOffer(page: Page, name: string, billId: string) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
-  await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("SETTLED").first()).toBeVisible();
+  // Its line in the owner → category breakdown: "Utilities - <name>",
+  // marked settled underneath.
+  await expect(page.getByText(`Utilities - ${name}`, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Settled/).first()).toBeVisible();
   await expect(page.locator(`[data-next-bill="${billId}"]`)).toHaveCount(0);
 }
 
@@ -236,7 +238,7 @@ test("Cash Flow shows the offer without opening Expenses", async ({ page }) => {
   await expect(page.locator(`[data-next-bill="${billId}"]`)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Next bills to add" })).toBeVisible();
   // Expenses is closed: its settled bills are not on the page.
-  await expect(page.getByText("SETTLED")).toHaveCount(0);
+  await expect(page.getByText(/Settled/)).toHaveCount(0);
 });
 
 test("the question sheet fits 320px with Simple Kin on", async ({ page }) => {

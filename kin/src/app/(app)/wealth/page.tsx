@@ -40,7 +40,7 @@ import {
   CASH_FLOW_RANGE_LABELS,
   INCOME_FREQUENCY_LABELS,
   INCOME_SOURCES,
-  incomeSourceColor,
+  EXPENSE_CATEGORIES,
   whoseOptions,
   periodOverPeriodChange,
   cashBalanceTrend,
@@ -54,7 +54,6 @@ import {
   type LiabilityKind,
   type CashFlowRange,
   WEALTH_FAMILY,
-  TRANSFER_CATEGORY,
   isHouseholdScope,
   inScope,
   loanStatus,
@@ -64,7 +63,7 @@ import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
-import { OwnerBreakdownPie, CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson, type BreakdownSlice } from "@/components/wealth-charts";
+import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { getUtang } from "@/lib/queries/utang";
 import { instalmentPlan } from "@/lib/utang";
@@ -149,9 +148,15 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 /* --------------------------------------------------------------- shared bits */
 
+/** An account as every breakdown names it: bank or e-wallet, then the
+ * account -- "BPI - Payroll" (Janine, 23 October). */
+function accountLabel(a: { name: string; institution: string | null }) {
+  return a.institution && a.institution.trim().toLowerCase() !== a.name.trim().toLowerCase() ? `${a.institution} - ${a.name}` : a.name;
+}
+
 /** The headline figure. `breakdown` puts a by-owner donut beside it and
  * each owner's items under it (Accounts: accounts; A&L: what is owned). */
-function Hero({ label, amount, currency, caption, delta, breakdown, noun }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode; breakdown?: BreakdownSlice[]; noun?: string }) {
+function Hero({ label, amount, currency, caption, delta, breakdown }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode; breakdown?: { items: BreakdownItem[]; storageKey: string; categoryOrder: readonly string[] } }) {
   const head = (
     <>
       <div className="kin-eyebrow">{label}</div>
@@ -164,7 +169,7 @@ function Hero({ label, amount, currency, caption, delta, breakdown, noun }: { la
   );
   return (
     <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
-      {breakdown ? <OwnerBreakdownPie head={head} slices={breakdown} currency={currency} noun={noun} /> : head}
+      {breakdown ? <GroupedBreakdown head={head} items={breakdown.items} currency={currency} storageKey={breakdown.storageKey} categoryOrder={breakdown.categoryOrder} /> : head}
     </Blueprint>
   );
 }
@@ -455,7 +460,7 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
 }
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
-  const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
+  const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [cf, budget, accounts, who, nextBills] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
@@ -509,10 +514,115 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
   // "Whose is it?" on the add forms: You, each other member, Family.
   const whose = whoseOptions(who.active.map((m, i) => ({ id: m.id, label: who.labels[i] })), memberId);
-  // INCOME's groups: the sources in their own order, then any other
-  // source a row carries (an older or imported one) after them.
-  const usedSources = [...cf.incomeGroups.map((g) => g.category ?? "Other"), ...cf.expectedIncome.map((x) => x.category ?? "Salary"), ...cf.receivedIncome.map((x) => x.category ?? "Salary"), ...cf.recentIncome.map((e) => e.category ?? "Other")];
-  const incomeSources = [...INCOME_SOURCES, ...[...new Set(usedSources)].filter((c) => !(INCOME_SOURCES as readonly string[]).includes(c)).sort()];
+  // INCOME and EXPENSES, as every Wealth tab breaks things down (Janine,
+  // 23 October): whose first, then the category, then each line named
+  // "Category - Source". A line's amount is what came in or went out this
+  // period (transfers left out); what is still to come -- an income
+  // expected, a bill due -- rides on its line, or stands as a line of its
+  // own with nothing counted yet. No account names or balances here.
+  const ownerOfRow = (isJoint: boolean | null, ownerId: string | null) => who.sliceOwner(ownerId, isJoint ?? true);
+  const ownedHere = (o: { is_joint: boolean | null; owner_member_id: string | null }) => scope === "all" || o.is_joint === null || inScope({ is_joint: o.is_joint, owner_member_id: o.owner_member_id }, scope);
+  type Line = BreakdownItem & { count: number; last: string | null; lead: string[]; tail: string[]; buttons: React.ReactNode[] };
+  const finish = (lines: Map<string, Line>, noun: string): BreakdownItem[] =>
+    [...lines.values()].map(({ count, last, lead, tail, buttons, ...l }) => ({
+      ...l,
+      sub: [...lead, ...(count > 0 ? [`${count} ${noun}${count === 1 ? "" : "s"}${last ? ` · last ${fmtDate(last)}` : ""}`] : []), ...tail].join(" · ") || undefined,
+      actions: buttons.length ? <>{buttons}</> : undefined,
+    }));
+
+  const incomeLines = new Map<string, Line>();
+  for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {
+    const category = g.category ?? "Other";
+    incomeLines.set(`g:${g.id}`, {
+      id: `g:${g.id}`,
+      name: `${category} - ${g.name}`,
+      amount: 0,
+      category,
+      ...ownerOfRow(g.owner.is_joint, g.owner.owner_member_id),
+      count: 0,
+      last: null,
+      lead: [`Regular · ${INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually ${formatCurrency(Number(g.usual_amount), currency)}`],
+      tail: g.next?.next_date ? [`next ${fmtDate(g.next.next_date)}`] : [],
+      buttons: [
+        ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} />] : []),
+        <RemoveButton key="remove" id={g.id} kind="income_group" label={`Delete "${g.name}"`} />,
+      ],
+    });
+  }
+  for (const t of cf.periodIn) {
+    const category = t.category ?? "Other";
+    const owner = ownerOfRow(t.is_joint, t.owner_member_id);
+    const group = t.source_table === "income_schedules" && t.source_id ? cf.scheduleGroup[t.source_id] : undefined;
+    const key = group && incomeLines.has(`g:${group}`) ? `g:${group}` : `n:${owner.ownerKey}:${category}:${t.particulars.trim().toLowerCase()}`;
+    const line = incomeLines.get(key) ?? { id: key, name: `${category} - ${t.particulars.trim()}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
+    line.amount += Number(t.amount);
+    line.count += 1;
+    if (!line.last || t.occurred_at > line.last) line.last = t.occurred_at;
+    incomeLines.set(key, line);
+  }
+  for (const x of cf.expectedIncome.filter((e) => !e.group_id)) {
+    const category = x.category ?? "Salary";
+    incomeLines.set(`s:${x.id}`, {
+      id: `s:${x.id}`,
+      name: `${category} - ${x.name}`,
+      amount: 0,
+      category,
+      ...ownerOfRow(x.is_joint, x.owner_member_id),
+      count: 0,
+      last: null,
+      lead: [`${x.status === "pending" ? "Waiting on confirmation" : "Expected"}${x.next_date ? ` ${fmtDate(x.next_date)}` : ""} · ${formatCurrency(Number(x.amount), currency)}`],
+      tail: [],
+      buttons: [
+        <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} />,
+        <RemoveButton key="remove" id={x.id} kind="income_schedule" label={`Delete "${x.name}"`} />,
+      ],
+    });
+  }
+  const incomeItems = finish(incomeLines, "payment");
+
+  const expenseLines = new Map<string, Line>();
+  for (const t of cf.periodOut) {
+    const category = t.category ?? "Other";
+    const owner = ownerOfRow(t.is_joint, t.owner_member_id);
+    const name = (t.source_table === "bills" && t.source_id ? cf.billName[t.source_id] : null) ?? t.particulars.trim();
+    const key = `${owner.ownerKey}:${category}:${name.toLowerCase()}`;
+    const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
+    line.amount += Number(t.amount);
+    line.count += 1;
+    if (!line.last || t.occurred_at > line.last) line.last = t.occurred_at;
+    expenseLines.set(key, line);
+  }
+  for (const bill of cf.openBills) {
+    const category = bill.category ?? "Utilities";
+    const owner = ownerOfRow(bill.is_joint, bill.owner_member_id);
+    const base = `${owner.ownerKey}:${category}:${bill.name.toLowerCase()}`;
+    // A bill due again rides on what it already cost this period; a second
+    // one of the same name still open stands on its own.
+    const key = expenseLines.get(base)?.buttons.length ? `${base}:${bill.id}` : base;
+    const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${bill.name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
+    line.tail.push(`${bill.status === "scheduled" ? "Payment waiting on confirmation" : "Due"}${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""} · ${formatCurrency(Number(bill.amount), currency)}`);
+    // The id is what Today's Pay button lands on.
+    line.buttons.push(
+      <span key={bill.id} id={`bill-${bill.id}`} className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
+        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} />
+        {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} />}
+        <RemoveButton id={bill.id} kind="bill" label={`Delete "${bill.name}"`} />
+      </span>,
+    );
+    expenseLines.set(key, line);
+  }
+  // Bills already settled: on the line of what they cost this period, or --
+  // settled outside Kin, with nothing in the ledger -- a line of their own
+  // with nothing counted, so a paid bill never just disappears.
+  for (const bill of cf.settledBills) {
+    const category = bill.category ?? "Utilities";
+    const owner = ownerOfRow(bill.is_joint, bill.owner_member_id);
+    const key = `${owner.ownerKey}:${category}:${bill.name.toLowerCase()}`;
+    const line = expenseLines.get(key) ?? { id: `${key}:settled`, name: `${category} - ${bill.name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
+    line.tail.push(`Settled${bill.paid_at ? ` ${fmtDate(bill.paid_at)}` : ""}${bill.transaction_id ? "" : ` · ${formatCurrency(Number(bill.amount), currency)} paid outside Kin`}`);
+    expenseLines.set(expenseLines.has(key) ? key : line.id, line);
+  }
+  const expenseItems = finish(expenseLines, "payment");
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
@@ -563,96 +673,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           {scope === memberId && <SetTargetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />}
         </>
       )}
-      {/* One set of groups for the donut and the list (Janine, 22 October):
-          each income source is a group -- its regular incomes, what is
-          expected and received, and other money in -- in INCOME_SOURCES'
-          order, each folding on a tap; the donut has a slice per group in
-          the group's colour, so its own list would only repeat them. */}
-      <CategoryDonut categories={cf.incomeByCategory.map((c) => ({ category: c.category, spent: c.earned, budget: 0 }))} currency={currency} monthBudget={null} kind="income" showList={false} />
-      {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
+      {incomeItems.length === 0 ? (
         <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
+      ) : (
+        <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES} center={{ label: `this ${periodNoun}`, note: "money in" }} />
       )}
-      {incomeSources.map((source) => {
-        const groups = cf.incomeGroups.filter((g) => (g.category ?? "Other") === source);
-        const expected = cf.expectedIncome.filter((s) => (s.category ?? "Salary") === source);
-        const received = cf.receivedIncome.filter((s) => (s.category ?? "Salary") === source);
-        const recent = cf.recentIncome.filter((e) => (e.category ?? "Other") === source);
-        const count = groups.length + expected.length + received.length + recent.length;
-        if (count === 0) return null;
-        const earned = cf.incomeByCategory.find((c) => c.category === source)?.earned ?? 0;
-        return (
-          <FoldableSection key={source} label={`${source.toUpperCase()} · ${count} · ${formatCurrency(earned, currency)}`} storageKey={`kin-income-${source}`} swatch={incomeSourceColor(source)}>
-            {groups.map((g) => {
-            const cap = g.monthly_target ? Number(g.monthly_target) : null;
-            const pct = cap ? Math.min(100, Math.round((g.thisMonth / cap) * 100)) : 0;
-            return (
-              <div key={g.id} style={{ padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{g.name}</span>
-                    <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                      {g.category ?? "Other"} · {INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually {formatCurrency(Number(g.usual_amount), currency)}
-                      {g.next?.next_date ? ` · next ${fmtDate(g.next.next_date)}` : ""}
-                    </span>
-                  </span>
-                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", textAlign: "right", flex: "none" }}>
-                    {formatCurrency(g.thisMonth, currency)}
-                    {cap ? ` / ${formatCurrency(cap, currency)}` : ""}
-                    <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>this month</span>
-                  </span>
-                </div>
-                {cap && (
-                  <div style={{ height: 6, background: "var(--color-neutral-200)", marginTop: "0.375rem" }} role="img" aria-label={`${pct}% of this month's target`}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent-700)" }} />
-                  </div>
-                )}
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.25rem" }}>
-                  <RemoveButton id={g.id} kind="income_group" label={`Delete "${g.name}"`} />
-                </div>
-              </div>
-            );
-            })}
-            {expected.map((s) => (
-        <div key={s.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{s.name}</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {s.category ?? "Salary"}
-                {s.next_date ? ` · expected ${fmtDate(s.next_date)}` : ""}
-              </span>
-            </span>
-            <span style={{ textAlign: "right", flex: "none" }}>
-              <span style={{ font: "600 1rem/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(s.amount), currency)}</span>
-              <Tag variant={s.status === "pending" ? "outline" : "accent"}>{s.status.toUpperCase()}</Tag>
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
-            <ReceiveIncomeControl scheduleId={s.id} amount={Number(s.amount)} accounts={pickable} currency={currency} />
-            <span style={{ marginLeft: "auto" }}>
-              <RemoveButton id={s.id} kind="income_schedule" label={`Delete "${s.name}"`} />
-            </span>
-          </div>
-        </div>
-            ))}
-            {received.map((s) => (
-        <div key={s.id} style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: "0.875rem", display: "block" }}>{s.name}</span>
-            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Tag variant="outline">SETTLED</Tag>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
-          </span>
-        </div>
-            ))}
-            {recent.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
-            ))}
-          </FoldableSection>
-        );
-      })}
       <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
@@ -671,12 +696,6 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {categories.length === 0 && (
         <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
-      <CategoryDonut
-        categories={categories.filter((c) => c.category !== TRANSFER_CATEGORY).map((c) => ({ category: c.category, spent: c.spent, budget: c.amount }))}
-        currency={currency}
-        monthBudget={isJoint && budget.budgetAmount > 0 ? budget.budgetAmount : null}
-        showList={false}
-      />
       {categories.map((c) => {
         const cap = c.amount > 0 ? c.amount : c.spent;
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
@@ -749,60 +768,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
       <UtangInstalments heading="UTANG TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
-      {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
-        <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
-      )}
+      <SectionLabel>BY WHOSE</SectionLabel>
       {billId && cf.openBills.some((b) => b.id === billId) && <ScrollIntoView targetId={`bill-${billId}`} />}
-      {cf.openBills.map((b) => (
-        // The id is what Today's Pay button lands on.
-        <div key={b.id} id={`bill-${b.id}`} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {b.category ?? "Utilities"}
-                {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
-              </span>
-            </span>
-            <span style={{ textAlign: "right", flex: "none" }}>
-              <span style={{ font: "600 1rem/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
-              <Tag variant={b.status === "scheduled" ? "outline" : "accent"}>{b.status.toUpperCase()}</Tag>
-            </span>
-          </div>
-          {/* Wraps: in Simple Kin at 320px, Settle, the reminder and Remove are
-              wider than the phone on one line (#833's checks, 22 October).
-              kin-bill-actions: Simple Kin's 44px, over their inline 2rem. */}
-          <div className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
-            <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
-            {b.due_date && <BillReminderPicker billId={b.id} days={b.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} />}
-            <span style={{ marginLeft: "auto" }}>
-              <RemoveButton id={b.id} kind="bill" label={`Delete "${b.name}"`} />
-            </span>
-          </div>
-        </div>
-      ))}
-      {cf.settledBills.map((b) => (
-        <div key={b.id} style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: "0.875rem", display: "block" }}>{b.name}</span>
-            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-              {b.paid_at ? `paid ${fmtDate(b.paid_at)}` : "paid"}
-              {b.paidFromName ? ` from ${b.paidFromName}` : ""}
-            </span>
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <Tag variant="outline">SETTLED</Tag>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(Number(b.amount), currency)}</span>
-          </span>
-        </div>
-      ))}
-      {cf.recentExpense.length > 0 && (
-        <>
-          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>OTHER RECENT ACTIVITY</div>
-          {cf.recentExpense.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
-          ))}
-        </>
+      {expenseItems.length === 0 ? (
+        <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
+      ) : (
+        <GroupedBreakdown
+          items={expenseItems}
+          currency={currency}
+          storageKey="kin-expenses"
+          categoryOrder={EXPENSE_CATEGORIES}
+          center={{ label: "spent", note: isJoint && budget.budgetAmount > 0 && range === "month" ? `of ${formatCurrency(budget.budgetAmount, currency)}` : `this ${periodNoun}` }}
+        />
       )}
       <AddBillForm whose={whose} />
       </CollapsibleGroup>
@@ -839,7 +816,17 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
   // The hero's donut: each account in this view, labelled with whose it is.
-  const breakdown: BreakdownSlice[] = pane.accounts.map((a) => ({ id: a.id, name: a.name, balance: a.balance, ...who.sliceOwner(a.owner_member_id, a.is_joint) }));
+  const breakdown = {
+    items: pane.accounts.map((a): BreakdownItem => ({
+      id: a.id,
+      name: accountLabel(a),
+      amount: a.balance,
+      category: ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type,
+      ...who.sliceOwner(a.owner_member_id, a.is_joint),
+    })),
+    storageKey: "kin-accounts-breakdown",
+    categoryOrder: ACCOUNT_TYPES.map((t) => ACCOUNT_TYPE_LABELS[t]),
+  };
   const accountGroups = ACCOUNT_TYPES.map((t) => ({
     type: t,
     accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
@@ -1044,12 +1031,12 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   const mine = scope === memberId;
   const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
   // What is owned and what is owed, each as a donut grouped by owner.
-  const owned: BreakdownSlice[] = [
-    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: a.name, balance: a.balance, detail: "Cash", ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
-    ...goals.map((g) => ({ id: `goal-${g.id}`, name: g.title, balance: Number(g.current_amount), detail: "Goal", ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
-    ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, balance: a.worth.total, detail: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+  const owned: BreakdownItem[] = [
+    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: "Cash & savings", ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    ...goals.map((g) => ({ id: `goal-${g.id}`, name: g.title, amount: Number(g.current_amount), category: "Savings goals", ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
+    ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, amount: a.worth.total, category: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
   ];
-  const owed: BreakdownSlice[] = liabilities.map((l) => ({ id: l.id, name: l.name, balance: Number(l.balance), detail: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) }));
+  const owed: BreakdownItem[] = liabilities.map((l) => ({ id: l.id, name: l.name, amount: Number(l.balance), category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) }));
   // Each kind its own group, folded or open as the viewer last left it; a
   // kind the list doesn't know is shown under Other.
   const assetKindOf = (k: string): AssetKind => ((ASSET_KINDS as readonly string[]).includes(k) ? (k as AssetKind) : "other");
@@ -1077,8 +1064,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         amount={netWorth}
         currency={currency}
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
-        breakdown={owned}
-        noun="owned"
+        breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: ["Cash & savings", "Savings goals", ...ASSET_KINDS.map((k) => ASSET_KIND_LABELS[k])] }}
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
@@ -1234,16 +1220,17 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
       {owed.length >= 2 && (
         <div style={{ margin: "0.75rem 0" }}>
-          <OwnerBreakdownPie
+          <GroupedBreakdown
             head={
               <>
                 <div className="kin-eyebrow">OWED · BY WHOSE</div>
                 <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal, currency)}</div>
               </>
             }
-            slices={owed}
+            items={owed}
             currency={currency}
-            noun="debts"
+            storageKey="kin-al-owed"
+            categoryOrder={LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k])}
           />
         </div>
       )}

@@ -429,8 +429,11 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   // Archived accounts too: a bill paid from one is still the viewer's to see.
   const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
   const canSee = new Set((seen ?? []).map((a) => a.id));
-  const visibleBills = bills.filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id));
-  const visibleIncome = incomeSchedules.filter((s) => !s.account_id || canSee.has(s.account_id));
+  // Whose a bill or an income is (20261023120000) decides which Who view
+  // lists it; one from before that, with no owner yet, is everyone's.
+  const ownedInScope = (row: { is_joint: boolean | null; owner_member_id: string | null }) => scope === "all" || row.is_joint === null || inScope({ is_joint: row.is_joint, owner_member_id: row.owner_member_id }, scope);
+  const visibleBills = bills.filter((b) => (!b.paid_from_account_id || canSee.has(b.paid_from_account_id)) && (by === "account" || ownedInScope(b)));
+  const visibleIncome = incomeSchedules.filter((s) => (!s.account_id || canSee.has(s.account_id)) && (by === "account" || ownedInScope(s)));
 
   const leaveOut = await privateLeftOutOfAll();
   const rows = (transactions ?? []).map(toLedgerEntry).filter(flowFilter([...allAccounts, ...archivedAccounts], scope, leaveOut, by));
@@ -468,9 +471,22 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     receivedIncome: visibleIncome.filter((s) => s.status === "received").slice(0, 12),
     recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
     incomeByCategory: [...slices.values()],
+    // This period's money in and out, transfers left out -- what the
+    // grouped breakdowns are drawn from -- with what each line paid or
+    // received: a regular income's payment knows its group, a bill's
+    // payment its bill.
+    periodIn: thisPeriod.filter((t) => t.direction === "in" && t.category !== TRANSFER_CATEGORY),
+    periodOut: thisPeriod.filter((t) => t.direction === "out" && t.category !== TRANSFER_CATEGORY),
+    scheduleGroup: Object.fromEntries(incomeSchedules.filter((x) => x.group_id).map((x) => [x.id, x.group_id as string])),
+    billName: Object.fromEntries(bills.map((b) => [b.id, b.name])),
     // Each regular income with what it brought in this calendar month.
     incomeGroups: incomeGroups.map((g) => ({
       ...g,
+      // Whose it is: that of its payments, which carry it.
+      owner: (() => {
+        const one = incomeSchedules.find((x) => x.group_id === g.id);
+        return one ? { is_joint: one.is_joint, owner_member_id: one.owner_member_id } : { is_joint: true, owner_member_id: null };
+      })(),
       thisMonth: visibleIncome
         .filter((s) => s.group_id === g.id && s.status === "received" && s.received_at && periodKey(s.received_at, "month") === thisMonthKey)
         // What actually arrived, where the ledger row is in hand; the
