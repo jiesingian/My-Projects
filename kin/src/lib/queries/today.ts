@@ -19,6 +19,8 @@ import { medicineGlance } from "@/lib/medicine-glance";
 import { shopGlance } from "@/lib/shop-glance";
 import { eventIsCurrent } from "@/lib/planner-done";
 import { nextEventDate } from "@/lib/grocery";
+import { rsvpOpen } from "@/lib/event-rsvp";
+import { potluckLines } from "@/lib/potluck";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -53,6 +55,9 @@ export type BriefItem = {
   action?: "done" | "pay" | "shop" | "record" | "confirm" | "receive";
   /** Marked today, from today_marks: shown done or skipped, with Undo. */
   mark?: "done" | "skipped";
+  /** An event still waiting on the reader's RSVP (23 October): the row
+   * offers Going / Can't go (components/rsvp-buttons). */
+  rsvp?: { eventId: string; memberId: string };
   /** Coming up only: which page it sits on -- the reader's own, the
    * family's, or another member's (lib/for-me, whoseFor). */
   whose?: Whose;
@@ -159,7 +164,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const dayStart = (familyMidnight(today, tz) ?? now).toISOString();
   const dayEnd = (familyMidnight(addDays(today, 1), tz) ?? now).toISOString();
 
-  const [activities, events, bills, health, visits, meals, marks, departed] = await Promise.all([
+  const [activities, events, bills, health, visits, meals, marks, departed, rsvps] = await Promise.all([
     supabase
       .from("activities")
       .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
@@ -219,7 +224,10 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .order("position", { ascending: true }),
     supabase.from("today_marks").select("item_key, state").eq("family_id", familyId).eq("day", today),
     departedOnTree(supabase, familyId),
+    // The reader's own RSVPs, to know which events still wait on them.
+    supabase.from("event_rsvps").select("event_id").eq("family_id", familyId).eq("member_id", me.id),
   ]);
+  const answered = new Set((rsvps.data ?? []).map((r) => r.event_id));
 
   // What the household has already done or skipped today. A table that is not
   // there yet (before its migration runs) reads as "nothing marked".
@@ -264,7 +272,12 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     // a 29 February one on 1 March when the year has no 29th -- matching
     // month and day alone missed it three years in four (23 October).
     if (!eventIsCurrent(e, today)) continue;
-    if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
+    const tagged = taggedFrom(e.event_members);
+    if (!isForMe(me, e.applies_to_whole_family, tagged)) continue;
+    // Still waiting on the reader's RSVP (lib/event-rsvp: one-off events,
+    // asked of the people it is for or everyone): Going / Can't on the row.
+    const asked = e.applies_to_whole_family || tagged.length === 0 || tagged.some((t) => t.id === me.id);
+    const rsvp = asked && rsvpOpen(e, today) && !answered.has(e.id) ? { eventId: e.id, memberId: me.id } : undefined;
     // A birthday reads better with the number on it than without.
     const years = e.recurs_yearly ? Number(today.slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
     // A multi-day event says how long it runs; its last day says so.
@@ -281,10 +294,15 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       icon: e.kind === "birthday" ? "cupcake" : "gift",
       tint: "occasion",
       title: e.title,
-      meta: [ordinal, e.sub_note].filter(Boolean).join(" · "),
-      href: "/planner",
+      meta: [ordinal, e.sub_note, rsvp ? "waiting on your reply" : null].filter(Boolean).join(" · "),
+      href: rsvp ? `/planner/add?type=event&id=${e.id}` : "/planner",
+      rsvp,
     });
   }
+
+  // The household's own potluck today that still needs things (23 October;
+  // Coming up knew only linked households'): said on the event's row.
+  await addPotluckNeeds(supabase, familyId, me, items, "event-");
 
   // Undas, a 40th day, a babang-luksa or an anniversary: seen, never ticked,
   // like a birthday.
@@ -380,6 +398,32 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     if (b.at != null) return 1;
     return 0;
   });
+}
+
+/** For the household's own events among `items` (ids `<prefix><eventId>`),
+ * the potluck lines still uncovered (lib/potluck): "who brings what? N still
+ * needed" on the row, opening the event's potluck. */
+async function addPotluckNeeds(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, me: { id: string }, items: BriefItem[], prefix: string): Promise<void> {
+  const own = items.filter((i) => i.id.startsWith(prefix));
+  if (own.length === 0) return;
+  const ids = own.map((i) => i.id.slice(prefix.length));
+  const [{ data: potluckItems }, { data: claims }] = await Promise.all([
+    supabase.from("potluck_items").select("id, event_id, label, wanted, position").eq("family_id", familyId).in("event_id", ids),
+    supabase.from("potluck_claims").select("id, event_id, item_id, member_id, guest_id, member_name, household_name, family_id, qty").eq("event_family_id", familyId).in("event_id", ids),
+  ]);
+  if (!potluckItems?.length) return;
+  for (const item of own) {
+    const eventId = item.id.slice(prefix.length);
+    const lines = potluckLines(
+      (potluckItems ?? []).filter((p) => p.event_id === eventId),
+      (claims ?? []).filter((c) => c.event_id === eventId),
+      { id: me.id, familyId },
+    );
+    const open = lines.filter((l) => l.left > 0).length;
+    if (open === 0) continue;
+    item.meta = `${item.meta} · who brings what? ${open} still needed`;
+    item.href = `/planner/add?type=event&id=${eventId}#potluck`;
+  }
 }
 
 function addDays(day: string, n: number): string {
@@ -506,13 +550,19 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const soonIds = soonEvents.map((x) => x.e.id);
   const [rsvps, guests, claims] = soonIds.length
     ? await Promise.all([
-        supabase.from("event_rsvps").select("event_id").eq("answer", "going").in("event_id", soonIds),
+        // Everyone's answers: who is coming, and whether the reader has
+        // answered at all (Going / Can't on the row, 23 October).
+        supabase.from("event_rsvps").select("event_id, member_id, answer").in("event_id", soonIds),
         supabase.from("event_guests").select("event_id, headcount").eq("answer", "going").in("event_id", soonIds),
         supabase.from("potluck_claims").select("event_id, member_id, guest_id, member_name").in("event_id", soonIds),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }];
   const coming = new Map<string, number>();
-  for (const r of rsvps.data ?? []) coming.set(r.event_id, (coming.get(r.event_id) ?? 0) + 1);
+  const mineAnswered = new Set<string>();
+  for (const r of rsvps.data ?? []) {
+    if (r.answer === "going") coming.set(r.event_id, (coming.get(r.event_id) ?? 0) + 1);
+    if (r.member_id === me.id) mineAnswered.add(r.event_id);
+  }
   for (const g of guests.data ?? []) coming.set(g.event_id, (coming.get(g.event_id) ?? 0) + Math.max(1, g.headcount ?? 1));
   const bringers = new Map<string, Set<string>>();
   for (const c of claims.data ?? []) {
@@ -530,9 +580,13 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     const nudge = e.kind === "birthday" || e.kind === "anniversary" ? " · a gift or a greeting?" : "";
     const going = coming.get(e.id) ?? 0;
     const bringing = bringers.get(e.id)?.size ?? 0;
-    const counts = [going ? `${going} coming` : "", bringing ? `${bringing} bringing food` : ""].filter(Boolean).join(" · ");
-    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${counts ? ` · ${counts}` : nudge}`, href: `/planner/add?type=event&id=${e.id}`, at: inDays, whose, memberIds: e.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
+    const asked = e.applies_to_whole_family || tagged.length === 0 || tagged.some((t) => t.id === me.id);
+    const rsvp = asked && rsvpOpen(e, today) && !mineAnswered.has(e.id) ? { eventId: e.id, memberId: me.id } : undefined;
+    const counts = [going ? `${going} coming` : "", bringing ? `${bringing} bringing food` : "", rsvp ? "waiting on your reply" : ""].filter(Boolean).join(" · ");
+    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${counts ? ` · ${counts}` : nudge}`, href: `/planner/add?type=event&id=${e.id}`, at: inDays, whose, memberIds: e.applies_to_whole_family ? [] : tagged.map((t) => t.id), rsvp });
   }
+  // The household's own potluck this week that still needs things.
+  await addPotluckNeeds(supabase, familyId, me, items, "soon-event-");
 
   const billsInWindow = (bills.data ?? [])
     .map((b) => ({ ...b, inDays: Math.round((Date.parse(b.due_date!) - Date.parse(today)) / 86_400_000) }))
