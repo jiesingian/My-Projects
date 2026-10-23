@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
@@ -193,6 +194,13 @@ export function MedicinesPanel({
           )}
         </div>
       ))}
+      {current.some((m) => m.times.length > 0) && (
+        // On an iPhone the dose reminder is silent on silent; a Clock alarm
+        // isn't (lib/dose-alarms.ts).
+        <Link href="/settings/notifications/alarms" className="kin-care-link">
+          Ring dose times as iPhone alarms
+        </Link>
+      )}
 
       {adding ? (
         <MedicineForm memberId={memberId} role={role} today={today} onDone={() => setAdding(false)} />

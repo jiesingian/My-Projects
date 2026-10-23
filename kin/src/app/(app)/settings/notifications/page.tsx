@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { DetailHeader } from "@/components/hub-header";
@@ -19,6 +20,10 @@ export default async function NotificationSettingsPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <PushOptIn />
         <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} grownUp={me.role === "parent" || me.role === "adult"} />
+        <p className="kin-quickbtn-note" style={{ marginTop: "1rem" }}>
+          On an iPhone, a dose reminder is silent when the phone is.{" "}
+          <Link href="/settings/notifications/alarms">Make your dose times iPhone alarms</Link>, which ring even on silent.
+        </p>
         {(me.role === "parent" || me.role === "adult") && !inKidView(me) && <PushTestRows />}
       </div>
     </div>

@@ -44,25 +44,22 @@ Read and checked by a session; nothing in a dashboard was changed.
   → Add user, e.g. `kin-dev-qa-child@example.com`, *Auto Confirm User*
   ticked. A session can then invite it into the QA household as a child,
   look at Journal, and record it in QA_HOUSEHOLDS.md.
-- **The free medicine-alarm stopgap: recommended, not built, Jonathan to
-  decide.** A Kin Apple Shortcut that turns a person's dose times into
-  iPhone Clock alarms (full screen, sound on silent):
-  - In Kin, Health → a medicine → "Alarms on this iPhone" shows a private
-    link (read-only, one person's dose times, can be revoked) and an "Add
-    the Shortcut" button.
-  - The Shortcut fetches that link (`/api/doses/alarms?t=…`: time, medicine
-    and dose, the days), turns off its old "Kin ·" alarms, and creates one
-    Clock alarm per dose time, labelled "Kin · Losartan 50 mg".
-  - A daily Shortcuts automation re-runs it on its own, so a changed
-    medicine follows within a day; Kin can also say "Your doses changed:
-    run Kin Alarms".
-  - Limits: the alarm doesn't know a dose was taken (Kin still asks for the
-    tick), it is per iPhone, and Shortcuts may not delete alarms, only
-    turn them off, so old ones pile up switched off.
-  - Cost: free. A token-protected endpoint (watched: `src/app/api/`), one
-    settings screen, and the Shortcut itself, made once on an iPhone and
-    shared as an iCloud link (signing one needs a Mac). Effort S–M, and it
-    is dropped when the native app arrives.
+- **The free medicine-alarm stopgap: approved and built (Jonathan, 23
+  October).** Settings → Notifications → Medicine alarms (also linked from a
+  member's medicines in Health). A private read-only link per member
+  (20261023237000_dose_alarm_link.sql, probe dose-alarm-link.mjs;
+  `api/dose-alarms/<token>`, lib/dose-alarms.ts) gives the dose times taken
+  today, for the same people the dose reminder goes to: your own medicines,
+  and for a grown-up a child's shared with them. The "Kin Alarms" Shortcut,
+  which each person makes once from the steps on that screen (as "Add to
+  Kin" is made, no iCloud link needed), clears its old "Kin ·" alarms only
+  when the read worked, then makes one Clock alarm per time, repeating daily.
+  - Limits: the alarm doesn't know a dose was taken (tick it in Kin); it is
+    per iPhone; it is re-run by hand after a medicine changes; if Shortcuts
+    offers only Toggle Alarm rather than Delete Alarm, old ones collect
+    switched off.
+  - Not checked on an iPhone (below, "Needs a real phone"). Dropped when the
+    native app arrives.
 
 ## Today finalised, 23 October (Jonathan: "finalize today tab")
 
@@ -2274,6 +2271,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 
+- **Medicine alarms (23 October):** Settings → Notifications → Medicine
+  alarms → Make my link, then build "Kin Alarms" from the steps there. Note
+  any step whose action name differs on iOS 26 (Find Alarms, Delete Alarm,
+  Create Alarm's repeat). Run it, check one "Kin ·" alarm per dose time in
+  Clock, and that one rings full screen with the phone on silent. Run it
+  again: the old ones should go, not double up.
 - **Undo read out (22 October, #884):** with VoiceOver on, delete a note,
   then a To-Buy item; VoiceOver should say "Deleted" with Undo, and Undo
   should put it back.
