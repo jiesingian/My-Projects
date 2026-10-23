@@ -712,6 +712,44 @@ export async function getBudgetHistory(familyId: string, scope: WealthScope, key
 
 export type NetWorthPoint = { month: string; netWorth: number };
 
+/** How old this month's household-wide ("all") point may get before a visit
+ * to Cash Flow or Accounts brings it up to date. */
+const NET_WORTH_FRESH_MS = 6 * 60 * 60 * 1000;
+
+/** Keep this month's net-worth point current from any visit to Wealth, not
+ * only from A&L. The monthly recap reads the "all" point for each month, and
+ * a household that never opened A&L had no change to show (the feature guide,
+ * 23 October). One small read per visit; the sums are worked out at most
+ * every six hours. Best effort, like the line itself. */
+export async function keepNetWorthCurrent(familyId: string, viewerMemberId: string, today: string): Promise<void> {
+  const supabase = await createClient();
+  const month = `${monthKey(new Date())}-01`;
+  const { data: row } = await supabase
+    .from("net_worth_snapshots")
+    .select("updated_at")
+    .eq("viewer_member_id", viewerMemberId)
+    .eq("scope", "all")
+    .eq("month", month)
+    .maybeSingle();
+  if (row && Date.now() - new Date(row.updated_at).getTime() < NET_WORTH_FRESH_MS) return;
+  const { cashTotal, goalTotal, assetTotal, liabilityTotal, netWorth } = await getNetWorth(familyId, "all", today);
+  await supabase.from("net_worth_snapshots").upsert(
+    {
+      viewer_member_id: viewerMemberId,
+      family_id: familyId,
+      scope: "all",
+      month,
+      cash: cashTotal,
+      goals: goalTotal,
+      assets: assetTotal,
+      liabilities: liabilityTotal,
+      net_worth: netWorth,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "viewer_member_id,scope,month" },
+  );
+}
+
 /** What this viewer's net worth was, month by month, for one Who choice --
  * and this month's row brought up to date with `current` first. Each row is
  * the viewer's own (row-level security reads and writes nobody else's), so
