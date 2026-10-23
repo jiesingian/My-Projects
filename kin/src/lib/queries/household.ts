@@ -248,3 +248,17 @@ export async function getLoyaltyCards(familyId: string): Promise<LoyaltyCard[]> 
     .order("created_at");
   return (data ?? []).map((c) => ({ ...c, code_format: c.code_format === "none" ? "none" : "qr" }));
 }
+
+/** The stores the household has named on its list, newest first -- cleared
+ * lines included, so last week's "Mercury Drug" is offered again. */
+export async function getUsedStoreNames(familyId: string): Promise<{ store_kind: string | null; store_name: string | null }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("buy_items")
+    .select("store_kind, store_name")
+    .eq("family_id", familyId)
+    .not("store_name", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  return data ?? [];
+}
