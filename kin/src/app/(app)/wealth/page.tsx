@@ -67,6 +67,7 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
+import { LoanAssetPicker } from "@/components/loan-asset-picker";
 import { getUtang } from "@/lib/queries/utang";
 import { instalmentPlan } from "@/lib/utang";
 import { isGone } from "@/lib/member-status";
@@ -428,6 +429,9 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
     </Blueprint>
   );
 }
+
+/** The A&L group utang and paluwagan sit in, in both donuts. */
+const UTANG_GROUP = "Utang & paluwagan";
 
 /* ----------------------------------------------------------------- cash flow */
 
@@ -1037,7 +1041,7 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth }, who, allAccounts] = await Promise.all([
+  const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth }, who, allAccounts] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
     getAccounts(familyId),
@@ -1048,14 +1052,27 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
   const mine = scope === memberId;
+  // What is still owed on each asset, from the loans linked to it
+  // (20261023231000): its value less this is the household's equity in it.
+  const owedOn = new Map<string, number>();
+  for (const l of liabilities) if (l.asset_id) owedOn.set(l.asset_id, (owedOn.get(l.asset_id) ?? 0) + Number(l.balance));
+  const assetChoices = assets.map((a) => ({ id: a.id, name: a.name }));
   const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
   // What is owned and what is owed, each as a donut grouped by owner.
   const owned: BreakdownItem[] = [
     ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: "Cash & savings", ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
     ...goals.map((g) => ({ id: `goal-${g.id}`, name: g.title, amount: Number(g.current_amount), category: "Savings goals", ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
     ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, amount: a.worth.total, category: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    // Utang and paluwagan count too (Janine, 23 October): money lent is
+    // owed to us, a paluwagan holds what we have put in. Household records.
+    ...(owedToUs > 0 ? [{ id: "utang-lent", name: "Utang owed to us", amount: owedToUs, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(paluwaganIn > 0 ? [{ id: "paluwagan-in", name: "Paluwagan put in", amount: paluwaganIn, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
   ];
-  const owed: BreakdownItem[] = liabilities.map((l) => ({ id: l.id, name: l.name, amount: Number(l.balance), category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) }));
+  const owed: BreakdownItem[] = [
+    ...liabilities.map((l) => ({ id: l.id, name: l.name, amount: Number(l.balance), category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) })),
+    ...(weOwe > 0 ? [{ id: "utang-borrowed", name: "Utang we owe", amount: weOwe, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(paluwaganOwed > 0 ? [{ id: "paluwagan-owed", name: "Paluwagan pot taken early", amount: paluwaganOwed, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+  ];
   // Each kind its own group, folded or open as the viewer last left it; a
   // kind the list doesn't know is shown under Other.
   const assetKindOf = (k: string): AssetKind => ((ASSET_KINDS as readonly string[]).includes(k) ? (k as AssetKind) : "other");
@@ -1064,8 +1081,8 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
     cash: cashTotal,
     goals: goalTotal,
-    assets: assetTotal,
-    liabilities: liabilityTotal,
+    assets: assetTotal + receivables,
+    liabilities: liabilityTotal + payables,
     netWorth,
   });
 
@@ -1082,8 +1099,8 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         label="Net worth"
         amount={netWorth}
         currency={currency}
-        caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
-        breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: ["Cash & savings", "Savings goals", ...ASSET_KINDS.map((k) => ASSET_KIND_LABELS[k])] }}
+        caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned${receivables > 0 ? ` + ${formatCurrency(receivables, currency)} owed to us` : ""} − ${formatCurrency(liabilityTotal + payables, currency)} owed`}
+        breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: ["Cash & savings", "Savings goals", ...ASSET_KINDS.map((k) => ASSET_KIND_LABELS[k]), UTANG_GROUP] }}
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
@@ -1208,6 +1225,12 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.worth.total, currency)}</span>
           </div>
           <AssetWorthLine asset={a} currency={currency} />
+          {(owedOn.get(a.id) ?? 0) > 0 && (
+            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
+              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)} · yours after the loan:{" "}
+              <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
             <AssetBreakdownControl
               assetId={a.id}
@@ -1243,17 +1266,36 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             head={
               <>
                 <div className="kin-eyebrow">OWED · BY WHOSE</div>
-                <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal, currency)}</div>
+                <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal + payables, currency)}</div>
               </>
             }
             items={owed}
             currency={currency}
             storageKey="kin-al-owed"
-            categoryOrder={LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k])}
+            categoryOrder={[...LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k]), UTANG_GROUP]}
           />
         </div>
       )}
-      {liabilities.length === 0 && (
+      {/* Utang and paluwagan are kept on their own page; here, what they
+          add to and take from net worth, one tap from the detail. */}
+      {(receivables > 0 || payables > 0) && (
+        <Link
+          href="/wealth/utang"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="users" size={18} />
+          <span style={{ flex: 1 }}>
+            Utang &amp; paluwagan
+            <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+              {receivables > 0 ? `${formatCurrency(receivables, currency)} owed to us` : ""}
+              {receivables > 0 && payables > 0 ? " · " : ""}
+              {payables > 0 ? `${formatCurrency(payables, currency)} we owe` : ""}
+            </span>
+          </span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
+      {liabilities.length === 0 && payables === 0 && (
         <Empty icon={<Icon name="check" size={26} />} title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
       {LIABILITY_KINDS.map((kind) => {
@@ -1270,6 +1312,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
                 {ownerOf(l.owner_member_id, l.is_joint) ? ` · ${ownerOf(l.owner_member_id, l.is_joint)}` : ""}
                 {l.lender ? ` · ${l.lender}` : ""}
+                {l.asset_id && assets.find((a) => a.id === l.asset_id) ? ` · on ${assets.find((a) => a.id === l.asset_id)!.name}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
                 {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
               </span>
@@ -1292,6 +1335,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 Record a payment
               </Link>
             )}
+            <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
             <LoanScheduleControl
               id={l.id}
               monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}

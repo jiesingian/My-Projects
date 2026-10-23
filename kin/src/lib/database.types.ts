@@ -1390,6 +1390,7 @@ export type Database = {
       }
       asset_items: {
         Row: {
+          transaction_id: string | null
           acquired_on: string | null
           asset_id: string
           cost: number
@@ -1403,6 +1404,7 @@ export type Database = {
           value_now: number | null
         }
         Insert: {
+          transaction_id?: string | null
           acquired_on?: string | null
           asset_id: string
           cost: number
@@ -1416,6 +1418,7 @@ export type Database = {
           value_now?: number | null
         }
         Update: {
+          transaction_id?: string | null
           acquired_on?: string | null
           asset_id?: string
           cost?: number
@@ -5999,6 +6002,7 @@ export type Database = {
       }
       liabilities: {
         Row: {
+          asset_id: string | null
           balance: number
           created_at: string
           created_by: string | null
@@ -6018,6 +6022,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           balance?: number
           created_at?: string
           created_by?: string | null
@@ -6037,6 +6042,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           balance?: number
           created_at?: string
           created_by?: string | null
@@ -8321,6 +8327,7 @@ export type Database = {
       }
       wealth_transactions: {
         Row: {
+          capital: boolean
           account_id: string
           amount: number
           category: string | null
@@ -8341,6 +8348,7 @@ export type Database = {
           transfer_group_id: string | null
         }
         Insert: {
+          capital?: boolean
           account_id: string
           amount: number
           category?: string | null
@@ -8361,6 +8369,7 @@ export type Database = {
           transfer_group_id?: string | null
         }
         Update: {
+          capital?: boolean
           account_id?: string
           amount?: number
           category?: string | null

@@ -437,6 +437,8 @@ type LedgerInput = {
   /** On a loan payment, the part that pays the loan down; the rest is
    * interest (20261023220000). */
   principal?: number | null;
+  /** Buying or adding to an asset, not a living cost (20261023232000). */
+  capital?: boolean;
   /** Whose it is; left out, the database takes the account's owner. */
   owner?: { is_joint: boolean; owner_member_id: string | null } | null;
 };
@@ -456,6 +458,7 @@ function ledgerRow(familyId: string, memberId: string, input: LedgerInput): Tabl
     source_id: input.sourceId ?? null,
     goal_id: input.goalId ?? null,
     principal_amount: input.sourceTable === "liabilities" ? (input.principal ?? null) : null,
+    capital: input.sourceTable === "assets" && !!input.capital,
     recorded_by: memberId,
     ...(input.owner ?? {}),
   };
@@ -549,6 +552,13 @@ export async function recordMovementAction(input: {
   /** Paying a loan: the part that pays it down (the rest is interest).
    * Left out, Kin works it out from the loan's rate (loanPaymentSplit). */
   principal?: number | null;
+  /** Money out for an asset (20261023232000): "buy" -- buying it or a down
+   * payment, already in its value; "add" -- adding to it, which becomes
+   * one of its items and raises its value; "upkeep" (the default) -- an
+   * ordinary expense. */
+  assetUse?: "buy" | "add" | "upkeep";
+  /** For "add": what kind of item it is (ASSET_ITEM_KINDS). */
+  assetItemKind?: string;
   /** "me", "joint" or a member id: whose this money is (parseWhose). */
   whose?: string;
 }): Promise<{ error: string | null; transactionId?: string; appUrl?: string | null }> {
@@ -606,6 +616,7 @@ export async function recordMovementAction(input: {
     sourceTable,
     sourceId,
     principal,
+    capital: sourceTable === "assets" && input.direction === "out" && (input.assetUse === "buy" || input.assetUse === "add"),
     // A contribution to a goal is also a goal_id, which is what the goal's
     // own progress reads. Setting only source_table would show it in the
     // cashflow breakdown while the goal itself stayed where it was.
@@ -613,6 +624,28 @@ export async function recordMovementAction(input: {
     owner: input.whose ? parseWhose(input.whose, me.id) : null,
   });
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+
+  // Adding to an asset: what it bought becomes one of the asset's items, so
+  // the asset is worth more by what it cost. Tied to this payment, it goes
+  // if the payment is deleted. Should the item fail, the payment goes too,
+  // rather than leaving cash spent on nothing the asset shows.
+  if (entry.capital && input.assetUse === "add" && sourceId) {
+    const kind = (ASSET_ITEM_KINDS as readonly string[]).includes(input.assetItemKind ?? "") ? input.assetItemKind! : "improvement";
+    const { error: itemError } = await supabase.from("asset_items").insert({
+      asset_id: sourceId,
+      family_id: me.family_id,
+      name: clamp(input.particulars.trim(), 150),
+      kind,
+      cost: input.amount,
+      acquired_on: (input.occurredAt ?? new Date().toISOString()).slice(0, 10),
+      transaction_id: entry.id,
+      created_by: me.id,
+    });
+    if (itemError) {
+      await supabase.from("wealth_transactions").delete().eq("id", entry.id);
+      return { error: `Nothing was saved: the item could not be added to the asset. ${refusalMessage(itemError, RLS_EXPLAINED)}` };
+    }
+  }
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -1670,6 +1703,8 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
     ...Object.fromEntries(Object.entries(schedule).filter(([, v]) => v !== null)),
     lender: String(formData.get("lender") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
+    // What it paid for (20261023231000); the database keeps it in-household.
+    asset_id: String(formData.get("asset_id") ?? "") || null,
     is_joint: isJoint,
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
@@ -1801,6 +1836,22 @@ export async function deleteAssetAction(assetId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("assets").delete().eq("id", assetId).eq("family_id", me.family_id);
   if (error) return { error: databaseError(error) };
+  revalidateWealth();
+  return { error: null };
+}
+
+/** Links a loan to the asset it paid for, or unlinks it (null) -- so A&L
+ * can show the asset's equity: its value less what is still owed on it. */
+export async function setLiabilityAssetAction(liabilityId: string, assetId: string | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("liabilities")
+    .update({ asset_id: assetId }, { count: "exact" })
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message.includes("liability_asset_not_in_family") ? "That asset isn't this household's." : databaseError(error) };
+  if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
 }
