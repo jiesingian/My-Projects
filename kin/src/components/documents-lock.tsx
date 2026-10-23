@@ -7,6 +7,7 @@ import { Blueprint } from "@/components/ui";
 import { ErrorText } from "@/components/form";
 import {
   unlockWithPinAction,
+  unlockWithPasswordAction,
   beginBiometricUnlockAction,
   finishBiometricUnlockAction,
 } from "@/lib/actions/security";
@@ -33,6 +34,8 @@ export function DocumentsLock({
 }) {
   const router = useRouter();
   const [state, formAction, unlocking] = useActionState(unlockWithPinAction, initialState);
+  const [pwState, pwAction, pwPending] = useActionState(unlockWithPasswordAction, initialState);
+  const [forgot, setForgot] = useState(false);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -168,6 +171,38 @@ export function DocumentsLock({
           This account unlocks with a device that isn&rsquo;t this one. Open Kin on the phone or laptop you set up, or
           add a PIN there as a backup.
         </p>
+      )}
+
+      {/* Forgot the PIN, or the device that unlocks is elsewhere: the Kin
+          password opens it and clears the PIN, so a new one can be set. */}
+      {forgot ? (
+        <form action={pwAction} style={{ marginTop: "0.875rem", display: "grid", gap: "0.375rem" }}>
+          <ErrorText message={pwState.error} />
+          <input
+            className="input"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            aria-label="Your Kin password"
+            placeholder="Your Kin password"
+            required
+          />
+          <button type="submit" className="btn btn-secondary btn-block" disabled={pwPending}>
+            {pwPending ? "Checking…" : "Unlock with password"}
+          </button>
+          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: 0 }}>
+            This clears your PIN. Set a new one in Settings, Privacy &amp; lock.
+          </p>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setForgot(true)}
+          style={{ marginTop: "0.625rem", width: "100%", fontSize: "0.8125rem", minHeight: 44 }}
+        >
+          Can&rsquo;t unlock? Use your Kin password
+        </button>
       )}
     </Blueprint>
   );
