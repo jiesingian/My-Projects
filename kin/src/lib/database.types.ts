@@ -5999,6 +5999,7 @@ export type Database = {
       }
       liabilities: {
         Row: {
+          asset_id: string | null
           balance: number
           created_at: string
           created_by: string | null
@@ -6018,6 +6019,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           balance?: number
           created_at?: string
           created_by?: string | null
@@ -6037,6 +6039,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           balance?: number
           created_at?: string
           created_by?: string | null
