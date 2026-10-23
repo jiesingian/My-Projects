@@ -1,8 +1,9 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { rememberedSections, sectionFor } from "@/lib/queries/buy-sections";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount, paidFromVisibleFilter, assetWorth } from "@/lib/wealth";
-import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
+import { MARKET_SECTIONS, UNITS, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
 import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
@@ -596,6 +597,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     }
 
     case "add_buy_items": {
+      const remembered = await rememberedSections(supabase, familyId);
       const items = list(input, "items")
         .map((raw) => raw as Json)
         .map((item) => {
@@ -606,7 +608,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
             name: itemName,
             quantity: num(item, "quantity"),
             unit: str(item, "unit"),
-            section: given && (MARKET_SECTIONS as readonly string[]).includes(given) ? given : guessSection(itemName),
+            section: given && (MARKET_SECTIONS as readonly string[]).includes(given) ? given : sectionFor(itemName, remembered),
           };
         })
         .filter((item): item is { name: string; quantity: number | null; unit: string | null; section: string } => item !== null);
