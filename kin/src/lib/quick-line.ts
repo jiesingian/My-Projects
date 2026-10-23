@@ -29,7 +29,14 @@ export type QuickMember = { id: string; name: string };
 export type QuickParse =
   | { kind: "shopping"; name: string; quantity: number | null; unit: string | null; section: string }
   | { kind: "task"; title: string; date: string; from: string | null; to: string | null; who: string[]; wholeFamily: boolean }
-  | { kind: "event"; title: string; date: string; eventKind: string; note: string | null; who: string[]; wholeFamily: boolean };
+  | { kind: "event"; title: string; date: string; eventKind: string; note: string | null; who: string[]; wholeFamily: boolean }
+  /** "paid Meralco 2300", "₱150 grab" (23 October): opens the expense form
+   * filled in, since money leaves a named account. */
+  | { kind: "expense"; amount: number; particulars: string; date: string }
+  /** "dinner adobo tomorrow" (23 October): a meal on the household's plan. */
+  | { kind: "meal"; slot: MealSlotWord; dish: string; date: string };
+
+export type MealSlotWord = "breakfast" | "lunch" | "dinner" | "morning_snack" | "afternoon_snack";
 
 const WEEKDAYS: [RegExp, number][] = [
   [/^sun(day)?$/, 0],
@@ -52,6 +59,20 @@ const EVENT_WORDS: [RegExp, string][] = [
 const SHOP_LEAD = /^(buy|get|need|grab|pick up)\s+/i;
 const SHOP_TAIL = /\s+(to|on) (the )?(shopping |grocery )?list$/i;
 const FAMILY_WORDS = /\b(everyone|everybody|whole family|the family|all of us)\b/i;
+
+// An expense: a leading "paid" (bayad, gastos), or a peso amount anywhere --
+// "₱150", "php 150", "150 pesos", "p150". A bare number is a quantity or a
+// time, not money.
+const EXPENSE_LEAD = /^(paid|spent|bayad|binayaran|gastos|nagbayad)\s+/i;
+const PESO = /(?:₱|\bphp\s*|\bp(?=\d))\s*(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s*(?:pesos?|php)\b/i;
+// A meal: the slot word says so -- in English or Filipino -- and nothing
+// about a time or a person (that would be a plan to eat out).
+const MEAL_WORDS: [RegExp, MealSlotWord][] = [
+  [/\b(breakfast|almusal|agahan)\b/i, "breakfast"],
+  [/\b(lunch|tanghalian)\b/i, "lunch"],
+  [/\b(dinner|supper|hapunan)\b/i, "dinner"],
+  [/\b(merienda|snack)\b/i, "afternoon_snack"],
+];
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -262,6 +283,33 @@ export function parseQuickLine(input: string, opts: { today: string; defaultDate
 
   if (wholeFamily) rest = rest.replace(FAMILY_WORDS, " ").replace(/\s+/g, " ").trim();
   const date = d.date ?? opts.defaultDate ?? opts.today;
+
+  // Money: the amount comes out and the rest names what it was for.
+  const expenseLead = EXPENSE_LEAD.test(raw);
+  const peso = PESO.exec(rest);
+  const plainAmount = expenseLead && !peso ? /(?:^|\s)(\d[\d,]*(?:\.\d{1,2})?)(?=\s|$)/.exec(rest.replace(EXPENSE_LEAD, "")) : null;
+  if (!t.from && (peso || plainAmount)) {
+    const amount = Number((peso?.[1] ?? peso?.[2] ?? plainAmount![1]).replace(/,/g, ""));
+    if (Number.isFinite(amount) && amount > 0) {
+      // Money is often written down the day after; "yesterday" (kahapon) is
+      // read here, where a plan would never say it.
+      const yesterday = /\b(yesterday|kahapon)\b/i.test(rest);
+      const particulars = tidyTitle(
+        rest.replace(EXPENSE_LEAD, "").replace(peso?.[0] ?? plainAmount![0], " ").replace(/\b(yesterday|kahapon)\b/i, " ").replace(/\b(for|sa)\s*$/i, "").replace(/^\s*(for|sa)\b/i, ""),
+      );
+      return { kind: "expense", amount, particulars: particulars || "Expense", date: yesterday && !d.date ? (addDays(opts.today, -1) ?? date) : date };
+    }
+  }
+
+  // A meal, when the slot word is there and nothing says a time or a person.
+  if (!t.from && who.length === 0) {
+    for (const [re, slot] of MEAL_WORDS) {
+      if (!re.test(rest)) continue;
+      const dish = tidyTitle(rest.replace(re, " ").replace(/^\s*(is|:|-|–)\s*/, ""));
+      if (dish) return { kind: "meal", slot, dish, date };
+      break;
+    }
+  }
   const forWho = wholeFamily ? [] : who.length > 0 ? who : opts.meId ? [opts.meId] : [];
   const title = tidyTitle(rest) || "Untitled";
 

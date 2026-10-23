@@ -20,6 +20,7 @@ import { todayCookieName, todayCounts, todaySummary } from "@/lib/today-fold";
 import { cookies } from "next/headers";
 import { familyClock, familyDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
+import { QUICK_ICONS, readQuickPrefs, todayQuick } from "@/lib/quick-button";
 import { ComingUpPager } from "@/components/coming-up-pager";
 import { getKinOffer } from "@/lib/queries/offers";
 import { canNameReferrer } from "@/lib/offers";
@@ -267,29 +268,20 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       {/* Quick add: the things a family writes down most, and a private note, each straight
           into its form. Actions, not places -- the bottom bar already has the
           places. Above them, one-line add: type it and Kin files it. */}
-      <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay(new Date(), tz)} />
+      <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay(new Date(), tz)} currency={me.families.currency} />
+      {/* Each member's own pick from the Action Button's list (Settings ->
+          Action Button & widget, 23 October, decision 4); Milestone · Event ·
+          Expense · Note until they pick (Janine, 12, 19 and 22 October). */}
       <nav aria-label="Quick add" className="kin-quick">
-        {/* In the order of the tabs: Journal, Planner, Wealth, then the
-            private note. */}
-        {/* A milestone rather than a plain entry (Janine, 12 October): the
-            moment worth a star is the one worth a shortcut. */}
-        <Link href="/journal/milestones/new" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="occasion"><Icon name="star" size={18} /></span>
-          Milestone
-        </Link>
-        <Link href="/planner/add?type=event" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="schedule"><Icon name="calendarDays" size={18} /></span>
-          Event
-        </Link>
-        <Link href="/wealth/transact?mode=out" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="money"><Icon name="receipt" size={18} /></span>
-          Expense
-        </Link>
-        {/* A private note (19 October): only the writer ever sees it. */}
-        <Link href="/notes?new=1" className="kin-quick-btn">
-          <span className="kin-quick-ico"><Icon name="fileText" size={18} /></span>
-          Note
-        </Link>
+        {readQuickPrefs(me.quick_actions).today.map((id) => {
+          const q = todayQuick(id);
+          return (
+            <Link key={id} href={q.href} className="kin-quick-btn">
+              <span className="kin-quick-ico" data-tint={q.tint}><Icon name={QUICK_ICONS[id]} size={18} /></span>
+              {q.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {/* "Nakarating na ako": one tap tells the household where you are. */}
