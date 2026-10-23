@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { generateGroceryListAction } from "@/lib/actions/household";
+import { copyLastWeekMealsAction, generateGroceryListAction } from "@/lib/actions/household";
 
 /** `weekOf` is any day in the week to build from — the one the meal plan is
  * showing. Without it the list would always be built from this week, however
@@ -34,6 +34,42 @@ export function GenerateGroceryButton({ weekOf }: { weekOf?: string }) {
       {failed && (
         <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", marginTop: "0.5rem" }}>
           {failed}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Last week's meals, day for day, into the week being looked at: a family
+ * that eats the same week twice plans it once. */
+export function CopyLastWeekButton({ weekOf }: { weekOf?: string }) {
+  const [pending, startTransition] = useTransition();
+  const [said, setSaid] = useState<{ text: string; error: boolean } | null>(null);
+  const router = useRouter();
+  return (
+    <div>
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        style={{ minHeight: "2.75rem", fontSize: "0.875rem" }}
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const { error, copied } = await copyLastWeekMealsAction(weekOf);
+            setSaid(
+              error
+                ? { text: error, error: true }
+                : { text: copied ? `Copied ${copied} meal${copied === 1 ? "" : "s"} from last week.` : "Last week's meals are already here.", error: false },
+            );
+            if (copied) router.refresh();
+          })
+        }
+      >
+        {pending ? "Copying…" : "Copy last week's meals"}
+      </button>
+      {said && (
+        <p role={said.error ? "alert" : "status"} style={{ fontSize: "0.8125rem", color: said.error ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: "0.5rem" }}>
+          {said.text}
         </p>
       )}
     </div>
