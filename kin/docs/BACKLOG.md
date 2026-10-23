@@ -96,10 +96,15 @@ all Jonathan's on 23 October, each the recommended option:
   plans were missing or wrong on Today; the behind count skipped a chore
   also due today; the Planner's calendar showed a birthday only in the
   year of birth.
-- **Done (PR 3):** doses as rows and the household medicine tile
+- **Done (#940):** doses as rows and the household medicine tile
   (decision 1); a doctor's visit booked today as a timed row.
-- **To do, in order:** PR 4 Wealth rows + Coming up + one migration (the
-  "scheduled" bill push, the midnight all-day plan push); PR 5 the other
+- **Done (PR 4):** Wealth's rows (decision 5): an utang's instalment or due
+  date, a hulog or our paluwagan turn, a loan or sinking-fund payment on its
+  date, income expected, a bill paid elsewhere waiting on confirmation, the
+  money recap on the 1st–3rd; the week's in Coming up; lib/today-wealth.
+  Migration 20261023235000: the "scheduled" bill and midnight all-day plan
+  pushes.
+- **To do, in order:** PR 5 the other
   rows (an RSVP waiting with Going / Can't, our own potluck, a vault
   emergency request with Allow / Deny, an open SOS banner, a document
   expiring, a card to sign, a failed scheduled message) and Coming up

@@ -8,7 +8,8 @@ import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
-import { getGlance, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getGlance, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, capComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getTodayWealth } from "@/lib/queries/today-wealth";
 import { doseAt } from "@/lib/today-doses";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
@@ -61,7 +62,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, medicine, doses, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, medicine, doses, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -92,6 +93,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     // A paid repeating bill with no next one: "Add the next one?" (21
     // October), for a grown-up on Plus, where Wealth is theirs.
     isGrownUp(me.role) && readAccess(me.families).plus ? getNextBillOffers(me.family_id) : Promise.resolve([]),
+    // Wealth's rows (23 October, decision 5): an utang's instalment, a
+    // hulog, a loan or fund payment, income expected, a bill paid elsewhere,
+    // the month's recap -- for a grown-up with Wealth, as bills are.
+    isGrownUp(me.role) && readAccess(me.families).plus ? getTodayWealth(me) : Promise.resolve({ today: [], soon: [] }),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -101,7 +106,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
   };
   const ranked: { entry: TodayEntry; group: number; at: number }[] = [
-    ...brief
+    ...[...brief, ...wealth.today]
       .filter((b) => !b.id.startsWith("meal-"))
       .map((item) => ({
         entry: { kind: "item" as const, item },
@@ -128,6 +133,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // missed all week was not counted while today's row showed (23 October).
   const behind = tasks.filter((t) => t.overdue.length > 0).length;
   const counts = todayCounts(entries);
+  // The week ahead, Wealth's included, six a page.
+  const soon = capComingUp([...comingUp, ...wealth.soon]);
 
   // The household's day, not the server's (which is pinned to Manila): a
   // household abroad saw Manila's date here until the clock agreed.
@@ -283,11 +290,11 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <WhosWhere familyId={me.family_id} meId={me.id} tz={me.families.time_zone} />
 
       {/* Coming up: what to sort out now so the week is not a scramble. */}
-      {comingUp.length > 0 && (
+      {soon.length > 0 && (
         <section style={{ marginBottom: "1.625rem" }}>
           <h3 className="kin-eyebrow">Coming up</h3>
           {/* Whose, from the same Who dropdown as the Planner and Wealth. */}
-          <ComingUpPager items={comingUp} people={peopleLabels} />
+          <ComingUpPager items={soon} people={peopleLabels} />
         </section>
       )}
 

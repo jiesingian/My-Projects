@@ -46,8 +46,11 @@ export type BriefItem = {
    * order. Absent for things that are simply true all day. */
   at?: number;
   /** What Today offers on the row (28 September, one list): Done/Skip, Pay/Skip
-   * for a bill, Shop/Skip for the list. Absent: nothing to mark (a meal). */
-  action?: "done" | "pay" | "shop";
+   * for a bill, Shop/Skip for the list; since 23 October Record (money
+   * coming back, a loan or fund payment), Confirm (a bill paid elsewhere)
+   * and Receive (income), each opening where that happens in Wealth.
+   * Absent: nothing to mark (a meal). */
+  action?: "done" | "pay" | "shop" | "record" | "confirm" | "receive";
   /** Marked today, from today_marks: shown done or skipped, with Undo. */
   mark?: "done" | "skipped";
   /** Coming up only: which page it sits on -- the reader's own, the
@@ -179,9 +182,11 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .or(`event_date.eq.${today},recurs_yearly.eq.true,and(event_date.lte.${today},end_date.gte.${today})`),
     supabase
       .from("bills")
-      .select("id, name, amount, due_date")
+      .select("id, name, amount, due_date, status")
       .eq("family_id", familyId)
-      .in("status", ["unpaid", "overdue"])
+      // Scheduled: paid in another app and waiting on its confirmation in
+      // Accounts (23 October) -- it was pushed as due and hidden here.
+      .in("status", ["unpaid", "overdue", "scheduled"])
       .lte("due_date", today)
       .order("due_date", { ascending: true })
       .limit(4),
@@ -291,6 +296,20 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     // lte already excludes nulls, but the column is nullable and the type
     // says so; a bill without a date is treated as not yet overdue.
     const overdue = !!b.due_date && b.due_date < today;
+    if (b.status === "scheduled") {
+      items.push({
+        id: `bill-${b.id}`,
+        action: "confirm",
+        mark: marked.get(`bill-${b.id}`),
+        icon: "wallet",
+        tint: "money",
+        title: b.name,
+        meta: `${formatCurrency(Number(b.amount), currency)} · paid elsewhere · waiting on confirmation`,
+        // Where the pending entry is confirmed: Accounts, "Waiting on you".
+        href: "/wealth?seg=accounts",
+      });
+      continue;
+    }
     items.push({
       id: `bill-${b.id}`,
       action: "pay",
@@ -591,8 +610,14 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     }
   }
 
-  // Six a page at most, each page in date order. Anything without a page
-  // named (bills, meals, the pantry) is the family's.
+  return capComingUp(items);
+}
+
+/** Coming up's order and size: six a page at most, each page in date
+ * order. Anything without a page named (bills, meals, the pantry, Wealth's
+ * rows) is the family's. Exported so the page can fold in rows from
+ * elsewhere (queries/today-wealth) before the cap is applied. */
+export function capComingUp(items: BriefItem[]): BriefItem[] {
   const perPage = new Map<Whose, number>();
   return items
     .map((i) => ({ ...i, whose: i.whose ?? "family" }))
