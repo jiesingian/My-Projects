@@ -3,7 +3,7 @@ import { toPickable } from "@/lib/account-picker";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getBuyItemMeals, getBuyListEvents, getLoyaltyCards, getMealsForDay, getUsedStoreNames, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getBuyItemMeals, getBuyListEvents, getLoyaltyCards, getMealsForDay, getUsedStoreNames, getRecentTrips, type PlannedMeal } from "@/lib/queries/household";
 import { isGrownUp } from "@/lib/roles";
 import { getMembers } from "@/lib/queries/family";
 import { MealWhoPicker } from "@/components/meal-who-picker";
@@ -78,7 +78,7 @@ async function BuyPane({
   currency: string;
   startAdding: boolean;
 }) {
-  const [{ groups, openCount, doneCount }, accounts, priced, run, mealsFor, events, cards, usedStores] = await Promise.all([
+  const [{ groups, openCount, doneCount }, accounts, priced, run, mealsFor, events, cards, usedStores, trips] = await Promise.all([
     getBuyItems(familyId),
     getAccounts(familyId),
     getPricedBuyList(familyId),
@@ -87,6 +87,7 @@ async function BuyPane({
     getBuyListEvents(familyId),
     getLoyaltyCards(familyId),
     getUsedStoreNames(familyId),
+    getRecentTrips(familyId),
   ]);
 
   // Whichever comes first is what the list counts down to, and either can be
@@ -118,6 +119,7 @@ async function BuyPane({
         trip={trip}
         cards={cards}
         usedStores={usedStores}
+        trips={trips}
         canEditCards={canEditCards}
         tripIsToday={trip != null && trip.iso === toISODate(new Date())}
         /* Server-rendered, handed to the client card as a slot: the sheet's

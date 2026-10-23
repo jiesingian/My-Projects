@@ -77,7 +77,7 @@ async function privateLeftOutOfAll(): Promise<string | null> {
 /** Which ledger rows a Who view counts in its money in and out: rows on an
  * account the viewer can see (with their own private ones left out of All
  * if they chose), then by whose the row is -- Janine's salary paid into the
- * joint account is Janine's (20261023120000). A row from before that, with
+ * joint account is Janine's (20261023210000). A row from before that, with
  * no owner of its own yet, falls back to its account's. */
 /** "entry": by whose each row is (Cash Flow). "account": by whose account
  * it moved through (the Accounts tab, whose figures are its accounts'). */
@@ -429,8 +429,11 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   // Archived accounts too: a bill paid from one is still the viewer's to see.
   const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
   const canSee = new Set((seen ?? []).map((a) => a.id));
-  const visibleBills = bills.filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id));
-  const visibleIncome = incomeSchedules.filter((s) => !s.account_id || canSee.has(s.account_id));
+  // Whose a bill or an income is (20261023120000) decides which Who view
+  // lists it; one from before that, with no owner yet, is everyone's.
+  const ownedInScope = (row: { is_joint: boolean | null; owner_member_id: string | null }) => scope === "all" || row.is_joint === null || inScope({ is_joint: row.is_joint, owner_member_id: row.owner_member_id }, scope);
+  const visibleBills = bills.filter((b) => (!b.paid_from_account_id || canSee.has(b.paid_from_account_id)) && (by === "account" || ownedInScope(b)));
+  const visibleIncome = incomeSchedules.filter((s) => (!s.account_id || canSee.has(s.account_id)) && (by === "account" || ownedInScope(s)));
 
   const leaveOut = await privateLeftOutOfAll();
   const rows = (transactions ?? []).map(toLedgerEntry).filter(flowFilter([...allAccounts, ...archivedAccounts], scope, leaveOut, by));
@@ -468,9 +471,22 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     receivedIncome: visibleIncome.filter((s) => s.status === "received").slice(0, 12),
     recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
     incomeByCategory: [...slices.values()],
+    // This period's money in and out, transfers left out -- what the
+    // grouped breakdowns are drawn from -- with what each line paid or
+    // received: a regular income's payment knows its group, a bill's
+    // payment its bill.
+    periodIn: thisPeriod.filter((t) => t.direction === "in" && t.category !== TRANSFER_CATEGORY),
+    periodOut: thisPeriod.filter((t) => t.direction === "out" && t.category !== TRANSFER_CATEGORY),
+    scheduleGroup: Object.fromEntries(incomeSchedules.filter((x) => x.group_id).map((x) => [x.id, x.group_id as string])),
+    billName: Object.fromEntries(bills.map((b) => [b.id, b.name])),
     // Each regular income with what it brought in this calendar month.
     incomeGroups: incomeGroups.map((g) => ({
       ...g,
+      // Whose it is: that of its payments, which carry it.
+      owner: (() => {
+        const one = incomeSchedules.find((x) => x.group_id === g.id);
+        return one ? { is_joint: one.is_joint, owner_member_id: one.owner_member_id } : { is_joint: true, owner_member_id: null };
+      })(),
       thisMonth: visibleIncome
         .filter((s) => s.group_id === g.id && s.status === "received" && s.received_at && periodKey(s.received_at, "month") === thisMonthKey)
         // What actually arrived, where the ledger row is in hand; the
@@ -679,7 +695,7 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   const spent = new Map<string | null, number>();
   for (const r of rows ?? []) {
     if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;
-    // Whose the spending is (20261023120000), not whose account paid it.
+    // Whose the spending is (20261023210000), not whose account paid it.
     const who = r.is_joint === null ? (ownerOf.get(r.account_id) ?? null) : r.is_joint ? null : r.owner_member_id;
     spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
   }
@@ -711,6 +727,44 @@ export async function getBudgetHistory(familyId: string, scope: WealthScope, key
 }
 
 export type NetWorthPoint = { month: string; netWorth: number };
+
+/** How old this month's household-wide ("all") point may get before a visit
+ * to Cash Flow or Accounts brings it up to date. */
+const NET_WORTH_FRESH_MS = 6 * 60 * 60 * 1000;
+
+/** Keep this month's net-worth point current from any visit to Wealth, not
+ * only from A&L. The monthly recap reads the "all" point for each month, and
+ * a household that never opened A&L had no change to show (the feature guide,
+ * 23 October). One small read per visit; the sums are worked out at most
+ * every six hours. Best effort, like the line itself. */
+export async function keepNetWorthCurrent(familyId: string, viewerMemberId: string, today: string): Promise<void> {
+  const supabase = await createClient();
+  const month = `${monthKey(new Date())}-01`;
+  const { data: row } = await supabase
+    .from("net_worth_snapshots")
+    .select("updated_at")
+    .eq("viewer_member_id", viewerMemberId)
+    .eq("scope", "all")
+    .eq("month", month)
+    .maybeSingle();
+  if (row && Date.now() - new Date(row.updated_at).getTime() < NET_WORTH_FRESH_MS) return;
+  const { cashTotal, goalTotal, assetTotal, liabilityTotal, netWorth } = await getNetWorth(familyId, "all", today);
+  await supabase.from("net_worth_snapshots").upsert(
+    {
+      viewer_member_id: viewerMemberId,
+      family_id: familyId,
+      scope: "all",
+      month,
+      cash: cashTotal,
+      goals: goalTotal,
+      assets: assetTotal,
+      liabilities: liabilityTotal,
+      net_worth: netWorth,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "viewer_member_id,scope,month" },
+  );
+}
 
 /** What this viewer's net worth was, month by month, for one Who choice --
  * and this month's row brought up to date with `current` first. Each row is

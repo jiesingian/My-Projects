@@ -1,12 +1,11 @@
 "use client";
 
 import { WhoseSelect } from "@/components/whose-select";
+import { RemittanceFields, UtangFields, type OpenLent } from "@/components/income-category-extras";
 import { FormSheet } from "@/components/form-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Icon } from "@/components/icons";
 import {
   addAccountAction,
   setJointBudgetAction,
@@ -22,6 +21,8 @@ import {
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
+  categoryLabel,
+  UTANG_CATEGORY,
   type WhoseOption,
   INCOME_FREQUENCY_LABELS,
   BILL_REMIND_DAYS,
@@ -465,23 +466,23 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
       <FormSheet open={open} onClose={() => setOpen(false)} title="Add expense">
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
-          <Labelled label="Expense">
+          <Labelled label="What it's for">
             <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
               <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
             </Labelled>
-            <Labelled label="DUE" style={{ flex: 1 }}>
+            <Labelled label="Due on" style={{ flex: 1 }}>
               <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
             </Labelled>
           </div>
           <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label="Category" style={{ flex: 1 }}>
+            <Labelled label="Spent on" style={{ flex: 1 }}>
               <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {categoryLabel(c)}
                   </option>
                 ))}
               </select>
@@ -567,13 +568,17 @@ export function BillReminderPicker({ billId, days }: { billId: string; days: num
   );
 }
 
-export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; grownUp?: boolean }) {
+export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency, grownUp = false }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; openLent?: OpenLent[]; currency: string; grownUp?: boolean }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
   // A regular income -- set up once, each payment lined up after the last
   // (income_groups) -- or a single payment. Grown-ups only, like the logs.
   const [mode, setMode] = useState<"once" | "regular">("once");
+  // Category first: Remittance from abroad and Utang & paluwagan open the
+  // fields their own logs keep (income-category-extras).
+  const [category, setCategory] = useState<string>("Salary");
+  const categories = [...INCOME_SOURCES, ...(grownUp ? [UTANG_CATEGORY] : [])];
 
 
   return (
@@ -587,15 +592,8 @@ export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { ac
         + ADD INCOME
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Add income">
-        {/* Money sent home from abroad has its own log -- the currency it was
-            sent in, what arrived, what it went to -- and so do money lent to
-            and borrowed from relatives and paluwagan groups
-            (20261019110000). Grown-ups only. Their money-in still lands in
-            INCOME like any other. */}
         {grownUp && (
           <div style={{ marginTop: "0.75rem" }}>
-            <SheetLink href="/wealth/remittances" icon="wallet" label="Remittances from abroad" />
-            <SheetLink href="/wealth/utang" icon="users" label="Utang & paluwagan" />
             <div role="group" aria-label="What kind of income" style={{ display: "flex", gap: "0.5rem", marginTop: "0.875rem" }}>
               {(["once", "regular"] as const).map((m) => (
                 <button
@@ -615,29 +613,36 @@ export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { ac
         {grownUp && mode === "regular" ? (
           <IncomeGroupForm accounts={accounts} whose={whose} onCancel={() => setOpen(false)} />
         ) : (
-        <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+        <div style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+          <Labelled label="Category">
+            <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {categoryLabel(c)}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          {grownUp && category === "Remittance" ? (
+            <RemittanceFields accounts={accounts} onDone={() => setOpen(false)} />
+          ) : grownUp && category === UTANG_CATEGORY ? (
+            <UtangFields openLent={openLent} currency={currency} onDone={() => setOpen(false)} />
+          ) : (
+        <form action={formAction}>
           <ErrorText message={state.error} />
+          <input type="hidden" name="category" value={category} />
           <Labelled label="Source">
-            <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
+            <input className="input" name="name" required placeholder="BPI payroll, Unit 2B rent" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
               <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
             </Labelled>
-            <Labelled label="Expected" style={{ flex: 1 }}>
+            <Labelled label="Expected on" style={{ flex: 1 }}>
               <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
             </Labelled>
           </div>
           <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label="Category" style={{ flex: 1 }}>
-              <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
-                {INCOME_SOURCES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
             <Labelled label="Repeats" style={{ flex: 1 }}>
               <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
                 <option value="monthly">Monthly</option>
@@ -648,9 +653,9 @@ export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { ac
             </Labelled>
           </div>
           {accounts.length > 0 && (
-            <Labelled label="Usually lands in">
+            <Labelled label="Deposited to account">
               <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
-                <option value="">Not decided yet</option>
+                <option value="">Choose later</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
@@ -671,6 +676,8 @@ export function AddIncomeScheduleForm({ accounts, whose, grownUp = false }: { ac
             </button>
           </div>
         </form>
+          )}
+        </div>
         )}
       </FormSheet>
     </>
@@ -685,15 +692,12 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
   return (
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
-      <Labelled label="Name">
-        <input className="input" name="name" required maxLength={80} placeholder="Rice business, Jonathan's salary" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Source" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Business" style={{ minHeight: "2.625rem" }}>
+        <Labelled label="Category" style={{ flex: 1 }}>
+          <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
             {INCOME_SOURCES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
@@ -708,6 +712,9 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
           </select>
         </Labelled>
       </div>
+      <Labelled label="Source">
+        <input className="input" name="name" required maxLength={80} placeholder="BPI payroll, rice business" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label={`Usual amount (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="usual_amount" required style={{ minHeight: "2.625rem" }} />
@@ -720,9 +727,9 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
         <input className="input" type="number" step="0.01" min="0" name="monthly_target" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       {accounts.length > 0 && (
-        <Labelled label="Usually lands in">
+        <Labelled label="Deposited to account">
           <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
-            <option value="">Not decided yet</option>
+            <option value="">Choose later</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -743,19 +750,6 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
         </button>
       </div>
     </form>
-  );
-}
-
-function SheetLink({ href, icon, label }: { href: string; icon: "wallet" | "users"; label: string }) {
-  return (
-    <Link
-      href={href}
-      style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-    >
-      <Icon name={icon} size={18} />
-      <span style={{ flex: 1 }}>{label}</span>
-      <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-    </Link>
   );
 }
 
@@ -843,7 +837,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
           <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {categoryLabel(c)}
               </option>
             ))}
           </select>
