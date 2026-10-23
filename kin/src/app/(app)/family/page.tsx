@@ -164,7 +164,7 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
       ))}
       </div>
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem" }}>
-        Managed profiles are written by a parent. Children graduate to their own login at 13.
+        Managed profiles are written by a parent. A child of any age can have their own login once a parent approves it.
       </div>
 
       {/* One to one, inside the family or out of it (29 September). */}

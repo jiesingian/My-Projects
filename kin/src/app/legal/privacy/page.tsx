@@ -131,9 +131,11 @@ export default function PrivacyPage() {
 
       <h2>Children</h2>
       <p>
-        Children under 13 do not create accounts. A parent or guardian adds them as a managed profile and decides what is
-        recorded about them. An older child can have their own login, created by a grown-up in the household, and a
-        grown-up can put them in kid view, which keeps money, the vault and health records out of reach.
+        A parent or guardian adds a child as a managed profile and decides what is recorded about them. A child of any age
+        can also have their own login, but only with a parent&rsquo;s approval: they join with the household&rsquo;s invite
+        code, and the household&rsquo;s organizer approves them as a child, which is the parent&rsquo;s consent. A child&rsquo;s
+        login starts in kid view, which keeps money, the vault and health records out of reach, and a child cannot connect
+        with anyone outside the household without a parent&rsquo;s yes.
       </p>
 
       <h2>Keeping it safe</h2>

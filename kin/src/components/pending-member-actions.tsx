@@ -46,6 +46,7 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
       >
         <option value="adult">Adult</option>
         <option value="parent">Parent</option>
+        <option value="child_self">Child (own login, kid view)</option>
       </select>
       <button type="button" className="btn btn-primary" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={!!busy} onClick={() => run("approve")}>
         {busy === "approve" ? "…" : "Approve"}
