@@ -377,7 +377,7 @@ function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
   return (
     <>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>
-        {player.name.split(" ")[0]} has {earned.size} of {game.badges.length} badges. New ones arrive at midnight.
+        {player.name.split(" ")[0]} has {earned.size} of {game.badges.length} badges. New ones arrive the moment they&rsquo;re earned.
         {next && player.streak > 0 && ` ${next - player.streak} more day${next - player.streak === 1 ? "" : "s"} to a ${next}-day badge.`}
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(7.5rem, 1fr))", gap: "0.5rem" }}>
@@ -542,7 +542,7 @@ function SetupView({ game, plus, focus }: { game: GameView; plus: boolean; focus
         ))}
       </Section>
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
-        Rename, change, pause or remove a target with Edit and Pause above. Rewards are added and retired in the Shop. Streaks, bonuses and badges are worked out at midnight.
+        Rename, change, pause or remove a target with Edit and Pause above. Rewards are added and retired in the Shop. Streaks and bonuses are worked out at midnight; badges arrive the moment they&rsquo;re earned.
       </p>
     </>
   );
