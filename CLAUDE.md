@@ -57,7 +57,7 @@ something else.
 ### Before you open the pull request
 
 - From `kin/`: `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm run test:logic`, and `npm run test:rls` for a migration. CI repeats them; it is the real gate.
-- Dev is shared: a session never runs the full `npm run e2e` against it. CI's smoke run and `weekly-check.yml` are the only browser suites on dev, one at a time (`e2e-dev` group). On 19 October several sessions running the full suite at once, outside that queue, beside CI, overloaded free-plan dev until its Auth stopped and every PR went red. To see a page, use one spec (`npx playwright test e2e/<spec>.spec.ts`) and say so in the PR.
+- Dev is shared: a session never runs the full `npm run e2e` against it. A pull request's smoke run uses a database of its own (`smoke-private-db`, every PR at once, since 23 October); on dev only main's smoke after each merge and `weekly-check.yml` run, one at a time (`e2e-dev` group). On 19 October several sessions running the full suite at once, outside that queue, beside CI, overloaded free-plan dev until its Auth stopped and every PR went red. To see a page, use one spec (`npx playwright test e2e/<spec>.spec.ts`) and say so in the PR.
 - `git pull --rebase origin main` before opening. Never force-push `main`.
 - Step by step: the `ship` skill.
 

@@ -15,7 +15,7 @@ import { PendingEntryActions, DeleteEntryButton, RestoreAccountButton, DeleteAcc
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency, shortNames } from "@/lib/format";
-import { ACCOUNT_TYPE_LABELS, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
+import { ACCOUNT_TYPE_LABELS, categoryLabel, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 
 export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
@@ -163,7 +163,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
               <span style={{ fontSize: "0.875rem", display: "block" }}>{e.particulars}</span>
               <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
                 {fmtDate(e.occurred_at)}
-                {e.category ? ` · ${e.category}` : ""}
+                {e.category ? ` · ${categoryLabel(e.category)}` : ""}
                 {e.recordedByName ? ` · ${e.recordedByName.split(" ")[0]}` : ""}
               </span>
             </span>
