@@ -1887,6 +1887,60 @@ export type Database = {
           },
         ]
       }
+      buy_trips: {
+        Row: {
+          actual: number
+          budget: number
+          checked_out_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          item_count: number
+          items: Json
+          paid: number | null
+          savings: number
+        }
+        Insert: {
+          actual?: number
+          budget?: number
+          checked_out_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          item_count?: number
+          items?: Json
+          paid?: number | null
+          savings?: number
+        }
+        Update: {
+          actual?: number
+          budget?: number
+          checked_out_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          item_count?: number
+          items?: Json
+          paid?: number | null
+          savings?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_trips_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_trips_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_event_links: {
         Row: {
           created_at: string

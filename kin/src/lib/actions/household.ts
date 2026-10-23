@@ -9,8 +9,8 @@ import { UUID } from "@/lib/ids";
 import { sendHelperListPush, sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
-import { MARKET_SECTIONS, guessSection, isStoreKind, cleanStoreName } from "@/lib/grocery";
-import { parseAmount } from "@/lib/buy-budget";
+import { MARKET_SECTIONS, guessSection, isStoreKind, cleanStoreName, storeKindOf } from "@/lib/grocery";
+import { buildTrip, parseAmount } from "@/lib/buy-budget";
 import { normalizeKey } from "@/lib/pricebook";
 import {
   MEAL_SLOTS,
@@ -29,6 +29,7 @@ import { familyDay, weekdayOf, addDays } from "@/lib/time";
 import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { getRecipeBook } from "@/lib/queries/recipes";
+import { getPricedBuyList } from "@/lib/queries/household-money";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
 import { mealAmountFor } from "@/lib/cook";
 import { planAdd, planRemove } from "@/lib/meal-shopping";
@@ -213,12 +214,42 @@ export async function addLowItemsToListAction(): Promise<ActionState & { added?:
   return { error: null, added: rows.length };
 }
 
-export async function clearCheckedAction() {
+export async function clearCheckedAction(paid: number | null = null) {
   // The household is the caller's own. It used to arrive as an argument, which
   // RLS would refuse for anyone else's -- but a refusal that matches no rows
   // reads as success, so the wrong id cleared nothing and said nothing.
   const me = await requireCurrentMember();
   const supabase = await createClient();
+  // The trip goes into the week's history first (20261023210000), from the
+  // lines as they stand: a failure there is reported but never keeps the
+  // basket from clearing.
+  const priced = await getPricedBuyList(me.family_id);
+  const estimated = new Map(priced.items.map((i) => [i.id, i.estimated]));
+  const { data: ticked } = await supabase
+    .from("buy_items")
+    .select("id, name, quantity, unit, section, medicine_id, store_kind, store_name, budget, actual_cost")
+    .eq("family_id", me.family_id)
+    .eq("checked", true)
+    .eq("cleared", false)
+    .order("checked_at");
+  if (ticked && ticked.length > 0) {
+    const trip = buildTrip(
+      ticked.map((i) => ({
+        name: i.name,
+        quantity: i.quantity == null ? null : Number(i.quantity),
+        unit: i.unit,
+        store_kind: storeKindOf(i),
+        store_name: i.store_name,
+        budget: i.budget == null ? null : Number(i.budget),
+        estimated: estimated.get(i.id) ?? null,
+        actual: i.actual_cost == null ? null : Number(i.actual_cost),
+      })),
+    );
+    const { error: tripError } = await supabase
+      .from("buy_trips")
+      .insert({ family_id: me.family_id, created_by: me.id, ...trip, paid: parseAmount(paid) });
+    if (tripError) reportError("Checkout was not recorded as a trip", tripError, me.family_id);
+  }
   const { error } = await supabase
     .from("buy_items")
     .update({ cleared: true, cleared_at: new Date().toISOString() })
@@ -227,6 +258,16 @@ export async function clearCheckedAction() {
     .eq("cleared", false);
   if (error) reportError("Checked items were not cleared", error, me.family_id);
   revalidatePath("/household");
+}
+
+/** Takes a trip out of the week's history before its week is up. */
+export async function removeBuyTripAction(tripId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("buy_trips").delete().eq("id", tripId).eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  revalidatePath("/household");
+  return { error: null };
 }
 
 export async function addMealPlanAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

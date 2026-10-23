@@ -69,3 +69,53 @@ export function differsFromBook(actual: number, estimated: number | null): boole
 function round(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+/** One line of a past trip, as it was at checkout. */
+export type TripLine = {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  store_kind: string;
+  store_name: string | null;
+  budget: number | null;
+  actual: number | null;
+};
+
+/** What checking out records (20261023210000_buy_trips): every ticked line's
+ * budget and cost as they stood, and the totals the card showed. */
+export function buildTrip(lines: (Omit<TripLine, "budget" | "actual"> & { budget: number | null; estimated: number | null; actual: number | null })[]) {
+  const ticked = lines.map((l) => ({ ...l, checked: true }));
+  const summary = budgetSummary(ticked);
+  return {
+    budget: summary.budget,
+    actual: summary.actual,
+    savings: summary.savings,
+    item_count: lines.length,
+    items: ticked.map(
+      (l): TripLine => ({
+        name: l.name,
+        quantity: l.quantity,
+        unit: l.unit,
+        store_kind: l.store_kind,
+        store_name: l.store_name,
+        budget: lineBudget(l),
+        actual: lineActual(l),
+      }),
+    ),
+  };
+}
+
+/** A trip's lines read back from the database, keeping only what is
+ * well-formed. */
+export function readTripLines(value: unknown): TripLine[] {
+  if (!Array.isArray(value)) return [];
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+  return value.flatMap((v) => {
+    if (!v || typeof v !== "object") return [];
+    const o = v as Record<string, unknown>;
+    const name = str(o.name);
+    if (!name) return [];
+    return [{ name, quantity: num(o.quantity), unit: str(o.unit), store_kind: str(o.store_kind) ?? "other", store_name: str(o.store_name), budget: num(o.budget), actual: num(o.actual) }];
+  });
+}
