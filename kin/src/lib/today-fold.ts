@@ -10,9 +10,10 @@ export function todayCookieName(memberId: string): string {
 
 export const TODAY_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-/** Answered for today: done, or skipped on purpose. */
+/** Answered for today: done, or skipped on purpose; a medicine once every
+ * dose of the day is taken. */
 function answered(e: TodayEntry): boolean {
-  return e.kind === "task" ? !!e.task.today?.status : !!e.item.mark;
+  return e.kind === "task" ? !!e.task.today?.status : e.kind === "dose" ? e.dose.next === null : !!e.item.mark;
 }
 
 /** "3 of 8 done", and how many urgent ones are still open -- said even when
@@ -21,7 +22,7 @@ export function todayCounts(entries: TodayEntry[]): { done: number; total: numbe
   return {
     done: entries.filter(answered).length,
     total: entries.length,
-    urgent: entries.filter((e) => e.kind === "item" && e.item.urgent && !answered(e)).length,
+    urgent: entries.filter((e) => ((e.kind === "item" && e.item.urgent) || (e.kind === "dose" && e.dose.late)) && !answered(e)).length,
   };
 }
 

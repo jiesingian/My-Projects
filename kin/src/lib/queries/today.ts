@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { formatAccounting, formatCurrency } from "@/lib/format";
@@ -10,9 +11,10 @@ import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 import { occurrenceStarts } from "@/lib/activity-repeat";
 import { remembranceItems, type Departed } from "@/lib/remembrance";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
-import { isGrownUp } from "@/lib/roles";
+import { isChild, isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
-import { dosesFor } from "@/lib/health-plan";
+import { dosesFor, type DueDose } from "@/lib/health-plan";
+import { doseRows, type TodayDose } from "@/lib/today-doses";
 import { medicineGlance } from "@/lib/medicine-glance";
 import { shopGlance } from "@/lib/shop-glance";
 import { eventIsCurrent } from "@/lib/planner-done";
@@ -150,7 +152,11 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const windowStart = new Date(now.getTime() - 36 * 3600_000).toISOString();
   const windowEnd = new Date(now.getTime() + 48 * 3600_000).toISOString();
 
-  const [activities, events, bills, health, meals, marks, departed] = await Promise.all([
+  // The household's day as instants, for the visits booked at a time.
+  const dayStart = (familyMidnight(today, tz) ?? now).toISOString();
+  const dayEnd = (familyMidnight(addDays(today, 1), tz) ?? now).toISOString();
+
+  const [activities, events, bills, health, visits, meals, marks, departed] = await Promise.all([
     supabase
       .from("activities")
       .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
@@ -191,6 +197,15 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .or(`when_date.is.null,when_date.lte.${today}`)
       .order("when_date", { ascending: true })
       .limit(6),
+    // A doctor's visit booked for today (health_appointments), at its time
+    // (23 October): seen, and opened to its visit sheet; nothing to tick.
+    supabase
+      .from("health_appointments")
+      .select("id, what, when_at, where_text, member_id, member:members!health_appointments_member_id_fkey(full_name, role)")
+      .eq("family_id", familyId)
+      .gte("when_at", dayStart)
+      .lt("when_at", dayEnd)
+      .order("when_at", { ascending: true }),
     supabase
       .from("meal_plans")
       .select("id, dish, slot")
@@ -309,6 +324,21 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       // Family tab's front page.
       href: `/family/members/${h.member_id}?view=health&seg=schedule`,
       urgent: Boolean(h.when_date && h.when_date <= today),
+    });
+  }
+
+  for (const v of visits.data ?? []) {
+    const who = (v.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
+    if (!isForMe(me, false, [{ id: v.member_id, role: (v.member as unknown as { role: string } | null)?.role }])) continue;
+    const at = new Date(v.when_at);
+    items.push({
+      id: `visit-${v.id}`,
+      icon: "activity",
+      tint: "occasion",
+      title: `${who} · ${v.what}`,
+      meta: [formatTimeOfDay(familyClock(at, tz)), v.where_text, "visit"].filter(Boolean).join(" · "),
+      href: `/family/members/${v.member_id}/visit/${v.id}`,
+      at: at.getTime(),
     });
   }
 
@@ -586,17 +616,47 @@ async function departedOnTree(supabase: Awaited<ReturnType<typeof createClient>>
   return (rows ?? []).map((r) => ({ id: r.id, name: r.members?.full_name ?? r.full_name ?? "Someone dear", diedOn: r.died_on! }));
 }
 
-/** "At a glance": the reader's own medicines today (Janine, 21 October) --
- * a late dose, the next one, or all taken -- opening their Health →
- * Medicines, where a dose is ticked. */
-export async function getMedicineTile(me: { id: string }): Promise<GlanceTile> {
+/** The medicines the reader gives today (Jonathan, 23 October): their own,
+ * and a grown-up's children's, as far as Health lets them see (its policies
+ * keep "Just me" and "Parents only" rows where they belong) -- the people
+ * the dose push reaches (20260926140000_reminders.sql). Until 23 October
+ * Today knew the reader's own only, as a tile. */
+const loadDoses = cache(async function loadDoses(me: { id: string; role: string; family_id: string }): Promise<{ due: DueDose[]; who: (memberId: string) => string | null }> {
   const supabase = await createClient();
   const tz = await householdZone();
   const today = localDay(new Date(), tz);
-  const { data: medicines } = await supabase.from("health_medicines").select("id, member_id, name, dose, times, start_date, end_date").eq("member_id", me.id);
+  const { data: members } = await supabase.from("members").select("id, full_name, role, status").eq("family_id", me.family_id);
+  const people = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status) && (m.id === me.id || (isGrownUp(me.role) && isChild(m.role))));
+  const names = new Map(people.map((m) => [m.id, m.full_name.split(" ")[0]]));
+  const who = (memberId: string) => (memberId === me.id ? null : (names.get(memberId) ?? "Someone"));
+  if (people.length === 0) return { due: [], who };
+  const { data: medicines } = await supabase
+    .from("health_medicines")
+    .select("id, member_id, name, dose, times, start_date, end_date")
+    .in("member_id", people.map((m) => m.id));
   const { data: doses } = medicines?.length
     ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).eq("dose_date", today)
     : { data: [] };
-  const g = medicineGlance(dosesFor(medicines ?? [], doses ?? [], today, familyClock(new Date(), tz)));
-  return { id: "medicine", icon: "pill", value: g.value, label: g.label, href: `/family/members/${me.id}?view=health&seg=medicines`, warn: g.warn || undefined };
+  return { due: dosesFor(medicines ?? [], doses ?? [], today, familyClock(new Date(), tz)), who };
+});
+
+/** Today's list: one row per medicine the reader gives, with its next dose
+ * (lib/today-doses). */
+export async function getTodayDoses(me: { id: string; role: string; family_id: string }): Promise<TodayDose[]> {
+  const { due, who } = await loadDoses(me);
+  return doseRows(due, who);
+}
+
+/** "At a glance": the medicines the reader gives today (Janine, 21 October;
+ * everyone's since 23 October) -- a late dose, the next one, or all taken
+ * -- opening that person's Health → Medicines. The rows are where a dose is
+ * ticked; the tile is the count. */
+export async function getMedicineTile(me: { id: string; role: string; family_id: string }): Promise<GlanceTile> {
+  const { due, who } = await loadDoses(me);
+  const named = due.map((d) => ({ ...d, name: who(d.memberId) ? `${who(d.memberId)} · ${d.name}` : d.name }));
+  const g = medicineGlance(named);
+  // The tile opens the medicines of whoever it names: the late one, else
+  // the next, else the reader's own.
+  const lead = due.find((d) => d.late && !d.taken) ?? due.find((d) => !d.taken);
+  return { id: "medicine", icon: "pill", value: g.value, label: g.label, href: `/family/members/${lead?.memberId ?? me.id}?view=health&seg=medicines`, warn: g.warn || undefined };
 }

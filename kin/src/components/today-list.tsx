@@ -13,9 +13,12 @@ import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/
 import { familyDay } from "@/lib/time";
 import type { BriefItem } from "@/lib/queries/today";
 import type { RoutineView } from "@/lib/queries/routines";
+import type { TodayDose } from "@/lib/today-doses";
+import { DoseRow } from "@/components/today-dose-row";
 
-/** One entry in Today's list: a chore, or anything else that is due today. */
-export type TodayEntry = { kind: "task"; task: RoutineView } | { kind: "item"; item: BriefItem };
+/** One entry in Today's list: a chore, a medicine (23 October), or anything
+ * else that is due today. */
+export type TodayEntry = { kind: "task"; task: RoutineView } | { kind: "item"; item: BriefItem } | { kind: "dose"; dose: TodayDose };
 
 const TINT: Record<BriefItem["tint"], string> = {
   money: "var(--cal-money)",
@@ -29,15 +32,19 @@ const TINT: Record<BriefItem["tint"], string> = {
  * bottom. The order is decided on the server (today/page.tsx), so the phone
  * and the server always agree on it. */
 export function TodayList({ entries }: { entries: TodayEntry[] }) {
+  const tz = useHouseholdZone();
   // "Done" tapped while offline waits in the queue (lib/offline/live); read
   // once here rather than once a row.
   const queue = useQueue();
   const waiting = new Set(queue.flatMap((q) => (q.kind === "today.mark" ? [q.key] : [])));
+  const day = familyDay(new Date(), tz);
   return (
     <>
       {entries.map((e) =>
         e.kind === "task" ? (
           <TaskRow key={`t-${e.task.id}`} task={e.task} queued={waiting.has(`chore-${e.task.id}`)} />
+        ) : e.kind === "dose" ? (
+          <DoseRow key={e.dose.id} dose={e.dose} day={day} />
         ) : (
           <ItemRow key={e.item.id} item={e.item} queued={waiting.has(e.item.id)} />
         ),

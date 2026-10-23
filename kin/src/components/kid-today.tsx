@@ -4,7 +4,8 @@ import { Icon } from "@/components/icons";
 import { TodayTaskList } from "@/components/today-task-list";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { getRoutinesNeedingAttention, getMemberScores, getRewards } from "@/lib/queries/routines";
-import { getComingUp, getTodayBriefing, type BriefItem } from "@/lib/queries/today";
+import { getComingUp, getTodayBriefing, getTodayDoses, type BriefItem } from "@/lib/queries/today";
+import { TodayList } from "@/components/today-list";
 import { SosButton } from "@/components/sos-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
@@ -25,7 +26,7 @@ function forAChild(b: BriefItem): boolean {
  * coins and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
 export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolean; me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
-  const [tasks, scores, rewards, brief, comingUp, checkIns, alkansya] = await Promise.all([
+  const [tasks, scores, rewards, brief, comingUp, checkIns, alkansya, doses] = await Promise.all([
     getRoutinesNeedingAttention(me.family_id, me.id),
     getMemberScores(me.family_id),
     getRewards(me.family_id),
@@ -33,6 +34,9 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
     getComingUp(me.family_id, me.families.currency, me),
     getMyPendingCheckIns(me.id),
     getAlkansya(me.family_id, me.id),
+    // Their own medicines, with the next dose to tick (23 October): the
+    // dose push already reached a child with a login, and Today said nothing.
+    getTodayDoses(me),
   ]);
   const mine = scores.find((s) => s.id === me.id);
   const coins = mine?.spendable ?? 0;
@@ -94,6 +98,14 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
           </div>
         )}
       </div>
+
+      {/* Their own medicines, ticked here (23 October); nobody else's. */}
+      {doses.length > 0 && (
+        <section style={{ marginBottom: "1.625rem" }}>
+          <h3 className="kin-eyebrow">My medicines</h3>
+          <TodayList entries={doses.map((dose) => ({ kind: "dose" as const, dose }))} />
+        </section>
+      )}
 
       <RewardsShelf rewards={rewards} me={mine} canManage={false} />
 
