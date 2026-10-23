@@ -7,7 +7,7 @@ import { ErrorText, RequiredMark } from "@/components/form";
 import { AmountInput } from "@/components/amount-input";
 import { DateInput } from "@/components/date-input";
 import { formatCurrency, currencySymbol } from "@/lib/format";
-import { EXPENSE_CATEGORIES } from "@/lib/wealth";
+import { categoryLabel, EXPENSE_CATEGORIES } from "@/lib/wealth";
 import { shrink } from "@/lib/shrink-photo";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import { scanReceiptAction } from "@/lib/actions/receipt";
@@ -206,7 +206,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus }: { accounts: 
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.75rem" }}>
               {EXPENSE_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {categoryLabel(c)}
                 </option>
               ))}
             </select>

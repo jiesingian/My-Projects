@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
@@ -5,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -41,6 +42,7 @@ import {
   INCOME_FREQUENCY_LABELS,
   INCOME_SOURCES,
   EXPENSE_CATEGORIES,
+  categoryLabel,
   whoseOptions,
   periodOverPeriodChange,
   cashBalanceTrend,
@@ -101,6 +103,11 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
+        {seg !== "assets" && (
+          <Suspense fallback={null}>
+            <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
+          </Suspense>
+        )}
       </div>
     </div>
   );
@@ -331,7 +338,7 @@ function EntryRow({ entry, currency, dateFormat, showAccount, owner }: { entry: 
         <span style={{ fontSize: "0.875rem", display: "block" }}>{entry.particulars}</span>
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {formatDate(entry.occurred_at, dateFormat)}
-          {entry.category ? ` · ${entry.category}` : ""}
+          {entry.category ? ` · ${categoryLabel(entry.category)}` : ""}
           {showAccount && entry.accountName ? ` · ${entry.accountName}${owner ? ` (${owner})` : ""}` : ""}
         </span>
       </span>
@@ -532,7 +539,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
   const incomeLines = new Map<string, Line>();
   for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {
-    const category = g.category ?? "Other";
+    const category = categoryLabel(g.category ?? "Other");
     incomeLines.set(`g:${g.id}`, {
       id: `g:${g.id}`,
       name: `${category} - ${g.name}`,
@@ -550,7 +557,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     });
   }
   for (const t of cf.periodIn) {
-    const category = t.category ?? "Other";
+    const category = categoryLabel(t.category ?? "Other");
     const owner = ownerOfRow(t.is_joint, t.owner_member_id);
     const group = t.source_table === "income_schedules" && t.source_id ? cf.scheduleGroup[t.source_id] : undefined;
     const key = group && incomeLines.has(`g:${group}`) ? `g:${group}` : `n:${owner.ownerKey}:${category}:${t.particulars.trim().toLowerCase()}`;
@@ -561,7 +568,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     incomeLines.set(key, line);
   }
   for (const x of cf.expectedIncome.filter((e) => !e.group_id)) {
-    const category = x.category ?? "Salary";
+    const category = categoryLabel(x.category ?? "Salary");
     incomeLines.set(`s:${x.id}`, {
       id: `s:${x.id}`,
       name: `${category} - ${x.name}`,
@@ -582,7 +589,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
   const expenseLines = new Map<string, Line>();
   for (const t of cf.periodOut) {
-    const category = t.category ?? "Other";
+    const category = categoryLabel(t.category ?? "Other");
     const owner = ownerOfRow(t.is_joint, t.owner_member_id);
     const name = (t.source_table === "bills" && t.source_id ? cf.billName[t.source_id] : null) ?? t.particulars.trim();
     const key = `${owner.ownerKey}:${category}:${name.toLowerCase()}`;
@@ -593,7 +600,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     expenseLines.set(key, line);
   }
   for (const bill of cf.openBills) {
-    const category = bill.category ?? "Utilities";
+    const category = categoryLabel(bill.category ?? "Utilities");
     const owner = ownerOfRow(bill.is_joint, bill.owner_member_id);
     const base = `${owner.ownerKey}:${category}:${bill.name.toLowerCase()}`;
     // A bill due again rides on what it already cost this period; a second
@@ -615,7 +622,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // settled outside Kin, with nothing in the ledger -- a line of their own
   // with nothing counted, so a paid bill never just disappears.
   for (const bill of cf.settledBills) {
-    const category = bill.category ?? "Utilities";
+    const category = categoryLabel(bill.category ?? "Utilities");
     const owner = ownerOfRow(bill.is_joint, bill.owner_member_id);
     const key = `${owner.ownerKey}:${category}:${bill.name.toLowerCase()}`;
     const line = expenseLines.get(key) ?? { id: `${key}:settled`, name: `${category} - ${bill.name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
@@ -676,7 +683,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {incomeItems.length === 0 ? (
         <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       ) : (
-        <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES} center={{ label: `this ${periodNoun}`, note: "money in" }} />
+        <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES.map(categoryLabel)} center={{ label: `this ${periodNoun}`, note: "money in" }} />
       )}
       <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
@@ -707,7 +714,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
                 aria-hidden="true"
                 style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: "0.4375rem", flex: "none" }}
               />
-              <span>{c.category}</span>
+              <span>{categoryLabel(c.category)}</span>
               {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
               <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                 {formatCurrency(c.spent, currency)}
@@ -777,7 +784,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           items={expenseItems}
           currency={currency}
           storageKey="kin-expenses"
-          categoryOrder={EXPENSE_CATEGORIES}
+          categoryOrder={EXPENSE_CATEGORIES.map(categoryLabel)}
           center={{ label: "spent", note: isJoint && budget.budgetAmount > 0 && range === "month" ? `of ${formatCurrency(budget.budgetAmount, currency)}` : `this ${periodNoun}` }}
         />
       )}
@@ -1012,6 +1019,14 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       </div>
     </>
   );
+}
+
+/** Draws nothing: brings this month's net-worth point up to date from Cash
+ * Flow and Accounts too, streamed so the page never waits on it. */
+async function NetWorthKeeper({ familyId, memberId }: { familyId: string; memberId: string }) {
+  const today = familyDay(new Date(), await householdZone());
+  await keepNetWorthCurrent(familyId, memberId, today).catch(() => undefined);
+  return null;
 }
 
 /* -------------------------------------------------------------------- A&L */

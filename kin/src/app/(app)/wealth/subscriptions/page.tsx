@@ -5,6 +5,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Empty, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
+import { categoryLabel } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
 import { REPEAT_LABELS, type Subscription } from "@/lib/subscriptions";
 
@@ -77,7 +78,7 @@ function Row({ s, currency, fmtDate, income }: { s: Subscription; currency: stri
         <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block", overflowWrap: "anywhere" }}>{s.name}</span>
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
           {REPEAT_LABELS[s.repeat]}
-          {s.category ? ` · ${s.category}` : ""} · {when}
+          {s.category ? ` · ${categoryLabel(s.category)}` : ""} · {when}
         </span>
       </span>
       <span style={{ textAlign: "right", flex: "none", fontVariantNumeric: "tabular-nums" }}>

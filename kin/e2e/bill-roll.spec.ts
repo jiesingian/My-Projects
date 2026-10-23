@@ -101,9 +101,9 @@ const today = () => familyDay(new Date(), session?.tz ?? "Asia/Manila");
  * "none". */
 async function expectNoOffer(page: Page, name: string, billId: string) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
-  // Its line in the owner → category breakdown: "Utilities - <name>",
+  // Its line in the owner → category breakdown: "Bills & utilities - <name>",
   // marked settled underneath.
-  await expect(page.getByText(`Utilities - ${name}`, { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(`Bills & utilities - ${name}`, { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Settled/).first()).toBeVisible();
   await expect(page.locator(`[data-next-bill="${billId}"]`)).toHaveCount(0);
 }
