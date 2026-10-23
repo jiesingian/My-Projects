@@ -98,6 +98,18 @@ export default async function ({ db, as, check, refused }) {
     const n = (await db.query("select count(*)::int as n from dose_alarm_tokens where member_id = $1", [M("a2")])).rows[0].n;
     return (n === 0 && (await feed(hash("k"))) === null) || { n };
   });
+  await check("Nobody calls dose_alarm_token_follows_member() directly; it only runs as the members trigger", async () => {
+    const r = (await db.query(
+      `select has_function_privilege('authenticated', 'public.dose_alarm_token_follows_member()', 'execute') as a,
+              has_function_privilege('anon', 'public.dose_alarm_token_follows_member()', 'execute') as b`,
+    )).rows[0];
+    const t = (await db.query("select count(*)::int as n from pg_trigger where tgname = 'dose_alarm_token_follows_member' and tgrelid = 'public.members'::regclass")).rows[0].n;
+    return (r.a === false && r.b === false && t === 1) || { ...r, t };
+  });
+  await check("A change that keeps the login and the household leaves the key alone", async () => {
+    await db.query("update members set full_name = 'Dan Dee' where id = $1", [M("d1")]);
+    return (await feed(hash("d"))) !== null;
+  });
   await check("Being made inactive deletes the key too", async () => {
     await db.query("update members set status = 'removed' where id = $1", [M("d1")]);
     const n = (await db.query("select count(*)::int as n from dose_alarm_tokens where member_id = $1", [M("d1")])).rows[0].n;
