@@ -676,19 +676,26 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
  * as two separate systems). One line, so Tasks stays about the tasks.
  *
  * Hidden when nobody has earned anything yet, so a household that does not
- * play for coins never sees it. */
-function CoinsLine({ scores, me }: { scores: MemberScore[]; me: MemberScore | undefined }) {
+ * play for coins never sees it.
+ *
+ * A grown-up also sees how many chores wait for their approval, since those
+ * are answered in the Shop and a chore left waiting looked like a bug from
+ * here (the feature guide, 23 October). */
+function CoinsLine({ scores, me, grownUp }: { scores: MemberScore[]; me: MemberScore | undefined; grownUp: boolean }) {
   if (!scores.some((s) => s.points > 0 || s.awaiting > 0)) return null;
   const coins = me?.spendable ?? 0;
+  const waiting = grownUp ? scores.reduce((n, s) => n + s.awaiting, 0) : 0;
+  const waitingText = waiting > 0 ? `${waiting} chore${waiting === 1 ? "" : "s"} to approve` : "";
   return (
     <Link
       href="/planner?seg=goals&g=shop"
-      aria-label={`${coins} coin${coins === 1 ? "" : "s"} to spend. Open the Shop`}
+      aria-label={`${coins} coin${coins === 1 ? "" : "s"} to spend${waitingText ? `, ${waitingText}` : ""}. Open the Shop`}
       style={{ display: "flex", alignItems: "center", gap: "0.5rem", minHeight: 44, padding: "0 0.75rem", marginBottom: "0.875rem", borderRadius: 12, background: "var(--color-accent-100)", color: "inherit", textDecoration: "none", fontSize: "0.875rem" }}
     >
       <span aria-hidden>🪙</span>
       <span style={{ flex: 1 }}>
         <strong>{coins}</strong> coin{coins === 1 ? "" : "s"} to spend
+        {waitingText && <> · <strong>{waitingText}</strong></>}
       </span>
       <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Shop ›</span>
     </Link>
@@ -799,7 +806,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
 
       <MemberChips familyId={familyId} seg="routines" who={who} done={done} />
 
-      <CoinsLine scores={scores} me={scores.find((s) => s.id === me?.id)} />
+      <CoinsLine scores={scores} me={scores.find((s) => s.id === me?.id)} grownUp={!!me && isGrownUp(me.role)} />
 
       <OneOffTasks tasks={oneOffs} />
 
