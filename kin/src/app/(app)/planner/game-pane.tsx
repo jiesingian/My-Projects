@@ -10,7 +10,7 @@ import { targetGroups } from "@/lib/goal-groups";
 import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
 import { getMemberScores, getPendingApprovals, getPendingRedemptions, getRewards, getStreakBonusRates } from "@/lib/queries/routines";
-import { getPendingGoalClaims } from "@/lib/queries/goals";
+import { getGoalRequestsFor, getPendingGoalClaims } from "@/lib/queries/goals";
 import { KidGoalBoard } from "@/components/kid-goal-board";
 import { isBoard } from "@/lib/kid-board";
 import { BONUSES, asksOn, GAME_CATEGORY_META, nextMilestone } from "@/lib/game";
@@ -402,7 +402,7 @@ function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
 async function ShopView({ familyId, me, player }: { familyId: string; me: { id: string; role: string }; player: PlayerView | undefined }) {
   const grownUp = isGrownUp(me.role);
   const supabase = await createClient();
-  const [rewards, scores, bonusRates, chores, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
+  const [rewards, scores, bonusRates, chores, redemptions, claims, goalRequests, { data: treats }, { data: weeks }] = await Promise.all([
     getRewards(familyId),
     getMemberScores(familyId),
     grownUp ? getStreakBonusRates(familyId) : Promise.resolve(null),
@@ -411,6 +411,11 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
     grownUp ? getPendingApprovals(familyId) : Promise.resolve([]),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
+    // A reward the reader was asked to give and a change to a goal whose
+    // reward they give (23 October): anyone can be the giver, a child too,
+    // so these are asked for everyone. They were answered only on each
+    // goal's card after approvals left Today on 21 October.
+    getGoalRequestsFor(familyId, me),
     // The family-week treat (20261020210000): unlocked by a week of every
     // family goal met, never bought with coins.
     supabase.from("rewards").select("id, title, budget_amount").eq("family_id", familyId).eq("active", true).eq("unlock", "family_week").limit(1),
@@ -470,7 +475,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
         canManage={grownUp}
         streakBonus={bonusRates ? bonusOn(bonusRates, familyDay()) : undefined}
       />
-      {grownUp && <ApprovalQueue pending={chores} redemptions={redemptions} goalClaims={claims} />}
+      <ApprovalQueue pending={chores} redemptions={redemptions} goalClaims={claims} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} />
       {/* Baon and the jars the coins can be changed into (20261019100000),
           here since 21 October beside the rest of the spending. A grown-up
           sees every child's; a child goes to their own. */}
