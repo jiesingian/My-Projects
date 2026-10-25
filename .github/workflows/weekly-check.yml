@@ -118,7 +118,13 @@ jobs:
     name: the whole setup, against main
     needs: turn
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Fifty, not thirty (25 October). The whole suite took 21 minutes on 19
+    # October and kept growing; on the 23rd setup plus suite passed thirty and
+    # the job was cut off mid-suite -- "cancelled", so no issue was filed and
+    # the week went unchecked without anyone being told. Once a week, fifty is
+    # still nowhere near a hung browser's six hours. If it creeps towards
+    # fifty, split the suite rather than raise this again.
+    timeout-minutes: 50
     # The slot e2e.yml's runs take turns on: while this holds it, a pull
     # request's End-to-end waits (and if it is cancelled as an older waiter,
     # automerge.yml re-runs it). `turn` above means this almost never has
