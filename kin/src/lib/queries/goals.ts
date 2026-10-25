@@ -297,11 +297,10 @@ export function describeChange(c: ChangeRow, g: GoalRow): string[] {
 export type PendingGoalReward = { goalId: string; goalTitle: string; reward: string; forWhom: string; askedBy: string | null };
 export type PendingGoalChange = { changeId: string; goalTitle: string; askedBy: string | null; lines: string[] };
 
-/** What is waiting on this viewer's yes, in the shape the approval queue
- * (components/approval-queue) takes: rewards they have been asked to give,
- * and changes to goals whose reward they give. Since 21 October (Janine)
- * approvals left Today for Goals → Shop, which does not pass these yet;
- * they are answered on each goal's card. Anyone can be a giver -- a child promising a hug counts as much as
+/** What is waiting on this viewer's yes, for the approval queue in Goals →
+ * Shop (since 23 October; approvals left Today for the Shop on 21 October):
+ * rewards they have been asked to give, and changes to goals whose reward
+ * they give. Anyone can be a giver -- a child promising a hug counts as much as
  * a parent promising ₱500 -- so this is not limited to grown-ups. */
 export async function getGoalRequestsFor(familyId: string, viewer: Viewer): Promise<{ rewards: PendingGoalReward[]; changes: PendingGoalChange[] }> {
   const supabase = await createClient();

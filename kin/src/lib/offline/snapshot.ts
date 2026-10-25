@@ -2,7 +2,8 @@ import { householdZone } from "@/lib/household-zone";
 import "server-only";
 import type { CurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getTodayBriefing } from "@/lib/queries/today";
+import { getTodayBriefing, getTodayDoses } from "@/lib/queries/today";
+import { doseAt, doseMeta, doseTitle } from "@/lib/today-doses";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { getBuyItems } from "@/lib/queries/household";
 import { getWeekAgenda } from "@/lib/queries/planner";
@@ -71,9 +72,12 @@ export async function buildSnapshot(me: CurrentMember, userId: string): Promise<
 /** Today's one list, in the order today/page.tsx gives it. */
 async function todayItems(me: CurrentMember): Promise<OfflineTodayItem[]> {
   const tz = await householdZone();
-  const [brief, tasks] = await Promise.all([
+  const [brief, tasks, doses] = await Promise.all([
     getTodayBriefing(me.family_id, me.families.currency, me),
     getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
+    // The medicines Today lists (23 October): seen offline, ticked on the
+    // medicine's own screen, whose offline tick already queues (dose.set).
+    getTodayDoses(me),
   ]);
   const minutes = (hhmm: string | null | undefined) => {
     const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? "");
@@ -109,6 +113,11 @@ async function todayItems(me: CurrentMember): Promise<OfflineTodayItem[]> {
         group: t.today?.status ? 2 : 1,
         at: minutes(t.timeOfDay),
       })),
+    ...doses.map((d) => ({
+      item: { key: d.id, title: doseTitle(d), meta: doseMeta(d), urgent: d.late, markable: false, mark: d.next === null ? ("done" as const) : null },
+      group: d.next === null ? 2 : d.late ? 0 : 1,
+      at: doseAt(d),
+    })),
   ];
   return ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.item);
 }
