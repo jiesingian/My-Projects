@@ -3,6 +3,7 @@
 import { WhoseSelect } from "@/components/whose-select";
 import { RemittanceFields, UtangFields, type OpenLent } from "@/components/income-category-extras";
 import { FormSheet } from "@/components/form-sheet";
+import { confirm } from "@/components/confirm-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -759,7 +760,7 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
   const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-      <AmountInput ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem" }} />
+      <AmountInput key={current} ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem" }} />
       <button
         type="button"
         className="btn btn-secondary"
@@ -772,8 +773,28 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
           })
         }
       >
-        {pending ? "…" : "Set budget"}
+        {pending ? "…" : current > 0 ? "Change" : "Set budget"}
       </button>
+      {/* Removing is saving no ceiling (25 October): the meter goes back to
+          what was spent, with nothing to measure it against. */}
+      {current > 0 && (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={pending}
+          style={{ minHeight: "2.5rem", fontSize: "0.84375rem", whiteSpace: "nowrap" }}
+          onClick={async () => {
+            if (!(await confirm({ title: "Remove this month's budget?", description: "What was spent stays; there is just no ceiling to measure it against.", confirmLabel: "Remove", danger: true }))) return;
+            startTransition(async () => {
+              const { error } = await setJointBudgetAction(month, year, 0);
+              setFailed(error);
+              if (!error) setValue(0);
+            });
+          }}
+        >
+          Remove
+        </button>
+      )}
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
       {failed && (
@@ -814,6 +835,54 @@ export function SetTargetControl({ month, year, current }: { month: number; year
         </p>
       )}
     </div>
+  );
+}
+
+/** A category budget's own Change and Remove, on its row under BUDGET VS
+ * SPEND BY CATEGORY (25 October). Change opens on what is set now; Remove
+ * saves it as 0, which reads as no budget. */
+export function CategoryBudgetActions({ category, amount }: { category: string; amount: number }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(amount);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const save = (next: number) =>
+    startTransition(async () => {
+      const { error } = await setAllocationAction({ category, amount: next });
+      setFailed(error);
+      if (!error) {
+        setOpen(false);
+        router.refresh();
+      }
+    });
+  return (
+    <span style={{ display: "inline-flex", gap: "0.25rem", marginLeft: "0.375rem" }}>
+      <button type="button" className="btn btn-ghost" disabled={pending} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.4375rem" }} onClick={() => setOpen(true)}>
+        Change<span className="sr-only"> the {categoryLabel(category)} budget</span>
+      </button>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        disabled={pending}
+        style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.4375rem", color: "var(--color-neutral-700)" }}
+        onClick={async () => {
+          if (!(await confirm({ title: `Remove the ${categoryLabel(category)} budget?`, description: "What was spent stays; it just shows with no budget.", confirmLabel: "Remove", danger: true }))) return;
+          save(0);
+        }}
+      >
+        Remove<span className="sr-only"> the {categoryLabel(category)} budget</span>
+      </button>
+      {failed && <span role="alert" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>{failed}</span>}
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`${categoryLabel(category)} budget`}>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
+          <AmountInput ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem", flex: 1 }} />
+          <button type="button" className="btn btn-primary" disabled={pending || !(value > 0)} style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => save(value)}>
+            {pending ? "…" : "Save"}
+          </button>
+        </div>
+      </FormSheet>
+    </span>
   );
 }
 
