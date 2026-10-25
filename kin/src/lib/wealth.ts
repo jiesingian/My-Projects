@@ -492,6 +492,9 @@ export function paidFromVisibleFilter(seen: string[]): string {
  * 3 unless the bill says otherwise (20261007170000_bill_reminder_days). */
 export const BILL_REMIND_DAYS = [1, 2, 3, 5, 7, 14] as const;
 export const DEFAULT_BILL_REMIND_DAYS = 3;
+/** A weekly bill (25 October) is due again within the week: its reminder
+ * comes no more than this many days ahead. */
+export const WEEKLY_REMIND_MAX = 3;
 
 /** A form's "remind me" value, held to what the database accepts (1-30). */
 export function billRemindDays(raw: unknown): number {

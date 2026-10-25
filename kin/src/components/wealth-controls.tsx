@@ -27,6 +27,7 @@ import {
   type WhoseOption,
   INCOME_FREQUENCY_LABELS,
   BILL_REMIND_DAYS,
+  WEEKLY_REMIND_MAX,
   DEFAULT_BILL_REMIND_DAYS,
   knownAppsForType,
   isKnownInstitutionLabel,
@@ -452,7 +453,10 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
-
+  // A weekly bill is due again within the week, so its reminder comes at
+  // most 3 days ahead (weeklyRemindDays).
+  const [recurrence, setRecurrence] = useState("monthly");
+  const remindChoices = recurrence === "weekly" ? BILL_REMIND_DAYS.filter((d) => d <= WEEKLY_REMIND_MAX) : BILL_REMIND_DAYS;
 
   return (
     <>
@@ -489,7 +493,8 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
               </select>
             </Labelled>
             <Labelled label="Repeats" style={{ flex: 1 }}>
-              <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
+              <select className="input" name="recurrence" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} style={{ minHeight: "2.625rem" }}>
+                <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>
@@ -501,8 +506,8 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
             <WhoseSelect name="whose" options={whose} />
           </Labelled>
           <Labelled label="Remind me">
-            <select className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
-              {BILL_REMIND_DAYS.map((d) => (
+            <select key={recurrence === "weekly" ? "weekly" : "longer"} className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
+              {remindChoices.map((d) => (
                 <option key={d} value={d}>
                   {remindLabel(d)}
                 </option>
@@ -530,11 +535,12 @@ function remindLabel(days: number): string {
 /** A bill's own "remind me" setting, changed in place on its row. The push
  * and Today's line come this many days ahead; the day before and the day
  * itself always follow. */
-export function BillReminderPicker({ billId, days }: { billId: string; days: number }) {
+export function BillReminderPicker({ billId, days, weekly = false }: { billId: string; days: number; weekly?: boolean }) {
   const [value, setValue] = useState(days);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const options: number[] = (BILL_REMIND_DAYS as readonly number[]).includes(days) ? [...BILL_REMIND_DAYS] : [...BILL_REMIND_DAYS, days].sort((a, b) => a - b);
+  const offered = BILL_REMIND_DAYS.filter((d) => !weekly || d <= WEEKLY_REMIND_MAX);
+  const options: number[] = (offered as readonly number[]).includes(days) ? [...offered] : [...offered, days].sort((a, b) => a - b);
   return (
     <label style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
       <span>Remind</span>
@@ -646,6 +652,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label="Repeats" style={{ flex: 1 }}>
               <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
+                <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="yearly">Yearly</option>

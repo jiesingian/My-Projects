@@ -11,11 +11,12 @@
  * Privacy is the caller's: rows tied to an account the viewer cannot see
  * are dropped before they reach this (queries/subscriptions.ts). */
 
-export const PER_YEAR = { monthly: 12, quarterly: 4, yearly: 1 } as const;
+export const PER_YEAR = { weekly: 52, monthly: 12, quarterly: 4, yearly: 1 } as const;
 export type Repeat = keyof typeof PER_YEAR;
-const MONTHS: Record<Repeat, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+/** Months per period; weekly is counted in days instead (addPeriods). */
+const MONTHS: Record<Exclude<Repeat, "weekly">, number> = { monthly: 1, quarterly: 3, yearly: 12 };
 
-export const REPEAT_LABELS: Record<Repeat, string> = { monthly: "Every month", quarterly: "Every quarter", yearly: "Every year" };
+export const REPEAT_LABELS: Record<Repeat, string> = { weekly: "Every week", monthly: "Every month", quarterly: "Every quarter", yearly: "Every year" };
 
 export function isRepeat(recurrence: string | null | undefined): recurrence is Repeat {
   return !!recurrence && Object.prototype.hasOwnProperty.call(PER_YEAR, recurrence);
@@ -67,9 +68,18 @@ export function nextDate(row: Pick<RepeatingRow, "date" | "settled">, repeat: Re
   const day = row.date.slice(0, 10);
   if (!row.settled) return day;
   let n = 1;
-  let next = addMonths(day, MONTHS[repeat]);
-  while (next < today) next = addMonths(day, MONTHS[repeat] * ++n);
+  let next = addPeriods(day, repeat, 1);
+  while (next < today) next = addPeriods(day, repeat, ++n);
   return next;
+}
+
+/** `n` periods on from a YYYY-MM-DD: 7 days a week (25 October), or whole
+ * months counted from the original day (addMonths). */
+export function addPeriods(day: string, repeat: Repeat, n: number): string {
+  if (repeat !== "weekly") return addMonths(day, MONTHS[repeat] * n);
+  const d = new Date(`${day.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 7 * n);
+  return d.toISOString().slice(0, 10);
 }
 
 /** One subscription per name and repeat, soonest first; undated ones last. */

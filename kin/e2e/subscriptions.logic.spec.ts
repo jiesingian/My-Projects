@@ -60,3 +60,12 @@ test("bills paid from an account nobody showed you are filtered in the query", (
   expect(paidFromVisibleFilter([a])).toBe(`paid_from_account_id.is.null,paid_from_account_id.in.(${a})`);
   expect(paidFromVisibleFilter([a, "x),name.eq.(y"])).toBe(`paid_from_account_id.is.null,paid_from_account_id.in.(${a})`);
 });
+
+test("a weekly charge is 52 a year, and its next date a week on", () => {
+  const rows: RepeatingRow[] = [{ id: "w", name: "Labandera", amount: 500, recurrence: "weekly", date: "2026-10-23", settled: true, category: "Household help" }];
+  const [s] = subscriptionsFrom(rows, "2026-10-25");
+  expect(s.repeat).toBe("weekly");
+  expect(s.yearly).toBe(26000);
+  expect(s.next).toBe("2026-10-30");
+  expect(nextDate({ date: "2026-10-02", settled: true }, "weekly", "2026-10-25")).toBe("2026-10-30");
+});
