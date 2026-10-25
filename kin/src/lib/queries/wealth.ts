@@ -186,7 +186,9 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     };
   });
 
-  const allocations = (period?.budget_allocations ?? []).map((a) => ({
+  // A category budget removed is saved as 0 (25 October): it is no budget,
+  // and its spending, if any, shows with the unbudgeted ones.
+  const allocations = (period?.budget_allocations ?? []).filter((a) => Number(a.amount) > 0).map((a) => ({
     id: a.id,
     category: a.category,
     amount: Number(a.amount),

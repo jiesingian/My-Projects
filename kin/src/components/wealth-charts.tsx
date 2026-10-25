@@ -647,6 +647,25 @@ function BudgetEditor({ memberId, current, label }: { memberId: string; current:
       >
         {pending ? "…" : "Save"}
       </button>
+      {/* Saving no budget deletes it (setMemberBudgetAction); said here as
+          what it is (25 October). */}
+      {current ? (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={pending}
+          style={{ minHeight: "2rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
+          onClick={() =>
+            start(async () => {
+              const res = await setMemberBudgetAction(memberId, 0);
+              if (res.error) setError(res.error);
+              else setOpen(false);
+            })
+          }
+        >
+          Remove budget
+        </button>
+      ) : null}
       {error && (
         <span role="alert" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>
           {error}

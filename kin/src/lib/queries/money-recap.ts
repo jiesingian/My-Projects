@@ -64,7 +64,8 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     month,
     today,
     txns: recapTxns,
-    allocations: (period?.budget_allocations ?? []).map((a) => ({ category: a.category, amount: Number(a.amount) })),
+    // A removed category budget is saved as 0: not a budget.
+    allocations: (period?.budget_allocations ?? []).filter((a) => Number(a.amount) > 0).map((a) => ({ category: a.category, amount: Number(a.amount) })),
     bills: (bills ?? [])
       .filter((b): b is typeof b & { due_date: string } => !!b.due_date)
       .map((b) => ({ name: b.name, amount: Number(b.amount), dueDate: b.due_date, status: b.status, paidDay: b.paid_at ? familyDay(new Date(b.paid_at), tz) : null })),

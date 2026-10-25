@@ -10,7 +10,7 @@ import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchived
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
+import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetBudgetControl, SetTargetControl, AllocationEditor, CategoryBudgetActions } from "@/components/wealth-controls";
 import {
   PayBillControl,
   ReceiveIncomeControl,
@@ -715,7 +715,14 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
       {isJoint && (
         <>
-          <Meter label="Spent of budget" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
+          {/* No ceiling set, or one removed (0): what was spent, against nothing. */}
+          <Meter
+            label={budget.budgetAmount > 0 ? "Spent of budget" : "Spent this month"}
+            value={budget.monthExpense}
+            cap={budget.budgetAmount > 0 ? budget.budgetAmount : null}
+            currency={currency}
+            note={budget.budgetAmount > 0 ? "Change or remove the month's ceiling below." : "Set the month's ceiling below."}
+          />
           <SetBudgetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />
         </>
       )}
@@ -737,6 +744,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
               />
               <span>{categoryLabel(c.category)}</span>
               {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
+              {isJoint && c.amount > 0 && <CategoryBudgetActions category={c.category} amount={c.amount} />}
               <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                 {formatCurrency(c.spent, currency)}
                 {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
