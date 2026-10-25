@@ -11,7 +11,7 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingEntryActions, DeleteEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
+import { PendingEntryActions, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency, shortNames } from "@/lib/format";
@@ -171,6 +171,13 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
               {e.direction === "in" ? "+" : "−"}
               {formatCurrency(Number(e.amount), currency)}
             </span>
+            {/* A transfer is two entries that must agree: removed, not edited. */}
+            {!e.transfer_group_id && (
+              <EditEntryButton
+                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountName: e.accountName }}
+                currency={currency}
+              />
+            )}
             <DeleteEntryButton transactionId={e.id} />
           </div>
         ))}

@@ -11,6 +11,7 @@ import {
   payFromFundAction,
   confirmTransactionAction,
   deleteTransactionAction,
+  updateTransactionAction,
   updateAssetValueAction,
   addAssetItemAction,
   updateAssetItemAction,
@@ -37,7 +38,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, type AccountAudienceMember } from "@/lib/wealth";
+import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember } from "@/lib/wealth";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
@@ -473,6 +474,105 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
         </button>
       </div>
     </div>
+  );
+}
+
+/** One entry behind a Cash Flow line, as the line's list shows it. */
+export type LineEntry = { id: string; particulars: string; amount: number; occurredOn: string; category: string | null; direction: string; accountName: string };
+
+/** The entries a Cash Flow line adds up (Janine, 25 October): a line is
+ * every entry of one name and category, so it has no single entry to edit
+ * or remove. Tapping "N entries" opens them, each with Edit and Remove. */
+export function LineEntries({ entries, currency, dateFormat }: { entries: LineEntry[]; currency: string; dateFormat: string }) {
+  const [open, setOpen] = useState(false);
+  if (entries.length === 0) return null;
+  return (
+    <div style={{ width: "100%" }}>
+      <button type="button" className="btn btn-ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
+        {open ? "Hide entries" : `${entries.length} entr${entries.length === 1 ? "y" : "ies"} · edit or remove`}
+      </button>
+      {open && (
+        <ul style={{ listStyle: "none", padding: 0, margin: "0.25rem 0 0" }}>
+          {[...entries].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)).map((e) => (
+            <li key={e.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.5rem", fontSize: "0.8125rem", padding: "0.375rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+              <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+                {e.particulars}
+                <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
+                  {formatDate(e.occurredOn, dateFormat)} · {e.accountName}
+                </span>
+              </span>
+              <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>{formatCurrency(e.amount, currency)}</span>
+              <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>
+                <EditEntryButton entry={e} currency={currency} />
+                <DeleteEntryButton transactionId={e.id} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function EditEntryButton({ entry, currency }: { entry: LineEntry; currency: string }) {
+  const [open, setOpen] = useState(false);
+  const [particulars, setParticulars] = useState(entry.particulars);
+  const [amount, setAmount] = useState(entry.amount);
+  const [occurredOn, setOccurredOn] = useState(entry.occurredOn);
+  const [category, setCategory] = useState(entry.category ?? "");
+  const { error, pending, run } = useMoneyAction();
+  const uid = useId();
+  const choices: readonly string[] = entry.direction === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES;
+  const options = category && !choices.includes(category) ? [category, ...choices] : choices;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Edit
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Edit entry">
+        <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+          <Err message={error} />
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-what`}>What it was for</label>
+            <input id={`${uid}-what`} className="input" value={particulars} maxLength={200} onChange={(e) => setParticulars(e.target.value)} style={{ minHeight: "2.625rem" }} />
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
+              <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+              <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+            </div>
+            <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
+              <label htmlFor={`${uid}-on`}>Day</label>
+              <DateInput id={`${uid}-on`} className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.625rem" }} />
+            </div>
+          </div>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
+            <label htmlFor={`${uid}-cat`}>{entry.direction === "in" ? "Type of income" : "Spent on"}</label>
+            <select id={`${uid}-cat`} className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
+              {options.map((c) => (
+                <option key={c} value={c}>
+                  {categoryLabel(c)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() => run(() => updateTransactionAction(entry.id, { particulars, amount, occurredOn, category: category || null }), () => setOpen(false))}
+            >
+              {pending ? "…" : "Save"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
   );
 }
 
