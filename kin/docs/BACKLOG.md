@@ -18,7 +18,7 @@ Read and checked by a session; nothing in a dashboard was changed.
   - **The first run, 23 October:** the "Errors this week" step passed in 3
     seconds, but the suite then ran past the job's 30-minute limit, so the
     run was cancelled, "Say what broke" never ran, and no issue was opened.
-    The limit is now 60 (25 October). What production recorded that week,
+    The limit is now 50 (#963, 25 October). What production recorded that week,
     read from `app_errors`: 4 × "TypeError: Load failed" on `/today/dose`.
     Taken on the alarm screen called the server directly, and an iPhone
     opened from the notification often has no network yet. It now goes

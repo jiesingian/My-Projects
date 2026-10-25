@@ -118,12 +118,13 @@ jobs:
     name: the whole setup, against main
     needs: turn
     runs-on: ubuntu-latest
-    # 30 until 25 October. The suite took 21-24 minutes on 19 October and was
-    # still going at 32 on 23 October, when the job hit the limit. A job that
-    # hits its limit reads "cancelled" and skips "Say what broke", so no issue
-    # was opened and the week went unchecked. 60 leaves room as the suite
-    # grows. The `turn` job's 40-minute wait comes before this, not inside it.
-    timeout-minutes: 60
+    # Fifty, not thirty (25 October). The whole suite took 21 minutes on 19
+    # October and kept growing; on the 23rd setup plus suite passed thirty and
+    # the job was cut off mid-suite -- "cancelled", so no issue was filed and
+    # the week went unchecked without anyone being told. Once a week, fifty is
+    # still nowhere near a hung browser's six hours. If it creeps towards
+    # fifty, split the suite rather than raise this again.
+    timeout-minutes: 50
     # The slot e2e.yml's runs take turns on: while this holds it, a pull
     # request's End-to-end waits (and if it is cancelled as an older waiter,
     # automerge.yml re-runs it). `turn` above means this almost never has
