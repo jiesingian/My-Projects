@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { loanPaymentSplit, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { loanPaymentSplit, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -938,7 +938,8 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
-  const remindDaysBefore = billRemindDays(formData.get("remind_days_before"));
+  // A weekly bill's reminder comes at most WEEKLY_REMIND_MAX days ahead.
+  const remindDaysBefore = recurrence === "weekly" ? Math.min(WEEKLY_REMIND_MAX, billRemindDays(formData.get("remind_days_before"))) : billRemindDays(formData.get("remind_days_before"));
   if (!name) return { error: "Name and amount are required." };
   // Every other money path checks `> 0`; this one checked `!amount`, which is
   // false for -500. A negative bill subtracts from what the household owes and

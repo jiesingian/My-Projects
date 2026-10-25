@@ -32,7 +32,7 @@ test.describe("nextBillDate", () => {
   });
   test("nothing for a one-off, an unknown repeat or no date", () => {
     expect(nextBillDate("2026-10-15", "once", "2026-10-15")).toBeNull();
-    expect(nextBillDate("2026-10-15", "weekly", "2026-10-15")).toBeNull();
+    expect(nextBillDate("2026-10-15", "daily", "2026-10-15")).toBeNull();
     expect(nextBillDate(null, "monthly", "2026-10-15")).toBeNull();
   });
 });
@@ -71,5 +71,19 @@ test.describe("offers", () => {
       ["w", "2026-11-05"],
       ["o", "2026-11-15"],
     ]);
+  });
+});
+
+test.describe("weekly bills (25 October)", () => {
+  test("next week's is seven days on", () => {
+    expect(nextBillDate("2026-10-23", "weekly", "2026-10-24")).toBe("2026-10-30");
+  });
+  test("weeks wholly gone are skipped, the current one kept", () => {
+    // Last paid for 2 October: by the 25th the 9th and 16th are wholly gone; the 23rd's is still owed.
+    expect(nextBillDate("2026-10-02", "weekly", "2026-10-25")).toBe("2026-10-23");
+  });
+  test("a paid weekly bill offers next week's", () => {
+    const paid: RollableBill = { id: "b1", name: "Labandera", amount: 500, due_date: "2026-10-23", recurrence: "weekly", status: "paid" };
+    expect(nextBillOffer(paid, [paid], "2026-10-24")).toMatchObject({ dueDate: "2026-10-30", repeat: "weekly" });
   });
 });

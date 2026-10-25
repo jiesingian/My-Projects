@@ -633,7 +633,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     line.buttons.push(
       <span key={bill.id} id={`bill-${bill.id}`} className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
         <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} />
-        {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} />}
+        {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} weekly={bill.recurrence === "weekly"} />}
         <RemoveButton id={bill.id} kind="bill" label={`Delete "${bill.name}"`} />
       </span>,
     );

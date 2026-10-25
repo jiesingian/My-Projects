@@ -7,11 +7,7 @@
  * created without the tap (addNextBillAction). Pure, so the date rules have
  * logic tests (e2e/bill-roll.logic.spec.ts). */
 
-import { addMonths, isRepeat, type Repeat } from "@/lib/subscriptions";
-
-/** Bills repeat monthly, quarterly or yearly (the Add bill form); there is
- * no weekly bill. */
-const MONTHS: Record<Repeat, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+import { addPeriods, isRepeat, type Repeat } from "@/lib/subscriptions";
 
 export type RollableBill = {
   id: string;
@@ -33,10 +29,11 @@ export type NextBillOffer = { billId: string; name: string; amount: number; dueD
 export function nextBillDate(dueDate: string | null, recurrence: string | null, today: string): string | null {
   if (!dueDate || !isRepeat(recurrence)) return null;
   const day = dueDate.slice(0, 10);
-  const step = MONTHS[recurrence];
+  // Weekly, monthly, quarterly or yearly (the Add expense form; weekly
+  // since 25 October).
   let n = 1;
-  while (addMonths(day, step * (n + 1)) <= today) n++;
-  return addMonths(day, step * n);
+  while (addPeriods(day, recurrence, n + 1) <= today) n++;
+  return addPeriods(day, recurrence, n);
 }
 
 const sameBill = (a: RollableBill, b: RollableBill) =>
@@ -58,7 +55,7 @@ export function nextBillOffer(bill: RollableBill, all: RollableBill[], today: st
 
 /** "next month's", "next quarter's", "next year's". */
 export function nextLabel(repeat: Repeat): string {
-  return { monthly: "next month's", quarterly: "next quarter's", yearly: "next year's" }[repeat];
+  return { weekly: "next week's", monthly: "next month's", quarterly: "next quarter's", yearly: "next year's" }[repeat];
 }
 
 /** Every paid repeating bill with no next one, latest of each only. */
