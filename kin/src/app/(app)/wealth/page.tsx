@@ -17,6 +17,8 @@ import {
   GoalContributeControl,
   FundPaidControl,
   PendingEntryActions,
+  LineEntries,
+  type LineEntry,
   ValueUpdateControl,
   AssetBreakdownControl,
   LoanScheduleControl,
@@ -471,7 +473,7 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
 }
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
-  const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
+  const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [cf, budget, accounts, who, nextBills] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
@@ -537,13 +539,22 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // own with nothing counted yet. No account names or balances here.
   const ownerOfRow = (isJoint: boolean | null, ownerId: string | null) => who.sliceOwner(ownerId, isJoint ?? true);
   const ownedHere = (o: { is_joint: boolean | null; owner_member_id: string | null }) => scope === "all" || o.is_joint === null || inScope({ is_joint: o.is_joint, owner_member_id: o.owner_member_id }, scope);
-  type Line = BreakdownItem & { count: number; last: string | null; lead: string[]; tail: string[]; buttons: React.ReactNode[] };
+  // `entries` are the ledger entries a line adds up, opened from the line
+  // to edit or remove one (25 October).
+  type Line = BreakdownItem & { count: number; last: string | null; lead: string[]; tail: string[]; buttons: React.ReactNode[]; entries?: LineEntry[] };
   const finish = (lines: Map<string, Line>, noun: string): BreakdownItem[] =>
-    [...lines.values()].map(({ count, last, lead, tail, buttons, ...l }) => ({
+    [...lines.values()].map(({ count, last, lead, tail, buttons, entries = [], ...l }) => ({
       ...l,
       sub: [...lead, ...(count > 0 ? [`${count} ${noun}${count === 1 ? "" : "s"}${last ? ` · last ${fmtDate(last)}` : ""}`] : []), ...tail].join(" · ") || undefined,
-      actions: buttons.length ? <>{buttons}</> : undefined,
+      actions:
+        buttons.length || entries.length ? (
+          <>
+            {buttons}
+            <LineEntries entries={entries} currency={currency} dateFormat={dateFormat} />
+          </>
+        ) : undefined,
     }));
+  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountName: t.accountName });
 
   const incomeLines = new Map<string, Line>();
   for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {
@@ -572,6 +583,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     const line = incomeLines.get(key) ?? { id: key, name: `${category} - ${t.particulars.trim()}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
     line.amount += Number(t.amount);
     line.count += 1;
+    line.entries = [...(line.entries ?? []), toLineEntry(t)];
     if (!line.last || t.occurred_at > line.last) line.last = t.occurred_at;
     incomeLines.set(key, line);
   }
@@ -604,6 +616,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
     line.amount += Number(t.amount);
     line.count += 1;
+    line.entries = [...(line.entries ?? []), toLineEntry(t)];
     if (!line.last || t.occurred_at > line.last) line.last = t.occurred_at;
     expenseLines.set(key, line);
   }

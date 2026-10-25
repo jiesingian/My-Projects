@@ -795,6 +795,59 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
   return null;
 }
 
+/** Corrects one ledger entry in place (Janine, 25 October): what it was
+ * for, the amount, the day, the category. What the entry is tied to stays
+ * in step: a loan payment's split is worked out again on the new amount
+ * and the loan moves by the difference in principal; an item it added to
+ * an asset takes the new cost; a goal it funded is recounted. A transfer is
+ * two entries that must agree, so it is not edited here. */
+export async function updateTransactionAction(
+  transactionId: string,
+  input: { particulars: string; amount: number; occurredOn: string; category: string | null },
+): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const particulars = clamp(input.particulars.trim(), 200);
+  const amount = Math.round(Number(input.amount) * 100) / 100;
+  if (!particulars) return { error: "Say what this is for." };
+  if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.occurredOn)) return { error: "Choose the day it happened." };
+
+  const { data: entry } = await supabase.from("wealth_transactions").select("*").eq("id", transactionId).eq("family_id", me.family_id).maybeSingle();
+  if (!entry) return { error: "That entry is no longer there." };
+  if (entry.transfer_group_id) return { error: "A transfer is edited by removing it and moving the money again." };
+
+  // Keep the time of day it was recorded; only the date moves.
+  const occurredAt = `${input.occurredOn}${entry.occurred_at.slice(10)}`;
+  let principal = entry.principal_amount;
+  if (entry.source_table === "liabilities" && entry.source_id && Number(entry.amount) !== amount) {
+    const { data: loan } = await supabase.from("liabilities").select("balance, interest_rate").eq("id", entry.source_id).maybeSingle();
+    if (loan) {
+      // What was owed before this payment, if it already lowered the balance.
+      const before = Number(loan.balance) + (entry.status === "confirmed" ? Number(entry.principal_amount ?? 0) : 0);
+      principal = loanPaymentSplit(before, loan.interest_rate == null ? null : Number(loan.interest_rate), amount).principal;
+    } else principal = Math.min(Number(entry.principal_amount ?? 0), amount);
+  }
+
+  const { error } = await supabase
+    .from("wealth_transactions")
+    .update({ particulars, amount, occurred_at: occurredAt, category: clamp(input.category ?? "", 100) || null, principal_amount: principal })
+    .eq("id", transactionId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+
+  const delta = Number(entry.principal_amount ?? 0) - Number(principal ?? 0);
+  if (entry.source_table === "liabilities" && entry.source_id && entry.status === "confirmed" && delta !== 0) {
+    const { error: loanError } = await supabase.rpc("adjust_liability_balance", { p_liability_id: entry.source_id, p_delta: delta });
+    if (loanError) return { error: `The entry was corrected, but the loan's balance was not. ${refusalMessage(loanError)}` };
+  }
+  if (entry.capital) await supabase.from("asset_items").update({ cost: amount, name: clamp(particulars, 150) }).eq("transaction_id", transactionId);
+  if (entry.goal_id) await recalcGoalTotal(supabase, entry.goal_id);
+
+  revalidateWealth();
+  return { error: null };
+}
+
 export async function deleteTransactionAction(transactionId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
