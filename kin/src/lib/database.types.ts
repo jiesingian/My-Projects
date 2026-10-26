@@ -3934,7 +3934,10 @@ export type Database = {
           created_by: string | null
           current_amount: number
           family_id: string
+          from_2_amount: number | null
+          from_account_2_id: string | null
           from_account_id: string | null
+          from_amount: number | null
           id: string
           is_joint: boolean
           linked_account_id: string | null
@@ -3953,7 +3956,10 @@ export type Database = {
           created_by?: string | null
           current_amount?: number
           family_id: string
+          from_2_amount?: number | null
+          from_account_2_id?: string | null
           from_account_id?: string | null
+          from_amount?: number | null
           id?: string
           is_joint?: boolean
           linked_account_id?: string | null
@@ -3972,7 +3978,10 @@ export type Database = {
           created_by?: string | null
           current_amount?: number
           family_id?: string
+          from_2_amount?: number | null
+          from_account_2_id?: string | null
           from_account_id?: string | null
+          from_amount?: number | null
           id?: string
           is_joint?: boolean
           linked_account_id?: string | null
