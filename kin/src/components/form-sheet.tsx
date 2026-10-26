@@ -17,9 +17,9 @@ import { AnimatedSheet } from "@/components/animated-sheet";
 export function FormSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
   const titleId = useId();
   return (
-    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxWidth: 520, maxHeight: "92dvh" }}>
+    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxHeight: "92dvh" }}>
       <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
-        <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
+        <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <span id={titleId} style={{ flex: 1, font: "600 1.1875rem/1.2 var(--font-heading)" }}>
             {title}

@@ -46,7 +46,7 @@ export function AlbumPrompt({ photoIds, onClose }: { photoIds: string[]; onClose
     });
 
   return (
-    <AnimatedSheet open onClose={onClose} labelledBy={titleId}>
+    <AnimatedSheet open onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--plain">
       <div className="confirm-grabber" />
       <div className="kin-albumprompt">
         <h3 id={titleId}>Keep {count === 1 ? "this photo" : `these ${count} photos`} in an album?</h3>

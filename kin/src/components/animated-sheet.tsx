@@ -1,6 +1,16 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Drawer } from "vaul";
+
+/** The width at which the sidebar replaces the tab bar (globals.css), and a
+ * sheet becomes a centred dialog. */
+const DESKTOP = "(min-width: 1024px)";
+function subscribeDesktop(onChange: () => void) {
+  const query = window.matchMedia(DESKTOP);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
 
 /** Every bottom sheet in this app, in one place: the confirm dialogs, the
  * recipe book, "Ask Kin".
@@ -37,9 +47,18 @@ export function AnimatedSheet({
   panelStyle?: React.CSSProperties;
   children: React.ReactNode;
 }) {
+  // On a computer the sheet is a centred dialog: a mouse drag inside it is
+  // selecting text or nudging a slider, never a flick to close it, so only
+  // a handle could drag it -- and there is none.
+  const desktop = useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP).matches,
+    () => false,
+  );
   return (
     <Drawer.Root
       open={open}
+      handleOnly={desktop}
       onOpenChange={(next) => {
         if (!next) onClose();
       }}

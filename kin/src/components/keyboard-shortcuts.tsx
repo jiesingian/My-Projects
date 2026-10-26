@@ -102,7 +102,7 @@ export function KeyboardShortcuts({ simple, places, ask }: { simple: boolean; pl
   };
 
   return (
-    <AnimatedSheet open={help} onClose={() => setHelp(false)} labelledBy={titleId} panelStyle={{ maxWidth: 520 }}>
+    <AnimatedSheet open={help} onClose={() => setHelp(false)} labelledBy={titleId} panelClassName="sheet-panel--plain">
       <div style={{ padding: "1.25rem 1.25rem 1.5rem" }}>
         <h2 id={titleId} style={{ font: "600 1.1875rem/1.2 var(--font-heading)", margin: "0 0 0.75rem" }}>
           Keyboard shortcuts

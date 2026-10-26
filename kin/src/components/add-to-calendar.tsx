@@ -61,13 +61,14 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
         <div
           role="dialog"
           aria-modal="true"
+          className="kin-manual-sheet"
           aria-label="What would you like to add?"
           onClick={() => setOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.32)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="kin-glass-bar"
+            className="kin-glass-bar kin-manual-sheet-panel"
             style={{
               width: "100%",
               maxWidth: 480,
@@ -80,7 +81,7 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
               boxShadow: "var(--shadow-lg)",
             }}
           >
-            <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
+            <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
             <div style={{ padding: "0 0.375rem 0.625rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Add to {readable}</div>
             {/* One-line add: a sentence with no day in it lands on this day. */}
             <div style={{ padding: "0.5rem 0 0.375rem" }}>

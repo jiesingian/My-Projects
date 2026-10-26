@@ -127,7 +127,7 @@ export function HighlightsButton({ me, people, highlights }: { me: string; peopl
       </button>
       <input ref={file} type="file" accept="image/*,video/*" hidden onChange={(e) => post(e.target.files?.[0])} />
 
-      <AnimatedSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId}>
+      <AnimatedSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId} panelClassName="sheet-panel--plain sheet-panel--padded">
         <h2 id={titleId} style={{ fontSize: "1.125rem", margin: "0 0 0.25rem" }}>
           Highlights
         </h2>
