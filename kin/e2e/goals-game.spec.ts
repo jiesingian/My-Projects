@@ -17,7 +17,8 @@ for (const v of VIEWS) {
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto(`/planner?seg=goals&g=${v.g}`);
-    await expect(page.getByRole("link", { name: "🎯 Target" })).toBeVisible();
+    // The view switch: one button like Who (26 October), not a row of links.
+    await expect(page.getByRole("button", { name: "Choose view" })).toBeVisible();
     await expect(page.getByText(v.expect).first()).toBeVisible();
     expect(errors).toEqual([]);
   });
@@ -25,7 +26,8 @@ for (const v of VIEWS) {
 
 test("the ordinary Goals view keeps its switch to the game", async ({ page }) => {
   await page.goto("/planner?seg=goals");
-  // Planner's own "Goals" tab and the switch's: both lead here.
-  await expect(page.locator('a[href="/planner?seg=goals&g=goals"]')).toBeVisible();
-  await expect(page.getByRole("link", { name: "🎯 Target" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^View: Goals\./ })).toBeVisible();
+  // Its list holds the game's views.
+  await page.getByRole("button", { name: "Choose view" }).click();
+  await expect(page.getByRole("menuitemradio", { name: "🎯 Target" })).toBeVisible();
 });

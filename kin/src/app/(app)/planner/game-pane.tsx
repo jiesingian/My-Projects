@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Blueprint } from "@/components/ui";
-import { ChipRow } from "@/components/segmented";
+import { PickButton } from "@/components/pick-button";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { createClient } from "@/lib/supabase/server";
@@ -27,18 +27,19 @@ export const GAME_VIEWS = ["goals", "game", "badges", "shop", "setup"] as const;
 export type GameViewName = (typeof GAME_VIEWS)[number];
 
 /** Goals · Target · Badges · Shop (and Set up, for a grown-up): the switch at
- * the top of Planner → Goals. */
+ * the top of Planner → Goals. One button like the Who filter, not a row of
+ * chips (Janine, 26 October): tap for the next view, hold for all. */
 export function GameSwitch({ view, grownUp }: { view: GameViewName; grownUp: boolean }) {
-  const items = (["goals", "game", "badges", "shop", ...(grownUp ? (["setup"] as const) : [])] as GameViewName[]).map((v) => ({
-    label: v === "goals" ? "Goals" : v === "game" ? "🎯 Target" : v === "badges" ? "🏅 Badges" : v === "shop" ? "🪙 Shop" : "Set up",
+  const options = (["goals", "game", "badges", "shop", ...(grownUp ? (["setup"] as const) : [])] as GameViewName[]).map((v) => ({
+    label: gameViewLabel(v),
     href: `/planner?seg=goals&g=${v}`,
     active: v === view,
   }));
-  return (
-    <div style={{ marginBottom: "0.875rem" }}>
-      <ChipRow items={items} />
-    </div>
-  );
+  return <PickButton title="View" label={gameViewLabel(view)} options={options} />;
+}
+
+function gameViewLabel(v: GameViewName) {
+  return v === "goals" ? "Goals" : v === "game" ? "🎯 Target" : v === "badges" ? "🏅 Badges" : v === "shop" ? "🪙 Shop" : "Set up";
 }
 
 /** Planner → Goals → Target, Badges, Shop and Set up (Janine, 20 October;
@@ -77,18 +78,23 @@ export async function GamePane({
 
   return (
     <>
-      <GameSwitch view={view} grownUp={grownUp} />
-      {(view === "badges" || (view === "game" && !focus)) && playable.length > 1 && (
-        <div style={{ marginBottom: "0.75rem" }}>
-          <ChipRow
-            items={playable.map((p) => ({
+      {/* The view and, where a grown-up plays for a child, whose card it is:
+          one line of buttons, like Who on the other tabs. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.875rem" }}>
+        <GameSwitch view={view} grownUp={grownUp} />
+        {(view === "badges" || (view === "game" && !focus)) && playable.length > 1 && player && (
+          <PickButton
+            title="Playing as"
+            icon="users"
+            label={player.id === me.id ? "Me" : `Play for ${player.name.split(" ")[0]}`}
+            options={playable.map((p) => ({
               label: p.id === me.id ? "Me" : `Play for ${p.name.split(" ")[0]}`,
               href: `/planner?seg=goals&g=${view}&as=${p.id}`,
-              active: p.id === player?.id,
+              active: p.id === player.id,
             }))}
           />
-        </div>
-      )}
+        )}
+      </div>
       {view === "game" && focus && <GoalFocus game={game} goalId={focus.id} familyId={familyId} me={me} weekStart={weekStart} currency={currency} />}
       {view === "game" && !focus && <TodayView game={game} player={player} grownUp={grownUp} />}
       {view === "badges" && player && <BadgesView game={game} player={player} />}

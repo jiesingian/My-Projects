@@ -135,10 +135,7 @@ export default async function PlannerPage({
             currency={me.families.currency}
             weekStart={weekStartOf(me.families.week_start)}
             filter={
-              <>
-                <GameSwitch view="goals" grownUp={isGrownUp(me.role)} />
-                <MemberChips familyId={me.family_id} seg="goals" who={who} done={done} />
-              </>
+              <MemberChips familyId={me.family_id} seg="goals" who={who} done={done} lead={<GameSwitch view="goals" grownUp={isGrownUp(me.role)} />} />
             }
             done={done}
             justAsked={sp.asked === "1"}
@@ -970,13 +967,15 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
 
 /** The member filter, shared by every Planner tab so choosing a person means
  * the same thing wherever you are and survives switching tab. */
-async function MemberChips({ familyId, seg, who, done = false, keep = "", children }: { familyId: string; seg: string; who: string; done?: boolean; keep?: string; children?: React.ReactNode }) {
+async function MemberChips({ familyId, seg, who, done = false, keep = "", lead, children }: { familyId: string; seg: string; who: string; done?: boolean; keep?: string; lead?: React.ReactNode; children?: React.ReactNode }) {
   const [members, me] = await Promise.all([getMembers(familyId), getCurrentMember()]);
   const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me?.id));
 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.875rem" }}>
+      {/* Goals' view switch goes before Who; Events' When after it. */}
+      {lead}
       <PickButton
         title="Who"
         icon="users"
