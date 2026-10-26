@@ -8,7 +8,7 @@ import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
-import { getGlance, getGoalsTile, getMedicineTile, getTodayBriefing, getTodayDoses, getComingUp, capComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getGlance, getGoalsTile, getTodayBriefing, getTodayDoses, getComingUp, capComingUp, type GlanceTile } from "@/lib/queries/today";
 import { getTodayWealth } from "@/lib/queries/today-wealth";
 import { getTodayFamily } from "@/lib/queries/today-family";
 import { SosOpenBanner } from "@/components/sos-open-banner";
@@ -17,6 +17,7 @@ import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { TodayFold } from "@/components/today-fold";
 import { todayCookieName, todayCounts, todaySummary } from "@/lib/today-fold";
+import { thisWeekTile } from "@/lib/this-week-tile";
 import { cookies } from "next/headers";
 import { familyClock, familyDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
@@ -65,7 +66,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, medicine, doses, goals, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, doses, goals, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -73,9 +74,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     // and for a grown-up the children's -- not another grown-up's own.
     getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
     // The medicines the reader gives today -- their own and, for a grown-up,
-    // the children's -- as the tile's count (21 October) and as rows of the
-    // list with their next dose to tick (Jonathan, 23 October).
-    getMedicineTile(me),
+    // the children's -- as rows of the list with their next dose to tick
+    // (Jonathan, 23 October). The tile that counted them went on 26 October:
+    // it said what the rows say.
     getTodayDoses(me),
     // The reader's targets today, "2 of 3" (decision 3, 23 October).
     getGoalsTile(me),
@@ -155,17 +156,18 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     year: "numeric",
   }).toUpperCase();
 
-  // At a glance (Janine, 21 October): the reader's medicines today, their
-  // targets today (23 October), the shopping and the money. Approvals and
-  // rewards are the Shop's (Planner → Goals → Shop), not Today's.
+  // At a glance (Janine, 21 October; Jonathan, 26 October): the week ahead
+  // as a count, the reader's targets today (23 October), the shopping and
+  // the money. Approvals and rewards are the Shop's (Planner → Goals →
+  // Shop), not Today's.
   // Today's meal stands in for an empty shopping list: the Household tile
   // still says something worth a glance.
   const meal = brief.find((b) => b.id.startsWith("meal-"));
   const shopOrMeal: GlanceTile =
     glance.shop.value === "List clear" && meal ? { id: "shop", icon: "bowl", value: meal.title, label: `on today's menu · list clear`, href: "/household?seg=meals" } : glance.shop;
-  // Medicine, then in the order of the tabs: Planner's Goals, Household's
+  // This week, then in the order of the tabs: Planner's Goals, Household's
   // shopping, Wealth's money.
-  const tiles = [medicine, goals, shopOrMeal, glance.money];
+  const tiles = [thisWeekTile(soon.length), goals, shopOrMeal, glance.money];
   // Coming up's Who dropdown: the same names, and "Me", as the Planner's.
   const people = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status));
   const peopleLabels = shortNames(people.map((m) => m.full_name)).map((l, i) => ({ id: people[i].id, label: selfLabel(l, people[i].id === me.id) }));
@@ -293,7 +295,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       {/* Coming up: what to sort out now so the week is not a scramble. */}
       {soon.length > 0 && (
-        <section style={{ marginBottom: "1.625rem" }}>
+        <section id="coming-up" style={{ marginBottom: "1.625rem", scrollMarginTop: "1rem" }}>
           <h3 className="kin-eyebrow">Coming up</h3>
           {/* Whose, from the same Who dropdown as the Planner and Wealth. */}
           <ComingUpPager items={soon} people={peopleLabels} />

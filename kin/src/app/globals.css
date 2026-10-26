@@ -8476,6 +8476,108 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-collapse[data-open="true"] { grid-template-rows: 1fr; }
 .kin-collapse > div { overflow: hidden; min-height: 0; }
 
+/* Today's rows, compact (Jonathan, 26 October): one card of hairline-split
+   rows -- icon, title over its detail, the answer buttons on the right of the
+   same line -- so a long day stays short and the right side is used. A
+   3px edge marks an answered row (green) or an urgent one (the warning
+   tint). Below the first five open rows: "Show N more", then "N done today". */
+.kin-today-rows {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 0.5625rem;
+}
+.kin-today-row {
+  padding: 0.5625rem 0.6875rem 0.5625rem 0.75rem;
+}
+.kin-today-row + .kin-today-row { box-shadow: inset 0 1px 0 var(--color-divider); }
+.kin-today-row[data-accent="done"] { box-shadow: inset 3px 0 0 var(--color-switch-on); }
+.kin-today-row[data-accent="urgent"] { box-shadow: inset 3px 0 0 var(--cal-money); }
+.kin-today-row + .kin-today-row[data-accent="done"] { box-shadow: inset 3px 0 0 var(--color-switch-on), inset 0 1px 0 var(--color-divider); }
+.kin-today-row + .kin-today-row[data-accent="urgent"] { box-shadow: inset 3px 0 0 var(--cal-money), inset 0 1px 0 var(--color-divider); }
+.kin-today-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+}
+.kin-today-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5625rem;
+  color: inherit;
+  text-decoration: none;
+}
+.kin-today-ico {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.kin-today-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kin-today-title {
+  display: block;
+  font: 600 0.9375rem/1.2 var(--font-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kin-today-meta {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  color: var(--color-neutral-600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kin-today-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3125rem;
+}
+.kin-today-acts:empty { display: none; }
+/* On a narrow phone (under 375px) the buttons keep their icon and drop
+   the word (the aria-label keeps the name), so the title keeps its room;
+   Undo has no icon and keeps its word. */
+@media (max-width: 374px) {
+  .kin-today-acts .kin-today-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .kin-today-acts .btn:has(.kin-today-word) { padding-left: 0.625rem; padding-right: 0.625rem; }
+}
+.kin-today-line { margin: 0.375rem 0 0; font-size: 0.78125rem; line-height: 1.4; }
+.kin-today-row .kin-streak { margin-top: 0.375rem; }
+.kin-today-row .kin-form-error { margin: 0.375rem 0 0; }
+/* "Show 4 more" and "3 done today": one quiet line each, the chevron
+   turning when the done rows are open. */
+.kin-today-more {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0 0.25rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-accent-700);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kin-today-more:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
+.kin-today-more-chev { margin-left: auto; transform: rotate(-90deg); transition: transform 220ms cubic-bezier(0.2, 0, 0, 1); color: var(--color-neutral-600); }
+.kin-today-more-chev[data-open] { transform: rotate(90deg); }
+
 .kin-goal-row { border-top: 1px solid var(--color-divider); }
 .kin-goal-line { display: flex; align-items: center; gap: 0.5rem; }
 .kin-goal-main {
@@ -8516,6 +8618,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 
 @media (prefers-reduced-motion: reduce) {
   .kin-collapse,
+  .kin-today-more-chev,
   .kin-chevron { transition: none; }
 }
 .kin-goal-emoji { font-size: 1.125rem; line-height: 1; }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
+import { RowButton, RowState, TodayRow } from "@/components/today-row";
 import { logRoutineAction, clearRoutineLogAction } from "@/lib/actions/routines";
 import { isNetworkFailure, isOffline, newOpId, queueOffline } from "@/lib/offline/live";
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
@@ -47,9 +48,9 @@ export function TodayTaskList({ tasks }: { tasks: RoutineView[] }) {
 /** "Done", tapped offline and waiting to send. */
 export function WaitingToSend() {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.78125rem", fontWeight: 500, color: "var(--color-neutral-700)" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.75rem", fontWeight: 500, color: "var(--color-neutral-700)", textAlign: "right" }}>
       <Icon name="clock" size={14} />
-      Done · sends when you&rsquo;re back online
+      Sends when online
     </span>
   );
 }
@@ -110,119 +111,61 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
     });
   };
 
-  return (
-    <Blueprint
-      style={{
-        padding: "0.8125rem",
-        marginBottom: "0.5625rem",
-        boxShadow:
-          today.status === "done" && today.approval !== "pending" && today.approval !== "rejected"
-            ? "inset 3px 0 0 var(--color-switch-on)"
-            : !today.status && task.overdue.length > 0
-              ? "inset 3px 0 0 var(--cal-money)"
-              : undefined,
-      }}
-    >
-      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
-        <span
-          className="kin-tile3d"
-          style={{
-            width: 30,
-            height: 30,
-            flex: "none",
-            borderRadius: 9,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "var(--cal-schedule)",
-            color: "#fff",
-          }}
-        >
-          <Icon name={meta.icon} size={16} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{task.title}</div>
-          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
-            {task.rotates && today.assignee ? `${today.assignee.name.split(" ")[0]}'s turn` : whoFor}
-            {task.timeOfDay ? ` · ${formatTimeOfDay(task.timeOfDay)}` : ""}
-          </div>
-          {task.kidStreak && <StreakLine streak={task.kidStreak} doneToday={today.status === "done" && today.approval !== "rejected"} />}
-        </div>
-      </div>
+  const answered = !!today.status;
+  const approved = today.status === "done" && today.approval !== "pending" && today.approval !== "rejected";
+  const who = task.rotates && today.assignee ? `${today.assignee.name.split(" ")[0]}'s turn` : whoFor;
+  const when = task.timeOfDay ? ` · ${formatTimeOfDay(task.timeOfDay)}` : "";
 
-      <div style={{ marginTop: "0.625rem" }}>
-        {queued && !today.status ? (
+  return (
+    <TodayRow
+      icon={meta.icon}
+      tintColor="var(--cal-schedule)"
+      title={task.title}
+      struck={approved}
+      accent={approved ? "done" : !today.status && task.overdue.length > 0 ? "urgent" : null}
+      faded={approved}
+      meta={
+        !answered ? (
+          `${who}${when}`
+        ) : today.approval === "pending" ? (
+          // A child's "done" is a claim until a grown-up says otherwise,
+          // and saying "Done today" to them would be a small lie the
+          // first time one got turned down.
+          <RowState icon="clock">Waiting for a grown-up</RowState>
+        ) : today.approval === "rejected" ? (
+          <RowState icon="x" tone="warn">
+            Sent back — have another go
+          </RowState>
+        ) : today.status === "done" ? (
+          <RowState icon="check" tone="strong">
+            Done today
+          </RowState>
+        ) : (
+          <RowState icon="x">Skipped today</RowState>
+        )
+      }
+      actions={
+        queued && !today.status ? (
           <WaitingToSend />
         ) : !today.status ? (
           <>
-            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={pending}
-                onClick={() => log("done")}
-                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
-              >
-                <Icon name="check" size={14} />
-                Done
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={pending}
-                onClick={() => log("skipped")}
-                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
-              >
-                Skip
-              </button>
-            </div>
+            <RowButton kind="primary" icon="check" label="Done" disabled={pending} onClick={() => log("done")} />
+            <RowButton kind="secondary" icon="x" label="Skip" disabled={pending} onClick={() => log("skipped")} />
           </>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              {/* A child's "done" is a claim until a grown-up says otherwise,
-                  and saying "Done today" to them would be a small lie the
-                  first time one got turned down. */}
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.3125rem",
-                  fontSize: "0.78125rem",
-                  fontWeight: 500,
-                  color:
-                    today.approval === "rejected"
-                      ? "var(--cal-occasion)"
-                      : today.status === "done" && today.approval !== "pending"
-                        ? "var(--color-neutral-900)"
-                        : "var(--color-neutral-700)",
-                }}
-              >
-                <Icon
-                  name={today.approval === "pending" ? "clock" : today.approval === "rejected" ? "x" : today.status === "done" ? "check" : "x"}
-                  size={14}
-                />
-                {today.approval === "pending"
-                  ? "Waiting for a grown-up"
-                  : today.approval === "rejected"
-                    ? "Sent back — have another go"
-                    : today.status === "done"
-                      ? "Done today"
-                      : "Skipped today"}
-              </span>
-              <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }}>
-                Undo
-              </button>
-            </div>
-
-            {/* A note written before 21 October still shows; new ones are
-                no longer added here (Janine: more room on Today). */}
-            {today.note && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-700)", lineHeight: 1.4 }}>&ldquo;{today.note}&rdquo;</p>}
-          </div>
-        )}
-        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
-      </div>
-    </Blueprint>
+          <RowButton kind="ghost" label="Undo" disabled={pending} onClick={undo} />
+        )
+      }
+      line={
+        <>
+          {task.kidStreak && <StreakLine streak={task.kidStreak} doneToday={today.status === "done" && today.approval !== "rejected"} />}
+          {/* A note written before 21 October still shows; new ones are
+              no longer added here (Janine: more room on Today). */}
+          {answered && today.note && <p className="kin-today-line" style={{ color: "var(--color-neutral-700)" }}>&ldquo;{today.note}&rdquo;</p>}
+          {error && <p className="kin-today-line" style={{ color: "var(--cal-occasion-ink)" }}>{error}</p>}
+        </>
+      }
+    />
   );
 }
 
