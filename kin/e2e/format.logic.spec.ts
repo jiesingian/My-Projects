@@ -76,7 +76,11 @@ test("spellDate and formatDate agree on which day it is", () => {
 test("every currency Settings offers has a sign or reads as its code (any family, anywhere)", async () => {
   const { formatCurrency, currencySymbol } = await import("@/lib/format");
   const { CURRENCIES } = await import("@/lib/household-prefs");
-  expect(formatCurrency(1234.5, "PHP")).toBe("₱1,234.5");
+  // Centavos read as centavos: two places, or none for a whole amount.
+  expect(formatCurrency(1234.5, "PHP")).toBe("₱1,234.50");
+  expect(formatCurrency(1234.567, "PHP")).toBe("₱1,234.57");
+  expect(formatCurrency(1500, "PHP")).toBe("₱1,500");
+  expect(formatCurrency(1500.004, "PHP")).toBe("₱1,500");
   expect(formatCurrency(20, "GBP")).toBe("£20");
   expect(formatCurrency(20, "AED")).toBe("AED 20");
   for (const c of CURRENCIES) expect(currencySymbol(c.code).length).toBeGreaterThan(0);

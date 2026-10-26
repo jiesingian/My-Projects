@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { FormSheet } from "@/components/form-sheet";
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +19,8 @@ import {
   updateAssetItemAction,
   deleteAssetItemAction,
   updateLiabilityBalanceAction,
+  setLoanPaymentsLeftAction,
+  addLoanBillAction,
   updateLiabilityScheduleAction,
   deleteAssetAction,
   deleteLiabilityAction,
@@ -1016,15 +1020,45 @@ export function LoanScheduleControl({
 
 /** Takes the balance a loan's own terms say should be owed (A&L, under the
  * loan): one tap instead of typing the figure into Update. */
-export function SetBalanceButton({ id, value, currency }: { id: string; value: number; currency: string }) {
+export function SetBalanceButton({ id, value, currency, paymentsLeft = null }: { id: string; value: number; currency: string; /** The other reading of the gap (26 October): the balance is right and the schedule is off -- how many payments are left if so. */ paymentsLeft?: number | null }) {
   const { error, pending, run } = useMoneyAction();
+  const small = { minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem" } as const;
   return (
     <>
-      <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem" }} onClick={() => run(() => updateLiabilityBalanceAction(id, value))}>
+      <button type="button" className="btn btn-secondary" disabled={pending} style={small} onClick={() => run(() => updateLiabilityBalanceAction(id, value))}>
         {pending ? "…" : `Set to ${formatCurrency(value, currency)}`}
       </button>
+      {paymentsLeft != null && paymentsLeft >= 1 && (
+        <button type="button" className="btn btn-secondary" disabled={pending} style={small} onClick={() => run(() => setLoanPaymentsLeftAction(id, paymentsLeft))}>
+          {pending ? "…" : `Or keep the balance: ${paymentsLeft} payment${paymentsLeft === 1 ? "" : "s"} left`}
+        </button>
+      )}
       {error && (
         <span role="alert" style={{ color: "var(--color-accent-700)" }}>
+          {error}
+        </span>
+      )}
+    </>
+  );
+}
+
+/** Makes the loan's payment a monthly bill, once (A&L, on the loan row). */
+export function LoanBillButton({ liabilityId, hasBill }: { liabilityId: string; hasBill: boolean }) {
+  const { error, pending, run } = useMoneyAction();
+  if (hasBill) {
+    return (
+      <Link href="/wealth?seg=cashflow&open=expenses" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+        Monthly bill set ›
+      </Link>
+    );
+  }
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => run(() => addLoanBillAction(liabilityId))}>
+        {pending ? "…" : "Add as monthly bill"}
+      </button>
+      {error && (
+        <span role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem" }}>
           {error}
         </span>
       )}

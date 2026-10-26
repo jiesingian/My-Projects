@@ -35,7 +35,10 @@ export function formatAge(dob: string | null): string {
 }
 
 export function formatCurrency(amount: number, currency = "PHP"): string {
-  return moneyPrefix(currency) + amount.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  // A whole amount stays whole ("₱1,500"); one with centavos shows both
+  // places ("₱337,539.50", never "₱337,539.5" -- Jonathan, 26 October).
+  const whole = Math.abs(amount - Math.round(amount)) < 0.005;
+  return moneyPrefix(currency) + amount.toLocaleString("en-PH", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
 }
 
 /** The sign for each currency Settings offers (household-prefs CURRENCIES).

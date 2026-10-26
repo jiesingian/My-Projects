@@ -75,3 +75,14 @@ test("the money recap on the first three days of a month, not after", () => {
   expect(wealthRows(none, "2026-11-02", "PHP").today.map((r) => [r.id, r.title, r.href])).toEqual([["recap-2026-10", "Your October 2026 money recap", "/wealth/recap?month=2026-10"]]);
   expect(wealthRows(none, "2026-11-04", "PHP").today).toEqual([]);
 });
+
+test("a loan's fixed rate ending within the month is in Coming up; past or further off, not", () => {
+  const loan = (rate_fixed_until: string | null): LoanLike => ({ id: "l2", name: "Car loan", monthly_payment: null, next_payment_date: null, payments_remaining: null, rate_fixed_until });
+  const soonFor = (until: string | null) => wealthRows({ ...none, loans: [loan(until)] }, today, "PHP").soon.map((r) => [r.id, r.title, r.meta, r.at]);
+  expect(soonFor("2026-11-10")).toEqual([["soon-loan-reprice-l2", "Car loan · fixed rate ends", "In 18 days · ask the bank for the new rate, then update it under Payments", 18]]);
+  expect(soonFor("2026-10-24")).toEqual([["soon-loan-reprice-l2", "Car loan · fixed rate ends", "Tomorrow · ask the bank for the new rate, then update it under Payments", 1]]);
+  expect(soonFor("2026-10-23")).toEqual([["soon-loan-reprice-l2", "Car loan · fixed rate ends", "Today · ask the bank for the new rate, then update it under Payments", 0.5]]);
+  expect(soonFor("2026-12-01")).toEqual([]);
+  expect(soonFor("2026-10-22")).toEqual([]);
+  expect(soonFor(null)).toEqual([]);
+});

@@ -38,7 +38,7 @@ export type PaluwaganLike = {
   members: { id: string; name: string; turn: number; isUs: boolean }[];
   paid: Set<string>;
 };
-export type LoanLike = { id: string; name: string; monthly_payment: number | null; next_payment_date: string | null; payments_remaining: number | null };
+export type LoanLike = { id: string; name: string; monthly_payment: number | null; next_payment_date: string | null; payments_remaining: number | null; rate_fixed_until?: string | null };
 export type FundLike = { id: string; title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean; created_at: string };
 export type IncomeLike = { id: string; name: string; amount: number; next_date: string | null; status: string };
 
@@ -122,8 +122,18 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
     }
   }
 
-  // A loan's payment on its date, from the schedule as entered.
+  // A loan's payment on its date, from the schedule as entered. And its
+  // fixed rate ending within the month (Jonathan, 26 October): the bank
+  // reprices then, and the household wants the new rate before the first
+  // payment at it.
   for (const l of input.loans) {
+    if (l.rate_fixed_until) {
+      const n = daysUntil(today, l.rate_fixed_until);
+      if (n >= 0 && n <= 30) {
+        const when = n === 0 ? "today" : n === 1 ? "tomorrow" : n <= 7 ? onDay(today, l.rate_fixed_until) : `in ${n} days`;
+        soon.push(soonItem({ id: `soon-loan-reprice-${l.id}`, icon: "wallet", tint: "money", title: `${l.name} · fixed rate ends`, meta: `${when[0].toUpperCase()}${when.slice(1)} · ask the bank for the new rate, then update it under Payments`, href: "/wealth?seg=assets", at: Math.max(n, 0.5) }));
+      }
+    }
     const dates = loanPaymentDates(l);
     const amount = l.monthly_payment ? fmt(Number(l.monthly_payment)) : null;
     if (dates.includes(today)) {

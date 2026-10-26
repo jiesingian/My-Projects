@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { loanPaymentSplit, loanKindFor, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -2105,6 +2105,88 @@ export async function updateLiabilityScheduleAction(
   if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   revalidatePath("/planner");
+  return { error: null };
+}
+
+/** The schedule is what was off, not the balance (26 October): keep the
+ * balance on record and set how many payments are left, from the next one
+ * still ahead -- the figure paymentsLeftForBalance read off the
+ * amortisation table. */
+export async function setLoanPaymentsLeftAction(liabilityId: string, paymentsLeft: number): Promise<ActionState> {
+  if (!(Number.isInteger(paymentsLeft) && paymentsLeft >= 1 && paymentsLeft <= 1200)) return { error: "Payments left has to be a whole number from 1 to 1200." };
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: loan } = await supabase.from("liabilities").select("next_payment_date, payments_remaining").eq("id", liabilityId).eq("family_id", me.family_id).maybeSingle();
+  if (!loan) return { error: "That liability is no longer there — someone may have removed it." };
+  const today = familyDay(new Date(), await householdZone());
+  // The next date still ahead, else the one entered, else this day next
+  // month: the count has to start somewhere on the calendar.
+  const next = loanStatus(loan, today).next ?? loan.next_payment_date ?? addMonths(today, 1);
+  const { error } = await supabase
+    .from("liabilities")
+    .update({ next_payment_date: next, payments_remaining: paymentsLeft, updated_at: new Date().toISOString() })
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  revalidateWealth();
+  revalidatePath("/planner");
+  return { error: null };
+}
+
+/** A loan's payment as a monthly bill (Jonathan, 26 October): the loan row
+ * on A&L makes the bill once, for the next payment, against the loan
+ * (20261026150000), so it reaches Today, the calendar and the reminder
+ * without retyping, and Settle pays the loan down. The loan's own
+ * schedule stays as it is; "Add the next one?" after each payment carries
+ * the bill forward, as any monthly bill. */
+export async function addLoanBillAction(liabilityId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: loan } = await supabase
+    .from("liabilities")
+    .select("id, name, monthly_payment, next_payment_date, payments_remaining, linked_account_id, is_joint, owner_member_id")
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!loan) return { error: "That loan is no longer there — someone may have removed it." };
+  const amount = loan.monthly_payment == null ? 0 : Number(loan.monthly_payment);
+  if (!(amount > 0)) return { error: "Set the loan's monthly payment first, under Payments." };
+  const today = familyDay(new Date(), await householdZone());
+  const due = loanStatus(loan, today).next ?? loan.next_payment_date;
+  if (!due) return { error: "Set when the next payment is due first, under Payments." };
+  const { data: open } = await supabase
+    .from("bills")
+    .select("id")
+    .eq("family_id", me.family_id)
+    .eq("against_table", "liabilities")
+    .eq("against_id", loan.id)
+    .in("status", ["unpaid", "scheduled"])
+    .limit(1);
+  if (open && open.length > 0) return { error: "This loan already has a bill waiting under Cash Flow → Expenses." };
+  const name = clamp(`${loan.name} payment`, 150);
+  const { data: bill, error } = await supabase
+    .from("bills")
+    .insert({
+      family_id: me.family_id,
+      name,
+      amount,
+      due_date: due,
+      category: "Debt",
+      recurrence: "monthly",
+      status: "unpaid",
+      created_by: me.id,
+      account_id: loan.linked_account_id,
+      against_table: "liabilities",
+      against_id: loan.id,
+      is_joint: loan.is_joint,
+      owner_member_id: loan.owner_member_id,
+    })
+    .select("id")
+    .single();
+  if (error) return { error: databaseError(error) };
+  await syncRowToCalendars(me.family_id, "bills", bill.id, allDayEvent(`${name} due`, due), { kind: "all" });
+  revalidateWealth();
+  revalidatePath("/today");
   return { error: null };
 }
 

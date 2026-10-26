@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -23,6 +23,7 @@ import {
   LoanScheduleControl,
   RemoveButton,
   SetBalanceButton,
+  LoanBillButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
   IncludePrivateToggle,
@@ -63,6 +64,7 @@ import {
   loanStatus,
   loanPaymentSplit,
   loanOriginStatus,
+  paymentsLeftForBalance,
   assetGroup,
   AL_CASH,
   AL_INVESTMENTS,
@@ -1145,10 +1147,11 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [nw, who, allAccounts] = await Promise.all([
+  const [nw, who, allAccounts, loanBills] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
     getAccounts(familyId),
+    getLoanBillIds(familyId),
   ]);
   const { assets, liabilities, goals, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
@@ -1278,6 +1281,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
               Record a payment
             </Link>
           )}
+          {/* The payment as a monthly bill (26 October): Today, the
+              calendar and the reminder, with Settle paying the loan down. */}
+          {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
           <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
           <LoanScheduleControl
             id={l.id}
@@ -1562,7 +1568,7 @@ function LoanLines({
           <span>
             By its terms about {formatCurrency(origin.expectedBalance, currency)} should be owed now; {formatCurrency(balance, currency)} is on record, {formatCurrency(Math.abs(origin.gap), currency)} {origin.gap > 0 ? "more" : "less"} — extra payments, a rate that changed, or a balance from an older statement.
           </span>
-          <SetBalanceButton id={loan.id} value={origin.expectedBalance} currency={currency} />
+          <SetBalanceButton id={loan.id} value={origin.expectedBalance} currency={currency} paymentsLeft={paymentsLeftForBalance(loan, balance)} />
         </div>
       )}
       {origin && Math.abs(origin.gap) < 1 && origin.made > 0 && <div style={muted}>The balance on record matches its terms.</div>}

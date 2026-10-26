@@ -15,7 +15,8 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }] = await Promise.all([
     getUtang(me.family_id, me.id),
     getPaluwagans(me.family_id, me.id),
-    supabase.from("liabilities").select("id, name, monthly_payment, next_payment_date, payments_remaining").eq("family_id", me.family_id).not("next_payment_date", "is", null),
+    // With a schedule, or a fixed rate that ends (20261026170000).
+    supabase.from("liabilities").select("id, name, monthly_payment, next_payment_date, payments_remaining, rate_fixed_until").eq("family_id", me.family_id).or("next_payment_date.not.is.null,rate_fixed_until.not.is.null"),
     supabase.from("goals").select("id, title, target_amount, current_amount, target_date, repeats_yearly, created_at").eq("family_id", me.family_id).not("target_date", "is", null),
     supabase.from("income_schedules").select("id, name, amount, next_date, status").eq("family_id", me.family_id).eq("status", "expected").not("next_date", "is", null),
     supabase.from("today_marks").select("item_key, state").eq("family_id", me.family_id).eq("day", today),
