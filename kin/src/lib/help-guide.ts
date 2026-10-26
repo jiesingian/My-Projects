@@ -1330,7 +1330,7 @@ export const HELP_GUIDE: HelpTab[] = [
               "ai"
             ],
             "what": "Take a photo of a receipt or an e-wallet screenshot and Kin fills in the amount, date and particulars.",
-            "how": "Wealth → Snap a receipt or e-wallet screenshot, check the details, then save.",
+            "how": "Wealth → Cash Flow → Add expense → Snap it (or Move money → Snap it), check the details, then save.",
             "pros": [
               "No typing at the till."
             ],

@@ -3,6 +3,18 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 26 October: Cash Flow's Expenses group, trimmed (Jonathan)
+
+Done the same day. Under the donut now: Next 30 days, then REPORTS
+(Monthly recap, Subscriptions), then Add expense. Gone: the "Where it
+came from and went" card (it repeated the chart; with nothing paid
+through a bill or goal it was one "Entered directly" row), the family
+statements page (`/wealth/statements`, #944, with lib/statements.ts and
+its two queries) and the BILLS label. "Snap a receipt" has no row of its
+own: it is a "Snap it" line inside Add expense and on Move money, shown
+only once `ANTHROPIC_API_KEY` is on the server (`kinAiReady`); the page
+itself stays at `/wealth/scan`.
+
 ## Wrap-up items a session could do, 23 October
 
 Read and checked by a session; nothing in a dashboard was changed.

@@ -7,7 +7,6 @@ import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
 import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
-import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -69,6 +68,7 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
+import { kinAiReady } from "@/lib/kin-ai";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
 import { getUtang } from "@/lib/queries/utang";
 import { instalmentPlan } from "@/lib/utang";
@@ -813,8 +813,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
       {/* The breakdown first, as on Income and Accounts (Janine, 26
-          October): whose, then category, then each line, and Add expense
-          under it. Budgets, by person, follow. */}
+          October): whose, then category, then each line. Then what is due
+          in the next 30 days and the two reports, then Add expense
+          (Jonathan, 26 October: the "where it came from" card, the family
+          statements and the receipt row went; the rest moved up under the
+          donut). Budgets, by person, follow. */}
       {billId && cf.openBills.some((b) => b.id === billId) && <ScrollIntoView targetId={`bill-${billId}`} />}
       {expenseItems.length === 0 ? (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
@@ -829,7 +832,33 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           />
         </Blueprint>
       )}
-      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={{ assets: targets.assets, goals: targets.goals, loans: targets.loans.map((l) => ({ id: l.id, name: l.name })) }} />
+      <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
+      {/* Last month in one page, for the grown-ups (19 October): the same
+          page the push on the 1st opens. Then everything that repeats --
+          monthly, quarterly, yearly -- and what it all comes to in a year,
+          built from these same bills. */}
+      <SectionLabel>REPORTS</SectionLabel>
+      {grownUp && (
+        <Link
+          href="/wealth/recap"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="calendarDays" size={18} />
+          <span style={{ flex: 1 }}>Monthly recap: last month against its budget</span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
+      <Link
+        href="/wealth/subscriptions"
+        style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+      >
+        <Icon name="receipt" size={18} />
+        <span style={{ flex: 1 }}>Subscriptions: what repeats, and its cost a year</span>
+        <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+      </Link>
+      {/* Snap a receipt lives inside the sheet now, and only once Kin AI
+          has its key: with no key the page could only say it is off. */}
+      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={{ assets: targets.assets, goals: targets.goals, loans: targets.loans.map((l) => ({ id: l.id, name: l.name })) }} scan={kinAiReady()} />
       <div style={{ height: "1.25rem" }} />
 
       {/* The month's budget is its categories added up (26 October): no
@@ -856,56 +885,6 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <SpendingByPerson people={people} currency={currency} details={personDetails} openFirst={openFirst} />
       )}
 
-      <SectionLabel>BILLS</SectionLabel>
-      <CashFlowSources sources={cf.sources} currency={currency} />
-      {/* Last month in one page, for the grown-ups (19 October): the same
-          page the push on the 1st opens. */}
-      {grownUp && (
-        <Link
-          href="/wealth/recap"
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-        >
-          <Icon name="calendarDays" size={18} />
-          <span style={{ flex: 1 }}>Monthly recap: last month against its budget</span>
-          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-        </Link>
-      )}
-      {/* Income and expenses, where the cash went, net worth like the SALN,
-          and a BIR-ready year (23 October). */}
-      {grownUp && (
-        <Link
-          href="/wealth/statements"
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-        >
-          <Icon name="receipt" size={18} />
-          <span style={{ flex: 1 }}>Family statements: income, cash, net worth, BIR summary</span>
-          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-        </Link>
-      )}
-
-      {/* Snap a receipt or an e-wallet screenshot (20 October, Kin Plus):
-          Kin AI reads it, the member checks it, an expense or bill is saved. */}
-      <Link
-        href="/wealth/scan"
-        style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-      >
-        <Icon name="camera" size={18} />
-        <span style={{ flex: 1 }}>Snap a receipt or payment screenshot</span>
-        <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-      </Link>
-
-      {/* Everything that repeats -- monthly, quarterly, yearly -- and what it
-          all comes to in a year, built from these same bills. */}
-      <Link
-        href="/wealth/subscriptions"
-        style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
-      >
-        <Icon name="receipt" size={18} />
-        <span style={{ flex: 1 }}>Subscriptions: what repeats, and its cost a year</span>
-        <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
-      </Link>
-
-      <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
       <UtangInstalments heading="MONEY BORROWED TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
       </CollapsibleGroup>
     </>
@@ -1214,9 +1193,6 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
-      <Link href="/wealth/statements" style={{ display: "inline-block", fontSize: "0.8125rem", margin: "0.25rem 0 0.5rem" }}>
-        See the family statements ›
-      </Link>
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <FoldableSection label={groupLabel("Cash & savings", cashAccounts.length, cashTotal)} storageKey="kin-al-cash">
