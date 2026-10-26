@@ -546,24 +546,6 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // Over budget first, most over at the top, then the rest as budgeted,
   // then what was spent with no budget.
   const overBy = (c: { amount: number; spent: number }) => (c.amount > 0 ? Math.max(0, c.spent - c.amount) : 0);
-  const personDetails = Object.fromEntries(
-    people.map((p) => {
-      const whoseKey = p.memberId ?? "family";
-      const canEdit = canSetFor(p.memberId);
-      const cats = [...p.categories].sort((a, b) => (a.amount > 0) === (b.amount > 0) ? overBy(b) - overBy(a) : a.amount > 0 ? -1 : 1);
-      return [
-        whoseKey,
-        <>
-          {p.memberId === memberId && sharing && <BudgetVisibility isPrivate={sharing.isPrivate} viewers={sharing.viewers} people={audience} />}
-          {cats.length === 0 && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>Nothing spent or budgeted yet this month.</p>}
-          {cats.map((c) => (
-            <CategoryBudgetRow key={c.category} whose={whoseKey} category={c.category} amount={c.amount} spent={c.spent} currency={currency} color={expenseCategoryColor(c.category)} canEdit={canEdit} />
-          ))}
-          {canEdit && <AllocationEditor whose={whoseKey} budgeted={cats.filter((c) => c.amount > 0).map((c) => c.category)} />}
-        </>,
-      ];
-    }),
-  );
   const pickable = toPickable(accounts, memberId);
   // Named as every breakdown names them -- "BPI - Payroll" -- no balances.
   const bareAccounts = pickable.map((a) => ({ id: a.id, name: accountLabel(a) }));
@@ -699,7 +681,40 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     line.tail.push(`Settled${bill.paid_at ? ` ${fmtDate(bill.paid_at)}` : ""}${bill.transaction_id ? "" : ` · ${formatCurrency(Number(bill.amount), currency)} paid outside Kin`}`);
     expenseLines.set(expenseLines.has(key) ? key : line.id, line);
   }
-  const expenseItems = finish(expenseLines, "payment");
+  // The pie and its breakdown are a report (Janine, 26 October): read
+  // only. Each line, with its entries to edit or remove and a bill's
+  // Settle, Remind and Remove, sits under its category in its owner's block
+  // under SPENDING BY PERSON instead.
+  const expenseLinesDone = finish(expenseLines, "payment");
+  const expenseItems = expenseLinesDone.map(({ actions: _actions, ...item }) => item);
+  const linesFor = (memberId: string | null, category: string) =>
+    expenseLinesDone.filter((l) => l.ownerKey === (memberId ?? "joint") && l.category === categoryLabel(category));
+  const lineCategories = (memberId: string | null) =>
+    [...new Set(expenseLinesDone.filter((l) => l.ownerKey === (memberId ?? "joint")).map((l) => l.category))];
+  const personDetails = Object.fromEntries(
+    people.map((p) => {
+      const whoseKey = p.memberId ?? "family";
+      const canEdit = canSetFor(p.memberId);
+      // A category with only an open bill so far still gets its row.
+      const extra = lineCategories(p.memberId)
+        .filter((label) => !p.categories.some((c) => categoryLabel(c.category) === label))
+        .map((label) => ({ category: EXPENSE_CATEGORIES.find((c) => categoryLabel(c) === label) ?? label, spent: 0, amount: 0 }));
+      const cats = [...p.categories, ...extra].sort((a, b) => (a.amount > 0) === (b.amount > 0) ? overBy(b) - overBy(a) : a.amount > 0 ? -1 : 1);
+      return [
+        whoseKey,
+        <>
+          {p.memberId === memberId && sharing && <BudgetVisibility isPrivate={sharing.isPrivate} viewers={sharing.viewers} people={audience} />}
+          {cats.length === 0 && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>Nothing spent or budgeted yet this month.</p>}
+          {cats.map((c) => (
+            <CategoryBudgetRow key={c.category} whose={whoseKey} category={c.category} amount={c.amount} spent={c.spent} currency={currency} color={expenseCategoryColor(c.category)} canEdit={canEdit}>
+              <CategoryLines lines={linesFor(p.memberId, c.category)} currency={currency} />
+            </CategoryBudgetRow>
+          ))}
+          {canEdit && <AllocationEditor whose={whoseKey} budgeted={cats.filter((c) => c.amount > 0).map((c) => c.category)} />}
+        </>,
+      ];
+    }),
+  );
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
@@ -1487,3 +1502,29 @@ function LoanScheduleLine({
 }
 
 
+
+/** The expenses under one category in a person's block (26 October): each
+ * line as the breakdown names it, with its entries to edit or remove and an
+ * open bill's own buttons. Folded away until opened, except when a bill on
+ * it is still to be settled. */
+function CategoryLines({ lines, currency }: { lines: BreakdownItem[]; currency: string }) {
+  if (lines.length === 0) return null;
+  const count = lines.length;
+  return (
+    <details open={lines.some((l) => !!l.actions && /Due|waiting/.test(l.sub ?? ""))} style={{ margin: "-0.375rem 0 0.75rem" }}>
+      <summary style={{ fontSize: "0.75rem", color: "var(--color-switch-on)", cursor: "pointer", minHeight: "1.75rem", display: "flex", alignItems: "center" }}>
+        {count} {count === 1 ? "expense" : "expenses"}
+      </summary>
+      {lines.map((l) => (
+        <div key={l.id} style={{ padding: "0.5rem 0 0.625rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem" }}>
+            <span style={{ minWidth: 0 }}>{l.name.replace(/^[^-]+ - /, "")}</span>
+            <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>{l.amount > 0 ? formatCurrency(l.amount, currency) : "—"}</span>
+          </div>
+          {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
+          {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
+        </div>
+      ))}
+    </details>
+  );
+}

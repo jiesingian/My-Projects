@@ -807,6 +807,7 @@ export function CategoryBudgetRow({
   currency,
   color,
   canEdit,
+  children,
 }: {
   whose: string;
   category: string;
@@ -815,6 +816,8 @@ export function CategoryBudgetRow({
   currency: string;
   color: string;
   canEdit: boolean;
+  /** Its expenses, under the bar (26 October). */
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(amount);
@@ -860,7 +863,13 @@ export function CategoryBudgetRow({
     </>
   );
 
-  if (!canEdit) return <div style={{ marginBottom: "0.6875rem" }}>{body}</div>;
+  if (!canEdit)
+    return (
+      <>
+        <div style={{ marginBottom: "0.6875rem" }}>{body}</div>
+        {children}
+      </>
+    );
   return (
     <>
       <button
@@ -875,6 +884,7 @@ export function CategoryBudgetRow({
       >
         {body}
       </button>
+      {children}
       <FormSheet open={open} onClose={() => setOpen(false)} title={`${label} budget`}>
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
           {formatCurrency(spent, currency)} spent this month.{budgeted ? "" : " Set how much to spend on it each month."}

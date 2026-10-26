@@ -551,6 +551,8 @@ export function SpendingByPerson({
   details: Record<string, React.ReactNode>;
 }) {
   const hatchId = `kin-hatch-${useId().replace(/:/g, "")}`;
+  // Each one's categories fold away under their name (26 October).
+  const [folded, setFolded] = useState<string[]>([]);
   const scale = Math.max(1, ...people.map((p) => Math.max(p.spent, p.budget ?? 0)));
   if (people.length === 0) return null;
   return (
@@ -564,6 +566,9 @@ export function SpendingByPerson({
         const over = p.budget !== null && p.spent > p.budget;
         const within = p.budget !== null ? Math.min(p.spent, p.budget) : p.spent;
         const pctOf = (v: number) => `${(v / scale) * 100}%`;
+        const key = p.memberId ?? "family";
+        const open = !folded.includes(key);
+        const toggle = () => setFolded((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
         return (
           <div key={p.memberId ?? "joint"} style={{ margin: "0.75rem 0 0.125rem" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: "0.84375rem" }}>
@@ -580,6 +585,17 @@ export function SpendingByPerson({
                     ? `${formatCurrency(p.spent, currency)} of ${formatCurrency(p.budget, currency)}`
                     : formatCurrency(p.spent, currency)}
               </span>
+              {details[key] && (
+                <button
+                  type="button"
+                  onClick={toggle}
+                  aria-expanded={open}
+                  aria-label={`${open ? "Fold" : "Open"} ${p.label}'s categories`}
+                  style={{ alignSelf: "center", background: "none", border: 0, padding: "0 0.125rem", minWidth: "1.75rem", minHeight: "1.75rem", color: "var(--color-neutral-700)", cursor: "pointer", fontSize: "0.875rem", transform: open ? "rotate(180deg)" : undefined, transition: "transform 160ms ease-out" }}
+                >
+                  ⌄
+                </button>
+              )}
             </div>
             <div
               aria-hidden="true"
@@ -604,7 +620,7 @@ export function SpendingByPerson({
                       : `${formatCurrency(p.budget - p.spent, currency)} left`}
               </span>
             </div>
-            {details[p.memberId ?? "family"] && <div style={{ margin: "0.75rem 0 1.25rem", paddingLeft: "0.75rem", borderLeft: "2px solid var(--color-neutral-200)" }}>{details[p.memberId ?? "family"]}</div>}
+            {open && details[key] && <div style={{ margin: "0.75rem 0 1.25rem", paddingLeft: "0.75rem", borderLeft: "2px solid var(--color-neutral-200)" }}>{details[key]}</div>}
           </div>
         );
       })}
