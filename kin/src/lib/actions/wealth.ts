@@ -942,6 +942,48 @@ export async function postHubExpenseAction(input: {
   return { error: null };
 }
 
+/** An expense already paid (Jonathan, 26 October): the money has left, so
+ * it lands in the ledger confirmed, on the day it was paid, out of the
+ * account it was paid from -- no Settle, no reminder, no repeat. The same
+ * entry Move money and the receipt scanner record; this is the Add expense
+ * sheet's half for it. "For" ties it to a loan (which it pays down), an
+ * asset (upkeep, an addition, or buying it) or a goal, as Move money does. */
+export async function addPaidExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const particulars = clamp(String(formData.get("name") ?? ""), 200);
+  const amount = Number(formData.get("amount") ?? 0);
+  const day = String(formData.get("occurred_on") ?? "");
+  const accountId = String(formData.get("account_id") ?? "");
+  const category = clamp(String(formData.get("category") ?? ""), 100) || "Other";
+  const against = String(formData.get("against") ?? "");
+  const assetUse = String(formData.get("asset_use") ?? "upkeep");
+  if (!particulars) return { error: "Say what it was for." };
+  if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return { error: "Choose the day it was paid." };
+  if (!accountId) return { error: "Choose the account it was paid from." };
+  const [againstTable, againstId] = against.includes(":") ? against.split(":", 2) : ["", ""];
+  if (againstTable && !["assets", "goals", "liabilities"].includes(againstTable)) return { error: "That isn't something an expense can be for." };
+
+  // Paid today: now. An earlier day: midday UTC, which is that same day
+  // from UTC-12 to UTC+11, so the entry lands on the day chosen wherever
+  // the household is.
+  const todayHere = familyDay(new Date(), await householdZone());
+  const occurredAt = day === todayHere ? new Date().toISOString() : `${day}T12:00:00.000Z`;
+  const res = await recordMovementAction({
+    accountId,
+    direction: "out",
+    amount,
+    particulars,
+    category,
+    occurredAt,
+    viaApp: false,
+    againstTable: againstTable ? (againstTable as "assets" | "goals" | "liabilities") : null,
+    againstId: againstId || null,
+    assetUse: againstTable === "assets" && ["buy", "add", "upkeep"].includes(assetUse) ? (assetUse as "buy" | "add" | "upkeep") : undefined,
+    whose: String(formData.get("whose") ?? "me"),
+  });
+  return { error: res.error };
+}
+
 /* ------------------------------------------------------------------ bills */
 
 export async function addBillAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -953,6 +995,11 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
+  // A bill is money due on a day (Jonathan, 26 October): without one it
+  // reached neither Today, the calendar, Next 30 days nor a reminder, and
+  // sat under Expenses as "Due" with no date. An expense already paid is
+  // addPaidExpenseAction's, dated the day it was paid.
+  if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return { error: "Choose the day it is due." };
   // Which account it comes out of (Jonathan, 26 October), or none to
   // choose when settling. Read as the member: an account they can't see,
   // or another household's, is simply not found.

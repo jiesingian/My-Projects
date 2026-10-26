@@ -40,7 +40,8 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
   const [kind, setKind] = useState<ReceiptKind>("expense");
   const [amount, setAmount] = useState(0);
   const [date, setDate] = useState(today);
-  const [dueDate, setDueDate] = useState("");
+  // A bill is always dated (addBillAction): today unless the receipt says.
+  const [dueDate, setDueDate] = useState(today);
   const [payee, setPayee] = useState("");
   const [category, setCategory] = useState<string>("Other");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
