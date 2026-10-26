@@ -170,6 +170,11 @@ function whatThisBranchWouldCreate() {
       const altered = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?(?:public\.)?"?(\w+)"?/i.exec(statement);
       if (altered) {
         for (const m of statement.matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi)) columns.add(`${altered[1]}.${m[1]}`);
+        // A renamed column is one the code expects and the database does
+        // not have until the file runs, the same as an added one (27
+        // October, net_worth_snapshots.month -> day: the pull request
+        // renaming it went red for the name it was itself introducing).
+        for (const m of statement.matchAll(/rename\s+(?:column\s+)?"?(\w+)"?\s+to\s+"?(\w+)"?/gi)) columns.add(`${altered[1]}.${m[2]}`);
       }
     }
   }
