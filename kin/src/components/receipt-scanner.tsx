@@ -15,6 +15,8 @@ import { recordMovementAction, addBillAction } from "@/lib/actions/wealth";
 import { receiptParticulars, type ReceiptKind, type ScannedReceipt } from "@/lib/receipt-scan";
 import type { PickableAccount } from "@/components/money-actions";
 import { AccountOptions } from "@/components/account-options";
+import { ForSelect, type ExpenseTargets } from "@/components/for-select";
+import { sortByUse } from "@/lib/account-picker";
 
 const SOURCE_LABEL: Record<ScannedReceipt["source"], string> = {
   receipt: "a receipt",
@@ -32,7 +34,7 @@ const SOURCE_LABEL: Record<ScannedReceipt["source"], string> = {
  * whether the household may use it at all. Nothing is saved by the scan.
  * `today` is the household's day, from the server -- the browser's own clock
  * can be on a different day, which is how the money forms hit React #418. */
-export function ReceiptScanner({ accounts, currency, ready, plus, today }: { accounts: PickableAccount[]; currency: string; ready: boolean; plus: boolean; today: string }) {
+export function ReceiptScanner({ accounts, targets, currency, ready, plus, today }: { accounts: PickableAccount[]; targets: ExpenseTargets; currency: string; ready: boolean; plus: boolean; today: string }) {
   const uid = useId();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -45,6 +47,11 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
   const [payee, setPayee] = useState("");
   const [category, setCategory] = useState<string>("Other");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  // A bill's account, as Add expense's "Due later" asks it (Jonathan, 26
+  // October): the one Settle then starts on, or decided when settling.
+  const [billAccountId, setBillAccountId] = useState(sortByUse(accounts)[0]?.id ?? "");
+  // What it is for: a loan it pays down, an asset, a goal, or nothing.
+  const [against, setAgainst] = useState("");
   const [notes, setNotes] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -107,6 +114,8 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
           category,
           occurredAt,
           viaApp: false,
+          againstTable: against ? (against.split(":")[0] as "assets" | "goals" | "liabilities") : null,
+          againstId: against ? against.split(":")[1] : null,
         });
         if (res.error) return setError(res.error);
         setDone(`Recorded ${formatCurrency(amount, currency)} to ${payee.trim()} as ${category}.`);
@@ -117,6 +126,8 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
         form.set("due_date", dueDate);
         form.set("category", category);
         form.set("recurrence", "once");
+        form.set("account_id", billAccountId);
+        form.set("against", against);
         const res = await addBillAction({ error: null }, form);
         if (res.error) return setError(res.error);
         setDone(`Added ${payee.trim()}, ${formatCurrency(amount, currency)}${dueDate ? `, due ${dueDate}` : ""}, to Bills.`);
@@ -209,6 +220,23 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
               ))}
             </select>
           </Field>
+          {kind === "bill" && accounts.length > 0 && (
+            <Field label="Paid from">
+              <select className="input" value={billAccountId} onChange={(e) => setBillAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
+                <AccountOptions accounts={accounts} currency={currency} />
+                <option value="">Decide when settling</option>
+              </select>
+            </Field>
+          )}
+          <ForSelect
+            targets={targets}
+            value={against}
+            onChange={(v) => {
+              setAgainst(v);
+              if (v.startsWith("liabilities:")) setCategory("Debt");
+            }}
+            style={{ marginBottom: "0.875rem" }}
+          />
           {kind === "expense" && (
             <Field label="Out of account">
               {accounts.length === 0 ? (
