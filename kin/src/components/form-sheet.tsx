@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { Icon } from "@/components/icons";
 import { AnimatedSheet } from "@/components/animated-sheet";
+import { usePinnedActions } from "@/components/sheet-actions";
 
 /** A form that opens over the page instead of unfolding under whatever was
  * last on it (Janine, 12 October: Add account opening under the E-wallet
@@ -16,6 +17,7 @@ import { AnimatedSheet } from "@/components/animated-sheet";
  * the sheet is still sliding in pushes the sheet off the top of the screen. */
 export function FormSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
   const titleId = useId();
+  const body = usePinnedActions<HTMLDivElement>();
   return (
     <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxHeight: "92dvh" }}>
       <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
@@ -29,7 +31,9 @@ export function FormSheet({ open, onClose, title, children }: { open: boolean; o
           </button>
         </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0.25rem 1.125rem calc(env(safe-area-inset-bottom, 0) + 1.25rem)" }}>{children}</div>
+      <div ref={body} className="kin-sheet-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0.25rem 1.125rem calc(env(safe-area-inset-bottom, 0) + 1.25rem)" }}>
+        {children}
+      </div>
     </AnimatedSheet>
   );
 }
