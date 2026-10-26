@@ -826,8 +826,7 @@ export function CategoryBudgetRow({
   const router = useRouter();
   const label = categoryLabel(category);
   const budgeted = amount > 0;
-  const cap = budgeted ? amount : spent;
-  const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+  const pct = budgeted ? Math.min(100, Math.round((spent / amount) * 100)) : 0;
   const over = budgeted && spent > amount;
   const save = (next: number) =>
     startTransition(async () => {
@@ -852,9 +851,13 @@ export function CategoryBudgetRow({
           {budgeted ? ` / ${formatCurrency(amount, currency)}` : ""}
         </span>
       </div>
-      <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : color }} />
-      </div>
+      {/* A bar only against a budget (26 October): with none it measured
+          nothing. */}
+      {budgeted && (
+        <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
+          <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : color }} />
+        </div>
+      )}
       {budgeted && (
         <div style={{ fontSize: "0.75rem", marginTop: "0.1875rem", color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
           {over ? `${formatCurrency(spent - amount, currency)} over` : `${formatCurrency(amount - spent, currency)} left`}

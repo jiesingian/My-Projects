@@ -559,7 +559,6 @@ export function SpendingByPerson({
   // Each one's categories fold away under their name, folded to start
   // (Janine, 26 October).
   const [opened, setOpened] = useState<string[]>(openFirst);
-  const scale = Math.max(1, ...people.map((p) => Math.max(p.spent, p.budget ?? 0)));
   if (people.length === 0) return null;
   return (
     <div style={{ marginBottom: "1rem" }}>
@@ -571,6 +570,9 @@ export function SpendingByPerson({
       {people.map((p) => {
         const over = p.budget !== null && p.spent > p.budget;
         const within = p.budget !== null ? Math.min(p.spent, p.budget) : p.spent;
+        // Each against their own budget alone (26 October): someone with
+        // none has no bar, rather than a share of somebody else's.
+        const scale = Math.max(1, p.spent, p.budget ?? 0);
         const pctOf = (v: number) => `${(v / scale) * 100}%`;
         const key = p.memberId ?? "family";
         const open = opened.includes(key);
@@ -590,6 +592,12 @@ export function SpendingByPerson({
                   : p.budget !== null
                     ? `${formatCurrency(p.spent, currency)} of ${formatCurrency(p.budget, currency)}`
                     : formatCurrency(p.spent, currency)}
+                {/* What is left, or over, beside the amount (Janine, 26 October). */}
+                {p.hasVisibleAccounts && p.budget !== null && (
+                  <span style={{ marginLeft: "0.375rem", color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
+                    ({over ? `${formatCurrency(p.spent - p.budget, currency)} over` : `${formatCurrency(p.budget - p.spent, currency)} left`})
+                  </span>
+                )}
               </span>
               {details[key] && (
                 <button
@@ -606,6 +614,7 @@ export function SpendingByPerson({
                 </button>
               )}
             </div>
+            {p.budget !== null && (
             <div
               aria-hidden="true"
               style={{ position: "relative", height: 12, borderRadius: 4, background: "var(--color-neutral-200)", marginTop: "0.3125rem", overflow: "visible" }}
@@ -618,17 +627,19 @@ export function SpendingByPerson({
               )}
               {p.budget !== null && <div style={{ position: "absolute", top: -3, bottom: -3, left: `calc(${pctOf(p.budget)} - 1px)`, width: 2, borderRadius: 1, background: "var(--color-text)" }} />}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
-              <span style={{ ...muted, color: over ? "var(--color-accent-700)" : muted.color }}>
-                {!p.hasVisibleAccounts && p.budget === null
-                  ? p.memberId === null ? "No joint accounts or budget yet" : "Their accounts are private to them."
-                  : p.budget === null
-                    ? "No budget set"
-                    : over
-                      ? `Over by ${formatCurrency(p.spent - p.budget, currency)}`
-                      : `${formatCurrency(p.budget - p.spent, currency)} left`}
-              </span>
-            </div>
+            )}
+            {/* With a budget, what is left sits beside the amount above. */}
+            {(p.budget === null || !p.hasVisibleAccounts) && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+                <span style={muted}>
+                  {!p.hasVisibleAccounts && p.budget === null
+                    ? p.memberId === null ? "No joint accounts or budget yet" : "Their accounts are private to them."
+                    : p.budget === null
+                      ? "No budget set"
+                      : p.memberId === null ? "No joint accounts yet" : "Their accounts are private to them."}
+                </span>
+              </div>
+            )}
             {open && details[key] && <div style={{ margin: "0.75rem 0 1.25rem", paddingLeft: "0.75rem", borderLeft: "2px solid var(--color-neutral-200)" }}>{details[key]}</div>}
           </div>
         );
