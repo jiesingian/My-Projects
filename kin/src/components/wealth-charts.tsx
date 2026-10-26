@@ -630,6 +630,9 @@ export type BreakdownItem = {
   category: string;
   sub?: string;
   actions?: React.ReactNode;
+  /** Open this line's owner and category on arrival -- a deep link to it
+   * (Today's Pay lands on a bill) when the groups otherwise start folded. */
+  reveal?: boolean;
 };
 /** One hue per owner, in a fixed order -- Joint first, then each member in
  * the household's order -- so a person keeps their colour whichever Who is
@@ -711,9 +714,10 @@ export function GroupedBreakdown({
         label: mine[0].ownerLabel,
         slot: mine[0].ownerSlot,
         sum: mine.reduce((t, i) => t + i.amount, 0),
+        reveal: mine.some((i) => i.reveal),
         cats: cats.map((c) => {
           const lines = mine.filter((i) => i.category === c).sort((x, y) => y.amount - x.amount);
-          return { name: c, lines, sum: lines.reduce((t, i) => t + i.amount, 0) };
+          return { name: c, lines, sum: lines.reduce((t, i) => t + i.amount, 0), reveal: lines.some((i) => i.reveal) };
         }),
       };
     })
@@ -795,9 +799,11 @@ export function GroupedBreakdown({
       {(head ? showPie : items.length > 0) && (
         <div style={head ? { marginTop: "0.5rem", borderTop: "1px solid var(--color-divider)" } : undefined}>
           {colored.map((o) => (
-            <FoldableSection key={o.key} label={o.label.toUpperCase()} storageKey={`${storageKey}-${o.key}`} swatch={single ? undefined : ownerHue(o.slot)} right={figures(o.sum)}>
+            // Folded on every visit, not as last left (Janine, 26 October):
+            // the donut and the owner totals are the first read.
+            <FoldableSection key={o.key} remember={false} defaultOpen={o.reveal} label={o.label.toUpperCase()} storageKey={`${storageKey}-${o.key}`} swatch={single ? undefined : ownerHue(o.slot)} right={figures(o.sum)}>
               {o.cats.map((c) => (
-                <FoldableSection key={c.name} level={2} label={c.name.toUpperCase()} storageKey={`${storageKey}-${o.key}-${c.name}`} swatch={c.fill} right={figures(c.sum, c.lines.length)}>
+                <FoldableSection key={c.name} level={2} remember={false} defaultOpen={c.reveal} label={c.name.toUpperCase()} storageKey={`${storageKey}-${o.key}-${c.name}`} swatch={c.fill} right={figures(c.sum, c.lines.length)}>
                   {c.lines.map((l) => (
                     <div
                       key={l.id}

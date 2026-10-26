@@ -1,6 +1,7 @@
 import { test, expect, request as playwrightRequest, type Page } from "@playwright/test";
 import { nextBillDate } from "@/lib/bill-roll";
 import { familyDay } from "@/lib/time";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** "Add next month's <bill>?" (#833), driven in the app as the sample
  * household, a grown-up on Plus.
@@ -101,6 +102,8 @@ const today = () => familyDay(new Date(), session?.tz ?? "Asia/Manila");
  * "none". */
 async function expectNoOffer(page: Page, name: string, billId: string) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
+  // The owner and category groups start folded on every visit (26 October).
+  await expandAllCollapsedGroups(page);
   // Its line in the owner → category breakdown: "Bills & utilities - <name>",
   // marked settled underneath. The name and what sits under it (Due …,
   // Settled …) share one element, so the match is on how the line starts; no
@@ -217,6 +220,7 @@ for (const simple of [false, true]) {
           const tall = await card.locator("button").evaluateAll((els) => els.map((e) => [e.textContent?.trim(), e.getBoundingClientRect().height] as const));
           for (const [label, height] of tall) expect(height, `"${label}" on ${path}`).toBeGreaterThanOrEqual(simple ? 44 : 40);
           if (path.startsWith("/wealth")) {
+            await expandAllCollapsedGroups(page);
             // The open bill's own row: Settle, the reminder and Remove.
             const row = page.locator(`#bill-${open.id}`);
             await expect(row).toBeVisible();

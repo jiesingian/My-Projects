@@ -644,6 +644,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     // one of the same name still open stands on its own.
     const key = expenseLines.get(base)?.buttons.length ? `${base}:${bill.id}` : base;
     const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${bill.name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
+    if (bill.id === billId) line.reveal = true;
     line.tail.push(`${bill.status === "scheduled" ? "Payment waiting on confirmation" : "Due"}${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""} · ${formatCurrency(Number(bill.amount), currency)}`);
     // The id is what Today's Pay button lands on.
     line.buttons.push(
