@@ -716,7 +716,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // only. Each line, with its entries to edit or remove and a bill's
   // Settle, Remind and Remove, sits under its category in its owner's block
   // under SPENDING BY PERSON instead.
-  const expenseLinesDone = finish(expenseLines, "payment");
+  // "3 expenses · last 23 Oct": the category above counts expenses too.
+  const expenseLinesDone = finish(expenseLines, "expense");
   const expenseItems = expenseLinesDone.map(({ actions: _actions, ...item }) => item);
   const linesFor = (memberId: string | null, category: string) =>
     expenseLinesDone.filter((l) => l.ownerKey === (memberId ?? "joint") && l.category === categoryLabel(category));
