@@ -1660,6 +1660,140 @@ export type Database = {
           },
         ]
       }
+      spending_budgets: {
+        Row: {
+          amount: number
+          category: string
+          family_id: string
+          from_month: string
+          id: string
+          member_id: string | null
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          family_id: string
+          from_month: string
+          id?: string
+          member_id?: string | null
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          family_id?: string
+          from_month?: string
+          id?: string
+          member_id?: string | null
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_budgets_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_budgets_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_budgets_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_sharing: {
+        Row: {
+          family_id: string
+          is_private: boolean
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          family_id: string
+          is_private?: boolean
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          family_id?: string
+          is_private?: boolean
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_sharing_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_sharing_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_viewers: {
+        Row: {
+          added_at: string
+          family_id: string
+          owner_member_id: string
+          viewer_member_id: string
+        }
+        Insert: {
+          added_at?: string
+          family_id: string
+          owner_member_id: string
+          viewer_member_id: string
+        }
+        Update: {
+          added_at?: string
+          family_id?: string
+          owner_member_id?: string
+          viewer_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_viewers_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_viewers_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_viewers_viewer_member_id_fkey"
+            columns: ["viewer_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_allocations: {
         Row: {
           amount: number
