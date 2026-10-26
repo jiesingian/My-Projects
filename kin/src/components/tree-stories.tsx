@@ -418,7 +418,9 @@ function StoryForm({
   const clock = `${Math.floor(recordedFor / 60)}:${String(Math.floor(recordedFor % 60)).padStart(2, "0")}`;
 
   return (
-    <div className="kin-story kin-story-form">
+    // data-unsaved: a recording or a picked file is work a swipe must not
+    // throw away unasked (animated-sheet.tsx), though no field was typed in.
+    <div className="kin-story kin-story-form" data-unsaved={picked.length > 0 || recordingSince !== null ? "" : undefined}>
       <div className="kin-treepanel-label">{story ? "Edit the story" : `A story about ${firstName}`}</div>
 
       <label className="kin-story-field">
