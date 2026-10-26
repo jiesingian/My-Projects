@@ -39,6 +39,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
+import { formatCurrency } from "@/lib/format";
 import { AccountNumberField } from "@/components/account-number";
 import { AudienceChoices, type AudienceMode } from "@/components/money-actions";
 
@@ -793,16 +794,38 @@ export function SetTargetControl({ month, year, current }: { month: number; year
   );
 }
 
-/** A category budget's own Change and Remove, on its row under BUDGET VS
- * SPEND BY CATEGORY (25 October). Change opens on what is set now; Remove
- * saves it as 0 from this month on, which reads as no budget. `whose` is
- * Family ("family") or a member id (26 October). */
-export function CategoryBudgetActions({ whose, category, amount }: { whose: string; category: string; amount: number }) {
+/** One category under BUDGET VS SPEND BY CATEGORY: what was spent, against
+ * its budget if it has one, with what is left or over under the bar. Whoever
+ * may set this budget taps the row (26 October) -- a sheet to change or
+ * remove it, or, with no budget yet, to set one. Saving 0 from this month
+ * on is removing it. `whose` is Family ("family") or a member id. */
+export function CategoryBudgetRow({
+  whose,
+  category,
+  amount,
+  spent,
+  currency,
+  color,
+  canEdit,
+}: {
+  whose: string;
+  category: string;
+  amount: number;
+  spent: number;
+  currency: string;
+  color: string;
+  canEdit: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(amount);
   const [failed, setFailed] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const label = categoryLabel(category);
+  const budgeted = amount > 0;
+  const cap = budgeted ? amount : spent;
+  const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+  const over = budgeted && spent > amount;
   const save = (next: number) =>
     startTransition(async () => {
       const { error } = await setSpendingBudgetAction({ whose, category, amount: next });
@@ -812,33 +835,74 @@ export function CategoryBudgetActions({ whose, category, amount }: { whose: stri
         router.refresh();
       }
     });
+
+  const body = (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.84375rem", marginBottom: "0.25rem" }}>
+        <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", marginRight: "0.0625rem", flex: "none" }} />
+        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        {!budgeted && <span style={{ fontSize: "0.75rem", color: canEdit ? "var(--color-switch-on)" : "var(--color-neutral-600)", flex: "none" }}>{canEdit ? "set budget" : "no budget"}</span>}
+        {/* Never cut off (26 October): the amount keeps its width and the
+            name gives way. */}
+        <span style={{ marginLeft: "auto", flex: "none", whiteSpace: "nowrap", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", paddingLeft: "0.5rem" }}>
+          {formatCurrency(spent, currency)}
+          {budgeted ? ` / ${formatCurrency(amount, currency)}` : ""}
+        </span>
+      </div>
+      <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : color }} />
+      </div>
+      {budgeted && (
+        <div style={{ fontSize: "0.75rem", marginTop: "0.1875rem", color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
+          {over ? `${formatCurrency(spent - amount, currency)} over` : `${formatCurrency(amount - spent, currency)} left`}
+        </div>
+      )}
+    </>
+  );
+
+  if (!canEdit) return <div style={{ marginBottom: "0.6875rem" }}>{body}</div>;
   return (
-    <span style={{ display: "inline-flex", gap: "0.25rem", marginLeft: "0.375rem" }}>
-      <button type="button" className="btn btn-ghost" disabled={pending} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.4375rem" }} onClick={() => setOpen(true)}>
-        Change<span className="sr-only"> the {categoryLabel(category)} budget</span>
-      </button>
+    <>
       <button
         type="button"
-        className="btn btn-ghost"
-        disabled={pending}
-        style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.4375rem", color: "var(--color-neutral-700)" }}
-        onClick={async () => {
-          if (!(await confirm({ title: `Remove the ${categoryLabel(category)} budget?`, description: "What was spent stays; it just shows with no budget.", confirmLabel: "Remove", danger: true }))) return;
-          save(0);
+        onClick={() => {
+          setValue(amount);
+          setFailed(null);
+          setOpen(true);
         }}
+        aria-label={budgeted ? `${label}: change or remove its budget` : `${label}: set a budget`}
+        style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: 0, margin: "0 0 0.6875rem", color: "inherit", font: "inherit", cursor: "pointer" }}
       >
-        Remove<span className="sr-only"> the {categoryLabel(category)} budget</span>
+        {body}
       </button>
-      {failed && <span role="alert" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>{failed}</span>}
-      <FormSheet open={open} onClose={() => setOpen(false)} title={`${categoryLabel(category)} budget`}>
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-          <AmountInput ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem", flex: 1 }} />
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`${label} budget`}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
+          {formatCurrency(spent, currency)} spent this month.{budgeted ? "" : " Set how much to spend on it each month."}
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+          <AmountInput key={String(open)} ariaLabel="Amount" defaultValue={amount || undefined} onValueChange={setValue} style={{ minHeight: "2.5rem", flex: 1 }} />
           <button type="button" className="btn btn-primary" disabled={pending || !(value > 0)} style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => save(value)}>
             {pending ? "…" : "Save"}
           </button>
         </div>
+        {failed && <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "0 0 0.75rem" }}>{failed}</p>}
+        {budgeted && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-block"
+            disabled={pending}
+            style={{ minHeight: "2.5rem", fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.75rem" }}
+            onClick={async () => {
+              if (!(await confirm({ title: `Remove the ${label} budget?`, description: "From this month on. What was spent stays; it just shows with no budget.", confirmLabel: "Remove", danger: true }))) return;
+              save(0);
+            }}
+          >
+            Remove budget
+          </button>
+        )}
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>It repeats every month until you change or remove it.</p>
       </FormSheet>
-    </span>
+    </>
   );
 }
 

@@ -10,7 +10,7 @@ import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchived
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetActions, BudgetVisibility } from "@/components/wealth-controls";
+import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
 import {
   PayBillControl,
   ReceiveIncomeControl,
@@ -539,7 +539,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   // one is the household's spending ceiling (Expenses), the other a
   // member's own earning target (Income) -- both monthly by nature of the
   // tables behind them, independent of whichever graph range is active.
-  const categories = [...budget.allocations, ...budget.unbudgeted];
+  // Over budget first, most over at the top (26 October), then the rest
+  // as budgeted, then what was spent with no budget.
+  const overBy = (c: { amount: number; spent: number }) => (c.amount > 0 ? c.spent - c.amount : 0);
+  const categories = [...[...budget.allocations].sort((a, b) => Math.max(0, overBy(b)) - Math.max(0, overBy(a))), ...budget.unbudgeted];
   const momChange = periodOverPeriodChange(cf.history);
 
   // "Whose is it?" on the add forms: You, each other member, Family.
@@ -749,31 +752,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {categories.length === 0 && (
         <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
-      {categories.map((c) => {
-        const cap = c.amount > 0 ? c.amount : c.spent;
-        const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
-        const over = c.amount > 0 && c.spent > c.amount;
-        return (
-          <div key={c.id} style={{ marginBottom: "0.6875rem" }}>
-            <div style={{ display: "flex", alignItems: "center", fontSize: "0.84375rem", marginBottom: "0.25rem" }}>
-              <i
-                aria-hidden="true"
-                style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: "0.4375rem", flex: "none" }}
-              />
-              <span>{categoryLabel(c.category)}</span>
-              {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
-              {canSetBudgets && c.amount > 0 && <CategoryBudgetActions whose={scopeWhose(scope)} category={c.category} amount={c.amount} />}
-              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
-                {formatCurrency(c.spent, currency)}
-                {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
-              </span>
-            </div>
-            <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : expenseCategoryColor(c.category) }} />
-            </div>
-          </div>
-        );
-      })}
+      {categories.map((c) => (
+        <CategoryBudgetRow
+          key={c.id}
+          whose={scopeWhose(scope)}
+          category={c.category}
+          amount={c.amount}
+          spent={c.spent}
+          currency={currency}
+          color={expenseCategoryColor(c.category)}
+          canEdit={canSetBudgets}
+        />
+      ))}
       {canSetBudgets && <div style={{ marginTop: "0.75rem" }}><AllocationEditor whose={scopeWhose(scope)} budgeted={budget.allocations.map((a) => a.category)} /></div>}
       {scope === "all" && (
         <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 1rem" }}>
