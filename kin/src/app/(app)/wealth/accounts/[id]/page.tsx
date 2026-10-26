@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
 import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { isGone } from "@/lib/member-status";
@@ -13,6 +13,7 @@ import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
+import { entryFor } from "@/lib/entry-for";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency, shortNames } from "@/lib/format";
@@ -25,13 +26,15 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const sp = await searchParams;
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
-  const [{ account, entries }, history, numbers, viewers, members, allAccounts] = await Promise.all([
+  const [{ account, entries }, history, numbers, viewers, members, allAccounts, targets] = await Promise.all([
     getAccountDetail(me.family_id, id),
     getAccountHistory(me.family_id, id, range),
     getAccountNumbers(me.family_id, [id]),
     getAccountViewers(me.family_id),
     getMembers(me.family_id),
     getAccounts(me.family_id),
+    // What an entry can be re-tied to from Edit: a loan, an asset, a goal.
+    getAttributableTargets(me.family_id),
   ]);
   if (!account) notFound();
   // Where an entry can be moved to from Edit: joint and the member's own,
@@ -179,8 +182,9 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             {/* A transfer is two entries that must agree: removed, not edited. */}
             {!e.transfer_group_id && (
               <EditEntryButton
-                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountId: e.account_id, accountName: e.accountName }}
+                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountId: e.account_id, accountName: e.accountName, ...entryFor(e) }}
                 accounts={pickable}
+                targets={targets}
                 currency={currency}
               />
             )}

@@ -49,6 +49,7 @@ export type { PickableAccount } from "@/lib/account-picker";
 import type { PickableAccount } from "@/lib/account-picker";
 import { AccountOptions } from "@/components/account-options";
 import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
+import { ForSelect, type ExpenseTargets } from "@/components/for-select";
 import { raiseNextBill } from "@/components/next-bill-offer";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
@@ -521,12 +522,28 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
 }
 
 /** One entry behind a Cash Flow line, as the line's list shows it. */
-export type LineEntry = { id: string; particulars: string; amount: number; occurredOn: string; category: string | null; direction: string; accountId: string; accountName: string };
+export type LineEntry = {
+  id: string;
+  particulars: string;
+  amount: number;
+  occurredOn: string;
+  category: string | null;
+  direction: string;
+  accountId: string;
+  accountName: string;
+  /** What it was for: "liabilities:<id>", "assets:<id>", "goals:<id>" or
+   * "" (Jonathan, 26 October). Null when it cannot change here, with
+   * `forLocked` saying why: it settled a bill or came from another hub,
+   * or it bought or added to an asset (its item is on the asset). */
+  forKey: string | null;
+  forLocked: string | null;
+};
+
 
 /** The entries a Cash Flow line adds up (Janine, 25 October): a line is
  * every entry of one name and category, so it has no single entry to edit
  * or remove. Tapping "N entries" opens them, each with Edit and Remove. */
-export function LineEntries({ entries, accounts, currency, dateFormat }: { entries: LineEntry[]; accounts: PickableAccount[]; currency: string; dateFormat: string }) {
+export function LineEntries({ entries, accounts, targets, currency, dateFormat }: { entries: LineEntry[]; accounts: PickableAccount[]; targets: ExpenseTargets; currency: string; dateFormat: string }) {
   const [open, setOpen] = useState(false);
   if (entries.length === 0) return null;
   return (
@@ -546,7 +563,7 @@ export function LineEntries({ entries, accounts, currency, dateFormat }: { entri
               </span>
               <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>{formatCurrency(e.amount, currency)}</span>
               <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>
-                <EditEntryButton entry={e} accounts={accounts} currency={currency} />
+                <EditEntryButton entry={e} accounts={accounts} targets={targets} currency={currency} />
                 <DeleteEntryButton transactionId={e.id} />
               </span>
             </li>
@@ -557,13 +574,19 @@ export function LineEntries({ entries, accounts, currency, dateFormat }: { entri
   );
 }
 
-export function EditEntryButton({ entry, accounts, currency }: { entry: LineEntry; accounts: PickableAccount[]; currency: string }) {
+export function EditEntryButton({ entry, accounts, targets, currency }: { entry: LineEntry; accounts: PickableAccount[]; targets: ExpenseTargets; currency: string }) {
   const [open, setOpen] = useState(false);
   const [particulars, setParticulars] = useState(entry.particulars);
   const [amount, setAmount] = useState(entry.amount);
   const [occurredOn, setOccurredOn] = useState(entry.occurredOn);
   const [category, setCategory] = useState(entry.category ?? "");
   const [accountId, setAccountId] = useState(entry.accountId);
+  // What it was for (Jonathan, 26 October): re-tied to a loan, an asset or
+  // a goal, or to nothing. A loan picked shows Kin's split, the principal
+  // there to change; null follows the split as the amount changes.
+  const [forKey, setForKey] = useState(entry.forKey ?? "");
+  const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
+  const loan = entry.direction === "out" && forKey.startsWith("liabilities:") ? targets.loans.find((l) => `liabilities:${l.id}` === forKey) : undefined;
   const { error, pending, run } = useMoneyAction();
   const uid = useId();
   const choices: readonly string[] = entry.direction === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES;
@@ -588,7 +611,16 @@ export function EditEntryButton({ entry, accounts, currency }: { entry: LineEntr
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
               <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
-              <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+              <AmountInput
+                id={`${uid}-amount`}
+                ariaLabel={`Amount (${currencySymbol(currency)})`}
+                defaultValue={amount}
+                onValueChange={(v) => {
+                  setAmount(v);
+                  setPrincipalOverride(null);
+                }}
+                style={{ minHeight: "2.625rem" }}
+              />
             </div>
             <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
               <label htmlFor={`${uid}-on`}>{entry.direction === "in" ? "Received on" : "Paid on"}</label>
@@ -605,20 +637,50 @@ export function EditEntryButton({ entry, accounts, currency }: { entry: LineEntr
               ))}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: "0.75rem" }}>
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
             <label htmlFor={`${uid}-account`}>{entry.direction === "in" ? "Paid into" : "Paid from"}</label>
             <select id={`${uid}-account`} className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.625rem" }}>
               {!onPickable && <option value={entry.accountId}>{entry.accountName}</option>}
               <AccountOptions accounts={accounts} currency={currency} />
             </select>
           </div>
+          {entry.forKey !== null ? (
+            <ForSelect
+              targets={targets}
+              value={forKey}
+              loans={entry.direction === "out"}
+              label={entry.direction === "in" ? "Income from (optional)" : "For (optional)"}
+              onChange={(v) => {
+                setForKey(v);
+                setPrincipalOverride(null);
+                if (v.startsWith("liabilities:")) setCategory("Debt");
+              }}
+            />
+          ) : (
+            entry.forLocked && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.45 }}>{entry.forLocked}</p>
+          )}
+          {loan && <LoanSplitBox loan={loan} amount={amount} currency={currency} override={principalOverride} onOverride={setPrincipalOverride} />}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => updateTransactionAction(entry.id, { particulars, amount, occurredOn, category: category || null, accountId }), () => setOpen(false))}
+              onClick={() =>
+                run(
+                  () =>
+                    updateTransactionAction(entry.id, {
+                      particulars,
+                      amount,
+                      occurredOn,
+                      category: category || null,
+                      accountId,
+                      ...(entry.forKey !== null && forKey !== entry.forKey ? { against: forKey } : {}),
+                      principal: loan ? principalOverride : null,
+                    }),
+                  () => setOpen(false),
+                )
+              }
             >
               {pending ? "…" : "Save"}
             </button>
