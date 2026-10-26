@@ -561,6 +561,19 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     const i = who.active.findIndex((m) => m.id === scope);
     if (i >= 0) people.push({ memberId: scope, label: who.labels[i], order: i, spent: 0, hasVisibleAccounts: false, budget: null, categories: [] });
   }
+  // Whoever has a bill open gets a block too (26 October, the Add expense
+  // spec): the bill's line, with Settle and "did it go through?", lives
+  // there and nowhere else, and a first bill can come before any spending.
+  for (const bill of cf.openBills) {
+    const whose = bill.is_joint !== false || !bill.owner_member_id ? null : bill.owner_member_id;
+    if (people.some((p) => p.memberId === whose)) continue;
+    if (scope !== "all" && (scope === WEALTH_FAMILY ? whose !== null : whose !== scope)) continue;
+    const i = whose ? who.active.findIndex((m) => m.id === whose) : -1;
+    if (whose && i < 0) continue;
+    const grown = i >= 0 && isGrownUp(who.active[i].role);
+    people.push({ memberId: whose, label: whose ? who.labels[i] : "Family", order: whose ? (grown ? i : who.active.length + i) : -1, spent: 0, hasVisibleAccounts: false, budget: null, categories: [] });
+  }
+  people.sort((a, b) => a.order - b.order);
   const audience = who.active.flatMap((m, i) => (m.id === memberId ? [] : [{ id: m.id, label: who.labels[i], grownUp: isGrownUp(m.role), hasLogin: m.role !== "child_managed" }]));
   // Over budget first, most over at the top, then the rest as budgeted,
   // then what was spent with no budget.

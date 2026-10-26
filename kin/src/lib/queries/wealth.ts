@@ -734,10 +734,17 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   };
   const owners = new Set<string | null>(accounts.map((a) => (a.is_joint ? null : a.owner_member_id)));
   for (const id of budgets.keys()) owners.add(id === FAMILY_BUDGET ? null : id);
+  // Whoever spent this month is listed too (26 October, the Add expense
+  // spec): an expense can be someone's without an account of their own --
+  // a child's fare paid from the joint account, a household whose only
+  // account is joint -- and Spending by person is where its line, with
+  // Edit and a bill's Settle, lives. Their spending is in view by the same
+  // token: it came out of an account the viewer can see.
+  for (const id of spent.keys()) owners.add(id);
   return [...owners].map((memberId) => ({
     memberId,
     spent: spent.get(memberId) ?? 0,
-    hasVisibleAccounts: accounts.some((a) => (a.is_joint ? null : a.owner_member_id) === memberId),
+    hasVisibleAccounts: accounts.some((a) => (a.is_joint ? null : a.owner_member_id) === memberId) || spent.has(memberId),
     budget: budgets.get(budgetWhose(memberId)) ?? null,
     categories: categoriesOf(memberId),
   }));
