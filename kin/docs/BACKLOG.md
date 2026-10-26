@@ -138,6 +138,20 @@ all Jonathan's on 23 October, each the recommended option:
   is unchanged), and the type-it line reads an expense ("paid Meralco
   2300", opening the expense form filled in) and a meal ("dinner adobo
   tomorrow", onto the plan). The series is complete.
+- **Done (26 October, the phone check):** the rows are compact -- icon,
+  title over its detail, Done/Skip (Taken, Pay, Undo) on the right of the
+  same line (Jonathan: the cards "do not utilize space on the right side
+  and expand vertically"); the first five open rows show, the rest behind
+  "Show N more", the answered ones folded into one "N done today" line
+  that opens to them (Undo lives there). The Medicine tile went: it said
+  what the dose rows say. In its place "This week" counts what Coming up
+  holds ("7 things · coming up this week") and opens it. Goals, To buy and
+  Money stay as they were.
+- **Not changed (26 October):** the Google default stays on for the whole
+  household. Sharing an event with the relatives or the family tree it
+  involves is a possible later feature, not decided. Reading a typed
+  expense better waits for the AI work planned after the basics are
+  polished (Jonathan).
 - Kept off Today on purpose: meals (header), unread chat (tab badge),
   connection and link requests and pending members (Family), highlights,
   story prompts, vitals and growth, approvals (Goals → Shop).

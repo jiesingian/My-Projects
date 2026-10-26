@@ -2,10 +2,10 @@
 
 import { useHouseholdZone } from "@/components/household-zone";
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { RowButton, RowState, TodayRow } from "@/components/today-row";
+import { splitToday, TODAY_SHOWN } from "@/lib/today-fold";
 import { ErrorText } from "@/components/form";
 import { OFFLINE_ONLY_DONE, TaskRow, WaitingToSend } from "@/components/today-task-list";
 import { markTodayItemAction, unmarkTodayItemAction } from "@/lib/actions/today";
@@ -33,7 +33,12 @@ const TINT: Record<BriefItem["tint"], string> = {
 /** Today as one list (approved 28 September): chores and everything else due
  * today, urgent first, then in the order the day happens, finished ones at the
  * bottom. The order is decided on the server (today/page.tsx), so the phone
- * and the server always agree on it. */
+ * and the server always agree on it.
+ *
+ * A long day stays short (Jonathan, 26 October: "if a lot of tasks are
+ * recorded, it might flood today"): the first five still open show, the
+ * rest wait behind "Show N more", and what is answered folds into one
+ * "N done today" line that opens to the rows (Undo lives there). */
 export function TodayList({ entries }: { entries: TodayEntry[] }) {
   const tz = useHouseholdZone();
   // "Done" tapped while offline waits in the queue (lib/offline/live); read
@@ -41,16 +46,35 @@ export function TodayList({ entries }: { entries: TodayEntry[] }) {
   const queue = useQueue();
   const waiting = new Set(queue.flatMap((q) => (q.kind === "today.mark" ? [q.key] : [])));
   const day = familyDay(new Date(), tz);
+  const [all, setAll] = useState(false);
+  const [doneOpen, setDoneOpen] = useState(false);
+  const { open, more, done } = splitToday(entries, all ? Infinity : TODAY_SHOWN);
+  const row = (e: TodayEntry) =>
+    e.kind === "task" ? (
+      <TaskRow key={`t-${e.task.id}`} task={e.task} queued={waiting.has(`chore-${e.task.id}`)} />
+    ) : e.kind === "dose" ? (
+      <DoseRow key={e.dose.id} dose={e.dose} day={day} />
+    ) : (
+      <ItemRow key={e.item.id} item={e.item} queued={waiting.has(e.item.id)} />
+    );
   return (
     <>
-      {entries.map((e) =>
-        e.kind === "task" ? (
-          <TaskRow key={`t-${e.task.id}`} task={e.task} queued={waiting.has(`chore-${e.task.id}`)} />
-        ) : e.kind === "dose" ? (
-          <DoseRow key={e.dose.id} dose={e.dose} day={day} />
-        ) : (
-          <ItemRow key={e.item.id} item={e.item} queued={waiting.has(e.item.id)} />
-        ),
+      <div className="kin-today-rows">{open.map(row)}</div>
+      {more > 0 && (
+        <button type="button" className="kin-today-more" onClick={() => setAll(true)}>
+          Show {more} more
+          <Icon name="chevronLeft" size={14} className="kin-today-more-chev" />
+        </button>
+      )}
+      {done.length > 0 && (
+        <>
+          <button type="button" className="kin-today-more" aria-expanded={doneOpen} onClick={() => setDoneOpen((v) => !v)}>
+            <Icon name="check" size={14} />
+            {done.length} done today
+            <Icon name="chevronLeft" size={14} className="kin-today-more-chev" data-open={doneOpen || undefined} />
+          </button>
+          {doneOpen && <div className="kin-today-rows">{done.map(row)}</div>}
+        </>
       )}
     </>
   );
@@ -98,67 +122,55 @@ function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
       }
     });
 
-  const small = { minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" } as const;
+  const metaStyle = item.urgent && !item.mark ? { color: "color-mix(in srgb, var(--cal-money) 55%, var(--color-text))" } : undefined;
 
   return (
-    <Blueprint
-      style={{
-        padding: "0.8125rem",
-        marginBottom: "0.5625rem",
-        boxShadow: item.mark === "done" ? "inset 3px 0 0 var(--color-switch-on)" : !item.mark && item.urgent ? "inset 3px 0 0 var(--cal-money)" : undefined,
-        opacity: item.mark ? 0.78 : 1,
-      }}
-    >
-      <Link href={item.href} style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start", color: "inherit", textDecoration: "none" }}>
-        <span className="kin-tile3d" style={{ width: 30, height: 30, flex: "none", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: TINT[item.tint], color: "#fff" }}>
-          <Icon name={item.icon} size={16} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", font: "600 0.96875rem/1.2 var(--font-heading)", textDecoration: item.mark ? "line-through" : undefined }}>{item.title}</span>
-          <span style={{ display: "block", fontSize: "0.78125rem", color: item.urgent && !item.mark ? "color-mix(in srgb, var(--cal-money) 55%, var(--color-text))" : "var(--color-neutral-600)", marginTop: "0.125rem" }}>{item.meta}</span>
-        </span>
-      </Link>
-
-      {item.action && (
-        <div style={{ marginTop: "0.625rem", display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
-          {queued && !item.mark ? (
-            <WaitingToSend />
-          ) : item.mark ? (
-            <>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.78125rem", fontWeight: 500 }}>
-                <Icon name={item.mark === "done" ? "check" : "x"} size={14} />
-                {item.mark === "done" ? "Done today" : "Skipped today"}
-              </span>
-              <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }}>
-                Undo
-              </button>
-            </>
-          ) : (
-            <>
-              {item.action === "done" ? (
-                <button type="button" className="btn btn-primary" disabled={pending} onClick={() => mark("done")} style={small}>
-                  <Icon name="check" size={14} />
-                  Done
-                </button>
-              ) : (
-                // Paying records money leaving an account, and shopping is
-                // ticking the list; both happen where they live -- as do
-                // recording money coming back, confirming a payment made
-                // elsewhere and receiving income (23 October).
-                <Link href={item.href} className="btn btn-primary" style={small}>
-                  <Icon name={item.action === "shop" ? "basket" : item.action === "confirm" ? "check" : "wallet"} size={14} />
-                  {ACTION_LABEL[item.action]}
-                </Link>
-              )}
-              <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => mark("skipped")} style={{ ...small, padding: "0 0.75rem" }}>
-                Skip
-              </button>
-            </>
-          )}
-        </div>
-      )}
-      {item.rsvp && <RsvpButtons eventId={item.rsvp.eventId} memberId={item.rsvp.memberId} />}
-      <ErrorText message={error} />
-    </Blueprint>
+    <TodayRow
+      href={item.href}
+      icon={item.icon}
+      tintColor={TINT[item.tint]}
+      title={item.title}
+      struck={!!item.mark}
+      accent={item.mark === "done" ? "done" : !item.mark && item.urgent ? "urgent" : null}
+      faded={!!item.mark}
+      meta={
+        item.mark === "done" ? (
+          <RowState icon="check" tone="strong">
+            Done today
+          </RowState>
+        ) : item.mark ? (
+          <RowState icon="x">Skipped today</RowState>
+        ) : (
+          item.meta
+        )
+      }
+      metaStyle={metaStyle}
+      actions={
+        !item.action ? null : queued && !item.mark ? (
+          <WaitingToSend />
+        ) : item.mark ? (
+          <RowButton kind="ghost" label="Undo" disabled={pending} onClick={undo} />
+        ) : (
+          <>
+            {item.action === "done" ? (
+              <RowButton kind="primary" icon="check" label="Done" disabled={pending} onClick={() => mark("done")} />
+            ) : (
+              // Paying records money leaving an account, and shopping is
+              // ticking the list; both happen where they live -- as do
+              // recording money coming back, confirming a payment made
+              // elsewhere and receiving income (23 October).
+              <RowButton kind="primary" icon={item.action === "shop" ? "basket" : item.action === "confirm" ? "check" : "wallet"} label={ACTION_LABEL[item.action]} href={item.href} />
+            )}
+            <RowButton kind="secondary" icon="x" label="Skip" disabled={pending} onClick={() => mark("skipped")} />
+          </>
+        )
+      }
+      line={
+        <>
+          {item.rsvp && <RsvpButtons eventId={item.rsvp.eventId} memberId={item.rsvp.memberId} />}
+          <ErrorText message={error} />
+        </>
+      }
+    />
   );
 }

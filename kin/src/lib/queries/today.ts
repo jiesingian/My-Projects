@@ -17,7 +17,6 @@ import { isChild, isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { dosesFor, type DueDose } from "@/lib/health-plan";
 import { doseRows, type TodayDose } from "@/lib/today-doses";
-import { medicineGlance } from "@/lib/medicine-glance";
 import { shopGlance } from "@/lib/shop-glance";
 import { eventIsCurrent } from "@/lib/planner-done";
 import { nextEventDate } from "@/lib/grocery";
@@ -75,7 +74,7 @@ export type BriefItem = {
  * cards, which only repeated the bottom bar -- a tile answers a question
  * ("how much is left?") where a hub card only named a place. */
 export type GlanceTile = {
-  id: "money" | "goal" | "shop" | "waiting" | "next" | "medicine";
+  id: "money" | "goal" | "shop" | "waiting" | "next" | "medicine" | "week";
   icon: IconName;
   /** The figure itself, short enough to read at a glance: "₱18,400". */
   value: string;
@@ -89,9 +88,8 @@ export type GlanceTile = {
 };
 
 /** The pieces of "At a glance" that need their own reads: money and the
- * shopping list. The page puts them after the medicine tile and Goals
- * (Janine, 21 October): shopping or today's meal (Household), money
- * (Wealth). */
+ * shopping list. The page puts them after This week and Goals (26
+ * October): shopping or today's meal (Household), money (Wealth). */
 export async function getGlance(familyId: string, currency: string): Promise<{ money: GlanceTile; shop: GlanceTile }> {
   const tz = await householdZone();
   const supabase = await createClient();
@@ -763,18 +761,4 @@ const loadDoses = cache(async function loadDoses(me: { id: string; role: string;
 export async function getTodayDoses(me: { id: string; role: string; family_id: string }): Promise<TodayDose[]> {
   const { due, who } = await loadDoses(me);
   return doseRows(due, who);
-}
-
-/** "At a glance": the medicines the reader gives today (Janine, 21 October;
- * everyone's since 23 October) -- a late dose, the next one, or all taken
- * -- opening that person's Health → Medicines. The rows are where a dose is
- * ticked; the tile is the count. */
-export async function getMedicineTile(me: { id: string; role: string; family_id: string }): Promise<GlanceTile> {
-  const { due, who } = await loadDoses(me);
-  const named = due.map((d) => ({ ...d, name: who(d.memberId) ? `${who(d.memberId)} · ${d.name}` : d.name }));
-  const g = medicineGlance(named);
-  // The tile opens the medicines of whoever it names: the late one, else
-  // the next, else the reader's own.
-  const lead = due.find((d) => d.late && !d.taken) ?? due.find((d) => !d.taken);
-  return { id: "medicine", icon: "pill", value: g.value, label: g.label, href: `/family/members/${lead?.memberId ?? me.id}?view=health&seg=medicines`, warn: g.warn || undefined };
 }
