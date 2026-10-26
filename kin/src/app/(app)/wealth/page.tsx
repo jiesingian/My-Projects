@@ -638,7 +638,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       ],
     });
   }
-  const incomeItems = finish(incomeLines, "payment");
+  // The donut and its breakdown are a report (Janine, 26 October), as on
+  // Expenses: read only. Each line, with Receive, Delete and its entries to
+  // edit or remove, sits under INCOME BY PERSON below it.
+  const incomeLinesDone = finish(incomeLines, "payment");
+  const incomeItems = incomeLinesDone.map(({ actions: _actions, ...item }) => item);
 
   const expenseLines = new Map<string, Line>();
   for (const t of cf.periodOut) {
@@ -778,7 +782,14 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {incomeItems.length === 0 ? (
         <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       ) : (
-        <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES.map(categoryLabel)} center={{ label: `this ${periodNoun}`, note: "money in" }} />
+        <>
+          {/* In a card, as the donuts on Accounts and A&L are (26 October). */}
+          <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+            <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES.map(categoryLabel)} center={{ label: `this ${periodNoun}`, note: "money in" }} />
+          </Blueprint>
+          <SectionLabel>{scope === "all" ? "INCOME BY PERSON" : `${whosePossessive.toUpperCase()} INCOME`}</SectionLabel>
+          <LinesByPerson lines={incomeLinesDone} currency={currency} categoryOrder={INCOME_SOURCES.map(categoryLabel)} noun="entry" />
+        </>
       )}
       <UtangInstalments heading="MONEY LENT COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
@@ -794,13 +805,15 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {expenseItems.length === 0 ? (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       ) : (
-        <GroupedBreakdown
-          items={expenseItems}
-          currency={currency}
-          storageKey="kin-expenses"
-          categoryOrder={EXPENSE_CATEGORIES.map(categoryLabel)}
-          center={{ label: "spent", note: budget.spendBudget > 0 && range === "month" ? `of ${formatCurrency(budget.spendBudget, currency)}` : `this ${periodNoun}` }}
-        />
+        <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+          <GroupedBreakdown
+            items={expenseItems}
+            currency={currency}
+            storageKey="kin-expenses"
+            categoryOrder={EXPENSE_CATEGORIES.map(categoryLabel)}
+            center={{ label: "spent", note: budget.spendBudget > 0 && range === "month" ? `of ${formatCurrency(budget.spendBudget, currency)}` : `this ${periodNoun}` }}
+          />
+        </Blueprint>
       )}
       <AddBillForm whose={whose} />
       <div style={{ height: "1.25rem" }} />
@@ -1517,13 +1530,13 @@ function LoanScheduleLine({
  * line as the breakdown names it, with its entries to edit or remove and an
  * open bill's own buttons. Folded away until opened, except when a bill on
  * it is still to be settled. */
-function CategoryLines({ lines, currency }: { lines: BreakdownItem[]; currency: string }) {
+function CategoryLines({ lines, currency, noun = "expense", open }: { lines: BreakdownItem[]; currency: string; noun?: string; open?: boolean }) {
   if (lines.length === 0) return null;
   const count = lines.length;
   return (
-    <details open={lines.some((l) => !!l.actions && /Due|waiting/.test(l.sub ?? ""))} style={{ margin: "-0.375rem 0 0.75rem" }}>
+    <details open={open ?? lines.some((l) => !!l.actions && /Due|waiting/.test(l.sub ?? ""))} style={{ margin: "-0.375rem 0 0.75rem" }}>
       <summary style={{ fontSize: "0.75rem", color: "var(--color-switch-on)", cursor: "pointer", minHeight: "1.75rem", display: "flex", alignItems: "center" }}>
-        {count} {count === 1 ? "expense" : "expenses"}
+        {count} {count === 1 ? noun : noun.replace(/y$/, "ie") + "s"}
       </summary>
       {lines.map((l) => (
         <div key={l.id} style={{ padding: "0.5rem 0 0.625rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
@@ -1536,5 +1549,38 @@ function CategoryLines({ lines, currency }: { lines: BreakdownItem[]; currency: 
         </div>
       ))}
     </details>
+  );
+}
+
+/** Where income is added to and taken from (Janine, 26 October): each
+ * owner, folded, then their categories, then each line with Receive,
+ * Delete and its entries to edit or remove -- the editable side of the
+ * read-only donut above it. */
+function LinesByPerson({ lines, currency, categoryOrder, noun }: { lines: BreakdownItem[]; currency: string; categoryOrder: string[]; noun: string }) {
+  const rank = (c: string) => (categoryOrder.indexOf(c) < 0 ? categoryOrder.length : categoryOrder.indexOf(c));
+  const owners = [...new Set(lines.map((l) => l.ownerKey))]
+    .map((key) => {
+      const mine = lines.filter((l) => l.ownerKey === key);
+      const cats = [...new Set(mine.map((l) => l.category))].sort((x, y) => rank(x) - rank(y) || x.localeCompare(y));
+      return { key, label: mine[0].ownerLabel, slot: mine[0].ownerSlot, sum: mine.reduce((t, l) => t + l.amount, 0), cats: cats.map((c) => ({ name: c, lines: mine.filter((l) => l.category === c).sort((x, y) => y.amount - x.amount) })) };
+    })
+    .sort((x, y) => x.slot - y.slot);
+  const total = (n: number) => <span style={{ fontFamily: "var(--font-numeric)" }}>{n !== 0 ? formatCurrency(n, currency) : "—"}</span>;
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      {owners.map((o) => (
+        <FoldableSection key={o.key} remember={false} defaultOpen={owners.length === 1} label={o.label.toUpperCase()} storageKey={`kin-income-person-${o.key}`} right={total(o.sum)}>
+          {o.cats.map((c) => (
+            <div key={c.name} style={{ paddingLeft: "0.75rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, margin: "0.5rem 0 0.25rem" }}>
+                <span style={{ minWidth: 0 }}>{c.name}</span>
+                <span style={{ marginLeft: "auto", flex: "none" }}>{total(c.lines.reduce((t, l) => t + l.amount, 0))}</span>
+              </div>
+              <CategoryLines lines={c.lines} currency={currency} noun={noun} open={c.lines.length === 1} />
+            </div>
+          ))}
+        </FoldableSection>
+      ))}
+    </div>
   );
 }
