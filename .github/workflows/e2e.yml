@@ -564,6 +564,21 @@ jobs:
       # the weekly tier, not in the post-merge smoke above (26 October).
       - name: Run smoke + logic + the Add expense sheet on it
         run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/*.logic.spec.ts --workers=2
+      # Playwright writes an outline of the page as it stood when a test
+      # failed (error-context.md: every heading, button, dialog and line of
+      # text, with its state). The report artifact holds it, but a Claude
+      # session cannot fetch artifacts (its proxy refuses the blob host), so
+      # the outline goes into this log too, where anyone can read it
+      # (26 October: three runs to learn a sheet never opened).
+      - name: What each failing test saw
+        if: failure()
+        run: |
+          for f in test-results/*/error-context.md; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            cat "$f"
+            echo "::endgroup::"
+          done
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
