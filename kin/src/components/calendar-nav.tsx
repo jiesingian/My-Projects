@@ -163,6 +163,7 @@ export function CalendarJump({
         <div
           role="dialog"
           aria-modal="true"
+          className="kin-manual-sheet"
           aria-label="Jump to a date"
           onClick={() => setOpen(false)}
           style={{
@@ -177,7 +178,7 @@ export function CalendarJump({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="kin-glass-bar"
+            className="kin-glass-bar kin-manual-sheet-panel"
             style={{
               width: "100%",
               maxWidth: 480,
@@ -188,7 +189,7 @@ export function CalendarJump({
               boxShadow: "var(--shadow-lg)",
             }}
           >
-            <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 14px" }} />
+            <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 14px" }} />
 
             {/* The month being shown, and the way through the years. The
                 title itself opens the twelve months, for a jump too far to

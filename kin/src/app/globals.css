@@ -1149,15 +1149,129 @@ textarea.input {
 .confirm-actions > .btn {
   flex: 1;
 }
+/* Sheets that size themselves to what is in them: the shortcut list,
+   Highlights, the album prompt. */
+.sheet-panel--full,
+.sheet-panel--plain {
+  max-width: 520px;
+}
+.sheet-panel--plain {
+  width: 100%;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border-bottom: 0;
+}
+.sheet-panel--padded {
+  padding: 1.125rem 1.125rem calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+}
+/* A sheet that is a page of its own (the recipe book, loyalty cards). */
+.sheet-panel--tall {
+  height: 92vh;
+}
+
+/* On a computer a sheet is a dialog, not a drawer (Jonathan, 26 October: the
+   Add expense sheet sat small and low, centred on the whole window rather
+   than on the page beside the sidebar). Centred both ways in the space to
+   the right of the 236px sidebar, wider, every corner rounded, no grabber.
+   Centring is done with inset + margin:auto, not a transform, so Vaul's own
+   transform stays free. The hand-built sheets on the calendar
+   (.kin-manual-sheet) get the same. */
+@media (min-width: 1024px) {
+  .sheet-backdrop {
+    background: rgba(0, 0, 0, 0.45);
+  }
+  /* Solid, not glass: centred over the page, the glass let the page's own
+     buttons show through the form. */
+  .sheet-panel,
+  .kin-manual-sheet-panel {
+    background: var(--color-surface);
+  }
+  .sheet-panel {
+    top: 0;
+    bottom: 0;
+    left: 236px;
+    right: 0;
+    margin: auto;
+    width: calc(100% - 236px - 64px);
+    height: fit-content;
+    max-height: calc(100dvh - 64px) !important;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    overflow-y: auto;
+  }
+  .sheet-panel--full {
+    overflow: hidden;
+  }
+  .sheet-panel--full,
+  .sheet-panel--plain {
+    max-width: 640px;
+  }
+  .sheet-panel--confirm {
+    max-width: 460px;
+    bottom: 0;
+    padding: 12px 24px 22px;
+  }
+  .sheet-panel--tall {
+    height: min(820px, calc(100dvh - 64px));
+  }
+  .sheet-panel--padded {
+    padding: 1.5rem;
+  }
+  .sheet-panel[data-vaul-drawer]::after {
+    display: none;
+  }
+  .sheet-panel[data-vaul-drawer][data-vaul-drawer-direction][data-state="open"] {
+    animation: kinDialogIn 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet-panel[data-vaul-drawer][data-vaul-drawer-direction][data-state="closed"] {
+    animation: kinDialogOut 0.14s ease-in;
+  }
+  .sheet-grabber,
+  .sheet-panel .confirm-grabber {
+    display: none;
+  }
+  /* The padding the grabber used to sit in. */
+  .sheet-panel--full > :first-child,
+  .sheet-panel--confirm {
+    padding-top: 1.25rem !important;
+  }
+
+  .kin-manual-sheet {
+    align-items: center !important;
+    padding: 32px 32px 32px calc(236px + 32px);
+    background: rgba(0, 0, 0, 0.45) !important;
+  }
+  .kin-manual-sheet-panel {
+    max-width: 560px !important;
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 20px !important;
+    padding: 1.25rem 1.5rem 1.5rem !important;
+  }
+}
+@keyframes kinDialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes kinDialogOut {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
 /* Reduced motion: the sheet fades where it would have slid. Dragging still
    works -- that follows the finger, it isn't an animation playing at
    someone. */
 @media (prefers-reduced-motion: reduce) {
-  .sheet-panel[data-vaul-drawer][data-state="open"] {
+  .sheet-panel[data-vaul-drawer][data-vaul-drawer-direction][data-state="open"] {
     animation-name: fadeIn;
     animation-duration: 0.16s;
   }
-  .sheet-panel[data-vaul-drawer][data-state="closed"] {
+  .sheet-panel[data-vaul-drawer][data-vaul-drawer-direction][data-state="closed"] {
     animation-name: fadeOut;
     animation-duration: 0.16s;
   }

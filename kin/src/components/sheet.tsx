@@ -35,9 +35,9 @@ export function SheetButton({
         {label}
       </button>
 
-      <AnimatedSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId} panelClassName="sheet-panel--full" panelStyle={{ maxWidth: 520, height: "92vh" }}>
+      <AnimatedSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId} panelClassName="sheet-panel--full sheet-panel--tall">
         <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
-          <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
+          <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span id={titleId} style={{ flex: 1, font: "600 1.1875rem/1.2 var(--font-heading)" }}>
               {title}
