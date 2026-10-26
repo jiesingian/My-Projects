@@ -182,7 +182,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             {/* A transfer is two entries that must agree: removed, not edited. */}
             {!e.transfer_group_id && (
               <EditEntryButton
-                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountId: e.account_id, accountName: e.accountName, ...entryFor(e) }}
+                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountId: e.account_id, accountName: e.accountName, ...entryFor(e), principal: e.principal_amount == null ? null : Number(e.principal_amount), confirmed: e.status === "confirmed" }}
                 accounts={pickable}
                 targets={targets}
                 currency={currency}

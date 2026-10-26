@@ -617,7 +617,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           </>
         ) : undefined,
     }));
-  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountId: t.account_id, accountName: t.accountName, ...entryFor(t) });
+  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountId: t.account_id, accountName: t.accountName, ...entryFor(t), principal: t.principal_amount == null ? null : Number(t.principal_amount), confirmed: t.status === "confirmed" });
 
   const incomeLines = new Map<string, Line>();
   for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {
