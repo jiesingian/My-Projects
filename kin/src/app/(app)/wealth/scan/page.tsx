@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { familyDay } from "@/lib/time";
 import { getCurrentMember } from "@/lib/session";
 import { toPickable } from "@/lib/account-picker";
-import { getAccounts } from "@/lib/queries/wealth";
+import { getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
 import { readAccess } from "@/lib/access";
 import { kinAiReady } from "@/lib/kin-ai";
 import { DetailHeader } from "@/components/hub-header";
@@ -17,7 +17,8 @@ import { ReceiptScanner } from "@/components/receipt-scanner";
 export default async function ScanReceiptPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const accounts = await getAccounts(me.family_id);
+  // What the expense or bill can be for: a loan, an asset, a goal.
+  const [accounts, targets] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id)]);
 
   return (
     <div>
@@ -26,6 +27,7 @@ export default async function ScanReceiptPage() {
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Snap a receipt</h3>
         <ReceiptScanner
           accounts={toPickable(accounts, me.id, { everyone: true })}
+          targets={targets}
           currency={me.families.currency}
           ready={kinAiReady()}
           plus={readAccess(me.families).plus}
