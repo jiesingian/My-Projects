@@ -1292,11 +1292,11 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "What you own less what you owe, by owner. An asset can hold what is inside it (furniture, appliances, renovation), each changing in value on its own; loans carry their schedules.",
-            "how": "Wealth → A&L. Add the house and car once with a yearly change in value.",
+            "what": "What you own less what you owe, by owner, grouped as a balance sheet is: cash and savings (with goals as money set aside), investments, property, vehicles; credit cards count as owed. An asset can hold what is inside it (furniture, appliances, renovation), each changing in value on its own; a house or car bought on a loan goes in with the loan in one entry, and a loan with its terms shows the balance it should have, the interest paid so far and when its fixed rate ends.",
+            "how": "Wealth → A&L. Add the house and car once with a yearly change in value; tick Still being paid off to add the loan with it.",
             "pros": [
               "Net worth moves by itself after the first entry.",
-              "Loans show what is left to pay."
+              "Loans show what is left to pay, how each payment splits into interest and principal, and whether the balance matches the bank's table."
             ],
             "cons": [
               "The line draws once there are two months."
