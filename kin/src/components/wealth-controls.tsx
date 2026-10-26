@@ -808,7 +808,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
           <IncomeGroupForm accounts={accounts} whose={whose} today={today} onCancel={() => setOpen(false)} />
         ) : (
         <div style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-          <Labelled label="Category">
+          <Labelled label="Type of income">
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -825,7 +825,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
         <form action={formAction}>
           <ErrorText message={state.error} />
           <input type="hidden" name="category" value={category} />
-          <Labelled label="Source">
+          <Labelled label="What it's for">
             <input className="input" name="name" required placeholder="BPI payroll, Unit 2B rent" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
@@ -848,7 +848,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
             </Labelled>
           </div>
           {accounts.length > 0 && (
-            <Labelled label="Deposited to account">
+            <Labelled label="Paid into">
               <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
                 <option value="">Choose later</option>
                 {accounts.map((a) => (
@@ -888,7 +888,7 @@ function IncomeGroupForm({ accounts, whose, today, onCancel }: { accounts: { id:
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Category" style={{ flex: 1 }}>
+        <Labelled label="Type of income" style={{ flex: 1 }}>
           <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
             {INCOME_SOURCES.map((c) => (
               <option key={c} value={c}>
@@ -907,7 +907,7 @@ function IncomeGroupForm({ accounts, whose, today, onCancel }: { accounts: { id:
           </select>
         </Labelled>
       </div>
-      <Labelled label="Source">
+      <Labelled label="What it's for">
         <input className="input" name="name" required maxLength={80} placeholder="BPI payroll, rice business" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
@@ -922,7 +922,7 @@ function IncomeGroupForm({ accounts, whose, today, onCancel }: { accounts: { id:
         <input className="input" type="number" step="0.01" min="0" name="monthly_target" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       {accounts.length > 0 && (
-        <Labelled label="Deposited to account">
+        <Labelled label="Paid into">
           <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
             <option value="">Choose later</option>
             {accounts.map((a) => (

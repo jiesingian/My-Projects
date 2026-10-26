@@ -574,7 +574,7 @@ export function EditEntryButton({ entry, accounts, currency }: { entry: LineEntr
               <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
             </div>
             <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
-              <label htmlFor={`${uid}-on`}>Day</label>
+              <label htmlFor={`${uid}-on`}>{entry.direction === "in" ? "Received on" : "Paid on"}</label>
               <DateInput id={`${uid}-on`} className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.625rem" }} />
             </div>
           </div>

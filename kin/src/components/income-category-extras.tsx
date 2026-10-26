@@ -127,7 +127,7 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
       <Field name="Amount that arrived">
         <input className="input" type="number" step="0.01" min="0" name="php_received" required style={field} />
       </Field>
-      <Field name="Deposited to account">
+      <Field name="Paid into">
         <select className="input" name="account_id" defaultValue="" style={field}>
           <option value="">Choose later</option>
           {accounts.map((a) => (

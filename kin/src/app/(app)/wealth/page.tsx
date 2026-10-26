@@ -397,7 +397,10 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
   today: string;
   days?: number;
 }) {
-  const { bills: due, total } = billsDueWithin(bills, days);
+  // Counted from the household's own day, as "overdue" below is -- the
+  // server's clock is up to eight hours behind Manila's, so a bill could
+  // enter the box a day early.
+  const { bills: due, total } = billsDueWithin(bills, days, new Date(`${today}T00:00:00`));
   if (due.length === 0) return null;
 
   return (
@@ -743,7 +746,9 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own accounts" : "Their accounts, as shared"}
+          {/* Cash Flow is by whose the money is, not whose account it moved
+              through (entry_owner, 23 October); the caption says so. */}
+          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "The family's, in nobody's name" : mine ? "Your own income and expenses" : "Their income and expenses, as shared"}
         </span>
       </div>
 
@@ -1303,7 +1308,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           </Blueprint>
         );
       })}
-      <Link href="/wealth/add" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
+      <Link href="/wealth/add" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
         + ADD GOAL
       </Link>
       </FoldableSection>
@@ -1362,7 +1367,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           </FoldableSection>
         );
       })}
-      <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
+      <Link href="/wealth/assets/new?kind=asset" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + ASSET
       </Link>
       </CollapsibleGroup>
@@ -1459,7 +1464,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           </FoldableSection>
         );
       })}
-      <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
+      <Link href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + LIABILITY
       </Link>
       </CollapsibleGroup>
