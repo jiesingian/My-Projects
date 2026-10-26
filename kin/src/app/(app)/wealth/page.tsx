@@ -1224,17 +1224,21 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       // the account's line above, so the goal's line counts only the rest.
       const inTo = Math.min(Number(g.current_amount), Math.max(0, goalHeld.get(g.id) ?? 0));
       const toName = inTo > 0 ? allAccounts.find((a) => a.id === g.linked_account_id)?.name : undefined;
+      // Where its money comes from and goes (26 October): "Salary + Business → BPI".
+      const nameOf = (id: string | null) => (id ? allAccounts.find((a) => a.id === id)?.name : undefined);
+      const sources = [nameOf(g.from_account_id), nameOf(g.from_account_2_id)].filter((n): n is string => !!n);
+      const route = sources.length ? `${sources.join(" + ")}${nameOf(g.linked_account_id) ? ` → ${nameOf(g.linked_account_id)}` : ""}` : "";
       return {
       id: `goal-${g.id}`,
       name: g.title,
       amount: Number(g.current_amount) - inTo,
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
-      sub: `${AL_SET_ASIDE}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
+      sub: `${AL_SET_ASIDE}${route ? ` · ${route}` : ""}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
       detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
       actions: (
         <>
-          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} />
+          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}

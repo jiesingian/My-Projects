@@ -300,6 +300,9 @@ export function GoalContributeControl({
   currency,
   linkedAccountId,
   fromAccountId,
+  fromAccount2Id,
+  fromAmount,
+  from2Amount,
 }: {
   goalId: string;
   accounts: PickableAccount[];
@@ -308,6 +311,10 @@ export function GoalContributeControl({
   linkedAccountId?: string | null;
   /** The goal's From account: where putting money in starts (26 October). */
   fromAccountId?: string | null;
+  /** Its second source, and what each gives a month, if said. */
+  fromAccount2Id?: string | null;
+  fromAmount?: number | null;
+  from2Amount?: number | null;
 }) {
   const [open, setOpen] = useState(false);
   // From the goal's From account; else the first that is not its To account
@@ -321,9 +328,32 @@ export function GoalContributeControl({
   const { error, pending, run } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
   const uid = useId();
+  // Both sources at once (26 October): each its own transfer, its own amount.
+  const source1 = fromAccountId ? accounts.find((a) => a.id === fromAccountId) : undefined;
+  const source2 = fromAccount2Id ? accounts.find((a) => a.id === fromAccount2Id) : undefined;
+  const twoSources = !!source1 && !!source2;
+  const [both, setBoth] = useState(false);
+  const [amount1, setAmount1] = useState(fromAmount ?? 0);
+  const [amount2, setAmount2] = useState(from2Amount ?? 0);
 
   if (accounts.length === 0) return null;
 
+  const putIn = () =>
+    both && source1 && source2
+      ? run(async () => {
+          // One after the other: a failure on the second leaves the first
+          // done, and says so.
+          if (amount1 > 0) {
+            const first = await contributeToGoalAction({ goalId, accountId: source1.id, amount: amount1, viaApp: false });
+            if (first.error) return first;
+          }
+          if (amount2 > 0) {
+            const second = await contributeToGoalAction({ goalId, accountId: source2.id, amount: amount2, viaApp: false });
+            if (second.error) return { error: amount1 > 0 ? `${source1.name}'s part went in; ${source2.name}'s did not. ${second.error}` : second.error };
+          }
+          return { error: amount1 > 0 || amount2 > 0 ? null : "Enter an amount for at least one account." };
+        }, () => setOpen(false))
+      : run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false));
 
   return (
     <>
@@ -333,6 +363,31 @@ export function GoalContributeControl({
       <FormSheet open={open} onClose={() => setOpen(false)} title="Put money in">
         <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
           <Err message={error} />
+          {twoSources && (
+            <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "0.625rem" }}>
+              <button type="button" className="chip" data-active={!both} onClick={() => setBoth(false)}>
+                One account
+              </button>
+              <button type="button" className="chip" data-active={both} onClick={() => setBoth(true)}>
+                From both
+              </button>
+            </div>
+          )}
+          {both && source1 && source2 ? (
+            <>
+              {[
+                { a: source1, v: amount1, set: setAmount1 },
+                { a: source2, v: amount2, set: setAmount2 },
+              ].map(({ a, v, set }) => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: "0.84375rem" }}>{a.name}</span>
+                  <AmountInput ariaLabel={`From ${a.name}`} defaultValue={v} onValueChange={set} style={{ width: 120, minHeight: "2.625rem" }} />
+                </div>
+              ))}
+              {toAccount && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>Both move to {toAccount.name}, where this goal&rsquo;s savings are kept.</p>}
+            </>
+          ) : (
+          <>
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
             <div className="field" style={{ flex: 1, margin: 0 }}>
               <label htmlFor={`${uid}-account`}>From</label>
@@ -349,15 +404,17 @@ export function GoalContributeControl({
             </p>
           )}
           <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
+          </>
+          )}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
+              onClick={putIn}
             >
-              {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
+              {pending ? "…" : !both && viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
             </button>
             <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
               Cancel

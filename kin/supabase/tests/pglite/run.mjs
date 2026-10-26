@@ -153,7 +153,8 @@ const MIGRATIONS = [
   "20261026180000_child_goals.sql",
   "20261026190000_goal_from_account_start.sql",
   "20261027120000_net_worth_daily_snapshots.sql",
-  "20261027120001_credit_card_due.sql",
+  "20261027130000_goal_second_source.sql",
+  "20261027140000_credit_card_due.sql",
 ];
 
 const only = process.argv[2];

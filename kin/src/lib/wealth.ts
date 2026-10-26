@@ -1268,7 +1268,7 @@ export function netWorthMoves(from: NetWorthParts, to: NetWorthParts): { label: 
 
 /** The next day a credit card's statement is due, on or after `today`, from
  * the day of the month it falls on (accounts.card_due_day,
- * 20261027120001). A 31st falls on the month's last day in a shorter
+ * 20261027140000). A 31st falls on the month's last day in a shorter
  * month. */
 export function cardDueDate(dueDay: number, today: string): string {
   const y = Number(today.slice(0, 4));

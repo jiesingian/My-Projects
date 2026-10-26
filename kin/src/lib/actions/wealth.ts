@@ -157,7 +157,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   // absent, the number is left as it is.
   const numbered = formData.has("account_number") ? cleanAccountNumber(String(formData.get("account_number"))) : null;
   if (numbered && "error" in numbered) return { error: numbered.error };
-  // A credit card's due day and minimum (20261027120001); cleared for any
+  // A credit card's due day and minimum (20261027140000); cleared for any
   // other type, so a card turned into a bank account stops being reminded.
   let card: { card_due_day: number | null; card_min_payment: number | null } = { card_due_day: null, card_min_payment: null };
   if (accountType === "credit") {
@@ -1636,6 +1636,14 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const requestedAccountId = String(formData.get("linked_account_id") ?? "") || null;
   // Where Put money in starts, and when saving starts (26 October).
   const requestedFromId = String(formData.get("from_account_id") ?? "") || null;
+  // A second source, and what each gives a month (26 October).
+  const requestedFrom2Id = (requestedFromId && String(formData.get("from_account_2_id") ?? "")) || null;
+  const perMonth = (key: string) => {
+    const n = Number(formData.get(key) ?? "");
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+  };
+  const fromAmount = requestedFromId ? perMonth("from_amount") : null;
+  const from2Amount = requestedFrom2Id ? perMonth("from_2_amount") : null;
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(formData.get("start_date") ?? "")) ? String(formData.get("start_date")) : null;
   const repeatsYearly = formData.get("repeats_yearly") === "on";
   if (!title) return { error: "Give the goal a title." };
@@ -1643,8 +1651,9 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   if (repeatsYearly && !targetDate) return { error: "A yearly cost needs the date it is due." };
   if (startDate && targetDate && startDate > targetDate) return { error: "The start date comes after the end date." };
   if (requestedFromId && requestedFromId === requestedAccountId) return { error: "Pick two different accounts for From and To, or leave one empty." };
+  if (requestedFrom2Id && (requestedFrom2Id === requestedFromId || requestedFrom2Id === requestedAccountId)) return { error: "The second From account must be another account." };
 
-  const requestedIds = [requestedAccountId, requestedFromId].filter((id): id is string => !!id);
+  const requestedIds = [requestedAccountId, requestedFromId, requestedFrom2Id].filter((id): id is string => !!id);
   const { data: named } = requestedIds.length
     ? await supabase.from("accounts").select("id").eq("family_id", me.family_id).in("id", requestedIds)
     : { data: [] as { id: string }[] };
@@ -1664,6 +1673,9 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
       target_date: targetDate,
       linked_account_id: linkedAccountId,
       from_account_id: fromAccountId,
+      from_amount: fromAmount,
+      from_account_2_id: requestedFrom2Id,
+      from_2_amount: from2Amount,
       start_date: startDate,
       repeats_yearly: repeatsYearly,
       created_by: me.id,
