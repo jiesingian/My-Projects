@@ -182,6 +182,13 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   await expect(sheet.getByLabel("Pay from")).toHaveValue(accountId);
   await sheet.getByRole("button", { name: "Mark paid" }).click();
   await expect(sheet).toBeHidden();
+  // It repeats, so Kin offers next month's (next-bill-offer.tsx). Not now
+  // adds nothing; the offer must be answered before the folds, which it
+  // would otherwise sit over.
+  const offer = page.getByRole("dialog", { name: /^Add next month's/ });
+  await expect(offer).toBeVisible();
+  await offer.getByRole("button", { name: "Not now" }).click();
+  await expect(offer).toBeHidden();
   // The line, now settled, under its category.
   await expandAllCollapsedGroups(page);
   const line = page.getByText(new RegExp(`^Bills & utilities - ${RUN} tuition`)).first();
