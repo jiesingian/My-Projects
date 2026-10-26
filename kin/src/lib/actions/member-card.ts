@@ -166,12 +166,12 @@ export async function getMemberCardAction(memberId: string, as?: "grownup" | "ch
   };
 }
 
-/** This month's spending on the person's own accounts, against the monthly
- * spending budget a grown-up set for them on Wealth (member_budgets). The
- * budget is shown only on the person's own card (Jonathan, 11 October):
- * member_budgets is readable by the household, so it is left out here rather
- * than by the database -- other grown-ups and the "Grown-ups see" preview get
- * the spending alone. Transfers between accounts are moving money, not
+/** This month's spending on the person's own accounts, against their
+ * monthly budget on Wealth: their category budgets added up
+ * (spending_budgets, 26 October). The budget is shown only on the person's
+ * own card (Jonathan, 11 October): other grown-ups may be able to read it,
+ * so it is left out here rather than by the database -- other grown-ups and
+ * the "Grown-ups see" preview get the spending alone. Transfers between accounts are moving money, not
  * spending it, so they are left out, as on Wealth. */
 async function readMoney(familyId: string, memberId: string, preview: boolean, withBudget: boolean, day: string, from: Date | null, to: Date | null) {
   if (!from || !to) return null;

@@ -1343,21 +1343,6 @@ export async function deleteIncomeGroupAction(groupId: string): Promise<ActionSt
 
 /* ---------------------------------------------------------- budget & goals */
 
-export async function setJointBudgetAction(month: number, year: number, amount: number): Promise<ActionState> {
-  // The household comes from the session. As an argument it was merely
-  // redundant -- RLS scopes budget_periods to the family either way -- but
-  // an argument nobody needs is an argument nobody checks.
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const { error } = await supabase.from("budget_periods").upsert(
-    { family_id: me.family_id, period_month: month, period_year: year, budget_amount: amount },
-    { onConflict: "family_id,period_month,period_year" },
-  );
-  if (error) return { error: databaseError(error) };
-  revalidateWealth();
-  return { error: null };
-}
-
 /** Your own revenue target, and only ever your own.
  *
  * Both ids used to arrive from the browser. The page guards it -- the control
@@ -1378,67 +1363,6 @@ export async function setWealthTargetAction(month: number, year: number, amount:
     { onConflict: "member_id,period_month,period_year" },
   );
   if (error) return { error: databaseError(error) };
-  revalidateWealth();
-  return { error: null };
-}
-
-export async function setAllocationAction(input: { category: string; amount: number }): Promise<ActionState> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-
-  const readPeriod = () =>
-    supabase.from("budget_periods").select("id").eq("family_id", me.family_id).eq("period_month", month).eq("period_year", year).maybeSingle();
-
-  // A read that failed used to arrive below as "there is no budget for this
-  // month yet", and the answer to that is to make one. UNIQUE (family_id,
-  // period_month, period_year) refuses the second, so the household got a
-  // duplicate-key error rather than a duplicate -- but the allocation read
-  // underneath it has no such backstop.
-  const { data: existingPeriod, error: periodReadError } = await readPeriod();
-  if (periodReadError) return { error: `This month's budget could not be read, so nothing was changed. ${refusalMessage(periodReadError)}` };
-
-  let period = existingPeriod;
-  if (!period) {
-    const { data: created, error: periodErr } = await supabase
-      .from("budget_periods")
-      .insert({ family_id: me.family_id, period_month: month, period_year: year, budget_amount: 0 })
-      .select("id")
-      .single();
-    if (periodErr) {
-      // Two people setting a budget in the same minute both read "no period
-      // yet" and both insert; the constraint lets one through. Theirs is as
-      // good as ours -- take it rather than showing a duplicate-key error.
-      const { data: raced } = await readPeriod();
-      if (!raced) return { error: refusalMessage(periodErr) };
-      period = raced;
-    } else {
-      period = created;
-    }
-  }
-  const periodId = period.id;
-
-  // One statement, no read. This used to look up the category's row and then
-  // update it or insert one, which is a race however carefully it is written:
-  // two people setting a budget in the same minute both read "no row" and both
-  // insert. There was nothing to stop the second -- budget_allocations had no
-  // uniqueness on (budget_period_id, category) where every sibling table has
-  // one, so the household got the category twice, each copy claiming the whole
-  // month's spend. Worse, .maybeSingle() errors on more than one row, so once
-  // two existed every save added another.
-  //
-  // budget_allocations_one_per_category (applied 9 September) is what makes
-  // this possible: the upsert names it, so the second writer updates the first
-  // writer's row instead of racing it. The read that stood in for the
-  // constraint is gone with it -- there is nothing left to read.
-  const { error } = await supabase.from("budget_allocations").upsert(
-    { budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount },
-    { onConflict: "budget_period_id,category" },
-  );
-  if (error) return { error: databaseError(error) };
-
   revalidateWealth();
   return { error: null };
 }
@@ -2015,28 +1939,68 @@ export async function deleteRemittanceAction(remittanceId: string): Promise<Acti
   return { error: null };
 }
 
-/* ------------------------------------------------------ per-person budgets */
+/* ------------------------------------------------- budgets by category */
 
-/** A grown-up sets someone's spending budget for this month (0 clears it).
- * The household can see it; only a grown-up can change it -- the row-level
- * policy on member_budgets is the lock, this the sentence. */
-export async function setMemberBudgetAction(memberId: string, amount: number): Promise<ActionState> {
+/** Sets one category's budget for Family or one person, from this month on
+ * (26 October); it repeats into later months until changed. 0 removes it
+ * from this month on; past months keep what they were. Who may: any
+ * grown-up for Family and for a child; a grown-up for themselves alone; a
+ * child with their own login for themselves. spending_budgets' policies are
+ * the lock, this the sentence. `whose` is a member id or "family". */
+export async function setSpendingBudgetAction(input: { whose: string; category: string; amount: number }): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Only a grown-up can set a budget." };
-  if (!Number.isFinite(amount) || amount < 0) return { error: "Enter a budget of zero or more." };
+  const category = clamp(String(input.category ?? "").trim(), 100);
+  if (!category) return { error: "Choose a category." };
+  if (!Number.isFinite(input.amount) || input.amount < 0) return { error: "Enter a budget of zero or more." };
   const supabase = await createClient();
+  const memberId = input.whose === "family" ? null : input.whose;
+  if (memberId === null) {
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can set Family's budget." };
+  } else if (memberId !== me.id) {
+    const { data: them } = await supabase.from("members").select("role").eq("id", memberId).eq("family_id", me.family_id).maybeSingle();
+    if (!them) return { error: "That person is no longer in the household." };
+    if (isGrownUp(them.role)) return { error: "A grown-up's budget is theirs alone to set." };
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can set someone else's budget." };
+  } else if (me.role === "child_managed") {
+    return { error: "A grown-up sets this budget." };
+  }
   const now = new Date();
-  const period = { period_year: now.getFullYear(), period_month: now.getMonth() + 1 };
-  const { error } =
-    amount === 0
-      ? await supabase.from("member_budgets").delete().eq("family_id", me.family_id).eq("member_id", memberId).match(period)
-      : await supabase
-          .from("member_budgets")
-          .upsert(
-            { family_id: me.family_id, member_id: memberId, ...period, amount: Math.round(amount * 100) / 100, set_by: me.id, updated_at: now.toISOString() },
-            { onConflict: "member_id,period_year,period_month" },
-          );
+  const fromMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const { error } = await supabase.from("spending_budgets").upsert(
+    { family_id: me.family_id, member_id: memberId, category, amount: Math.round(input.amount * 100) / 100, from_month: fromMonth, set_by: me.id, updated_at: now.toISOString() },
+    { onConflict: "family_id,member_id,category,from_month" },
+  );
   if (error) return { error: databaseError(error) };
+  revalidateWealth();
+  return { error: null };
+}
+
+/** A grown-up's own choice of who sees their budgets: every grown-up (as a
+ * new account), only them, or people they pick -- the same choices an
+ * account has. */
+export async function setBudgetVisibilityAction(choice: { mode: "everyone" | "only_me" | "chosen"; memberIds?: string[] }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "A child's budget is seen by the grown-ups and the child." };
+  if (!["everyone", "only_me", "chosen"].includes(choice.mode)) return { error: "Choose who can see it." };
+  const ids = choice.mode === "chosen" ? [...new Set((choice.memberIds ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id) && id !== me.id))].slice(0, 50) : [];
+  if (choice.mode === "chosen" && ids.length === 0) return { error: "Pick at least one person, or choose Only me." };
+  const supabase = await createClient();
+  // Closed first, then the list, then opened if asked: a failure half-way
+  // leaves it hidden, never shown to more people than chosen.
+  const { error: closeError } = await supabase
+    .from("budget_sharing")
+    .upsert({ member_id: me.id, family_id: me.family_id, is_private: true, updated_at: new Date().toISOString() }, { onConflict: "member_id" });
+  if (closeError) return { error: databaseError(closeError) };
+  const { error: clearError } = await supabase.from("budget_viewers").delete().eq("family_id", me.family_id).eq("owner_member_id", me.id);
+  if (clearError) return { error: databaseError(clearError) };
+  if (ids.length > 0) {
+    const { error } = await supabase.from("budget_viewers").insert(ids.map((viewer_member_id) => ({ owner_member_id: me.id, viewer_member_id, family_id: me.family_id })));
+    if (error) return { error: databaseError(error) };
+  }
+  if (choice.mode === "everyone") {
+    const { error } = await supabase.from("budget_sharing").update({ is_private: false }).eq("member_id", me.id);
+    if (error) return { error: databaseError(error) };
+  }
   revalidateWealth();
   return { error: null };
 }

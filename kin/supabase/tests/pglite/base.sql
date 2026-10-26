@@ -128,6 +128,18 @@ create policy ftp_insert on family_tree_people for insert with check (family_id 
 -- Bills and the reminder ledger (for 20261007170000_bill_reminder_days): the
 -- columns the ahead-of-time bill push reads, and reminder_sends as
 -- 20260926140000_reminders made it.
+-- The household budget as it was before category budgets per person
+-- (20261026110000 copies it into spending_budgets as Family's): September
+-- budgeted groceries and eating out, October groceries alone.
+create table public.budget_periods (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), period_month integer not null, period_year integer not null, budget_amount numeric not null default 0);
+create table public.budget_allocations (id uuid primary key default gen_random_uuid(), budget_period_id uuid not null references budget_periods(id), family_id uuid not null references families(id), category text not null, amount numeric not null);
+insert into budget_periods (id, family_id, period_month, period_year, budget_amount) values
+ ('b9000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000000',9,2026,50000),
+ ('b9000000-0000-0000-0000-000000000010','a0000000-0000-0000-0000-000000000000',10,2026,0);
+insert into budget_allocations (budget_period_id, family_id, category, amount) values
+ ('b9000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000000','Groceries',30000),
+ ('b9000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000000','Dining',5000),
+ ('b9000000-0000-0000-0000-000000000010','a0000000-0000-0000-0000-000000000000','Groceries',32000);
 create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null default 1, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text);
 create table if not exists public.reminder_sends (key text primary key, sent_at timestamptz not null default now());
 -- The shopping list and the meal plan, for buy_item_meals (20261008100000): the household's own rows, nobody else's.
