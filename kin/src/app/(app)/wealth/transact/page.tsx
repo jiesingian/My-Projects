@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { familyDay } from "@/lib/time";
 import { getCurrentMember } from "@/lib/session";
 import { toPickable } from "@/lib/account-picker";
 import { getAccounts, getAttributableTargets, getAccountNumbers } from "@/lib/queries/wealth";
@@ -49,6 +50,7 @@ export default async function TransactPage({
           whose={whoseOptions(household.map((m, i) => ({ id: m.id, label: names[i] })), me.id)}
           defaultParticulars={note?.slice(0, 200)}
           defaultAmount={amount}
+          today={familyDay(new Date(), me.families.time_zone || undefined)}
         />
       </div>
     </div>

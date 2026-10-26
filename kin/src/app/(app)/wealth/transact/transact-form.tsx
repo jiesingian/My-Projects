@@ -20,11 +20,6 @@ const MODES = ["in", "out", "transfer"] as const;
 type Mode = (typeof MODES)[number];
 const MODE_LABELS: Record<Mode, string> = { in: "Money in", out: "Money out", transfer: "Transfer" };
 
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export function TransactForm({
   accounts,
   currency,
@@ -38,6 +33,7 @@ export function TransactForm({
   defaultParticulars,
   defaultAmount,
   whose: whoseChoices,
+  today,
 }: {
   accounts: PickableAccount[];
   currency: string;
@@ -60,6 +56,10 @@ export function TransactForm({
   defaultAmount?: number;
   /** "Whose is it?" -- You, each household member, Family (joint). */
   whose: WhoseOption[];
+  /** Today in the household's zone, from the server, so the date box renders
+   * the same day on both sides of hydration (React error #418 otherwise,
+   * whenever the browser's zone was on a different day). */
+  today: string;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
@@ -72,7 +72,7 @@ export function TransactForm({
   const [amountKey, setAmountKey] = useState(0);
   const [particulars, setParticulars] = useState(defaultParticulars ?? (startLoan ? `${startLoan.name} payment` : ""));
   const [category, setCategory] = useState<string>(startLoan ? "Debt" : INCOME_SOURCES[0]);
-  const [occurredOn, setOccurredOn] = useState(todayLocal());
+  const [occurredOn, setOccurredOn] = useState(today);
   const [viaApp, setViaApp] = useState(true);
   const [whose, setWhose] = useState("me");
   // "assets:<id>", "goals:<id>" or "liabilities:<id>", or empty for the

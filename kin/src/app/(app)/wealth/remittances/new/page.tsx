@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { familyDay } from "@/lib/time";
 import { getCurrentMember } from "@/lib/session";
 import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
@@ -31,6 +32,7 @@ export default async function NewRemittancePage() {
           // rest anyway, and offering them would only produce that refusal.
           accounts={toPickable(accounts, me.id)}
           currencies={REMITTANCE_CURRENCIES}
+          today={familyDay(new Date(), me.families.time_zone || undefined)}
         />
       </div>
     </div>
