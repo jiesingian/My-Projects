@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { AnimatedSheet } from "@/components/animated-sheet";
+import { usePinnedActions } from "@/components/sheet-actions";
 
 /** An add page -- a goal, a journal entry, a holding, a task -- opened from
  * inside the app, shown as a sheet over the page it was opened from
@@ -48,6 +49,7 @@ export function routeOf(segments: string[]): string {
 
 function RouteSheet({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const body = usePinnedActions<HTMLDivElement>();
   const [open, setOpen] = useState(true);
   const wentBack = useRef(false);
   const back = () => {
@@ -79,7 +81,9 @@ function RouteSheet({ children }: { children: React.ReactNode }) {
           <Icon name="x" size={15} />
         </button>
       </div>
-      <div className="kin-route-sheet-body">{children}</div>
+      <div ref={body} className="kin-route-sheet-body kin-sheet-scroll">
+        {children}
+      </div>
     </AnimatedSheet>
   );
 }
