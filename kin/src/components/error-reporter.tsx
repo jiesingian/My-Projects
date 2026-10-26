@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { describeThrown, ERROR_REPORTS_PER_PAGE } from "@/lib/error-capture";
+import { describeThrown, ERROR_REPORTS_PER_PAGE, isOwnScriptError } from "@/lib/error-capture";
 
 const sent = new Set<string>();
 
@@ -28,7 +28,10 @@ export function ErrorReporter() {
   useEffect(() => {
     const onError = (e: ErrorEvent) => {
       // A failed <img> or <script> load has no error object and says nothing useful.
-      if (e.error || e.message) reportClientError(e.error ?? e.message);
+      if (!e.error && !e.message) return;
+      // An in-app browser's or an extension's own script is not Kin's to fix.
+      if (!isOwnScriptError(e.filename, (e.error as Error | undefined)?.stack, window.location.origin)) return;
+      reportClientError(e.error ?? e.message);
     };
     const onRejection = (e: PromiseRejectionEvent) => reportClientError(e.reason);
     window.addEventListener("error", onError);
