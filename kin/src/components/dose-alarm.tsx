@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setDoseTakenAction } from "@/lib/actions/health-care";
+import { newOpId, sendOrQueue } from "@/lib/offline/live";
 
 /** The medicine alarm (22 October): the whole screen, an alarm tone and a
  * long buzz, until "Taken" or "Not now". The tone is made here (Web Audio),
@@ -137,7 +138,13 @@ export function DoseAlarm({
             onClick={() => {
               stop.current();
               start(async () => {
-                const res = await setDoseTakenAction({ medicineId, memberId, day, time, taken: true });
+                // Opened from the notification, an iPhone often has no
+                // network yet ("Load failed", 23 October): the tick waits in
+                // the offline queue and goes when it's back, as Health's do.
+                const res = await sendOrQueue(
+                  () => setDoseTakenAction({ medicineId, memberId, day, time, taken: true }),
+                  () => ({ id: newOpId(), at: new Date().toISOString(), kind: "dose.set", medicineId, memberId, day, time, taken: true, label: `${title.replace(/^Time for /, "")} at ${time}` }),
+                );
                 if (res.error) {
                   setError(res.error);
                   return;

@@ -15,6 +15,17 @@ Read and checked by a session; nothing in a dashboard was changed.
   `kin-dev-qa@` (dev), and those are the accounts `PROD_E2E_EMAIL` and
   `E2E_EMAIL` sign in as (the Schema step, same secrets, passed on 19
   October and signed in to production at 02:45 UTC today). Nothing to fix.
+  - **The first run, 23 October:** the "Errors this week" step passed in 3
+    seconds, but the suite then ran past the job's 30-minute limit, so the
+    run was cancelled, "Say what broke" never ran, and no issue was opened.
+    The limit is now 50 (#963, 25 October). What production recorded that week,
+    read from `app_errors`: 4 × "TypeError: Load failed" on `/today/dose`.
+    Taken on the alarm screen called the server directly, and an iPhone
+    opened from the notification often has no network yet. It now goes
+    through the offline queue, as Health's ticks do. There was also 1 ×
+    "Cannot read properties of undefined (reading 'M_ID')" on `/`. No Kin
+    code names M_ID; most likely an in-app browser's own script. Left
+    alone.
 - **Stale branches.** 488 of 521 can go: 449 are the head of a merged PR,
   unchanged since, and 39 are wholly contained in `main`. 33 stay: 2 with
   an open PR, 31 with commits not on `main` (closed without merging,
