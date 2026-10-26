@@ -148,9 +148,9 @@ async function editEntry(page: Page, name: string) {
 /** Already paid out of the wallet, for `against` ("goals:<id>", ...). */
 async function addPaid(page: Page, name: string, amount: number, against: string) {
   await openSheet(page);
-  await page.getByLabel("What it's for").fill(name);
-  await page.getByLabel(/^Amount/).fill(String(amount));
-  await page.getByLabel("Paid from").selectOption(accountId);
+  await addSheet(page).getByLabel("What it's for").fill(name);
+  await addSheet(page).getByLabel(/^Amount/).fill(String(amount));
+  await addSheet(page).getByLabel("Paid from").selectOption(accountId);
   await addSheet(page).getByLabel("For (optional)").selectOption(against);
 }
 
@@ -164,10 +164,10 @@ test("Already paid lands in the ledger, confirmed, on the day, out of the accoun
   // The sheet opens on "Already paid", with today in Paid on.
   await expect(page.getByRole("button", { name: "Already paid" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator('input[name="occurred_on"]')).toHaveValue(today());
-  await page.getByLabel("What it's for").fill(`${RUN} lunch`);
-  await page.getByLabel(/^Amount/).fill(String(LUNCH));
-  await page.getByLabel("Paid from").selectOption(accountId);
-  await page.getByRole("button", { name: "Save expense" }).click();
+  await addSheet(page).getByLabel("What it's for").fill(`${RUN} lunch`);
+  await addSheet(page).getByLabel(/^Amount/).fill(String(LUNCH));
+  await addSheet(page).getByLabel("Paid from").selectOption(accountId);
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   // Saved: the sheet closes.
   await expect(addSheet(page)).toBeHidden();
 
@@ -193,11 +193,11 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   await expect(page.locator('input[name="due_date"]')).toHaveValue(today());
   await expect(page.locator('input[name="due_date"]')).toHaveAttribute("required", "");
   // Remind me is a bill's question, not an expense already paid.
-  await expect(page.getByLabel("Remind me")).toBeVisible();
-  await page.getByLabel("What it's for").fill(`${RUN} tuition`);
-  await page.getByLabel(/^Amount/).fill(String(TUITION));
-  await page.getByLabel("Paid from").selectOption(accountId);
-  await page.getByRole("button", { name: "Save expense" }).click();
+  await expect(addSheet(page).getByLabel("Remind me")).toBeVisible();
+  await addSheet(page).getByLabel("What it's for").fill(`${RUN} tuition`);
+  await addSheet(page).getByLabel(/^Amount/).fill(String(TUITION));
+  await addSheet(page).getByLabel("Paid from").selectOption(accountId);
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   await expect(addSheet(page)).toBeHidden();
 
   const bills = await rows<Bill>("bills", `select=id,name,amount,due_date,status,account_id,transaction_id,recurrence&name=eq.${encodeURIComponent(`${RUN} tuition`)}`);
@@ -249,7 +249,7 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
 test("Edit entry moves an expense to another account and off its goal; the goal is recounted", async ({ page }) => {
   const name = `${RUN} gym`;
   await addPaid(page, name, 200, `goals:${goalId}`);
-  await page.getByRole("button", { name: "Save expense" }).click();
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   await expect(addSheet(page)).toBeHidden();
   const added = await entryNamed(name);
   expect(added.source_table).toBe("goals");
@@ -284,10 +284,10 @@ test("A loan payment pays the loan down by the split given; Edit moves it, then 
   const name = `${RUN} loan payment`;
   await addPaid(page, name, 1000, `liabilities:${loanId}`);
   // Kin's split is there to change: the bank's statement says 900.
-  const principal = page.getByLabel("Pays the loan down");
+  const principal = addSheet(page).getByLabel("Pays the loan down");
   await expect(principal).toBeVisible();
   await principal.fill("900");
-  await page.getByRole("button", { name: "Save expense" }).click();
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   await expect(addSheet(page)).toBeHidden();
   const added = await entryNamed(name);
   expect(added.source_table).toBe("liabilities");
