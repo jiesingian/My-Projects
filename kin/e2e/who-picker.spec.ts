@@ -21,6 +21,16 @@ import { isGone } from "@/lib/member-status";
 const RUN = `E2E-WHO-${Date.now().toString(36)}`;
 const GOAL = `${RUN} my own goal`;
 
+/** Opens a page and lets it settle before its groups are expanded. A bare
+ * waitUntil "networkidle" on goto timed out a whole test on slow shared dev
+ * (26 October): the page had loaded, but a background request kept the
+ * network from going quiet for 500 ms. Settling is now capped; what each
+ * step needs to see is still waited for by its own expect. */
+async function openSettled(page: Page, url: string) {
+  await page.goto(url);
+  await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+}
+
 async function api() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -109,7 +119,7 @@ async function expectedWho(): Promise<string[]> {
 for (const seg of ["cashflow", "accounts", "assets"] as const) {
   test(`the ${seg} tab offers a Who picker, and every member is in it`, async ({ page }) => {
     const want = await expectedWho();
-    await page.goto(`/wealth?seg=${seg}`, { waitUntil: "networkidle" });
+    await openSettled(page, `/wealth?seg=${seg}`);
     const menu = await openWho(page);
     // "All" and "Family" since #431 renamed "Everyone"; this spec kept
     // looking for the old word. Every member by name, too: Family is always
@@ -127,13 +137,13 @@ test("naming a person keeps the way to put money into their goal", async ({ page
   // Everyone first: the control is there, which is what makes the comparison
   // below mean something rather than being a test of an absent goal. ASSETS
   // (where goals live) starts collapsed since 18 September.
-  await page.goto("/wealth?seg=assets&who=all", { waitUntil: "networkidle" });
+  await openSettled(page, "/wealth?seg=assets&who=all");
   await expandAllCollapsedGroups(page);
   const everyoneCard = page.locator("div").filter({ hasText: GOAL }).filter({ has: page.getByRole("button", { name: /PUT MONEY IN/i }) }).last();
   await expect(everyoneCard).toBeVisible();
 
   // Then my own tab, where the goal is mine and must behave the same.
-  await page.goto(`/wealth?seg=assets&who=${me.id}`, { waitUntil: "networkidle" });
+  await openSettled(page, `/wealth?seg=assets&who=${me.id}`);
   await expandAllCollapsedGroups(page);
   await expect(page.locator("body"), "my own goal should be on my own tab").toContainText(GOAL);
 
@@ -160,7 +170,7 @@ test("naming a person keeps the way to put money into their goal", async ({ page
 test("choosing who keeps the graph range you were looking at", async ({ page }) => {
   // Cash Flow carries two query params and one picker rewrites the other's.
   // `hrefFor` exists to preserve it; nothing said so if it stopped.
-  await page.goto("/wealth?seg=cashflow&range=years", { waitUntil: "networkidle" });
+  await openSettled(page, "/wealth?seg=cashflow&range=years");
   const menu = await openWho(page);
   const someone = menu.getByRole("menuitemradio").nth(1);
   await someone.click();
