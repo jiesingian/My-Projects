@@ -4,6 +4,8 @@ import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { AddGoalForm } from "./add-goal-form";
+import { familyDay } from "@/lib/time";
+import { householdZone } from "@/lib/household-zone";
 import { getMembers } from "@/lib/queries/family";
 import { shortNames } from "@/lib/format";
 import { isGrownUp } from "@/lib/roles";
@@ -28,6 +30,7 @@ export default async function AddGoalPage() {
           accounts={toPickable(accounts, me.id)}
           currency={me.families.currency}
           kids={children}
+          today={familyDay(new Date(), await householdZone())}
         />
       </div>
     </div>

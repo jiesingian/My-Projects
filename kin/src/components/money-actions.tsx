@@ -299,14 +299,22 @@ export function GoalContributeControl({
   accounts,
   currency,
   linkedAccountId,
+  fromAccountId,
 }: {
   goalId: string;
   accounts: PickableAccount[];
   currency: string;
+  /** The goal's To account: where its savings are kept. */
   linkedAccountId?: string | null;
+  /** The goal's From account: where putting money in starts (26 October). */
+  fromAccountId?: string | null;
 }) {
   const [open, setOpen] = useState(false);
-  const defaultAccountId = (linkedAccountId && accounts.some((a) => a.id === linkedAccountId) ? linkedAccountId : accounts[0]?.id) ?? "";
+  // From the goal's From account; else the first that is not its To account
+  // (money moves From -> To); else whatever there is.
+  const defaultAccountId =
+    (fromAccountId && accounts.some((a) => a.id === fromAccountId) ? fromAccountId : (accounts.find((a) => a.id !== linkedAccountId) ?? accounts[0])?.id) ?? "";
+  const toAccount = linkedAccountId ? accounts.find((a) => a.id === linkedAccountId) : undefined;
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [amount, setAmount] = useState(0);
   const [viaApp, setViaApp] = useState(true);
@@ -335,6 +343,11 @@ export function GoalContributeControl({
               <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
             </div>
           </div>
+          {toAccount && (
+            <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+              {accountId === toAccount.id ? `${toAccount.name} is where this goal's savings are kept: the money leaves it and is set aside in the goal.` : `Moves to ${toAccount.name}, where this goal's savings are kept.`}
+            </p>
+          )}
           <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
@@ -1540,7 +1553,7 @@ function DeletionSummary({ accountName, deleted, kept, effects }: { accountName:
 export function IncludePrivateToggle({ include }: { include: boolean }) {
   const { error, pending, run } = useMoneyAction();
   return (
-    <div style={{ margin: "0 0 0.75rem" }}>
+    <div style={{ margin: "0.375rem 0 0" }}>
       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
         <input type="checkbox" checked={include} disabled={pending} onChange={(e) => run(() => setIncludePrivateInTotalsAction(e.target.checked))} />
         Include my private accounts in All totals

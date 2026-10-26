@@ -95,7 +95,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           )}
         </Blueprint>
 
-        <CashTrendLine trend={trend} currency={currency} />
+        <CashTrendLine trend={trend} currency={currency} periodNoun={CASH_FLOW_RANGE_LABELS[range].toLowerCase().replace(/s$/, "")} />
         <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "-0.25rem 0 0.875rem" }}>
           <PickButton
             title="Graph range"
