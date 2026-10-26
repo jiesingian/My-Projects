@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSelectedLayoutSegments } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { AnimatedSheet } from "@/components/animated-sheet";
@@ -50,6 +50,17 @@ export function routeOf(segments: string[]): string {
 function RouteSheet({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const body = usePinnedActions<HTMLDivElement>();
+  const bodyRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      body(el);
+      const stopNaming = nameAfterHeading(el);
+      return () => {
+        stopNaming?.();
+        body(null);
+      };
+    },
+    [body],
+  );
   const [open, setOpen] = useState(true);
   const wentBack = useRef(false);
   const back = () => {
@@ -72,6 +83,7 @@ function RouteSheet({ children }: { children: React.ReactNode }) {
       onClose={() => setOpen(false)}
       onClosed={back}
       label="Add"
+      guardUnsaved
       panelClassName="sheet-panel--full kin-form-sheet kin-route-sheet"
       panelStyle={{ maxHeight: "92dvh" }}
     >
@@ -81,9 +93,34 @@ function RouteSheet({ children }: { children: React.ReactNode }) {
           <Icon name="x" size={15} />
         </button>
       </div>
-      <div ref={body} className="kin-route-sheet-body kin-sheet-scroll">
+      <div
+        ref={bodyRef}
+        className="kin-route-sheet-body kin-sheet-scroll"
+      >
         {children}
       </div>
     </AnimatedSheet>
   );
+}
+
+/** The sheet's name for a screen reader: the page's own heading ("Add a
+ * journal entry"), which only arrives with the page, after the loading
+ * skeleton. Until then it is "Add". Returns the clean-up, as a React 19
+ * callback ref may. */
+function nameAfterHeading(body: HTMLElement | null) {
+  if (!body) return;
+  const panel = body.closest<HTMLElement>('[role="dialog"]');
+  if (!panel) return;
+  const name = () => {
+    const heading = body.querySelector<HTMLElement>("h1, h2, h3");
+    if (!heading) return;
+    if (!heading.id) heading.id = `route-sheet-title-${Math.random().toString(36).slice(2, 8)}`;
+    if (panel.getAttribute("aria-labelledby") === heading.id) return;
+    panel.setAttribute("aria-labelledby", heading.id);
+    panel.removeAttribute("aria-label");
+  };
+  name();
+  const observer = new MutationObserver(name);
+  observer.observe(body, { childList: true, subtree: true });
+  return () => observer.disconnect();
 }

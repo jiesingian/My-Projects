@@ -562,8 +562,11 @@ jobs:
       # with its RUN and removed after), which is fine on a database that
       # exists for this run and not on shared dev -- so it runs here and in
       # the weekly tier, not in the post-merge smoke above (26 October).
-      - name: Run smoke + logic + the Add expense sheet on it
-        run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/*.logic.spec.ts --workers=2
+      # popups.spec.ts the same (26 October): the pop-ups open, close on a
+      # swipe, go back, save and ask before discarding typed work; its save
+      # adds a goal named with its RUN and removes it after.
+      - name: Run smoke + logic + the Add expense sheet and the pop-ups on it
+        run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/popups.spec.ts e2e/*.logic.spec.ts --workers=2
       # Playwright writes an outline of the page as it stood when a test
       # failed (error-context.md: every heading, button, dialog and line of
       # text, with its state). The report artifact holds it, but a Claude
