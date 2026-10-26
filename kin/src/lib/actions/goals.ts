@@ -92,6 +92,23 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
     if (v > 0) startValue = v;
   }
 
+  // A money goal that makes its savings goal on Wealth (Jonathan, 26
+  // October): one entry, two views. The savings goal is the household's
+  // for a household ring, else its owner's -- yours, or a child's when a
+  // grown-up sets it (goals_child_insert); another grown-up's cannot be
+  // made in their name, and the database says so.
+  let savingsId: string | null = kind === "money" ? savingsGoalId : null;
+  if (kind === "money" && savingsGoalId === "new") {
+    const { data: saving, error: savingError } = await supabase
+      .from("goals")
+      .insert({ family_id: me.family_id, title: clamp(title, 150), is_joint: ownerId === null, owner_member_id: ownerId, target_amount: target, target_date: dueDate, created_by: me.id })
+      .select("id")
+      .single();
+    if (savingError || !saving) return { error: `The savings goal on Wealth could not be made (${databaseError(savingError ?? "unknown")}): a savings goal can be the household's, yours, or a child's.`, field: "savings_goal_id" };
+    savingsId = saving.id;
+    revalidatePath("/wealth");
+  }
+
   const { data: goal, error } = await supabase
     .from("planner_goals")
     .insert({
@@ -103,7 +120,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
       unit: kind === "custom" ? unit : null,
       period,
       start_value: startValue,
-      savings_goal_id: kind === "money" ? savingsGoalId : null,
+      savings_goal_id: savingsId,
       due_date: dueDate,
       created_by: me.id,
       // Sent only when hiding, so a household goal still saves in the

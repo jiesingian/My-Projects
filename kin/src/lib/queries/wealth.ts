@@ -598,6 +598,13 @@ export async function getLoanBillIds(familyId: string): Promise<Set<string>> {
   return new Set((data ?? []).map((b) => b.against_id).filter((id): id is string => !!id));
 }
 
+/** The savings goals that have a ring on Planner (planner_goals.savings_goal_id), by goal id. */
+export async function getGoalsOnPlanner(familyId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("planner_goals").select("savings_goal_id").eq("family_id", familyId).is("removed_at", null).not("savings_goal_id", "is", null);
+  return new Set((data ?? []).map((g) => g.savings_goal_id).filter((id): id is string => !!id));
+}
+
 export type RemittanceWithAllocations = Tables<"remittances"> & { allocations: Tables<"remittance_allocations">[] };
 
 /** Every remittance this grown-up may see, newest first, with what each one

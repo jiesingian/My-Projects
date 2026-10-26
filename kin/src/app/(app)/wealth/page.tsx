@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -1147,11 +1147,12 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [nw, who, allAccounts, loanBills] = await Promise.all([
+  const [nw, who, allAccounts, loanBills, onPlanner] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
     getAccounts(familyId),
     getLoanBillIds(familyId),
+    getGoalsOnPlanner(familyId),
   ]);
   const { assets, liabilities, goals, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
@@ -1206,13 +1207,18 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       amount: Number(g.current_amount),
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
-      sub: `${AL_SET_ASIDE}${g.sub_note ? ` · ${g.sub_note}` : ""}`,
+      sub: `${AL_SET_ASIDE}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
       detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
       actions: (
         <>
           <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
+          )}
+          {onPlanner.has(g.id) && (
+            <Link href="/planner?seg=goals" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              On Planner ›
+            </Link>
           )}
           <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
         </>

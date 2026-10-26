@@ -1645,6 +1645,28 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
     .single();
   if (error) return { error: databaseError(error) };
 
+  // The same goal on Planner (Jonathan, 26 October): one entry, two
+  // views. A money ring on Planner fills from this savings goal's balance
+  // (planner_goals.savings_goal_id, 20260928180000); owned by the same
+  // person, or the household for a joint goal, due the same day. The
+  // savings goal stands either way; say what did not.
+  let plannerError: string | null = null;
+  if (formData.get("track_on_planner") === "on") {
+    const { error: ringError } = await supabase.from("planner_goals").insert({
+      family_id: me.family_id,
+      title: clamp(title, 80),
+      kind: "money",
+      owner_member_id: ownerMemberId,
+      target: targetAmount,
+      period: "total",
+      savings_goal_id: goal.id,
+      due_date: targetDate,
+      created_by: me.id,
+    });
+    if (ringError) plannerError = databaseError(ringError);
+    else revalidatePath("/planner");
+  }
+
   if (targetDate) {
     // A child's goal: on the child's calendar and the grown-ups'.
     const grownUps = childGoal
@@ -1659,6 +1681,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   }
 
   revalidateWealth();
+  if (plannerError) return { error: `The goal is saved, but not its ring on Planner: ${plannerError} Add one there with "Fill from a savings goal".` };
   redirect("/wealth?seg=assets");
 }
 
@@ -1761,9 +1784,16 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
 export async function deleteGoalAction(goalId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+  // The ring on Planner that fills from it goes too (26 October): left
+  // behind it would read as a money goal at nothing. Best effort -- the
+  // database lets the ring go of the savings goal either way (on delete
+  // set null), and a ring with a reward promised on it stays, as its own
+  // Delete would leave it.
+  await supabase.from("planner_goals").delete().eq("family_id", me.family_id).eq("savings_goal_id", goalId);
   const { error } = await supabase.from("goals").delete().eq("id", goalId).eq("family_id", me.family_id);
   if (error) return { error: databaseError(error) };
   revalidateWealth();
+  revalidatePath("/planner");
   return { error: null };
 }
 
