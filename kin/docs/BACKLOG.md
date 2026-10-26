@@ -24,8 +24,10 @@ Read and checked by a session; nothing in a dashboard was changed.
     opened from the notification often has no network yet. It now goes
     through the offline queue, as Health's ticks do. There was also 1 ×
     "Cannot read properties of undefined (reading 'M_ID')" on `/`. No Kin
-    code names M_ID; most likely an in-app browser's own script. Left
-    alone.
+    code names M_ID; most likely an in-app browser's own script. Since 26
+    October (#968's follow-up) window errors thrown in a script not served
+    from Kin's own origin are not reported at all (`isOwnScriptError`,
+    lib/error-capture.ts); unhandled rejections still are.
 - **Stale branches.** 488 of 521 can go: 449 are the head of a merged PR,
   unchanged since, and 39 are wholly contained in `main`. 33 stay: 2 with
   an open PR, 31 with commits not on `main` (closed without merging,

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { describeThrown, errorReport, hash16, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
+import { describeThrown, errorReport, hash16, isOwnScriptError, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
 
 /** Error capture (21 October): what is kept of an error, and how repeats
  * group. No network, no database. The database scrubs the same way again
@@ -49,4 +49,17 @@ test("anything thrown is described: an Error, a string, an object with a message
   expect(describeThrown("plain").message).toBe("plain");
   expect(describeThrown({ message: "from fetch" }).message).toBe("from fetch");
   expect(describeThrown(undefined).message).toBe("undefined");
+});
+
+test("only Kin's own scripts are reported from window.onerror, not an in-app browser's", () => {
+  const origin = "https://kin.app";
+  expect(isOwnScriptError("https://kin.app/_next/static/chunks/app.js", "", origin)).toBe(true);
+  // Next's inline scripts: the page itself is the file.
+  expect(isOwnScriptError("https://kin.app/today", "", origin)).toBe(true);
+  expect(isOwnScriptError("", "TypeError: x\n    at f (https://kin.app/_next/static/chunks/1.js:1:2)", origin)).toBe(true);
+  // 21 October, "reading 'M_ID'": injected code has no file of ours.
+  expect(isOwnScriptError("", "TypeError: Cannot read properties of undefined (reading 'M_ID')\n    at <anonymous>:1:120", origin)).toBe(false);
+  expect(isOwnScriptError("chrome-extension://abc/content.js", "", origin)).toBe(false);
+  expect(isOwnScriptError("https://connect.facebook.net/en_US/iab.js", "", origin)).toBe(false);
+  expect(isOwnScriptError("", "", origin)).toBe(false);
 });

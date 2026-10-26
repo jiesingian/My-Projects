@@ -105,6 +105,27 @@ export function describeThrown(thrown: unknown): { message: string; stack: strin
   return { message: String(thrown), stack: "" };
 }
 
+/** Whether an error the window caught came from Kin's own scripts. In-app
+ * browsers (Facebook's, Messenger's) and extensions run their own code in
+ * the page, and their errors reach window.onerror too: "reading 'M_ID'" on
+ * `/` (21 October) named nothing in Kin. Kin's code is served from this
+ * origin, so an error is Kin's when the script it was thrown in is, or,
+ * when the browser does not say which script, when its stack passes
+ * through this origin. Unhandled rejections are not filtered: Kin's own
+ * failed fetches arrive that way. */
+export function isOwnScriptError(filename: unknown, stack: unknown, origin: string): boolean {
+  const file = String(filename ?? "");
+  if (file) {
+    try {
+      return new URL(file, origin).origin === origin;
+    } catch {
+      return false;
+    }
+  }
+  const s = String(stack ?? "");
+  return s.includes(`${origin}/`) || s.includes("/_next/");
+}
+
 /** What is recorded for an error a server action or route handler caught
  * (lib/report-error.ts): `where` is a fixed label, scrubbed again in case an
  * id or a name was put in it; `page` the page it came from, as a pattern.
