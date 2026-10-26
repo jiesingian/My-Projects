@@ -72,8 +72,15 @@ async function openSheet(page: Page) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
   await expandAllCollapsedGroups(page);
   await page.getByRole("button", { name: /ADD EXPENSE/ }).click();
+  await expect(addSheet(page)).toBeVisible();
   await expect(page.getByRole("button", { name: "Already paid" })).toBeVisible();
 }
+
+/** The Add expense sheet itself. Saved = the sheet gone, not the Save
+ * button gone: while the action runs the button reads "…", so a check on
+ * the button's name alone passed before the row had landed (first run,
+ * 26 October). */
+const addSheet = (page: Page) => page.getByRole("dialog", { name: "Add expense" });
 
 test.describe.configure({ mode: "serial" });
 
@@ -110,7 +117,7 @@ test("Already paid lands in the ledger, confirmed, on the day, out of the accoun
   await page.getByLabel("Paid from").selectOption(accountId);
   await page.getByRole("button", { name: "Save expense" }).click();
   // Saved: the sheet closes.
-  await expect(page.getByRole("button", { name: "Save expense" })).toBeHidden();
+  await expect(addSheet(page)).toBeHidden();
 
   const entries = await rows<Entry>("wealth_transactions", `select=id,particulars,amount,status,account_id,occurred_at,source_table,source_id&particulars=eq.${encodeURIComponent(`${RUN} lunch`)}`);
   expect(entries, "one entry, no more").toHaveLength(1);
@@ -139,7 +146,7 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   await page.getByLabel(/^Amount/).fill(String(TUITION));
   await page.getByLabel("Paid from").selectOption(accountId);
   await page.getByRole("button", { name: "Save expense" }).click();
-  await expect(page.getByRole("button", { name: "Save expense" })).toBeHidden();
+  await expect(addSheet(page)).toBeHidden();
 
   const bills = await rows<Bill>("bills", `select=id,name,amount,due_date,status,account_id,transaction_id,recurrence&name=eq.${encodeURIComponent(`${RUN} tuition`)}`);
   expect(bills, "one bill, no more").toHaveLength(1);
