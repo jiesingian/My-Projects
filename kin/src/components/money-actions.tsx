@@ -107,9 +107,23 @@ function Err({ message }: { message: string | null }) {
   return <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 8px" }}>{message}</p>;
 }
 
-export function PayBillControl({ billId, amount, accounts, currency }: { billId: string; amount: number; accounts: PickableAccount[]; currency: string }) {
+export function PayBillControl({
+  billId,
+  amount,
+  accounts,
+  currency,
+  defaultAccountId,
+}: {
+  billId: string;
+  amount: number;
+  accounts: PickableAccount[];
+  currency: string;
+  /** The account the bill was added against (bills.account_id); Settle
+   * starts on it. Null, or one the member can't pay from: the most used. */
+  defaultAccountId?: string | null;
+}) {
   const [open, setOpen] = useState(false);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const [accountId, setAccountId] = useState((defaultAccountId && accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId : accounts[0]?.id) ?? "");
   const [payAmount, setPayAmount] = useState(amount);
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
@@ -478,12 +492,12 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
 }
 
 /** One entry behind a Cash Flow line, as the line's list shows it. */
-export type LineEntry = { id: string; particulars: string; amount: number; occurredOn: string; category: string | null; direction: string; accountName: string };
+export type LineEntry = { id: string; particulars: string; amount: number; occurredOn: string; category: string | null; direction: string; accountId: string; accountName: string };
 
 /** The entries a Cash Flow line adds up (Janine, 25 October): a line is
  * every entry of one name and category, so it has no single entry to edit
  * or remove. Tapping "N entries" opens them, each with Edit and Remove. */
-export function LineEntries({ entries, currency, dateFormat }: { entries: LineEntry[]; currency: string; dateFormat: string }) {
+export function LineEntries({ entries, accounts, currency, dateFormat }: { entries: LineEntry[]; accounts: PickableAccount[]; currency: string; dateFormat: string }) {
   const [open, setOpen] = useState(false);
   if (entries.length === 0) return null;
   return (
@@ -503,7 +517,7 @@ export function LineEntries({ entries, currency, dateFormat }: { entries: LineEn
               </span>
               <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>{formatCurrency(e.amount, currency)}</span>
               <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>
-                <EditEntryButton entry={e} currency={currency} />
+                <EditEntryButton entry={e} accounts={accounts} currency={currency} />
                 <DeleteEntryButton transactionId={e.id} />
               </span>
             </li>
@@ -514,16 +528,22 @@ export function LineEntries({ entries, currency, dateFormat }: { entries: LineEn
   );
 }
 
-export function EditEntryButton({ entry, currency }: { entry: LineEntry; currency: string }) {
+export function EditEntryButton({ entry, accounts, currency }: { entry: LineEntry; accounts: PickableAccount[]; currency: string }) {
   const [open, setOpen] = useState(false);
   const [particulars, setParticulars] = useState(entry.particulars);
   const [amount, setAmount] = useState(entry.amount);
   const [occurredOn, setOccurredOn] = useState(entry.occurredOn);
   const [category, setCategory] = useState(entry.category ?? "");
+  const [accountId, setAccountId] = useState(entry.accountId);
   const { error, pending, run } = useMoneyAction();
   const uid = useId();
   const choices: readonly string[] = entry.direction === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES;
   const options = category && !choices.includes(category) ? [category, ...choices] : choices;
+  // Which account it moved through (Jonathan, 26 October). The pickable
+  // ones are joint and the member's own; an entry on an account merely
+  // shared with them keeps that account as a choice, so Save never moves
+  // it by accident.
+  const onPickable = accounts.some((a) => a.id === entry.accountId);
   return (
     <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
@@ -546,7 +566,7 @@ export function EditEntryButton({ entry, currency }: { entry: LineEntry; currenc
               <DateInput id={`${uid}-on`} className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.625rem" }} />
             </div>
           </div>
-          <div className="field" style={{ marginBottom: "0.75rem" }}>
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
             <label htmlFor={`${uid}-cat`}>{entry.direction === "in" ? "Type of income" : "Spent on"}</label>
             <select id={`${uid}-cat`} className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
               {options.map((c) => (
@@ -556,13 +576,20 @@ export function EditEntryButton({ entry, currency }: { entry: LineEntry; currenc
               ))}
             </select>
           </div>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
+            <label htmlFor={`${uid}-account`}>{entry.direction === "in" ? "Paid into" : "Paid from"}</label>
+            <select id={`${uid}-account`} className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.625rem" }}>
+              {!onPickable && <option value={entry.accountId}>{entry.accountName}</option>}
+              <AccountOptions accounts={accounts} currency={currency} />
+            </select>
+          </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => updateTransactionAction(entry.id, { particulars, amount, occurredOn, category: category || null }), () => setOpen(false))}
+              onClick={() => run(() => updateTransactionAction(entry.id, { particulars, amount, occurredOn, category: category || null, accountId }), () => setOpen(false))}
             >
               {pending ? "…" : "Save"}
             </button>

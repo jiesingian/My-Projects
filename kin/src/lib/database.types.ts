@@ -1563,6 +1563,7 @@ export type Database = {
       }
       bills: {
         Row: {
+          account_id: string | null
           amount: number
           category: string | null
           created_at: string
@@ -1583,6 +1584,7 @@ export type Database = {
           transaction_id: string | null
         }
         Insert: {
+          account_id?: string | null
           amount: number
           category?: string | null
           created_at?: string
@@ -1603,6 +1605,7 @@ export type Database = {
           transaction_id?: string | null
         }
         Update: {
+          account_id?: string | null
           amount?: number
           category?: string | null
           created_at?: string
@@ -1623,6 +1626,13 @@ export type Database = {
           transaction_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bills_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bills_created_by_fkey"
             columns: ["created_by"]

@@ -583,11 +583,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         buttons.length || entries.length ? (
           <>
             {buttons}
-            <LineEntries entries={entries} currency={currency} dateFormat={dateFormat} />
+            <LineEntries entries={entries} accounts={pickable} currency={currency} dateFormat={dateFormat} />
           </>
         ) : undefined,
     }));
-  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountName: t.accountName });
+  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountId: t.account_id, accountName: t.accountName });
 
   const incomeLines = new Map<string, Line>();
   for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {
@@ -666,11 +666,13 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     const key = expenseLines.get(base)?.buttons.length ? `${base}:${bill.id}` : base;
     const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${bill.name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
     if (bill.id === billId) line.reveal = true;
-    line.tail.push(`${bill.status === "scheduled" ? "Payment waiting on confirmation" : "Due"}${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""} · ${formatCurrency(Number(bill.amount), currency)}`);
+    // The account it comes out of, when one was chosen on Add expense.
+    const from = bill.account_id ? accounts.find((a) => a.id === bill.account_id) : null;
+    line.tail.push(`${bill.status === "scheduled" ? "Payment waiting on confirmation" : "Due"}${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""} · ${formatCurrency(Number(bill.amount), currency)}${from ? ` · from ${from.name}` : ""}`);
     // The id is what Today's Pay button lands on.
     line.buttons.push(
       <span key={bill.id} id={`bill-${bill.id}`} className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
-        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} />
+        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} defaultAccountId={bill.account_id} />
         {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} weekly={bill.recurrence === "weekly"} />}
         <RemoveButton id={bill.id} kind="bill" label={`Delete "${bill.name}"`} />
       </span>,
@@ -815,7 +817,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           />
         </Blueprint>
       )}
-      <AddBillForm whose={whose} />
+      <AddBillForm whose={whose} accounts={pickable} currency={currency} />
       <div style={{ height: "1.25rem" }} />
 
       {/* The month's budget is its categories added up (26 October): no

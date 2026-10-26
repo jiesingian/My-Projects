@@ -411,6 +411,7 @@ export async function deleteAccountAction(accountId: string, deleteEntryIds: str
     // marked deleted -- hidden everywhere, so the person sees it gone anyway.
     await Promise.all([
       supabase.from("bills").update({ paid_from_account_id: null }).eq("family_id", me.family_id).eq("paid_from_account_id", accountId),
+      supabase.from("bills").update({ account_id: null }).eq("family_id", me.family_id).eq("account_id", accountId),
       supabase.from("income_schedules").update({ account_id: null }).eq("family_id", me.family_id).eq("account_id", accountId),
     ]);
     await supabase.from("accounts").delete().eq("id", accountId).eq("family_id", me.family_id);
@@ -803,7 +804,7 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
  * two entries that must agree, so it is not edited here. */
 export async function updateTransactionAction(
   transactionId: string,
-  input: { particulars: string; amount: number; occurredOn: string; category: string | null },
+  input: { particulars: string; amount: number; occurredOn: string; category: string | null; accountId?: string },
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -816,6 +817,17 @@ export async function updateTransactionAction(
   const { data: entry } = await supabase.from("wealth_transactions").select("*").eq("id", transactionId).eq("family_id", me.family_id).maybeSingle();
   if (!entry) return { error: "That entry is no longer there." };
   if (entry.transfer_group_id) return { error: "A transfer is edited by removing it and moving the money again." };
+
+  // Which account it came out of (Jonathan, 26 October). Balances are never
+  // stored, only added up from the ledger, so moving the entry is the whole
+  // change; a bill it settled follows it. The account has to be one this
+  // household has and the member can see -- read as them, a forged or a
+  // hidden id is simply not found.
+  const accountId = input.accountId && input.accountId !== entry.account_id ? input.accountId : null;
+  if (accountId) {
+    const { data: account } = await supabase.from("accounts").select("id").eq("id", accountId).eq("family_id", me.family_id).is("deleted_at", null).maybeSingle();
+    if (!account) return { error: "Choose an account this household actually has." };
+  }
 
   // Keep the time of day it was recorded; only the date moves.
   const occurredAt = `${input.occurredOn}${entry.occurred_at.slice(10)}`;
@@ -831,10 +843,13 @@ export async function updateTransactionAction(
 
   const { error } = await supabase
     .from("wealth_transactions")
-    .update({ particulars, amount, occurred_at: occurredAt, category: clamp(input.category ?? "", 100) || null, principal_amount: principal })
+    .update({ particulars, amount, occurred_at: occurredAt, category: clamp(input.category ?? "", 100) || null, principal_amount: principal, ...(accountId ? { account_id: accountId } : {}) })
     .eq("id", transactionId)
     .eq("family_id", me.family_id);
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+  if (accountId && entry.source_table === "bills" && entry.source_id) {
+    await supabase.from("bills").update({ paid_from_account_id: accountId }).eq("id", entry.source_id).eq("family_id", me.family_id).eq("transaction_id", transactionId);
+  }
 
   const delta = Number(entry.principal_amount ?? 0) - Number(principal ?? 0);
   if (entry.source_table === "liabilities" && entry.source_id && entry.status === "confirmed" && delta !== 0) {
@@ -938,6 +953,10 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
+  // Which account it comes out of (Jonathan, 26 October), or none to
+  // choose when settling. Read as the member: an account they can't see,
+  // or another household's, is simply not found.
+  const accountId = String(formData.get("account_id") ?? "") || null;
   // A weekly bill's reminder comes at most WEEKLY_REMIND_MAX days ahead.
   const remindDaysBefore = recurrence === "weekly" ? Math.min(WEEKLY_REMIND_MAX, billRemindDays(formData.get("remind_days_before"))) : billRemindDays(formData.get("remind_days_before"));
   if (!name) return { error: "Name and amount are required." };
@@ -945,11 +964,15 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   // false for -500. A negative bill subtracts from what the household owes and
   // reads as money it is owed.
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+  if (accountId) {
+    const { data: account } = await supabase.from("accounts").select("id").eq("id", accountId).eq("family_id", me.family_id).is("deleted_at", null).maybeSingle();
+    if (!account) return { error: "Choose an account this household actually has." };
+  }
 
   const { data: bill, error } = await supabase
     .from("bills")
     // The default is the column's own, so a bill left at 3 writes nothing new.
-    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, ...parseWhose(formData.get("whose"), me.id), ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
+    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, account_id: accountId, ...parseWhose(formData.get("whose"), me.id), ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
     .select()
     .single();
   if (error) return { error: databaseError(error) };
@@ -1082,6 +1105,8 @@ export async function addNextBillAction(input: { fromBillId: string; amount: num
       created_by: me.id,
       is_joint: from.is_joint,
       owner_member_id: from.owner_member_id,
+      // Next month's comes out of the same account.
+      account_id: from.account_id,
     })
     .select()
     .single();
