@@ -557,6 +557,10 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     periodOut: thisPeriod.filter((t) => t.direction === "out" && t.category !== TRANSFER_CATEGORY),
     scheduleGroup: Object.fromEntries(incomeSchedules.filter((x) => x.group_id).map((x) => [x.id, x.group_id as string])),
     billName: Object.fromEntries(bills.map((b) => [b.id, b.name])),
+    // A bill paid for a loan, an asset or a goal (20261026150000) is tied
+    // to its payment by transaction_id, the payment's source being what
+    // the money was for; its line still carries the bill's name.
+    billNameByPayment: Object.fromEntries(bills.filter((b) => b.transaction_id).map((b) => [b.transaction_id as string, b.name])),
     // Each regular income with what it brought in this calendar month.
     incomeGroups: incomeGroups.map((g) => ({
       ...g,

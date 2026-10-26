@@ -1564,6 +1564,8 @@ export type Database = {
       bills: {
         Row: {
           account_id: string | null
+          against_id: string | null
+          against_table: string | null
           amount: number
           category: string | null
           created_at: string
@@ -1585,6 +1587,8 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          against_id?: string | null
+          against_table?: string | null
           amount: number
           category?: string | null
           created_at?: string
@@ -1606,6 +1610,8 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          against_id?: string | null
+          against_table?: string | null
           amount?: number
           category?: string | null
           created_at?: string

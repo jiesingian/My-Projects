@@ -350,6 +350,7 @@ create policy health_vitals_insert on health_vitals for insert with check (famil
 alter table bills add column if not exists created_at timestamptz not null default now();
 -- 20261023120000_entry_owner fills a bill's owner from the account it was paid from.
 alter table bills add column if not exists paid_from_account_id uuid;
+alter table bills add column if not exists transaction_id uuid;
 alter table income_schedules add column if not exists is_joint boolean not null default true;
 alter table income_schedules add column if not exists owner_member_id uuid;
 alter table accounts add column if not exists created_at timestamptz not null default now();

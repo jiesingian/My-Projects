@@ -649,11 +649,13 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const incomeLinesDone = finish(incomeLines, "payment");
   const incomeItems = incomeLinesDone.map(({ actions: _actions, ...item }) => item);
 
+  const forLabel = (table: string | null, id: string | null): string | null =>
+    !table || !id ? null : (table === "liabilities" ? targets.loans : table === "assets" ? targets.assets : targets.goals).find((x) => x.id === id)?.name ?? null;
   const expenseLines = new Map<string, Line>();
   for (const t of cf.periodOut) {
     const category = categoryLabel(t.category ?? "Other");
     const owner = ownerOfRow(t.is_joint, t.owner_member_id);
-    const name = (t.source_table === "bills" && t.source_id ? cf.billName[t.source_id] : null) ?? t.particulars.trim();
+    const name = (t.source_table === "bills" && t.source_id ? cf.billName[t.source_id] : cf.billNameByPayment[t.id]) ?? t.particulars.trim();
     const key = `${owner.ownerKey}:${category}:${name.toLowerCase()}`;
     const line = expenseLines.get(key) ?? { id: key, name: `${category} - ${name}`, amount: 0, category, ...owner, count: 0, last: null, lead: [], tail: [], buttons: [] };
     line.amount += Number(t.amount);
@@ -678,11 +680,13 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     const dueDay = bill.due_date?.slice(0, 10) ?? null;
     const due = bill.status !== "scheduled" && dueDay ? (dueDay < today ? "overdue" : dueDay === today ? "today" : null) : null;
     const when = bill.status === "scheduled" ? "Payment waiting on confirmation" : due === "today" ? "Due today" : due === "overdue" ? `Overdue since ${fmtDate(bill.due_date!)}` : `Due${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""}`;
-    line.tail.push(`${when} · ${formatCurrency(Number(bill.amount), currency)}${from ? ` · from ${from.name}` : ""}${due ? " · did it go through?" : ""}`);
+    // What it is for, when it is: the loan it pays down, the asset, the goal.
+    const forName = forLabel(bill.against_table, bill.against_id);
+    line.tail.push(`${when} · ${formatCurrency(Number(bill.amount), currency)}${from ? ` · from ${from.name}` : ""}${forName ? ` · for ${forName}` : ""}${due ? " · did it go through?" : ""}`);
     // The id is what Today's Pay button lands on.
     line.buttons.push(
       <span key={bill.id} id={`bill-${bill.id}`} className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
-        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} defaultAccountId={bill.account_id} due={due} autoOpen={bill.id === billId} />
+        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} defaultAccountId={bill.account_id} due={due} autoOpen={bill.id === billId} paysLoan={bill.against_table === "liabilities" ? forName : null} />
         {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} weekly={bill.recurrence === "weekly"} />}
         <RemoveButton id={bill.id} kind="bill" label={`Delete "${bill.name}"`} />
       </span>,

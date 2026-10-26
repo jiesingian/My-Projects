@@ -115,6 +115,7 @@ export function PayBillControl({
   defaultAccountId,
   due = null,
   autoOpen = false,
+  paysLoan = null,
 }: {
   billId: string;
   amount: number;
@@ -128,6 +129,9 @@ export function PayBillControl({
   due?: "today" | "overdue" | null;
   /** Arrived from Today's Pay: open the sheet straight away. */
   autoOpen?: boolean;
+  /** The loan this bill pays down (bills.against_table), by name: the
+   * sheet says the payment is split into interest and principal. */
+  paysLoan?: string | null;
 }) {
   const [open, setOpen] = useState(!!autoOpen);
   const [accountId, setAccountId] = useState((defaultAccountId && accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId : accounts[0]?.id) ?? "");
@@ -153,6 +157,11 @@ export function PayBillControl({
           {due && (
             <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem", lineHeight: 1.45 }}>
               {due === "today" ? "Due today." : "The due day has passed."} Mark it paid if it went through, changing the amount first if the bill came to more or less.
+            </p>
+          )}
+          {paysLoan && (
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem", lineHeight: 1.45 }}>
+              Pays {paysLoan}: Kin splits it into interest and the part that pays the loan down, from the loan&apos;s rate, and lowers the loan by that part.
             </p>
           )}
           <div className="field" style={{ marginBottom: "0.5rem" }}>
