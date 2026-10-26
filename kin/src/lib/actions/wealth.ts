@@ -1101,7 +1101,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   if (againstTable && !["liabilities", "assets", "goals"].includes(againstTable)) return { error: "That isn't something a bill can be for." };
   // A weekly bill's reminder comes at most WEEKLY_REMIND_MAX days ahead.
   const remindDaysBefore = recurrence === "weekly" ? Math.min(WEEKLY_REMIND_MAX, billRemindDays(formData.get("remind_days_before"))) : billRemindDays(formData.get("remind_days_before"));
-  if (!name) return { error: "Name and amount are required." };
+  if (!name) return { error: "Say what it's for." };
   // Every other money path checks `> 0`; this one checked `!amount`, which is
   // false for -500. A negative bill subtracts from what the household owes and
   // reads as money it is owed.
@@ -1362,7 +1362,7 @@ export async function addIncomeScheduleAction(_prev: ActionState, formData: Form
   const recurrence = String(formData.get("recurrence") ?? "monthly");
   const requestedAccountId = String(formData.get("account_id") ?? "") || null;
   const whose = parseWhose(formData.get("whose"), me.id);
-  if (!name) return { error: "Name and amount are required." };
+  if (!name) return { error: "Say what it's for." };
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
 
   let accountId: string | null = null;

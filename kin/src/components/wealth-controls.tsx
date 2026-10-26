@@ -862,7 +862,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
           {accounts.length > 0 && (
             <Labelled label="Paid into">
               <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
-                <option value="">Choose later</option>
+                <option value="">Decide when receiving</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
@@ -936,7 +936,7 @@ function IncomeGroupForm({ accounts, whose, today, onCancel }: { accounts: { id:
       {accounts.length > 0 && (
         <Labelled label="Paid into">
           <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
-            <option value="">Choose later</option>
+            <option value="">Decide when receiving</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
