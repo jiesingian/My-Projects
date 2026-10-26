@@ -59,7 +59,7 @@ export default async function ({ db, as, check, refused }) {
   });
   await check("The Undas sample names two and opens Today", async () => {
     const s = await sample(ANN, "undas");
-    return (/^Undas is on (Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day$/.test(s.title) && s.body === "Remembering Lolo Pedro, Lola Remedios. Time to plan the visit: candles and flowers." && s.url === "/today") || s;
+    return (/^All Saints' Day is on (Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day$/.test(s.title) && s.body === "Remembering Lolo Pedro, Lola Remedios. Time to plan the visit: candles and flowers." && s.url === "/today") || s;
   });
   await check("The remembrance sample is a 40th day", async () => {
     const s = await sample(ANN, "remembrance");

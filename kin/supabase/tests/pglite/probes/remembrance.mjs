@@ -25,12 +25,12 @@ export default async function ({ db, check, refused }) {
 
   await check("Without the secret, nothing", async () => (await db.query("select * from due_remembrance_reminders('wrong', '2026-10-29 02:00+00')")).rows.length === 0);
   await check("29 October before 09:00 Manila: nothing yet", async () => (await run("2026-10-29 00:30+00")).length === 0);
-  await check("29 October, 10:00 Manila: each household's grown-up hears Undas is on Sunday, naming its own first three", async () => {
+  await check("29 October, 10:00 Manila: each household's grown-up hears All Saints' Day is on Sunday, naming its own first three", async () => {
     const rows = await run("2026-10-29 02:00+00");
     const r = rows.find((x) => x.endpoint.endsWith("Ann A"));
     return (
       (who(rows) === "Ann A|Dan D" &&
-        r.title === "Undas is on Sunday" &&
+        r.title === "All Saints' Day is on Sunday" &&
         r.body.startsWith("Remembering Lola Remedios, Tita Leap, Lolo Ben and 1 more.")) ||
       rows.map((x) => [x.endpoint, x.title, x.body])
     );
