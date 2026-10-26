@@ -23,6 +23,7 @@ import {
   LoanScheduleControl,
   RemoveButton,
   SetBalanceButton,
+  EditSavingsGoalButton,
   LoanBillButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
@@ -1228,6 +1229,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}
+          <EditSavingsGoalButton goal={{ id: g.id, title: g.title, note: g.sub_note, target: Number(g.target_amount ?? 0), date: g.target_date, yearly: g.repeats_yearly }} currency={currency} />
           {onPlanner.has(g.id) && (
             <Link href="/planner?seg=goals" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
               On Planner ›

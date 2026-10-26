@@ -481,6 +481,7 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
   if (!needsYes) {
     const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate, ...pointsChange }).eq("id", goal.id).eq("family_id", me.family_id);
     if (error) return { error: databaseError(error) };
+    if (measures) await carryRingToSavings(supabase, me.family_id, goal.id);
   } else {
     // The name is nobody's promise: it changes now. The rest waits.
     if (title !== goal.title || "points" in pointsChange) {
@@ -505,13 +506,30 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
   redirect(`/planner?seg=goals${needsYes ? "&asked=1" : ""}`);
 }
 
+/** A money ring's target and date, carried to the savings goal on Wealth it
+ * fills from (Jonathan, 26 October), so the two never disagree. Best
+ * effort: whoever cannot change the savings goal (a child, on a grown-up's
+ * goal) leaves it as it was, and Wealth still shows its own. */
+async function carryRingToSavings(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, ringId: string) {
+  const { data: ring } = await supabase.from("planner_goals").select("kind, target, due_date, savings_goal_id").eq("id", ringId).eq("family_id", familyId).maybeSingle();
+  if (!ring || ring.kind !== "money" || !ring.savings_goal_id) return;
+  const { data: saving } = await supabase.from("goals").select("repeats_yearly, target_date").eq("id", ring.savings_goal_id).eq("family_id", familyId).maybeSingle();
+  if (!saving) return;
+  // A yearly fund keeps its date: the ring may have none.
+  const date = saving.repeats_yearly && !ring.due_date ? saving.target_date : ring.due_date;
+  await supabase.from("goals").update({ target_amount: Number(ring.target), target_date: date }).eq("id", ring.savings_goal_id).eq("family_id", familyId);
+  revalidatePath("/wealth");
+}
+
 /** The giver's answer on a change -- or anyone's, when no reward is in
  * play. decide_goal_change() checks who may, and applies it. */
 async function decideGoalChange(changeId: string, approve: boolean): Promise<{ error: string | null }> {
-  await requireCurrentMember();
+  const me = await requireCurrentMember();
   const supabase = await createClient();
+  const { data: change } = approve ? await supabase.from("planner_goal_changes").select("goal_id").eq("id", changeId).eq("family_id", me.family_id).maybeSingle() : { data: null };
   const { error } = await supabase.rpc("decide_goal_change", { p_change: changeId, p_approve: approve });
   if (error) return { error: databaseError(error) };
+  if (change?.goal_id) await carryRingToSavings(supabase, me.family_id, change.goal_id);
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };

@@ -1685,6 +1685,59 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   redirect("/wealth?seg=assets");
 }
 
+/** Changing a savings goal (Jonathan, 26 October): there was no way to,
+ * short of deleting it with its history. Its name, note, target and date
+ * change here, and the ring on Planner that fills from it follows -- the
+ * same name, target and date, so the two never disagree. A ring with a
+ * reward in play keeps its own target until the giver agrees (the planner
+ * trigger holds that line); the reply says so. */
+export async function updateSavingsGoalAction(goalId: string, input: { title: string; note: string; target: number; date: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const title = clamp(input.title, 150);
+  const note = clamp(input.note, 200) || null;
+  const date = input.date.trim() || null;
+  if (!title) return { error: "Give the goal a title." };
+  if (!(input.target > 0)) return { error: "Set the amount you're saving towards." };
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "The date isn't one Kin can read." };
+  const { data: goal } = await supabase.from("goals").select("id, repeats_yearly, is_joint, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  if (!goal) return { error: "That goal is no longer there." };
+  if (goal.repeats_yearly && !date) return { error: "A yearly cost needs the date it is due." };
+  const { error, count } = await supabase
+    .from("goals")
+    .update({ title, sub_note: note, target_amount: input.target, target_date: date }, { count: "exact" })
+    .eq("id", goalId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  if (count === 0) return { error: "Only a grown-up, or whoever the goal is for, can change it." };
+
+  if (date) {
+    // As createGoalAction puts it: a child's goal on the child's calendar
+    // and the grown-ups'.
+    const { data: people } = goal.is_joint ? { data: [] } : await supabase.from("members").select("id, role").eq("family_id", me.family_id).eq("status", "active");
+    const owner = (people ?? []).find((m) => m.id === goal.owner_member_id);
+    const target: CalendarTarget = goal.is_joint
+      ? { kind: "all" }
+      : owner && !isGrownUp(owner.role)
+        ? { kind: "members", memberIds: [owner.id, ...(people ?? []).filter((m) => isGrownUp(m.role)).map((m) => m.id)] }
+        : { kind: "member", memberId: goal.owner_member_id };
+    await syncRowToCalendars(me.family_id, "goals", goalId, allDayEvent(title, date), target);
+  }
+
+  // The rings that fill from it, one by one: one held by a reward is
+  // refused on its own and the rest still follow.
+  const { data: rings } = await supabase.from("planner_goals").select("id").eq("family_id", me.family_id).eq("savings_goal_id", goalId).is("removed_at", null);
+  let held = 0;
+  for (const r of rings ?? []) {
+    const { error: ringError } = await supabase.from("planner_goals").update({ title: clamp(title, 80), target: input.target, due_date: date }).eq("id", r.id).eq("family_id", me.family_id);
+    if (ringError) held += 1;
+  }
+  revalidateWealth();
+  revalidatePath("/planner");
+  if (held > 0) return { error: `Saved. The ring on Planner has a reward promised on it, so its target stays until the one giving the reward agrees: change it there to ask.` };
+  return { error: null };
+}
+
 /** Putting money towards a goal moves it out of a real account, so goal
  * progress is always backed by money the household actually set aside. */
 export async function contributeToGoalAction(input: {

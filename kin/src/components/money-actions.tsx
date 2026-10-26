@@ -31,6 +31,7 @@ import {
   deleteIncomeScheduleAction,
   deleteIncomeGroupAction,
   deleteGoalAction,
+  updateSavingsGoalAction,
   archiveAccountAction,
   restoreAccountAction,
   setIncludePrivateInTotalsAction,
@@ -1022,6 +1023,61 @@ export function LoanScheduleControl({
               () => setOpen(false),
             )
           }
+        >
+          {pending ? "…" : "Save"}
+        </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** Edit on a savings goal's line (26 October): name, note, target, date.
+ * The ring on Planner that fills from it follows. */
+export function EditSavingsGoalButton({ goal, currency }: { goal: { id: string; title: string; note: string | null; target: number; date: string | null; yearly: boolean }; currency: string }) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(goal.title);
+  const [note, setNote] = useState(goal.note ?? "");
+  const [target, setTarget] = useState(goal.target);
+  const [date, setDate] = useState(goal.date ?? "");
+  const { error, pending, run } = useMoneyAction();
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Edit
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Edit goal">
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-title`}>Title</label>
+          <input id={`${uid}-title`} className="input" value={title} onChange={(e) => setTitle(e.target.value)} style={field} />
+        </div>
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-note`}>Note</label>
+          <input id={`${uid}-note`} className="input" value={note} onChange={(e) => setNote(e.target.value)} style={field} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-target`}>Target ({currencySymbol(currency)})</label>
+            <AmountInput id={`${uid}-target`} ariaLabel="Target" defaultValue={target} onValueChange={setTarget} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-date`}>{goal.yearly ? "Next due" : "Target date"}</label>
+            <DateInput id={`${uid}-date`} className="input" value={date} onChange={(e) => setDate(e.target.value)} style={field} />
+          </div>
+        </div>
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>A ring on Planner that fills from this goal takes the same name, target and date.</p>
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() => run(() => updateSavingsGoalAction(goal.id, { title, note, target, date }), () => setOpen(false))}
         >
           {pending ? "…" : "Save"}
         </button>
