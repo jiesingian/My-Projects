@@ -1025,3 +1025,159 @@ export function accountAudienceLabel(
   if (names.length === 0) return "Only you";
   return names.length <= 2 ? `You + ${names.join(", ")}` : `You + ${names.length} people`;
 }
+
+/* ------------------------------------------------- what A&L groups together */
+
+/** The groups of what is owned on A&L (Jonathan, 26 October), as a personal
+ * balance sheet reads: cash and what is as good as cash, then what is held
+ * to grow, then what the household owns outright. A savings goal is cash
+ * set aside, not an asset of its own (every contribution left a real
+ * account and is still the household's), so it sits under Cash & savings
+ * as "set aside". An investment account and an asset of kind investment
+ * are the same thing recorded two ways, so both land under Investments. */
+export const AL_CASH = "Cash & savings";
+export const AL_INVESTMENTS = "Investments";
+export const AL_SET_ASIDE = "Set aside for a goal";
+
+export const ASSET_GROUP: Record<AssetKind, string> = {
+  property: "Property",
+  vehicle: "Vehicles",
+  investment: AL_INVESTMENTS,
+  business: "Business",
+  valuable: "Valuables",
+  other: "Other",
+};
+
+/** Owned, in the order a balance sheet lists them: liquid first. */
+export const AL_OWNED_ORDER: readonly string[] = [AL_CASH, AL_INVESTMENTS, "Property", "Vehicles", "Business", "Valuables", "Other"];
+
+/** Which A&L group an account's money belongs in. A credit card is not
+ * money owned at all: below zero it is owed (creditOwed in getNetWorth);
+ * above it, an overpayment, it is cash. */
+export function accountGroup(accountType: string): string {
+  return accountType === "investment" || accountType === "stocks" ? AL_INVESTMENTS : AL_CASH;
+}
+
+export function assetGroup(kind: string): string {
+  return ASSET_GROUP[kind as AssetKind] ?? ASSET_GROUP.other;
+}
+
+/** What the yearly-change box should suggest for a kind of asset, in the
+ * words of someone who has watched one age. Null: leave the box blank. */
+export const ASSET_KIND_CHANGE_HINTS: Record<AssetKind, string> = {
+  property: "5, or -2 if it loses",
+  vehicle: "-10: a car loses value",
+  investment: "6, what it earns a year",
+  business: "Leave blank",
+  valuable: "Leave blank, or -5",
+  other: "Leave blank",
+};
+
+/** The loan a kind of asset is usually bought on. */
+export function loanKindFor(assetKind: string): LiabilityKind {
+  return assetKind === "property" ? "mortgage" : assetKind === "vehicle" ? "auto_loan" : "personal_loan";
+}
+
+/* --------------------------------------------------- a loan by its own terms */
+
+/** Running a loan month by month (20261026170000): each month's interest is
+ * the yearly rate over twelve on what is still owed, the rest of the payment
+ * pays it down -- how a Philippine bank's amortisation table is built. Stops
+ * at `months`, or sooner once nothing is owed. A payment that does not
+ * cover the interest leaves the balance growing; it is reported as it is. */
+export function amortise(principal: number, ratePct: number | null, payment: number, months: number): { balance: number; interest: number; principalPaid: number; months: number } {
+  let balance = Math.max(0, principal);
+  let interest = 0;
+  let paid = 0;
+  let ran = 0;
+  const r = Math.max(0, ratePct ?? 0) / 100 / 12;
+  for (let m = 0; m < Math.min(months, 1200) && balance > 0; m++) {
+    const i = cents(balance * r);
+    const p = Math.min(balance, cents(payment - i));
+    interest += i;
+    paid += Math.max(0, p);
+    balance = cents(balance - p);
+    ran += 1;
+  }
+  return { balance, interest: cents(interest), principalPaid: cents(paid), months: ran };
+}
+
+/** The level monthly payment that clears `principal` in `termMonths` at
+ * `ratePct` a year -- the figure on a bank's loan offer. */
+export function amortisedPayment(principal: number, ratePct: number | null, termMonths: number): number {
+  const n = Math.max(1, Math.round(termMonths));
+  const r = Math.max(0, ratePct ?? 0) / 100 / 12;
+  if (!r) return cents(principal / n);
+  const f = Math.pow(1 + r, n);
+  return cents((principal * r * f) / (f - 1));
+}
+
+export type LoanTerms = LoanSchedule & {
+  balance: number | string;
+  interest_rate: number | string | null;
+  monthly_payment: number | string | null;
+  original_amount: number | string | null;
+  term_months: number | null;
+  rate_fixed_until: string | null;
+};
+
+export type LoanOriginStatus = {
+  /** What was borrowed, and the payment the figures below assume: the one
+   * typed, else the level payment the terms imply. */
+  original: number;
+  payment: number;
+  /** Payments made so far, by the dates that have passed; the whole term;
+   * what is still ahead. */
+  made: number;
+  term: number;
+  left: number;
+  /** What should still be owed after those payments, by the terms alone;
+   * how far the balance on record is from it (positive: more is on record
+   * than the terms say). */
+  expectedBalance: number;
+  gap: number;
+  /** Interest paid so far and principal paid so far, by the terms; the
+   * interest the whole loan comes to. */
+  interestPaid: number;
+  principalPaid: number;
+  totalInterest: number;
+  /** Months the rate stays fixed from today, or null with no repricing
+   * date; negative when it has passed. */
+  fixedMonthsLeft: number | null;
+};
+
+/** Where a loan stands by the terms it was taken on -- for a household that
+ * installs Kin halfway through a mortgage and wants to know the balance on
+ * their statement is what it should be. Null unless what was borrowed and
+ * the term are both known (and a rate, when a payment has to be worked
+ * out); payments made are counted from the schedule's dates that have
+ * passed, so nobody ticks them off. */
+export function loanOriginStatus(loan: LoanTerms, today: string): LoanOriginStatus | null {
+  const original = loan.original_amount == null ? null : Number(loan.original_amount);
+  const term = loan.term_months;
+  if (original == null || !(original > 0) || !term || term < 1) return null;
+  const rate = loan.interest_rate == null ? null : Number(loan.interest_rate);
+  const typed = loan.monthly_payment == null ? null : Number(loan.monthly_payment);
+  const payment = typed && typed > 0 ? typed : amortisedPayment(original, rate, term);
+  const status = loanStatus(loan, today);
+  // No schedule dates: nothing has been counted as paid.
+  const left = loan.next_payment_date ? Math.min(term, status.left) : term;
+  const made = Math.max(0, term - left);
+  const soFar = amortise(original, rate, payment, made);
+  const whole = amortise(original, rate, payment, term);
+  const balance = Number(loan.balance);
+  const fixedMonthsLeft = !loan.rate_fixed_until ? null : loan.rate_fixed_until >= today ? Math.round(yearsBetween(today, loan.rate_fixed_until) * 12) : -Math.round(yearsBetween(loan.rate_fixed_until, today) * 12);
+  return {
+    original,
+    payment,
+    made,
+    term,
+    left,
+    expectedBalance: soFar.balance,
+    gap: cents(balance - soFar.balance),
+    interestPaid: soFar.interest,
+    principalPaid: soFar.principalPaid,
+    totalInterest: whole.interest,
+    fixedMonthsLeft,
+  };
+}

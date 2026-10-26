@@ -97,10 +97,13 @@ test.describe("removing things", () => {
     await expect(page.locator("body")).toContainText(doomed);
     await expect(page.locator("body")).toContainText(keeper);
 
-    // The headline's owner → category breakdown (#917) is a card too, and it
-    // names every goal; the goal's own card is the one with its Delete.
-    const card = page.locator(".blueprint").filter({ hasText: doomed }).filter({ has: page.getByRole("button", { name: /delete|remove/i }) });
-    await expect(card, "the goal has no card of its own").toHaveCount(1);
+    // The headline's owner → category breakdown (#917) names every goal
+    // but can't delete one; since 26 October the goal is a line under its
+    // owner and Cash & savings on ASSETS, with its Delete among its buttons.
+    // The innermost block that holds both the title and a Delete is that
+    // line (its parents hold both too, which is why it's .last()).
+    const card = page.locator("div").filter({ hasText: doomed }).filter({ has: page.getByRole("button", { name: /delete|remove/i }) }).last();
+    await expect(card, "the goal has no line of its own").toBeVisible();
     const remove = card.getByRole("button", { name: /delete|remove/i }).first();
     await expect(remove, "no way to delete a goal from the UI").toBeVisible();
     await remove.click();

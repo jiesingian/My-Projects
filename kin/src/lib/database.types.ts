@@ -6171,7 +6171,10 @@ export type Database = {
           next_payment_date: string | null
           note: string | null
           owner_member_id: string | null
+          original_amount: number | null
           payments_remaining: number | null
+          rate_fixed_until: string | null
+          term_months: number | null
           updated_at: string
         }
         Insert: {
@@ -6191,7 +6194,10 @@ export type Database = {
           next_payment_date?: string | null
           note?: string | null
           owner_member_id?: string | null
+          original_amount?: number | null
           payments_remaining?: number | null
+          rate_fixed_until?: string | null
+          term_months?: number | null
           updated_at?: string
         }
         Update: {
@@ -6211,7 +6217,10 @@ export type Database = {
           next_payment_date?: string | null
           note?: string | null
           owner_member_id?: string | null
+          original_amount?: number | null
           payments_remaining?: number | null
+          rate_fixed_until?: string | null
+          term_months?: number | null
           updated_at?: string
         }
         Relationships: [

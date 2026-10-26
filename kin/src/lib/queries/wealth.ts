@@ -6,7 +6,7 @@ import { familyDay } from "@/lib/time";
 import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
 import { budgetsFor, budgetsInForce, budgetTotal, budgetWhose, FAMILY_BUDGET, type SpendingBudgetRow } from "@/lib/budgets";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -356,12 +356,23 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
   const scopedLiabilities = (liabilities ?? []).filter((l) => inScope(l, scope));
   const scopedGoals = (goals ?? []).filter((g) => inScope(g, scope));
   const leaveOut = await privateLeftOutOfAll();
-  const cashAccounts = accounts.filter((a) => inTotalsScope(a, scope, leaveOut));
+  const scopedAccounts = accounts.filter((a) => inTotalsScope(a, scope, leaveOut));
+  // Accounts by what they are on a balance sheet (Jonathan, 26 October):
+  // cash and savings (a bank, an e-wallet, the cash drawer), investments
+  // (MP2, a time deposit, stocks -- held to grow, not to spend), and a
+  // credit card, whose balance below zero is money owed, not owned. Before
+  // this every account sat under "Cash & savings", a time deposit beside
+  // the payroll account and a card's debt netted silently into cash.
+  const cashAccounts = scopedAccounts.filter((a) => a.account_type !== "credit" ? accountGroup(a.account_type) === AL_CASH : a.balance >= 0);
+  const investmentAccounts = scopedAccounts.filter((a) => a.account_type !== "credit" && accountGroup(a.account_type) === AL_INVESTMENTS);
+  const creditAccounts = scopedAccounts.filter((a) => a.account_type === "credit" && a.balance < 0).map((a) => ({ ...a, owed: -a.balance }));
 
   const assetTotal = scopedAssets.reduce((sum, a) => sum + a.worth.total, 0);
   const liabilityTotal = scopedLiabilities.reduce((sum, l) => sum + Number(l.balance), 0);
   const goalTotal = scopedGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
   const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const investmentTotal = investmentAccounts.reduce((sum, a) => sum + a.balance, 0);
+  const creditOwed = creditAccounts.reduce((sum, a) => sum + a.owed, 0);
 
   // Utang and paluwagan have no owner, only household or "just me": under
   // Everyone all that can be seen, under Family the household ones, under a
@@ -395,10 +406,16 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
     liabilities: scopedLiabilities,
     goals: scopedGoals,
     cashAccounts,
+    investmentAccounts,
+    /** Credit cards with something owed on them, each with `owed` (the
+     * balance, made positive). */
+    creditAccounts,
     assetTotal,
     liabilityTotal,
     goalTotal,
     cashTotal,
+    investmentTotal,
+    creditOwed,
     /** Owed to us: utang lent, and paluwagan we have paid into and not yet
      * taken. */
     owedToUs,
@@ -408,7 +425,7 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
     weOwe,
     paluwaganOwed,
     payables,
-    netWorth: cashTotal + assetTotal + goalTotal + receivables - liabilityTotal - payables,
+    netWorth: cashTotal + investmentTotal + assetTotal + goalTotal + receivables - liabilityTotal - payables - creditOwed,
   };
 }
 
@@ -745,19 +762,21 @@ export async function keepNetWorthCurrent(familyId: string, viewerMemberId: stri
     .eq("month", month)
     .maybeSingle();
   if (row && Date.now() - new Date(row.updated_at).getTime() < NET_WORTH_FRESH_MS) return;
-  const { cashTotal, goalTotal, assetTotal, liabilityTotal, receivables, payables, netWorth } = await getNetWorth(familyId, "all", today);
+  const { cashTotal, investmentTotal, creditOwed, goalTotal, assetTotal, liabilityTotal, receivables, payables, netWorth } = await getNetWorth(familyId, "all", today);
   await supabase.from("net_worth_snapshots").upsert(
     {
       viewer_member_id: viewerMemberId,
       family_id: familyId,
       scope: "all",
       month,
-      cash: cashTotal,
+      // Every account's money under cash, a credit card's debt with what
+      // is owed (26 October): the columns predate the split.
+      cash: cashTotal + investmentTotal,
       goals: goalTotal,
       // Utang and paluwagan ride with assets and liabilities, so the parts
       // still add up to the net worth beside them.
       assets: assetTotal + receivables,
-      liabilities: liabilityTotal + payables,
+      liabilities: liabilityTotal + payables + creditOwed,
       net_worth: netWorth,
       updated_at: new Date().toISOString(),
     },

@@ -670,6 +670,11 @@ export type BreakdownItem = {
   ownerSlot: number;
   category: string;
   sub?: string;
+  /** Where the line opens (A&L: an account's own page); the donut ignores it. */
+  href?: string;
+  /** Under the line, before its actions (A&L: a goal's progress, an
+   * asset's make-up, a loan's standing). The donut leaves it out. */
+  detail?: React.ReactNode;
   actions?: React.ReactNode;
   /** Open this line's owner and category on arrival -- a deep link to it
    * (Today's Pay lands on a bill) when the groups otherwise start folded. */

@@ -855,6 +855,9 @@ export function LoanScheduleControl({
   nextPaymentDate,
   paymentsLeft,
   interestRate,
+  originalAmount = null,
+  termMonths = null,
+  rateFixedUntil = null,
 }: {
   id: string;
   monthlyPayment: number | null;
@@ -863,6 +866,11 @@ export function LoanScheduleControl({
   /** How many are left from that one on. */
   paymentsLeft: number | null;
   interestRate: number | null;
+  /** The loan's own terms (20261026170000): what was borrowed, over how
+   * many months, and the day its fixed rate ends. */
+  originalAmount?: number | null;
+  termMonths?: number | null;
+  rateFixedUntil?: string | null;
 }) {
   const uid = useId();
   const [open, setOpen] = useState(false);
@@ -870,6 +878,9 @@ export function LoanScheduleControl({
   const [next, setNext] = useState(nextPaymentDate ?? "");
   const [left, setLeft] = useState(paymentsLeft == null ? "" : String(paymentsLeft));
   const [rate, setRate] = useState(interestRate == null ? "" : String(interestRate));
+  const [original, setOriginal] = useState(originalAmount == null ? "" : String(originalAmount));
+  const [term, setTerm] = useState(termMonths == null ? "" : String(termMonths));
+  const [fixedUntil, setFixedUntil] = useState(rateFixedUntil ?? "");
   const { error, pending, run } = useMoneyAction();
   const field = { minHeight: "2.5rem", width: "100%" } as const;
 
@@ -897,6 +908,26 @@ export function LoanScheduleControl({
             <input id={`${uid}-left`} className="input" type="number" step="1" min="1" max="1200" inputMode="numeric" value={left} onChange={(e) => setLeft(e.target.value)} style={field} />
           </div>
         </div>
+        {/* The terms it was taken on: with these, A&L shows what the
+            balance should be by now, the interest paid so far and over
+            the whole loan, and when the fixed rate ends. */}
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0.375rem" }}>
+          The loan&apos;s own terms, off the bank&apos;s offer. Optional: with them Kin checks the balance against the amortisation table and shows the interest paid.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-original`}>Amount borrowed</label>
+            <input id={`${uid}-original`} className="input" type="number" step="0.01" min="0" inputMode="decimal" value={original} onChange={(e) => setOriginal(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-term`}>Term (months)</label>
+            <input id={`${uid}-term`} className="input" type="number" step="1" min="1" max="1200" inputMode="numeric" placeholder="e.g. 240" value={term} onChange={(e) => setTerm(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0, gridColumn: "1 / -1" }}>
+            <label htmlFor={`${uid}-fixed`}>Rate fixed until</label>
+            <DateInput id={`${uid}-fixed`} className="input" value={fixedUntil} onChange={(e) => setFixedUntil(e.target.value)} style={field} />
+          </div>
+        </div>
         {error && (
           <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
             {error}
@@ -909,7 +940,7 @@ export function LoanScheduleControl({
           style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
           onClick={() =>
             run(
-              () => updateLiabilityScheduleAction(id, { monthlyPayment: monthly, nextPaymentDate: next, paymentsRemaining: left, interestRate: rate }),
+              () => updateLiabilityScheduleAction(id, { monthlyPayment: monthly, nextPaymentDate: next, paymentsRemaining: left, interestRate: rate, originalAmount: original, termMonths: term, rateFixedUntil: fixedUntil }),
               () => setOpen(false),
             )
           }
@@ -917,6 +948,24 @@ export function LoanScheduleControl({
           {pending ? "…" : "Save"}
         </button>
       </FormSheet>
+    </>
+  );
+}
+
+/** Takes the balance a loan's own terms say should be owed (A&L, under the
+ * loan): one tap instead of typing the figure into Update. */
+export function SetBalanceButton({ id, value, currency }: { id: string; value: number; currency: string }) {
+  const { error, pending, run } = useMoneyAction();
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem" }} onClick={() => run(() => updateLiabilityBalanceAction(id, value))}>
+        {pending ? "…" : `Set to ${formatCurrency(value, currency)}`}
+      </button>
+      {error && (
+        <span role="alert" style={{ color: "var(--color-accent-700)" }}>
+          {error}
+        </span>
+      )}
     </>
   );
 }

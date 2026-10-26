@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { loanPaymentSplit, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { loanPaymentSplit, loanKindFor, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -1706,9 +1706,9 @@ function moneyFromForm(raw: FormDataEntryValue | null): number | null {
  * many payments are left, and the yearly interest rate in percent. Each is
  * optional; one that is filled in but makes no sense is an error, not a
  * silent blank. */
-function readLoanSchedule(raw: { next: unknown; left: unknown; rate: unknown }):
+function readLoanSchedule(raw: { next: unknown; left: unknown; rate: unknown; original?: unknown; term?: unknown; fixedUntil?: unknown }):
   | { error: string }
-  | { next_payment_date: string | null; payments_remaining: number | null; interest_rate: number | null } {
+  | { next_payment_date: string | null; payments_remaining: number | null; interest_rate: number | null; original_amount: number | null; term_months: number | null; rate_fixed_until: string | null } {
   const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const next = text(raw.next);
   const left = text(raw.left);
@@ -1719,7 +1719,37 @@ function readLoanSchedule(raw: { next: unknown; left: unknown; rate: unknown }):
   const rateN = rate ? Number(rate.replace("%", "")) : null;
   if (rateN !== null && !(Number.isFinite(rateN) && rateN >= 0 && rateN <= 100)) return { error: "The interest rate has to be a percentage from 0 to 100." };
   if (leftN !== null && !next) return { error: "Say when the next payment is due, so Kin knows where the payments left start." };
-  return { next_payment_date: next || null, payments_remaining: leftN, interest_rate: rateN };
+  // The loan's own terms (20261026170000), each optional on its own; a term
+  // without what was borrowed (or the other way round) says nothing, so
+  // both or neither.
+  const original = text(raw.original);
+  const term = text(raw.term);
+  const fixedUntil = text(raw.fixedUntil);
+  const originalN = original ? moneyFromForm(original) : null;
+  if (original && originalN === null) return { error: "The amount borrowed has to be a number, and cannot be less than zero." };
+  const termN = term ? Number(term) : null;
+  if (termN !== null && !(Number.isInteger(termN) && termN >= 1 && termN <= 1200)) return { error: "The term has to be a whole number of months from 1 to 1200." };
+  if ((originalN !== null) !== (termN !== null)) return { error: "The amount borrowed and the term go together: give both, or neither." };
+  if (fixedUntil && !/^\d{4}-\d{2}-\d{2}$/.test(fixedUntil)) return { error: "The day the fixed rate ends isn't a date Kin can read." };
+  if (leftN !== null && termN !== null && leftN > termN) return { error: "Payments left cannot be more than the term." };
+  return { next_payment_date: next || null, payments_remaining: leftN, interest_rate: rateN, original_amount: originalN, term_months: termN, rate_fixed_until: fixedUntil || null };
+}
+
+/** The loan fields off a form, under a prefix ("" for the liability form,
+ * "loan_" for the loan on the asset form). */
+function loanFromForm(formData: FormData, prefix = "") {
+  const get = (k: string) => formData.get(`${prefix}${k}`);
+  const monthlyRaw = get("monthly_payment");
+  const monthlyPayment = monthlyRaw ? moneyFromForm(monthlyRaw) : null;
+  if (monthlyRaw && monthlyPayment === null) return { error: "The monthly payment has to be a number, and cannot be less than zero." };
+  const schedule = readLoanSchedule({ next: get("next_payment_date"), left: get("payments_remaining"), rate: get("interest_rate"), original: get("original_amount"), term: get("term_months"), fixedUntil: get("rate_fixed_until") });
+  if ("error" in schedule) return schedule;
+  return {
+    monthly_payment: monthlyPayment,
+    // Only sent when filled in, so adding a loan never depends on them.
+    ...Object.fromEntries(Object.entries(schedule).filter(([, v]) => v !== null)),
+    lender: String(get("lender") ?? "").trim() || null,
+  };
 }
 
 /** A property's yearly change off a form: blank is none (the value stays as
@@ -1780,12 +1810,25 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     items.push(shaped.row);
   }
 
+  // Bought on a loan (Jonathan, 26 October): one entry, two rows. The asset
+  // goes in at its full value and the loan, linked to it (20261023231000),
+  // at what is still owed -- how a balance sheet carries a house with a
+  // mortgage; A&L shows the difference as what is truly the household's.
+  // Checked before anything is saved, so a bad loan field leaves no asset
+  // behind.
+  const onLoan = formData.get("loan_on") === "on";
+  const loanBalance = onLoan ? moneyFromForm(formData.get("loan_balance")) : null;
+  if (onLoan && (loanBalance === null || String(formData.get("loan_balance") ?? "").trim() === "")) return { error: "Say how much is still owed on it." };
+  const loan = onLoan ? loanFromForm(formData, "loan_") : null;
+  if (loan && "error" in loan) return { error: loan.error };
+  const kind = String(formData.get("kind") ?? "other");
+
   const { data: asset, error } = await supabase
     .from("assets")
     .insert({
       family_id: me.family_id,
       name,
-      kind: String(formData.get("kind") ?? "other"),
+      kind,
       value,
       annual_change_pct: change.pct,
       valued_on: familyDay(new Date(), await householdZone()),
@@ -1810,6 +1853,24 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     }
   }
 
+  if (loan && !("error" in loan) && loanBalance !== null) {
+    const { error: loanError } = await supabase.from("liabilities").insert({
+      family_id: me.family_id,
+      name: clamp(String(formData.get("loan_name") ?? "").trim() || `${name} loan`, 150),
+      kind: loanKindFor(kind),
+      balance: loanBalance,
+      ...loan,
+      asset_id: asset.id,
+      is_joint: isJoint,
+      owner_member_id: isJoint ? null : me.id,
+      created_by: me.id,
+    });
+    if (loanError) {
+      revalidateWealth();
+      return { error: `The asset is saved, but the loan on it was not: ${databaseError(loanError)} Add it with + LIABILITY on the A&L tab and link it to the asset.` };
+    }
+  }
+
   revalidateWealth();
   redirect("/wealth?seg=assets");
 }
@@ -1820,27 +1881,20 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
 
   const name = clamp(String(formData.get("name") ?? ""), 150);
   const balance = moneyFromForm(formData.get("balance"));
-  const monthlyPayment = formData.get("monthly_payment") ? moneyFromForm(formData.get("monthly_payment")) : null;
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name what is owed." };
   // A debt is what is owed, as a positive number. Entered as -500 it does not
   // read as a debt at all -- it adds 500 to the household's net worth.
   if (balance === null) return { error: "What is owed has to be a number, and cannot be less than zero." };
-  if (formData.get("monthly_payment") && monthlyPayment === null) {
-    return { error: "The monthly payment has to be a number, and cannot be less than zero." };
-  }
-  const schedule = readLoanSchedule({ next: formData.get("next_payment_date"), left: formData.get("payments_remaining"), rate: formData.get("interest_rate") });
-  if ("error" in schedule) return { error: schedule.error };
+  const loan = loanFromForm(formData);
+  if ("error" in loan) return { error: loan.error };
 
   const { error } = await supabase.from("liabilities").insert({
     family_id: me.family_id,
     name,
     kind: String(formData.get("kind") ?? "other"),
     balance,
-    monthly_payment: monthlyPayment,
-    // Only sent when filled in, so adding a liability never depends on them.
-    ...Object.fromEntries(Object.entries(schedule).filter(([, v]) => v !== null)),
-    lender: String(formData.get("lender") ?? "").trim() || null,
+    ...loan,
     note: String(formData.get("note") ?? "").trim() || null,
     // What it paid for (20261023231000); the database keeps it in-household.
     asset_id: String(formData.get("asset_id") ?? "") || null,
@@ -1950,9 +2004,9 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
  * A&L -- the only way a liability saved before 12 October gets one. */
 export async function updateLiabilityScheduleAction(
   liabilityId: string,
-  input: { monthlyPayment: string; nextPaymentDate: string; paymentsRemaining: string; interestRate: string },
+  input: { monthlyPayment: string; nextPaymentDate: string; paymentsRemaining: string; interestRate: string; originalAmount?: string; termMonths?: string; rateFixedUntil?: string },
 ): Promise<ActionState> {
-  const schedule = readLoanSchedule({ next: input.nextPaymentDate, left: input.paymentsRemaining, rate: input.interestRate });
+  const schedule = readLoanSchedule({ next: input.nextPaymentDate, left: input.paymentsRemaining, rate: input.interestRate, original: input.originalAmount ?? "", term: input.termMonths ?? "", fixedUntil: input.rateFixedUntil ?? "" });
   if ("error" in schedule) return { error: schedule.error };
   const monthly = input.monthlyPayment.trim() ? Number(input.monthlyPayment) : null;
   if (monthly !== null && !(Number.isFinite(monthly) && monthly >= 0)) return { error: "The monthly payment has to be a number, and cannot be less than zero." };

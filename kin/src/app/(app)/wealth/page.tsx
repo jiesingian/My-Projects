@@ -22,6 +22,7 @@ import {
   AssetBreakdownControl,
   LoanScheduleControl,
   RemoveButton,
+  SetBalanceButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
   IncludePrivateToggle,
@@ -35,7 +36,6 @@ import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   ASSET_KIND_LABELS,
-  ASSET_KINDS,
   LIABILITY_KINDS,
   LIABILITY_KIND_LABELS,
   CASH_FLOW_RANGES,
@@ -60,6 +60,14 @@ import {
   isHouseholdScope,
   inScope,
   loanStatus,
+  loanPaymentSplit,
+  loanOriginStatus,
+  assetGroup,
+  AL_CASH,
+  AL_INVESTMENTS,
+  AL_SET_ASIDE,
+  AL_OWNED_ORDER,
+  type LoanTerms,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -1134,11 +1142,12 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth }, who, allAccounts] = await Promise.all([
+  const [nw, who, allAccounts] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
     getAccounts(familyId),
   ]);
+  const { assets, liabilities, goals, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
   // Who picker is showing, but the account a contribution actually leaves
   // from has to be one the viewer themself can pay out of, regardless of
@@ -1150,12 +1159,21 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   const owedOn = new Map<string, number>();
   for (const l of liabilities) if (l.asset_id) owedOn.set(l.asset_id, (owedOn.get(l.asset_id) ?? 0) + Number(l.balance));
   const assetChoices = assets.map((a) => ({ id: a.id, name: a.name }));
-  const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
-  // What is owned and what is owed, each as a donut grouped by owner.
+  const accountSub = (a: { account_type: string; institution: string | null }) => `${ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}${a.institution ? ` · ${a.institution}` : ""}`;
+  // An account's line opens its own page: that is where it is edited.
+  const openAccount = (id: string) => `/wealth/accounts/${id}`;
+
+  // The donut (a report, as on Accounts and Cash Flow): everything owned,
+  // grouped by whose and then by what it is on a balance sheet (Jonathan,
+  // 26 October). Cash and savings hold the accounts and, as "set aside",
+  // every goal -- a goal is cash earmarked, not an asset of its own.
+  // Investments hold the MP2s, time deposits and stocks beside an asset
+  // recorded as an investment; then property, vehicles and the rest.
   const owned: BreakdownItem[] = [
-    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: "Cash & savings", ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
-    ...goals.map((g) => ({ id: `goal-${g.id}`, name: g.title, amount: Number(g.current_amount), category: "Savings goals", ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
-    ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, amount: a.worth.total, category: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_CASH, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    ...goals.map((g) => ({ id: `goal-${g.id}`, name: `Set aside: ${g.title}`, amount: Number(g.current_amount), category: AL_CASH, ...who.sliceOwner(g.owner_member_id, g.is_joint) })),
+    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
+    ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, amount: a.worth.total, category: assetGroup(a.kind), ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
     // Utang and paluwagan count too (Janine, 23 October): money lent is
     // owed to us, a paluwagan holds what we have put in. Household records.
     ...(owedToUs > 0 ? [{ id: "utang-lent", name: "Money lent, owed to us", amount: owedToUs, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
@@ -1163,21 +1181,141 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   ];
   const owed: BreakdownItem[] = [
     ...liabilities.map((l) => ({ id: l.id, name: l.name, amount: Number(l.balance), category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) })),
+    // A credit card's balance below zero is money owed (26 October), not
+    // cash with a minus on it.
+    ...creditAccounts.map((a) => ({ id: `credit-${a.id}`, name: accountLabel(a), amount: a.owed, category: LIABILITY_KIND_LABELS.credit_card, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
     ...(weOwe > 0 ? [{ id: "utang-borrowed", name: "Money borrowed, we owe", amount: weOwe, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
     ...(paluwaganOwed > 0 ? [{ id: "paluwagan-owed", name: "Savings circle pot taken early", amount: paluwaganOwed, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
   ];
-  // Each kind its own group, folded or open as the viewer last left it; a
-  // kind the list doesn't know is shown under Other.
-  const assetKindOf = (k: string): AssetKind => ((ASSET_KINDS as readonly string[]).includes(k) ? (k as AssetKind) : "other");
-  const liabilityKindOf = (k: string): LiabilityKind => ((LIABILITY_KINDS as readonly string[]).includes(k) ? (k as LiabilityKind) : "other");
-  const groupLabel = (name: string, count: number, total: number) => `${name.toUpperCase()} · ${count} · ${formatCurrency(total, currency)}`;
+
+  // The editable side, as Income and Expenses have it (Janine, 26 October):
+  // whose, then the same groups as the donut, then each holding with what
+  // can be done to it. An account is read-only here -- its balance moves
+  // with the ledger -- and opens on the Accounts tab.
+  const ownedLines: BreakdownItem[] = [
+    ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_CASH, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
+    ...goals.map((g) => ({
+      id: `goal-${g.id}`,
+      name: g.title,
+      amount: Number(g.current_amount),
+      category: AL_CASH,
+      ...who.sliceOwner(g.owner_member_id, g.is_joint),
+      sub: `${AL_SET_ASIDE}${g.sub_note ? ` · ${g.sub_note}` : ""}`,
+      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
+      actions: (
+        <>
+          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
+          {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
+            <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
+          )}
+          <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
+        </>
+      ),
+    })),
+    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
+    ...assets.map((a) => ({
+      id: `asset-${a.id}`,
+      name: a.name,
+      amount: a.worth.total,
+      category: assetGroup(a.kind),
+      ...who.sliceOwner(a.owner_member_id, a.is_joint),
+      sub: [ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, a.acquired_on ? `since ${fmtDate(a.acquired_on)}` : null, a.note, a.updated_at ? `updated ${timeSinceLabel(a.updated_at)}` : null].filter(Boolean).join(" · "),
+      detail: (
+        <>
+          <AssetWorthLine asset={a} currency={currency} />
+          {(owedOn.get(a.id) ?? 0) > 0 && (
+            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
+              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)} · yours after the loan:{" "}
+              <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
+            </div>
+          )}
+        </>
+      ),
+      actions: (
+        <>
+          <AssetBreakdownControl
+            assetId={a.id}
+            assetName={a.name}
+            currency={currency}
+            items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth }))}
+          />
+          <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
+          <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
+        </>
+      ),
+    })),
+  ];
+  const owedLines: BreakdownItem[] = [
+    ...liabilities.map((l) => ({
+      id: l.id,
+      name: l.name,
+      amount: Number(l.balance),
+      category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind,
+      ...who.sliceOwner(l.owner_member_id, l.is_joint),
+      sub: [
+        l.lender,
+        l.asset_id && assets.find((a) => a.id === l.asset_id) ? `on ${assets.find((a) => a.id === l.asset_id)!.name}` : null,
+        l.monthly_payment ? `${formatCurrency(Number(l.monthly_payment), currency)}/mo` : null,
+        l.updated_at ? `updated ${timeSinceLabel(l.updated_at)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ") || undefined,
+      detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} />,
+      actions: (
+        <>
+          {/* Paying it from here splits the payment into interest and
+              what pays the loan down, and lowers the balance
+              (20261023220000). */}
+          {Number(l.balance) > 0 && (
+            <Link
+              href={`/wealth/transact?mode=out&against=liabilities:${l.id}${l.monthly_payment ? `&amount=${Number(l.monthly_payment)}` : ""}`}
+              className="btn btn-secondary"
+              style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}
+            >
+              Record a payment
+            </Link>
+          )}
+          <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
+          <LoanScheduleControl
+            id={l.id}
+            monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}
+            nextPaymentDate={loanStatus(l, today).next}
+            paymentsLeft={loanStatus(l, today).next ? loanStatus(l, today).left : null}
+            interestRate={l.interest_rate == null ? null : Number(l.interest_rate)}
+            originalAmount={l.original_amount == null ? null : Number(l.original_amount)}
+            termMonths={l.term_months}
+            rateFixedUntil={l.rate_fixed_until}
+          />
+          <ValueUpdateControl id={l.id} current={Number(l.balance)} kind="liability" />
+          <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
+        </>
+      ),
+    })),
+    ...creditAccounts.map((a) => ({
+      id: `credit-${a.id}`,
+      name: accountLabel(a),
+      amount: a.owed,
+      category: LIABILITY_KIND_LABELS.credit_card,
+      ...who.sliceOwner(a.owner_member_id, a.is_joint),
+      sub: `${accountSub(a)} · what its balance is below zero; paying the card brings it back up`,
+      href: openAccount(a.id),
+    })),
+  ];
+
   const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
-    cash: cashTotal,
+    cash: cashTotal + investmentTotal,
     goals: goalTotal,
     assets: assetTotal + receivables,
-    liabilities: liabilityTotal + payables,
+    liabilities: liabilityTotal + payables + creditOwed,
     netWorth,
   });
+  const captionParts = [
+    `${formatCurrency(cashTotal + goalTotal, currency)} cash${goalTotal > 0 ? ` (${formatCurrency(goalTotal, currency)} of it set aside)` : ""}`,
+    ...(investmentTotal !== 0 ? [`${formatCurrency(investmentTotal, currency)} invested`] : []),
+    `${formatCurrency(assetTotal, currency)} owned`,
+    ...(receivables > 0 ? [`${formatCurrency(receivables, currency)} owed to us`] : []),
+  ];
+  const addButton = { minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em" } as const;
 
   return (
     <>
@@ -1192,174 +1330,39 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         label="Net worth"
         amount={netWorth}
         currency={currency}
-        caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned${receivables > 0 ? ` + ${formatCurrency(receivables, currency)} owed to us` : ""} − ${formatCurrency(liabilityTotal + payables, currency)} owed`}
-        breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: ["Cash & savings", "Savings goals", ...ASSET_KINDS.map((k) => ASSET_KIND_LABELS[k]), UTANG_GROUP] }}
+        caption={`${captionParts.join(" + ")} − ${formatCurrency(liabilityTotal + payables + creditOwed, currency)} owed`}
+        breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: [...AL_OWNED_ORDER, UTANG_GROUP] }}
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
-      <FoldableSection label={groupLabel("Cash & savings", cashAccounts.length, cashTotal)} storageKey="kin-al-cash">
-      {cashAccounts.length === 0 && (
-        <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
+      {ownedLines.length === 0 ? (
+        <Empty icon={<Icon name="house" size={26} />} title="Nothing recorded yet" line="Accounts come here on their own from the Accounts tab. Add property, a vehicle, anything the family owns that holds value, and it counts toward net worth." />
+      ) : (
+        <LinesByPerson lines={ownedLines} currency={currency} categoryOrder={[...AL_OWNED_ORDER]} noun="holding" storageKey="kin-al-assets" always />
       )}
-      {cashAccounts.map((a) => (
-        <Link
-          key={a.id}
-          href={`/wealth/accounts/${a.id}`}
-          style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
-        >
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: "0.9375rem", display: "block" }}>{a.name}</span>
-            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-              {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
-              {a.institution ? ` · ${a.institution}` : ""}
-              {ownerOf(a.owner_member_id, a.is_joint) ? ` · ${ownerOf(a.owner_member_id, a.is_joint)}` : ""}
-            </span>
-          </span>
-          <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.balance, currency)}</span>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+        <Link href="/wealth/assets/new?kind=asset" className="btn btn-primary" style={{ ...addButton, flex: 1 }}>
+          + ASSET
         </Link>
-      ))}
-      {cashAccounts.length > 0 && (
-        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
-          Read-only here — open an account from the Accounts tab to edit or add one.
-        </div>
-      )}
-      </FoldableSection>
-
-      <FoldableSection label={groupLabel("Savings goals", goals.length, goalTotal)} storageKey="kin-al-goals">
-      {goals.length === 0 && (
-        <Empty icon={<Icon name="target" size={26} />} title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
-      )}
-      {goals.map((g) => {
-        const target = Number(g.target_amount ?? 0);
-        const current = Number(g.current_amount);
-        const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
-        const owner = (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase();
-        const plan = g.target_date && target > 0 ? fundPlan({ target, saved: current, due: g.target_date, today, cycleStart: cycleStart({ createdDay: g.created_at.slice(0, 10), due: g.target_date, repeatsYearly: g.repeats_yearly }) }) : null;
-        const payable = !!g.target_date && current > 0 && canMarkPaid(g.target_date, today);
-        return (
-          <Blueprint key={g.id} style={{ padding: "0.8125rem", marginBottom: "0.8125rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <span style={{ font: "600 1.125rem/1.05 var(--font-heading)" }}>{g.title}</span>
-              <Tag variant={g.is_joint ? "accent" : "neutral"} className="ml-auto">
-                {g.is_joint ? "JOINT" : owner ?? "MINE"}
-              </Tag>
-            </div>
-            {g.sub_note && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>}
-            <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)", marginTop: "0.5rem" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
-            </div>
-            <div style={{ display: "flex", fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
-              <span>
-                {formatCurrency(current, currency)} of {formatCurrency(target, currency)}
-              </span>
-              <span style={{ marginLeft: "auto" }}>{pct}%</span>
-            </div>
-            {g.target_date && (
-              <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
-                {g.repeats_yearly ? "Due every year · next" : "Target date"} {fmtDate(g.target_date)}
-                {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
-              </div>
-            )}
-            {plan && plan.status !== "funded" && (
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", fontSize: "0.78125rem", marginTop: "0.3125rem" }}>
-                <span style={{ flex: 1, color: "var(--color-neutral-600)" }}>
-                  {plan.status === "overdue"
-                    ? "The date has passed. Record the payment, or put the rest in."
-                    : plan.paydays === 0
-                      ? `Set aside ${formatCurrency(plan.perPayday, currency)} now — no payday left before it’s due`
-                      : `Set aside ${formatCurrency(plan.perPayday, currency)} a payday (15th and end of month) · ${formatCurrency(plan.perMonth, currency)} a month`}
-                  {plan.status === "behind" ? ` · ${formatCurrency(plan.shouldHave, currency)} by now keeps it on track` : ""}
-                </span>
-                <Tag variant={plan.status === "on_track" ? "accent" : "neutral"}>{STATUS_TEXT[plan.status].toUpperCase()}</Tag>
-              </div>
-            )}
-            {g.linked_account_id && (
-              <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
-                Saved in {pickableCash.find((a) => a.id === g.linked_account_id)?.name ?? "an account you can no longer see"}
-              </div>
-            )}
-            <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
-            {payable && <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={current} target={target} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
-              <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
-            </div>
-          </Blueprint>
-        );
-      })}
-      <Link href="/wealth/add" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
-        + ADD GOAL
-      </Link>
-      </FoldableSection>
-
-      {assets.length === 0 && <SectionLabel>OTHER ASSETS</SectionLabel>}
-      {assets.length === 0 && (
-        <Empty icon={<Icon name="house" size={26} />} title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
-      )}
-      {ASSET_KINDS.map((kind) => {
-        const group = assets.filter((a) => assetKindOf(a.kind) === kind);
-        if (group.length === 0) return null;
-        return (
-          <FoldableSection key={kind} label={groupLabel(ASSET_KIND_LABELS[kind], group.length, group.reduce((t, a) => t + a.worth.total, 0))} storageKey={`kin-al-asset-${kind}`}>
-            {group.map((a) => (
-        <div key={a.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
-                {ownerOf(a.owner_member_id, a.is_joint) ? ` · ${ownerOf(a.owner_member_id, a.is_joint)}` : ""}
-                {a.acquired_on ? ` · since ${fmtDate(a.acquired_on)}` : ""}
-                {a.note ? ` · ${a.note}` : ""}
-                {a.updated_at ? ` · updated ${timeSinceLabel(a.updated_at)}` : ""}
-              </span>
-            </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.worth.total, currency)}</span>
-          </div>
-          <AssetWorthLine asset={a} currency={currency} />
-          {(owedOn.get(a.id) ?? 0) > 0 && (
-            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)} · yours after the loan:{" "}
-              <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
-            <AssetBreakdownControl
-              assetId={a.id}
-              assetName={a.name}
-              currency={currency}
-              items={a.items.map((i) => ({
-                id: i.id,
-                name: i.name,
-                kind: i.kind,
-                cost: Number(i.cost),
-                acquired_on: i.acquired_on,
-                value_now: i.value_now == null ? null : Number(i.value_now),
-                worth: i.worth,
-              }))}
-            />
-            <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
-            <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
-          </div>
-        </div>
-                  ))}
-          </FoldableSection>
-        );
-      })}
-      <Link href="/wealth/assets/new?kind=asset" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
-        + ASSET
-      </Link>
+        <Link href="/wealth/add" className="btn btn-secondary" style={{ ...addButton, flex: 1 }}>
+          + GOAL
+        </Link>
+      </div>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>
+        A bank, e-wallet, cash or investment account is added on the <Link href="/wealth?seg=accounts">Accounts tab</Link> and counts here on its own. A goal is cash set aside: its money left a real account.
+      </p>
       </CollapsibleGroup>
 
       <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
       {owed.length >= 2 && (
-        <div style={{ margin: "0.75rem 0" }}>
+        <Blueprint style={{ padding: "0.9375rem", margin: "0.75rem 0 0.875rem" }}>
           <GroupedBreakdown
             head={
               <>
                 <div className="kin-eyebrow">OWED · BY WHOSE</div>
-                <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal + payables, currency)}</div>
+                <div style={{ font: "600 1.5rem/1.1 var(--font-heading)", marginTop: 6 }}>{formatCurrency(liabilityTotal + payables + creditOwed, currency)}</div>
               </>
             }
             items={owed}
@@ -1367,7 +1370,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             storageKey="kin-al-owed"
             categoryOrder={[...LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k]), UTANG_GROUP]}
           />
-        </div>
+        </Blueprint>
       )}
       {/* Utang and paluwagan are kept on their own page; here, what they
           add to and take from net worth, one tap from the detail. */}
@@ -1388,72 +1391,67 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
         </Link>
       )}
-      {liabilities.length === 0 && payables === 0 && (
+      {owedLines.length === 0 && payables === 0 ? (
         <Empty icon={<Icon name="check" size={26} />} title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
+      ) : (
+        <LinesByPerson lines={owedLines} currency={currency} categoryOrder={LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k])} noun="debt" storageKey="kin-al-liabilities" always />
       )}
-      {LIABILITY_KINDS.map((kind) => {
-        const group = liabilities.filter((l) => liabilityKindOf(l.kind) === kind);
-        if (group.length === 0) return null;
-        return (
-          <FoldableSection key={kind} label={groupLabel(LIABILITY_KIND_LABELS[kind], group.length, group.reduce((t, l) => t + Number(l.balance), 0))} storageKey={`kin-al-liability-${kind}`}>
-            {group.map((l) => (
-        <div key={l.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{l.name}</span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
-                {ownerOf(l.owner_member_id, l.is_joint) ? ` · ${ownerOf(l.owner_member_id, l.is_joint)}` : ""}
-                {l.lender ? ` · ${l.lender}` : ""}
-                {l.asset_id && assets.find((a) => a.id === l.asset_id) ? ` · on ${assets.find((a) => a.id === l.asset_id)!.name}` : ""}
-                {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
-                {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
-              </span>
-              <LoanScheduleLine loan={l} today={today} currency={currency} fmtDate={fmtDate} />
-            </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: "var(--color-accent-700)" }}>
-              −{formatCurrency(Number(l.balance), currency)}
-            </span>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
-            {/* Paying it from here splits the payment into interest and
-                what pays the loan down, and lowers the balance
-                (20261023220000). */}
-            {Number(l.balance) > 0 && (
-              <Link
-                href={`/wealth/transact?mode=out&against=liabilities:${l.id}${l.monthly_payment ? `&amount=${Number(l.monthly_payment)}` : ""}`}
-                className="btn btn-secondary"
-                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}
-              >
-                Record a payment
-              </Link>
-            )}
-            <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
-            <LoanScheduleControl
-              id={l.id}
-              monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}
-              nextPaymentDate={loanStatus(l, today).next}
-              paymentsLeft={loanStatus(l, today).next ? loanStatus(l, today).left : null}
-              interestRate={l.interest_rate == null ? null : Number(l.interest_rate)}
-            />
-            <ValueUpdateControl id={l.id} current={Number(l.balance)} kind="liability" />
-            <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
-          </div>
-        </div>
-                  ))}
-          </FoldableSection>
-        );
-      })}
-      <Link href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
+      <Link href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ ...addButton, marginTop: "0.25rem" }}>
         + LIABILITY
       </Link>
       </CollapsibleGroup>
 
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "1rem" }}>
-        Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.
+        Net worth counts every account balance, everything set aside toward a goal, plus what you own, less what you owe (a credit card&apos;s balance included).
+        A house with a loan on it counts at its full value, and the loan at what is still owed: the difference is what is truly yours.
         Update a value whenever it changes.
       </div>
     </>
+  );
+}
+
+/** A goal's progress under its line (26 October): the bar, what is saved of
+ * the target, the date and the plan to reach it, and where it is kept. The
+ * goal's card before it, less the title and the buttons, which the line
+ * now carries. */
+function GoalProgress({ goal: g, today, currency, fmtDate, accounts }: { goal: Awaited<ReturnType<typeof getNetWorth>>["goals"][number]; today: string; currency: string; fmtDate: (d: string) => string; accounts: { id: string; name: string }[] }) {
+  const target = Number(g.target_amount ?? 0);
+  const current = Number(g.current_amount);
+  const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+  const plan = g.target_date && target > 0 ? fundPlan({ target, saved: current, due: g.target_date, today, cycleStart: cycleStart({ createdDay: g.created_at.slice(0, 10), due: g.target_date, repeatsYearly: g.repeats_yearly }) }) : null;
+  const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" } as const;
+  return (
+    <div style={{ marginTop: "0.375rem" }}>
+      <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
+      </div>
+      <div style={{ display: "flex", ...muted }}>
+        <span>
+          {formatCurrency(current, currency)} of {formatCurrency(target, currency)}
+        </span>
+        <span style={{ marginLeft: "auto" }}>{pct}%</span>
+      </div>
+      {g.target_date && (
+        <div style={muted}>
+          {g.repeats_yearly ? "Due every year · next" : "Target date"} {fmtDate(g.target_date)}
+          {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
+        </div>
+      )}
+      {plan && plan.status !== "funded" && (
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", fontSize: "0.78125rem", marginTop: "0.3125rem" }}>
+          <span style={{ flex: 1, color: "var(--color-neutral-600)" }}>
+            {plan.status === "overdue"
+              ? "The date has passed. Record the payment, or put the rest in."
+              : plan.paydays === 0
+                ? `Set aside ${formatCurrency(plan.perPayday, currency)} now — no payday left before it’s due`
+                : `Set aside ${formatCurrency(plan.perPayday, currency)} a payday (15th and end of month) · ${formatCurrency(plan.perMonth, currency)} a month`}
+            {plan.status === "behind" ? ` · ${formatCurrency(plan.shouldHave, currency)} by now keeps it on track` : ""}
+          </span>
+          <Tag variant={plan.status === "on_track" ? "accent" : "neutral"}>{STATUS_TEXT[plan.status].toUpperCase()}</Tag>
+        </div>
+      )}
+      {g.linked_account_id && <div style={muted}>Saved in {accounts.find((a) => a.id === g.linked_account_id)?.name ?? "an account you can no longer see"}</div>}
+    </div>
   );
 }
 
@@ -1518,30 +1516,99 @@ function LoanScheduleLine({
   );
 }
 
-
+/** Under a loan's line: its schedule, how the next payment splits into
+ * interest and what pays the loan down, and -- when what was borrowed and
+ * the term are known (20261026170000) -- where it stands by its own terms:
+ * payments made, interest paid so far and over the whole loan, the balance
+ * the terms say should be owed against the one on record (with a tap to
+ * take the terms' figure), and when a fixed rate ends. */
+function LoanLines({
+  loan,
+  today,
+  currency,
+  fmtDate,
+}: {
+  loan: LoanTerms & { id: string };
+  today: string;
+  currency: string;
+  fmtDate: (d: string) => string;
+}) {
+  const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
+  const balance = Number(loan.balance);
+  const monthly = loan.monthly_payment == null ? null : Number(loan.monthly_payment);
+  const rate = loan.interest_rate == null ? null : Number(loan.interest_rate);
+  const split = monthly && monthly > 0 && rate != null && balance > 0 ? loanPaymentSplit(balance, rate, monthly) : null;
+  const origin = loanOriginStatus(loan, today);
+  const fixed = origin?.fixedMonthsLeft ?? null;
+  return (
+    <>
+      <LoanScheduleLine loan={{ ...loan, monthly_payment: monthly, interest_rate: rate }} today={today} currency={currency} fmtDate={fmtDate} />
+      {split && (
+        <div style={muted}>
+          Of the next {formatCurrency(monthly!, currency)}, about {formatCurrency(split.interest, currency)} is interest and {formatCurrency(split.principal, currency)} pays the loan down.
+          {split.principal === 0 ? " It does not cover the interest, so nothing is paid down." : ""}
+        </div>
+      )}
+      {origin && (
+        <div style={muted}>
+          Borrowed {formatCurrency(origin.original, currency)} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
+        </div>
+      )}
+      {origin && Math.abs(origin.gap) >= 1 && (
+        <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
+          <span>
+            By its terms about {formatCurrency(origin.expectedBalance, currency)} should be owed now; {formatCurrency(balance, currency)} is on record, {formatCurrency(Math.abs(origin.gap), currency)} {origin.gap > 0 ? "more" : "less"} — extra payments, a rate that changed, or a balance from an older statement.
+          </span>
+          <SetBalanceButton id={loan.id} value={origin.expectedBalance} currency={currency} />
+        </div>
+      )}
+      {origin && Math.abs(origin.gap) < 1 && origin.made > 0 && <div style={muted}>The balance on record matches its terms.</div>}
+      {loan.rate_fixed_until && (
+        <div style={muted}>
+          {fixed != null && fixed < 0
+            ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank what the rate is now and update it under Payments.`
+            : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed != null ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+        </div>
+      )}
+    </>
+  );
+}
 
 /** The expenses under one category in a person's block (26 October): each
  * line as the breakdown names it, with its entries to edit or remove and an
  * open bill's own buttons. Folded away until opened, except when a bill on
  * it is still to be settled. */
-function CategoryLines({ lines, currency, noun = "expense", open }: { lines: BreakdownItem[]; currency: string; noun?: string; open?: boolean }) {
+function CategoryLines({ lines, currency, noun = "expense", open, always = false }: { lines: BreakdownItem[]; currency: string; noun?: string; open?: boolean; /** The lines are the content (A&L's holdings): no "N things" fold, always shown. */ always?: boolean }) {
   if (lines.length === 0) return null;
   const count = lines.length;
+  // A Cash Flow line is named "Category - name"; the category is the
+  // heading above, so the line shows the rest. Only that exact prefix goes:
+  // "BPI - Payroll" is an account's whole name.
+  const shown = (l: BreakdownItem) => (l.name.startsWith(`${l.category} - `) ? l.name.slice(l.category.length + 3) : l.name);
+  const rows = lines.map((l) => (
+    <div key={l.id} style={{ padding: "0.5rem 0 0.625rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+      <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem" }}>
+        {l.href ? (
+          <Link href={l.href} style={{ minWidth: 0, color: "inherit", textDecoration: "none" }}>
+            {shown(l)} <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+          </Link>
+        ) : (
+          <span style={{ minWidth: 0 }}>{shown(l)}</span>
+        )}
+        <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>{l.amount > 0 ? formatCurrency(l.amount, currency) : "—"}</span>
+      </div>
+      {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
+      {l.detail}
+      {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
+    </div>
+  ));
+  if (always) return <div style={{ margin: "-0.25rem 0 0.75rem" }}>{rows}</div>;
   return (
     <details open={open ?? lines.some((l) => !!l.actions && /Due|waiting/.test(l.sub ?? ""))} style={{ margin: "-0.375rem 0 0.75rem" }}>
       <summary style={{ fontSize: "0.75rem", color: "var(--color-switch-on)", cursor: "pointer", minHeight: "1.75rem", display: "flex", alignItems: "center" }}>
         {count} {count === 1 ? noun : noun.replace(/y$/, "ie") + "s"}
       </summary>
-      {lines.map((l) => (
-        <div key={l.id} style={{ padding: "0.5rem 0 0.625rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem" }}>
-            <span style={{ minWidth: 0 }}>{l.name.replace(/^[^-]+ - /, "")}</span>
-            <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>{l.amount > 0 ? formatCurrency(l.amount, currency) : "—"}</span>
-          </div>
-          {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
-          {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
-        </div>
-      ))}
+      {rows}
     </details>
   );
 }
@@ -1550,7 +1617,7 @@ function CategoryLines({ lines, currency, noun = "expense", open }: { lines: Bre
  * owner, folded, then their categories, then each line with Receive,
  * Delete and its entries to edit or remove -- the editable side of the
  * read-only donut above it. */
-function LinesByPerson({ lines, currency, categoryOrder, noun }: { lines: BreakdownItem[]; currency: string; categoryOrder: string[]; noun: string }) {
+function LinesByPerson({ lines, currency, categoryOrder, noun, storageKey = "kin-income-person", always = false }: { lines: BreakdownItem[]; currency: string; categoryOrder: string[]; noun: string; storageKey?: string; /** Every line shown, no fold per category (A&L). */ always?: boolean }) {
   const rank = (c: string) => (categoryOrder.indexOf(c) < 0 ? categoryOrder.length : categoryOrder.indexOf(c));
   const owners = [...new Set(lines.map((l) => l.ownerKey))]
     .map((key) => {
@@ -1563,14 +1630,14 @@ function LinesByPerson({ lines, currency, categoryOrder, noun }: { lines: Breakd
   return (
     <div style={{ marginBottom: "1rem" }}>
       {owners.map((o) => (
-        <FoldableSection key={o.key} remember={false} defaultOpen={owners.length === 1} label={o.label.toUpperCase()} storageKey={`kin-income-person-${o.key}`} right={total(o.sum)}>
+        <FoldableSection key={o.key} remember={false} defaultOpen={owners.length === 1} label={o.label.toUpperCase()} storageKey={`${storageKey}-${o.key}`} right={total(o.sum)}>
           {o.cats.map((c) => (
             <div key={c.name} style={{ paddingLeft: "0.75rem" }}>
               <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, margin: "0.5rem 0 0.25rem" }}>
                 <span style={{ minWidth: 0 }}>{c.name}</span>
                 <span style={{ marginLeft: "auto", flex: "none" }}>{total(c.lines.reduce((t, l) => t + l.amount, 0))}</span>
               </div>
-              <CategoryLines lines={c.lines} currency={currency} noun={noun} open={c.lines.length === 1} />
+              <CategoryLines lines={c.lines} currency={currency} noun={noun} open={c.lines.length === 1} always={always} />
             </div>
           ))}
         </FoldableSection>
