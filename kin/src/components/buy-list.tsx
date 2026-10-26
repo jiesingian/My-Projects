@@ -37,6 +37,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { FormSheet } from "@/components/form-sheet";
 import { ShoppingDayControl } from "@/components/shopping-day";
 import { CheckoutCards, LoyaltyCardsButton } from "@/components/loyalty-cards";
 import type { LoyaltyCard } from "@/lib/loyalty-cards";
@@ -761,11 +762,11 @@ export function BuyList({
       )}
       <ErrorText message={queueError} />
 
-      {/* Adding is one tap away, not four fields permanently in the way. The
-          panel stays open after each item, because a list is usually written
-          several things at a time. */}
-      {!adding ? (
-        <button
+      {/* Adding is one tap away, not four fields permanently in the way. It
+          opens over the list (Jonathan, 26 October), and stays open after
+          each item, because a list is usually written several things at a
+          time; Done or a swipe down closes it. */}
+      <button
           type="button"
           onClick={() => setAdding(true)}
           className="btn btn-secondary"
@@ -774,23 +775,29 @@ export function BuyList({
           <Icon name="plus" size={16} />
           Add an item
         </button>
-      ) : (
-        <form action={addAction} style={{ marginTop: "0.625rem", padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
+      <FormSheet
+        open={adding}
+        onClose={() => {
+          setAdding(false);
+          setNewName("");
+        }}
+        title="Add to the list"
+      >
+        <form action={addAction}>
           <input type="hidden" name="source" value="house" />
+          <input aria-label="Item to buy"
+            className="input"
+            name="name"
+            placeholder="What to buy"
+            required
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            maxLength={150}
+            style={{ minHeight: "2.625rem", width: "100%", marginBottom: "0.5rem" }}
+          />
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-            <input aria-label="Item to buy"
-              className="input"
-              name="name"
-              placeholder="Add an item"
-              required
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              maxLength={150}
-              style={{ minHeight: "2.625rem", flex: 1 }}
-            />
-            <input aria-label="Quantity" className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: "2.625rem", width: 68 }} />
-            <select aria-label="Unit" className="input" name="unit" defaultValue="pc" style={{ minHeight: "2.625rem", width: 82 }}>
+            <input aria-label="Quantity" className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }} />
+            <select aria-label="Unit" className="input" name="unit" defaultValue="pc" style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }}>
               {UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -838,7 +845,7 @@ export function BuyList({
               ))}
             </datalist>
           </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
             {/* What it may cost. Blank lets the price book's estimate stand in. */}
             <input
               aria-label="Budget"
@@ -849,7 +856,7 @@ export function BuyList({
               min="0"
               inputMode="decimal"
               placeholder="Budget"
-              style={{ minHeight: "2.625rem", width: 92, flex: "none" }}
+              style={{ minHeight: "2.625rem", width: 110, flex: "none" }}
             />
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
             <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1, minWidth: 0 }}>
@@ -859,13 +866,16 @@ export function BuyList({
                 </option>
               ))}
             </select>
-            <SubmitButton className="btn btn-primary" style={{ minHeight: "2.625rem", paddingInline: "1.125rem" }}>
+          </div>
+          <ErrorText message={addState.error} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ minHeight: "2.75rem", flex: 1 }}>
               ADD
             </SubmitButton>
             <button
               type="button"
-              className="btn btn-ghost"
-              style={{ minHeight: "2.625rem", fontSize: "0.8125rem", paddingInline: "0.625rem" }}
+              className="btn btn-secondary"
+              style={{ minHeight: "2.75rem", flex: 1, fontSize: "0.875rem" }}
               onClick={() => {
                 setAdding(false);
                 setNewName("");
@@ -875,8 +885,7 @@ export function BuyList({
             </button>
           </div>
         </form>
-      )}
-      <ErrorText message={addState.error} />
+      </FormSheet>
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         Sections follow the order you walk the market. Items are filed by name automatically — tap any item to fix its quantity, section,
         store or the event it is for. Ticked items stay until cleared.

@@ -127,7 +127,7 @@ export async function getStartHere(me: CurrentMember): Promise<StartHere | null>
     // Try every part of Kin: one thing on each page, half of them Plus.
     const t = progress.steps;
     const tries = ([
-      { id: "try-plans", title: "Add a plan", hint: "Planner: one calendar for everyone, with reminders.", href: "/planner/add?type=event", done: t.plans, priority: "plans" },
+      { id: "try-plans", title: "Add a plan", hint: "Planner: one calendar for everyone, with reminders.", href: "/planner/new?type=event", done: t.plans, priority: "plans" },
       { id: "try-list", title: "Start the grocery list", hint: "Household: whoever is at the shop ticks it off.", href: "/household?seg=buy&add=1", done: t.list, priority: "meals" },
       { id: "try-chat", title: "Say hi in the family chat", hint: "Chat: photos, polls and calls, private to you.", href: "/chat", done: t.chat },
       { id: "try-journal", title: "Write a first journal entry", hint: "Journal: a photo and a line about today.", href: "/journal/new", done: t.journal, priority: "memories" },
@@ -141,7 +141,7 @@ export async function getStartHere(me: CurrentMember): Promise<StartHere | null>
   }
 
   const steps: StartStep[] = [
-    { id: "event", title: "Add this week's plans", hint: "School, work, a birthday: one calendar for everyone.", href: "/planner/add?type=event", done: any(events) || any(activities), priority: "plans" },
+    { id: "event", title: "Add this week's plans", hint: "School, work, a birthday: one calendar for everyone.", href: "/planner/new?type=event", done: any(events) || any(activities), priority: "plans" },
     // No link: the card shares the invite itself (start-here.tsx).
     invite,
     kids,

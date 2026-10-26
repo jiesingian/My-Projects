@@ -85,10 +85,10 @@ function handoffs(m: ChatMessage, authorLabel: string) {
   const notes = m.body.trim() === title ? credit : `${m.body.trim()}\n\n${credit}`;
   const amount = amountIn(m.body);
   return {
-    task: `/planner/add?${new URLSearchParams({ type: "task", title, notes: notes.slice(0, 1000) })}`,
+    task: `/planner/new?${new URLSearchParams({ type: "task", title, notes: notes.slice(0, 1000) })}`,
     // An event's note is one short line on its form, so it carries the credit
     // and nothing else.
-    event: `/planner/add?${new URLSearchParams({ type: "event", title, notes: credit })}`,
+    event: `/planner/new?${new URLSearchParams({ type: "event", title, notes: credit })}`,
     expense: `/wealth/transact?${new URLSearchParams({ mode: "out", note: title.slice(0, 200), ...(amount ? { amount: String(amount) } : {}) })}`,
   };
 }

@@ -24,7 +24,7 @@ import { inSimpleMode } from "@/lib/simple-mode";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { PageHeading } from "@/components/page-heading";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
   if (member.status === "pending") redirect("/onboarding/pending");
@@ -92,6 +92,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {connectCode && <ConnectLinkReminder code={connectCode} />}
           {children}
         </main>
+        {/* An add page opened from inside the app, as a sheet over the page
+            it was opened from (@modal, route-sheet.tsx). Empty otherwise. */}
+        {modal}
         {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
         <TabBar chatUnread={chatUnread} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
         <ConfirmSheetHost />

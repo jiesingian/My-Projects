@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { AnimatedSheet } from "@/components/animated-sheet";
 import { dayColumn, weekdayInitials, type WeekStart } from "@/lib/week";
 import { familyDay, readableDay } from "@/lib/time";
 
@@ -83,19 +84,6 @@ export function CalendarJump({
   const [month, setMonth] = useState(anchorMonth);
   const [picking, setPicking] = useState<"days" | "months">("days");
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
   const go = (target: string) => {
     setOpen(false);
     router.push(`${hrefBase}${target}`);
@@ -159,36 +147,14 @@ export function CalendarJump({
         <Icon name="chevronLeft" size={15} style={{ transform: "rotate(-90deg)", flex: "none", color: "var(--color-accent-700)" }} />
       </button>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="kin-manual-sheet"
-          aria-label="Jump to a date"
-          onClick={() => setOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 60,
-            background: "rgba(0,0,0,0.32)",
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="kin-glass-bar kin-manual-sheet-panel"
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              borderTop: "1px solid var(--glass-border)",
-              padding: "0.625rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.25rem)",
-              boxShadow: "var(--shadow-lg)",
-            }}
-          >
+      {/* The shared sheet, so a swipe down closes it (Jonathan, 26 October). */}
+      <AnimatedSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        label="Jump to a date"
+        panelClassName="sheet-panel--plain"
+        panelStyle={{ padding: "0.625rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
+      >
             <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 14px" }} />
 
             {/* The month being shown, and the way through the years. The
@@ -331,9 +297,7 @@ export function CalendarJump({
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </AnimatedSheet>
     </>
   );
 }

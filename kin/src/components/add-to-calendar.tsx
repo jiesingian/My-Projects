@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { CALENDAR_STYLE } from "@/lib/calendar-style";
 import { readableDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
 import type { QuickMember } from "@/lib/quick-line";
+import { AnimatedSheet } from "@/components/animated-sheet";
 
 /** Everything the calendar shows can now be added from it. Each kind lives
  * in the hub that owns it — a bill belongs to Wealth, a meal to Household —
@@ -18,8 +19,8 @@ function destinations(date: string) {
     // Events, so a thing filed as an activity was named after no tab in the
     // app and could be read back nowhere but the calendar grid it was added
     // from. The Tasks tab lists these now.
-    { key: "activities", label: "Task", note: "Appointments, school, work", href: `/planner/add?type=task&${d}` },
-    { key: "events", label: "Event", note: "Birthdays, anniversaries, travel", href: `/planner/add?type=event&${d}` },
+    { key: "activities", label: "Task", note: "Appointments, school, work", href: `/planner/new?type=task&${d}` },
+    { key: "events", label: "Event", note: "Birthdays, anniversaries, travel", href: `/planner/new?type=event&${d}` },
     { key: "meal_plans", label: "Meal", note: "What's for dinner", href: `/household/meals/new?${d}` },
     { key: "bills", label: "Bill", note: "Due dates, in Wealth", href: `/wealth?seg=cashflow` },
     { key: "goals", label: "Goal", note: "Saving targets, in Wealth", href: `/wealth/add` },
@@ -28,19 +29,7 @@ function destinations(date: string) {
 
 export function AddToCalendar({ date, members, meId, today }: { date: string; members: QuickMember[]; meId: string; today: string }) {
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+  const titleId = useId();
 
   const readable = readableDay(date, { long: true });
 
@@ -57,32 +46,18 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
         <Icon name="plus" size={17} /> Add to calendar
       </button>
 
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="kin-manual-sheet"
-          aria-label="What would you like to add?"
-          onClick={() => setOpen(false)}
-          style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(0,0,0,0.32)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="kin-glass-bar kin-manual-sheet-panel"
-            style={{
-              width: "100%",
-              maxWidth: 480,
-              maxHeight: "88vh",
-              overflowY: "auto",
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              borderTop: "1px solid var(--glass-border)",
-              padding: "0.625rem 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)",
-              boxShadow: "var(--shadow-lg)",
-            }}
-          >
+      {/* The shared sheet (animated-sheet.tsx), not a hand-built one: it
+          follows a swipe down and closes on it, as every other sheet does
+          (Jonathan, 26 October: this one ignored the swipe). */}
+      <AnimatedSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        labelledBy={titleId}
+        panelClassName="sheet-panel--plain"
+        panelStyle={{ maxHeight: "88vh", overflowY: "auto", padding: "0.625rem 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+      >
             <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
-            <div style={{ padding: "0 0.375rem 0.625rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Add to {readable}</div>
+            <div id={titleId} style={{ padding: "0 0.375rem 0.625rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Add to {readable}</div>
             {/* One-line add: a sentence with no day in it lands on this day. */}
             <div style={{ padding: "0.5rem 0 0.375rem" }}>
               <QuickLine members={members} meId={meId} today={today} defaultDate={date} />
@@ -94,6 +69,7 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
                 <Link
                   key={dest.key}
                   href={dest.href}
+                  scroll={dest.key === "bills"}
                   onClick={() => setOpen(false)}
                   style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.6875rem 0.375rem", textDecoration: "none", color: "inherit", borderRadius: 12 }}
                 >
@@ -124,9 +100,7 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
             <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", marginTop: "0.625rem" }} onClick={() => setOpen(false)}>
               Cancel
             </button>
-          </div>
-        </div>
-      )}
+      </AnimatedSheet>
     </>
   );
 }

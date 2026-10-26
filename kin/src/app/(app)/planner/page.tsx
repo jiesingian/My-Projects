@@ -940,7 +940,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
                           : "No more occurrences"}
                       {r.reminderMinutes != null && !r.paused ? ` · reminder ${r.reminderMinutes} min before` : ""}
                     </span>
-                    <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
+                    <Link scroll={false} href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
                       Edit
                     </Link>
                     <RoutinePauseButton id={r.id} paused={r.paused} />
@@ -954,7 +954,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
         </>
       )}
 
-      <Link href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: "3rem", fontSize: "1rem", marginTop: "0.375rem" }}>
+      <Link scroll={false} href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: "3rem", fontSize: "1rem", marginTop: "0.375rem" }}>
         <Icon name="plus" size={17} /> Add a task
       </Link>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
@@ -1216,7 +1216,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
       )}
       {rows.map(renderRow)}
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-        <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
+        <Link scroll={false} href="/planner/new?type=event" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
           + ADD EVENT
         </Link>
       </div>

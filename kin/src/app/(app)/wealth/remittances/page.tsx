@@ -55,7 +55,7 @@ export default async function RemittancesPage() {
           </div>
         </Blueprint>
 
-        <Link href="/wealth/remittances/new" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
+        <Link scroll={false} href="/wealth/remittances/new" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
           + LOG A REMITTANCE
         </Link>
 

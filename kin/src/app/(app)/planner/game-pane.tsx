@@ -513,7 +513,7 @@ function SetupView({ game, plus, focus }: { game: GameView; plus: boolean; focus
       )}
       {game.bigGoals.length === 0 && (
         <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, margin: "0 0 0.875rem" }}>
-          Targets come from goals. <Link href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Set a goal</Link> first, then add the daily and weekly things that get you there.
+          Targets come from goals. <Link scroll={false} href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Set a goal</Link> first, then add the daily and weekly things that get you there.
         </p>
       )}
       <div style={{ marginBottom: "1rem" }}>
