@@ -532,7 +532,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const people = byPerson
     .map((p) => {
       const i = p.memberId ? who.active.findIndex((m) => m.id === p.memberId) : -1;
-      return { ...p, label: p.memberId === null ? "Family" : (who.labels[i] ?? ""), order: p.memberId === null ? who.active.length : i };
+      // Family first, then the grown-ups, then the children, each in the
+      // household's own order (Janine, 26 October).
+      const grown = i >= 0 && isGrownUp(who.active[i].role);
+      return { ...p, label: p.memberId === null ? "Family" : (who.labels[i] ?? ""), order: p.memberId === null ? -1 : grown ? i : who.active.length + i };
     })
     .filter((p) => p.memberId === null || p.order >= 0)
     .filter((p) => p.memberId !== null || p.hasVisibleAccounts || p.budget !== null || grownUp)
@@ -691,6 +694,13 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     expenseLinesDone.filter((l) => l.ownerKey === (memberId ?? "joint") && l.category === categoryLabel(category));
   const lineCategories = (memberId: string | null) =>
     [...new Set(expenseLinesDone.filter((l) => l.ownerKey === (memberId ?? "joint")).map((l) => l.category))];
+  // Folded to start, but a link to an open bill (Today's Pay) opens its
+  // owner's block, and a single person's view opens its one.
+  const linkedBill = billId ? cf.openBills.find((b) => b.id === billId) : undefined;
+  const openFirst = [
+    ...(scope !== "all" && people[0] ? [people[0].memberId ?? "family"] : []),
+    ...(linkedBill ? [linkedBill.is_joint !== false || !linkedBill.owner_member_id ? "family" : linkedBill.owner_member_id] : []),
+  ];
   const personDetails = Object.fromEntries(
     people.map((p) => {
       const whoseKey = p.memberId ?? "family";
@@ -816,7 +826,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {people.length === 0 ? (
         <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by person and category so you can see where it actually goes." />
       ) : (
-        <SpendingByPerson people={people} currency={currency} details={personDetails} />
+        <SpendingByPerson people={people} currency={currency} details={personDetails} openFirst={openFirst} />
       )}
 
       <SectionLabel>BILLS</SectionLabel>

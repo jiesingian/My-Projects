@@ -20,6 +20,7 @@ import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
 import { categoryLabel, expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
 import { FoldableSection } from "@/components/collapsible-group";
+import { Icon } from "@/components/icons";
 
 const OUT_COLOR = "color-mix(in srgb, var(--color-text) 40%, transparent)";
 const BAND_COLOR = "color-mix(in srgb, var(--color-accent) 8%, transparent)";
@@ -543,16 +544,21 @@ export function SpendingByPerson({
   people,
   currency,
   details,
+  openFirst = [],
 }: {
   people: PersonSpending[];
   currency: string;
+  /** Opened from the start (keys as in `details`): the one a link to an
+   * open bill lands in. */
+  openFirst?: string[];
   /** Under each one, keyed by member id or "family": their categories,
    * budget against spend, where their budgets are set (26 October). */
   details: Record<string, React.ReactNode>;
 }) {
   const hatchId = `kin-hatch-${useId().replace(/:/g, "")}`;
-  // Each one's categories fold away under their name (26 October).
-  const [folded, setFolded] = useState<string[]>([]);
+  // Each one's categories fold away under their name, folded to start
+  // (Janine, 26 October).
+  const [opened, setOpened] = useState<string[]>(openFirst);
   const scale = Math.max(1, ...people.map((p) => Math.max(p.spent, p.budget ?? 0)));
   if (people.length === 0) return null;
   return (
@@ -567,8 +573,8 @@ export function SpendingByPerson({
         const within = p.budget !== null ? Math.min(p.spent, p.budget) : p.spent;
         const pctOf = (v: number) => `${(v / scale) * 100}%`;
         const key = p.memberId ?? "family";
-        const open = !folded.includes(key);
-        const toggle = () => setFolded((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
+        const open = opened.includes(key);
+        const toggle = () => setOpened((o) => (o.includes(key) ? o.filter((k) => k !== key) : [...o, key]));
         return (
           <div key={p.memberId ?? "joint"} style={{ margin: "0.75rem 0 0.125rem" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: "0.84375rem" }}>
@@ -591,9 +597,12 @@ export function SpendingByPerson({
                   onClick={toggle}
                   aria-expanded={open}
                   aria-label={`${open ? "Fold" : "Open"} ${p.label}'s categories`}
-                  style={{ alignSelf: "center", background: "none", border: 0, padding: "0 0.125rem", minWidth: "1.75rem", minHeight: "1.75rem", color: "var(--color-neutral-700)", cursor: "pointer", fontSize: "0.875rem", transform: open ? "rotate(180deg)" : undefined, transition: "transform 160ms ease-out" }}
+                  style={{ alignSelf: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", background: "none", border: 0, padding: 0, minWidth: "1.75rem", minHeight: "1.75rem", color: "var(--color-neutral-700)", cursor: "pointer" }}
                 >
-                  ⌄
+                  {/* The same chevron as the folds above it. */}
+                  <span aria-hidden className="kin-chevron" data-open={open}>
+                    <Icon name="chevronLeft" size={14} />
+                  </span>
                 </button>
               )}
             </div>
