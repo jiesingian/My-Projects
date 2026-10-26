@@ -947,6 +947,8 @@ export type Database = {
         Row: {
           account_type: string
           app_store_url: string | null
+          card_due_day: number | null
+          card_min_payment: number | null
           created_at: string
           deleted_at: string | null
           created_by: string | null
@@ -966,6 +968,8 @@ export type Database = {
         Insert: {
           account_type?: string
           app_store_url?: string | null
+          card_due_day?: number | null
+          card_min_payment?: number | null
           created_at?: string
           deleted_at?: string | null
           created_by?: string | null
@@ -985,6 +989,8 @@ export type Database = {
         Update: {
           account_type?: string
           app_store_url?: string | null
+          card_due_day?: number | null
+          card_min_payment?: number | null
           created_at?: string
           deleted_at?: string | null
           created_by?: string | null

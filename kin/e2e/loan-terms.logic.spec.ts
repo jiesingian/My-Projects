@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, assetGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, loanOriginStatus, loanKindFor, paymentsLeftForBalance, netWorthMoves } from "@/lib/wealth";
+import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -125,4 +125,13 @@ test("netWorthMoves: each part as it moved net worth, more owed a fall, largest 
   const worth = (p: typeof sep) => p.cash + p.goals + p.assets - p.liabilities;
   expect(moves.reduce((t, m) => t + m.delta, 0)).toBe(worth(oct) - worth(sep));
   expect(netWorthMoves(sep, { ...sep, cash: sep.cash + 0.4 })).toEqual([]);
+});
+
+test("cardDueDate: this month's day if still ahead, else next month's; a 31st on a short month's last day", () => {
+  expect(cardDueDate(28, "2026-10-26")).toBe("2026-10-28");
+  expect(cardDueDate(26, "2026-10-26")).toBe("2026-10-26");
+  expect(cardDueDate(15, "2026-10-26")).toBe("2026-11-15");
+  expect(cardDueDate(31, "2026-11-05")).toBe("2026-11-30");
+  expect(cardDueDate(31, "2027-02-01")).toBe("2027-02-28");
+  expect(cardDueDate(5, "2026-12-20")).toBe("2027-01-05");
 });

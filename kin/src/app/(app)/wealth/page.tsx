@@ -66,6 +66,7 @@ import {
   loanPaymentSplit,
   loanOriginStatus,
   paymentsLeftForBalance,
+  cardDueDate,
   assetGroup,
   AL_CASH,
   AL_INVESTMENTS,
@@ -1327,7 +1328,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       amount: a.owed,
       category: LIABILITY_KIND_LABELS.credit_card,
       ...who.sliceOwner(a.owner_member_id, a.is_joint),
-      sub: `${accountSub(a)} · what its balance is below zero; paying the card brings it back up`,
+      sub: `${accountSub(a)}${a.card_due_day ? ` · due ${fmtDate(cardDueDate(a.card_due_day, today))}` : ""}${a.card_min_payment ? ` · minimum ${formatCurrency(Number(a.card_min_payment), currency)}` : ""}${a.card_due_day ? "" : " · set its due day on the card's page to be reminded"}`,
       href: openAccount(a.id),
     })),
   ];
