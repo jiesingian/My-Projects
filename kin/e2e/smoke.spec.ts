@@ -129,7 +129,6 @@ const NEW_SCREENS: NewScreen[] = [
   { name: "Year book", path: "/journal/year-book" },
   { name: "Tree file (GEDCOM)", path: "/family/tree-file" },
   { name: "Lending & savings circles", path: "/wealth/utang" },
-  { name: "Family statements", path: "/wealth/statements" },
   { name: "A savings circle", from: "/wealth/utang", links: ["/wealth/paluwagan/"] },
   { name: "Piggy bank & allowance", path: "/planner/alkansya" },
   { name: "A child's piggy bank", from: "/planner/alkansya", links: ["/planner/alkansya/"] },

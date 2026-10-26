@@ -10,6 +10,7 @@ import { getMembers } from "@/lib/queries/family";
 import { isGone } from "@/lib/member-status";
 import { shortNames } from "@/lib/format";
 import { whoseOptions } from "@/lib/wealth";
+import { kinAiReady } from "@/lib/kin-ai";
 
 export default async function TransactPage({
   searchParams,
@@ -34,9 +35,12 @@ export default async function TransactPage({
       <DetailHeader backHref={fromAccount ? "/wealth?seg=accounts" : "/wealth"} eyebrow="Wealth" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 6px" }}>Move money</h3>
-        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
-          Got a receipt or a payment screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
-        </p>
+        {/* Only once Kin AI has its key: without it the page can only say so. */}
+        {kinAiReady() && (
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
+            Got a receipt or a payment screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
+          </p>
+        )}
         <TransactForm
           accounts={toPickable(accounts, me.id, { everyone: true })}
           currency={me.families.currency}
