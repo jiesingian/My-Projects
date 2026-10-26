@@ -554,6 +554,12 @@ export type LineEntry = {
    * or it bought or added to an asset (its item is on the asset). */
   forKey: string | null;
   forLocked: string | null;
+  /** On a loan: the part of it saved as paying the loan down, and whether
+   * it is confirmed -- a confirmed one has already lowered the loan's
+   * balance, so Edit entry measures its split against what was owed before
+   * it (27 October). */
+  principal?: number | null;
+  confirmed?: boolean;
 };
 
 
@@ -602,8 +608,29 @@ export function EditEntryButton({ entry, accounts, targets, currency }: { entry:
   // a goal, or to nothing. A loan picked shows Kin's split, the principal
   // there to change; null follows the split as the amount changes.
   const [forKey, setForKey] = useState(entry.forKey ?? "");
-  const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
-  const loan = entry.direction === "out" && forKey.startsWith("liabilities:") ? targets.loans.find((l) => `liabilities:${l.id}` === forKey) : undefined;
+  // On a loan, the split starts as saved: Kin's own split would be worked
+  // out again on a balance this payment already lowered (27 October).
+  const savedPrincipal = entry.forKey?.startsWith("liabilities:") && entry.principal != null ? entry.principal : null;
+  const [principalOverride, setPrincipalOverride] = useState<number | null>(savedPrincipal);
+  // Each opening starts from the entry as saved (27 October): Cancel used
+  // to keep what was typed, and the next Edit showed it as if it were the
+  // entry. The amount field is uncontrolled, so it is remounted per opening.
+  const [opening, setOpening] = useState(0);
+  const openFresh = () => {
+    setParticulars(entry.particulars);
+    setAmount(entry.amount);
+    setOccurredOn(entry.occurredOn);
+    setCategory(entry.category ?? "");
+    setAccountId(entry.accountId);
+    setForKey(entry.forKey ?? "");
+    setPrincipalOverride(savedPrincipal);
+    setOpening((n) => n + 1);
+    setOpen(true);
+  };
+  const listed = entry.direction === "out" && forKey.startsWith("liabilities:") ? targets.loans.find((l) => `liabilities:${l.id}` === forKey) : undefined;
+  // The loan it is already on, as it stood before this payment: a
+  // confirmed one has lowered the balance by what it paid down.
+  const loan = listed && forKey === entry.forKey && entry.confirmed && savedPrincipal ? { ...listed, balance: Math.round((listed.balance + savedPrincipal) * 100) / 100 } : listed;
   const { error, pending, run } = useMoneyAction();
   const uid = useId();
   const choices: readonly string[] = entry.direction === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES;
@@ -615,7 +642,7 @@ export function EditEntryButton({ entry, accounts, targets, currency }: { entry:
   const onPickable = accounts.some((a) => a.id === entry.accountId);
   return (
     <>
-      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={openFresh}>
         Edit
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Edit entry">
@@ -629,12 +656,14 @@ export function EditEntryButton({ entry, accounts, targets, currency }: { entry:
             <div className="field" style={{ marginBottom: "0.5rem", flex: 1 }}>
               <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
               <AmountInput
+                key={opening}
                 id={`${uid}-amount`}
                 ariaLabel={`Amount (${currencySymbol(currency)})`}
                 defaultValue={amount}
                 onValueChange={(v) => {
                   setAmount(v);
-                  setPrincipalOverride(null);
+                  // Back to the saved amount on the same loan: the saved split.
+                  setPrincipalOverride(v === entry.amount && forKey === entry.forKey ? savedPrincipal : null);
                 }}
                 style={{ minHeight: "2.625rem" }}
               />
@@ -669,14 +698,14 @@ export function EditEntryButton({ entry, accounts, targets, currency }: { entry:
               label={entry.direction === "in" ? "Income from (optional)" : "For (optional)"}
               onChange={(v) => {
                 setForKey(v);
-                setPrincipalOverride(null);
+                setPrincipalOverride(v === entry.forKey && amount === entry.amount ? savedPrincipal : null);
                 if (v.startsWith("liabilities:")) setCategory("Debt");
               }}
             />
           ) : (
             entry.forLocked && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.45 }}>{entry.forLocked}</p>
           )}
-          {loan && <LoanSplitBox loan={loan} amount={amount} currency={currency} override={principalOverride} onOverride={setPrincipalOverride} />}
+          {loan && <LoanSplitBox key={opening} loan={loan} amount={amount} currency={currency} override={principalOverride} onOverride={setPrincipalOverride} />}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
