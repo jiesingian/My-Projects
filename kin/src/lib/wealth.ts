@@ -1230,8 +1230,11 @@ export function periodLongLabel(start: Date, range: CashFlowRange): string {
  * on a day nothing was recorded is what it was worth the day before, not
  * zero. `before` is the last day recorded ahead of the window, so the
  * first periods shown can carry too. Periods ahead of any record are left
- * out: the line starts where the record does. `snapshots` need not be
- * sorted. */
+ * out, and so are leading periods at nothing: a household's first visit
+ * recorded ₱0 before an account existed, and the line then read "▲
+ * ₱2,004,318 since Sep" as if the money had appeared (27 October). The
+ * line starts at the first figure that is not zero. `snapshots` need not
+ * be sorted. */
 export function netWorthSeries(
   snapshots: { day: string; netWorth: number; parts?: NetWorthParts }[],
   range: CashFlowRange,
@@ -1247,6 +1250,7 @@ export function netWorthSeries(
     const hit = lastIn.get(p.key);
     if (hit) carried = hit;
     if (!carried) continue;
+    if (out.length === 0 && carried.netWorth === 0) continue;
     out.push({ key: p.key, label: p.label, longLabel: periodLongLabel(p.start, range), netWorth: carried.netWorth, parts: carried.parts });
   }
   return out;
