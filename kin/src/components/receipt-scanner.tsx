@@ -26,23 +26,20 @@ const SOURCE_LABEL: Record<ScannedReceipt["source"], string> = {
   other: "the picture",
 };
 
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /** Snap a receipt or an e-wallet screenshot: the picture is read, one
  * expense or bill is proposed, and the member checks every field before
  * pressing Record. `ready` is whether the key is on the server; `plus` is
- * whether the household may use it at all. Nothing is saved by the scan. */
-export function ReceiptScanner({ accounts, currency, ready, plus }: { accounts: PickableAccount[]; currency: string; ready: boolean; plus: boolean }) {
+ * whether the household may use it at all. Nothing is saved by the scan.
+ * `today` is the household's day, from the server -- the browser's own clock
+ * can be on a different day, which is how the money forms hit React #418. */
+export function ReceiptScanner({ accounts, currency, ready, plus, today }: { accounts: PickableAccount[]; currency: string; ready: boolean; plus: boolean; today: string }) {
   const uid = useId();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<ScannedReceipt | null>(null);
   const [kind, setKind] = useState<ReceiptKind>("expense");
   const [amount, setAmount] = useState(0);
-  const [date, setDate] = useState(todayLocal());
+  const [date, setDate] = useState(today);
   const [dueDate, setDueDate] = useState("");
   const [payee, setPayee] = useState("");
   const [category, setCategory] = useState<string>("Other");
@@ -84,7 +81,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus }: { accounts: 
       setDraft(r);
       setKind(r.kind);
       setAmount(r.amount);
-      setDate(r.date || todayLocal());
+      setDate(r.date || today);
       setDueDate(r.due_date);
       setPayee(r.payee);
       setCategory(r.category);
