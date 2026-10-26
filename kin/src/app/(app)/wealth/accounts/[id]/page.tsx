@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts } from "@/lib/queries/wealth";
+import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { isGone } from "@/lib/member-status";
 import { AccountNumber } from "@/components/account-number";
@@ -24,14 +25,18 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const sp = await searchParams;
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
-  const [{ account, entries }, history, numbers, viewers, members] = await Promise.all([
+  const [{ account, entries }, history, numbers, viewers, members, allAccounts] = await Promise.all([
     getAccountDetail(me.family_id, id),
     getAccountHistory(me.family_id, id, range),
     getAccountNumbers(me.family_id, [id]),
     getAccountViewers(me.family_id),
     getMembers(me.family_id),
+    getAccounts(me.family_id),
   ]);
   if (!account) notFound();
+  // Where an entry can be moved to from Edit: joint and the member's own,
+  // as every money form offers them.
+  const pickable = toPickable(allAccounts, me.id);
   // Who else this account can be shown to, as on the Accounts tab.
   const others = members.filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== me.id);
   const otherNames = shortNames(others.map((m) => m.full_name));
@@ -174,7 +179,8 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             {/* A transfer is two entries that must agree: removed, not edited. */}
             {!e.transfer_group_id && (
               <EditEntryButton
-                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountName: e.accountName }}
+                entry={{ id: e.id, particulars: e.particulars, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), category: e.category, direction: e.direction, accountId: e.account_id, accountName: e.accountName }}
+                accounts={pickable}
                 currency={currency}
               />
             )}

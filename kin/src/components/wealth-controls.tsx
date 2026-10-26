@@ -3,6 +3,8 @@
 import { WhoseSelect } from "@/components/whose-select";
 import { RemittanceFields, UtangFields, type OpenLent } from "@/components/income-category-extras";
 import { FormSheet } from "@/components/form-sheet";
+import { AccountOptions } from "@/components/account-options";
+import { sortByUse, type PickableAccount } from "@/lib/account-picker";
 import { confirm } from "@/components/confirm-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
@@ -450,7 +452,7 @@ export function AddAccountForm({
  * "once" under REPEATS is how a one-off expense is entered here. Renamed
  * addBillAction/bills throughout the code would be a much bigger change for
  * no functional gain, so only the copy shown to a member changed. */
-export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
+export function AddBillForm({ whose, accounts, currency }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
@@ -506,6 +508,19 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
           <Labelled label="Whose is it?">
             <WhoseSelect name="whose" options={whose} />
           </Labelled>
+          {/* Which account it comes out of (Jonathan, 26 October): the one
+              Settle then starts on. Most used first, as every money form;
+              or left for later, for a bill paid from wherever has money
+              that day. No accounts yet: nothing to choose, the row stays
+              empty as before. */}
+          {accounts.length > 0 && (
+            <Labelled label="Paid from">
+              <select className="input" name="account_id" defaultValue={sortByUse(accounts)[0]?.id ?? ""} style={{ minHeight: "2.625rem" }}>
+                <AccountOptions accounts={accounts} currency={currency} />
+                <option value="">Decide when settling</option>
+              </select>
+            </Labelled>
+          )}
           <Labelled label="Remind me">
             <select key={recurrence === "weekly" ? "weekly" : "longer"} className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
               {remindChoices.map((d) => (
