@@ -196,6 +196,29 @@ all Jonathan's on 23 October, each the recommended option:
 - **Meanwhile, on an iPhone:** Settings → Notifications → Kin: Allow,
   Sounds, Lock Screen and Banners (Persistent) on, and add Kin to any Focus
   that should let medicine through.
+- **To do: the "Kin Alarms" Shortcut, without building it by hand (Jonathan,
+  26 October: "this task is so difficult, the instructions are not same as
+  actual in the phone. delete this task, this tasks shall be done next
+  time").** The free route (#957: a Shortcut reads the member's private
+  link at /api/dose-alarms/<token> and makes Clock alarms) works, but the
+  Medicine alarms screen asks a person to assemble ~14 Shortcuts actions,
+  and what the screen says does not match what the phone shows (the If
+  step read "If File Size is Number MB", then "couldn't convert from Text
+  to Dictionary"; the variable had to be retyped as Text). Jonathan got as
+  far as a clean If and stopped. Next time, in this order:
+  1. Ship the Shortcut ready-made: build "Kin Alarms" once on an iPhone,
+     share it as an iCloud link (Shortcuts → share → Copy iCloud Link), and
+     put one button on the Medicine alarms screen, "Add the Kin Alarms
+     Shortcut", that opens the link; the person then only pastes their
+     private link into the one field the Shortcut asks for on import
+     (an Import Question). Needs a person with an iPhone to build and
+     share it once (ask-a-person); after that nobody assembles anything.
+  2. Until then, hide the step list behind "Build it by hand" and keep the
+     screen to: your link, the Add button, when it was last read.
+  3. Jonathan's half-built Shortcut can be deleted (Shortcuts → long-press
+     Kin Alarms → Delete); his private link stays valid, or a new one can
+     be made on the screen.
+  The native alarm (AlarmKit / Critical Alerts) stays on the money list.
 
 ## Wrap-up, 22 October
 
