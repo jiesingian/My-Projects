@@ -108,6 +108,9 @@ export const LIABILITY_KIND_LABELS: Record<LiabilityKind, string> = {
  * household spends on). */
 export const EXPENSE_CATEGORIES = [
   "Groceries",
+  // Palengke, talipapa, the wet market: apart from Groceries, the
+  // supermarket (Janine, 26 October; 20261026140000).
+  "Market",
   "Dining",
   "Utilities",
   "Housing",
@@ -161,7 +164,6 @@ export const INCOME_SOURCES = [
  * here reads as it is saved. */
 export const CATEGORY_LABELS: Record<string, string> = {
   // Money out
-  Groceries: "Groceries & market",
   Dining: "Eating out & delivery",
   Utilities: "Bills & utilities",
   Housing: "Rent & housing",
@@ -376,12 +378,14 @@ export function explainLedgerRefusal(message: string): string {
  * defined once, in globals.css, so light/dark swap in one place. */
 const EXPENSE_CATEGORY_COLOR_VAR: Record<string, string> = {
   Groceries: "var(--wealth-groceries)",
+  // Market took Shopping's hue when it split from Groceries (26 October):
+  // a weekly spend, where Shopping is occasional. Seven hues stay seven.
+  Market: "var(--wealth-shopping)",
   Utilities: "var(--wealth-utilities)",
   Housing: "var(--wealth-housing)",
   Transport: "var(--wealth-transport)",
   Health: "var(--wealth-health)",
   Dining: "var(--wealth-dining)",
-  Shopping: "var(--wealth-shopping)",
 };
 export function expenseCategoryColor(category: string): string {
   return EXPENSE_CATEGORY_COLOR_VAR[category] ?? "var(--wealth-cat-other)";
