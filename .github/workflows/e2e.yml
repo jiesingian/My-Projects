@@ -558,8 +558,12 @@ jobs:
           npm run build
           npm run start &
           npx wait-on http://localhost:3000/login --timeout 120000
-      - name: Run smoke + logic on it
-        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=2
+      # add-expense.spec.ts writes (an account, an entry, a bill, all named
+      # with its RUN and removed after), which is fine on a database that
+      # exists for this run and not on shared dev -- so it runs here and in
+      # the weekly tier, not in the post-merge smoke above (26 October).
+      - name: Run smoke + logic + the Add expense sheet on it
+        run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/*.logic.spec.ts --workers=2
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
