@@ -792,6 +792,9 @@ export type MemberSpending = {
    * says nothing about their spending rather than showing a zero. */
   hasVisibleAccounts: boolean;
   budget: number | null;
+  /** This month by category (26 October): what they spent and the budget
+   * the viewer can see, budgeted ones first. */
+  categories: { category: string; spent: number; amount: number }[];
 };
 
 /** Spending per person this month, against their budget -- the shared helper
@@ -805,10 +808,10 @@ export async function getSpendingByMember(familyId: string, year: number, month:
   const supabase = await createClient();
   const from = new Date(year, month - 1, 1);
   const to = new Date(year, month, 1);
-  const [accounts, archivedAccounts, budgets, { data: rows }] = await Promise.all([
+  const [accounts, archivedAccounts, budgetRows, { data: rows }] = await Promise.all([
     loadAccounts(familyId),
     getArchivedAccountsForFlow(familyId),
-    getMemberBudgets(familyId, year, month),
+    getSpendingBudgetRows(familyId),
     supabase
       .from("wealth_transactions")
       .select("account_id, amount, category, is_joint, owner_member_id")
@@ -819,13 +822,26 @@ export async function getSpendingByMember(familyId: string, year: number, month:
       .lt("occurred_at", to.toISOString()),
   ]);
   const ownerOf = new Map([...accounts, ...archivedAccounts].map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
+  const inForce = budgetsInForce(budgetRows, `${year}-${String(month).padStart(2, "0")}`);
+  const budgets = new Map([...inForce.entries()].map(([whose, cats]) => [whose, budgetTotal(cats)]));
   const spent = new Map<string | null, number>();
+  const spentByCategory = new Map<string | null, Map<string, number>>();
   for (const r of rows ?? []) {
     if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;
     // Whose the spending is (20261023210000), not whose account paid it.
     const who = r.is_joint === null ? (ownerOf.get(r.account_id) ?? null) : r.is_joint ? null : r.owner_member_id;
     spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
+    const cats = spentByCategory.get(who) ?? new Map<string, number>();
+    const key = r.category ?? "Other";
+    cats.set(key, (cats.get(key) ?? 0) + Number(r.amount));
+    spentByCategory.set(who, cats);
   }
+  const categoriesOf = (memberId: string | null) => {
+    const cats = spentByCategory.get(memberId) ?? new Map<string, number>();
+    const budgeted = [...(inForce.get(budgetWhose(memberId)) ?? new Map<string, number>()).entries()].map(([category, amount]) => ({ category, amount, spent: cats.get(category) ?? 0 }));
+    const rest = [...cats.entries()].filter(([c]) => !budgeted.some((b) => b.category === c)).map(([category, s]) => ({ category, amount: 0, spent: s })).sort((a, b) => b.spent - a.spent);
+    return [...budgeted, ...rest];
+  };
   const owners = new Set<string | null>(accounts.map((a) => (a.is_joint ? null : a.owner_member_id)));
   for (const id of budgets.keys()) owners.add(id === FAMILY_BUDGET ? null : id);
   return [...owners].map((memberId) => ({
@@ -833,6 +849,7 @@ export async function getSpendingByMember(familyId: string, year: number, month:
     spent: spent.get(memberId) ?? 0,
     hasVisibleAccounts: accounts.some((a) => (a.is_joint ? null : a.owner_member_id) === memberId),
     budget: budgets.get(budgetWhose(memberId)) ?? null,
+    categories: categoriesOf(memberId),
   }));
 }
 

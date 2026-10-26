@@ -19,7 +19,6 @@ import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
 import { categoryLabel, expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
-import Link from "next/link";
 import { FoldableSection } from "@/components/collapsible-group";
 
 const OUT_COLOR = "color-mix(in srgb, var(--color-text) 40%, transparent)";
@@ -540,7 +539,17 @@ export type PersonSpending = { memberId: string | null; label: string; spent: nu
  * them. The dark tick is the budget; past it, the bar is hatched and the line
  * under it says by how much. Someone whose accounts the viewer cannot see
  * shows no number at all rather than a misleading zero. */
-export function SpendingByPerson({ people, currency, canSetBudgets }: { people: PersonSpending[]; currency: string; canSetBudgets: boolean }) {
+export function SpendingByPerson({
+  people,
+  currency,
+  details,
+}: {
+  people: PersonSpending[];
+  currency: string;
+  /** Under each one, keyed by member id or "family": their categories,
+   * budget against spend, where their budgets are set (26 October). */
+  details: Record<string, React.ReactNode>;
+}) {
   const hatchId = `kin-hatch-${useId().replace(/:/g, "")}`;
   const scale = Math.max(1, ...people.map((p) => Math.max(p.spent, p.budget ?? 0)));
   if (people.length === 0) return null;
@@ -586,20 +595,16 @@ export function SpendingByPerson({ people, currency, canSetBudgets }: { people: 
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
               <span style={{ ...muted, color: over ? "var(--color-accent-700)" : muted.color }}>
-                {!p.hasVisibleAccounts
-                  ? "Their accounts are private to them."
+                {!p.hasVisibleAccounts && p.budget === null
+                  ? p.memberId === null ? "No joint accounts or budget yet" : "Their accounts are private to them."
                   : p.budget === null
                     ? "No budget set"
                     : over
                       ? `Over by ${formatCurrency(p.spent - p.budget, currency)}`
                       : `${formatCurrency(p.budget - p.spent, currency)} left`}
               </span>
-              {/* A budget is its categories added up (26 October): set them on
-                  that person's (or Family's) own Expenses. */}
-              <Link href={`/wealth?seg=cashflow&who=${p.memberId ?? "family"}&open=expenses`} style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--color-switch-on)", textDecoration: "none" }}>
-                {p.budget !== null ? "Budgets" : canSetBudgets ? "Set budgets" : "Budgets"} ›<span className="sr-only"> for {p.label}</span>
-              </Link>
             </div>
+            {details[p.memberId ?? "family"] && <div style={{ margin: "0.75rem 0 1.25rem", paddingLeft: "0.75rem", borderLeft: "2px solid var(--color-neutral-200)" }}>{details[p.memberId ?? "family"]}</div>}
           </div>
         );
       })}

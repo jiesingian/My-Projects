@@ -61,12 +61,12 @@ test("the graph range picker offers Days, and choosing it regroups the strip", a
   // The meter reads "Spent of budget" once any category budget is set,
   // "Spent this month" when none is; which one dev holds depends on whoever
   // last touched a budget, so either passes. All is the sum of Family's and
-  // everyone's budgets (26 October), set by picking one of them under Who,
-  // which the line under the categories says.
+  // everyone's budgets (26 October); each one's categories and budgets sit
+  // under SPENDING BY PERSON, inside EXPENSES.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
   const expenses = page.getByRole("button", { name: /^EXPENSES$/i, exact: true });
   const meter = page.getByText(/^SPENT (OF BUDGET|THIS MONTH)$/i);
-  const control = page.getByText("To set a budget, pick Family or a person under Who.");
+  const control = page.getByText("SPENDING BY PERSON", { exact: true });
   await expect(expenses).toHaveAttribute("aria-expanded", "false");
   await expect(meter).toBeHidden();
 
