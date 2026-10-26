@@ -496,12 +496,55 @@ export function AddExpenseForm({ whose, accounts, currency, today, targets }: { 
         {mode === "paid" ? (
           <PaidExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} targets={targets} onDone={() => setOpen(false)} onCancel={() => setOpen(false)} />
         ) : (
-          <DueExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} onCancel={() => setOpen(false)} onDone={() => setOpen(false)} />
+          <DueExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} targets={targets} onCancel={() => setOpen(false)} onDone={() => setOpen(false)} />
         )}
       </FormSheet>
     </>
   );
 }
+
+/** "For (optional)": a loan it pays down, an asset, a goal -- the same
+ * choice Move money offers. Nothing to pick from: nothing shown. Picking a
+ * loan sets the category to Debt. */
+function ForSelect({ targets, value, onChange }: { targets: ExpenseTargets; value: string; onChange: (v: string) => void }) {
+  if (targets.assets.length + targets.goals.length + targets.loans.length === 0) return null;
+  return (
+    <Labelled label="For (optional)">
+      <select className="input" name="against" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: "2.625rem" }}>
+        <option value="">Nothing in particular</option>
+        {targets.loans.length > 0 && (
+          <optgroup label="Paying a loan">
+            {targets.loans.map((l) => (
+              <option key={l.id} value={`liabilities:${l.id}`}>
+                {l.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {targets.assets.length > 0 && (
+          <optgroup label="An asset">
+            {targets.assets.map((a) => (
+              <option key={a.id} value={`assets:${a.id}`}>
+                {a.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {targets.goals.length > 0 && (
+          <optgroup label="A goal">
+            {targets.goals.map((g) => (
+              <option key={g.id} value={`goals:${g.id}`}>
+                {g.name}
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+    </Labelled>
+  );
+}
+
+const LOAN_SPLIT_NOTE = "Kin splits it into interest and the part that pays the loan down, from the loan's rate; the loan's balance drops by that part.";
 
 /** The sheet's "Already paid" half. The sheet closes once the entry is in;
  * an error keeps it open with the message at the top. */
@@ -516,7 +559,6 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
   // "assets:<id>", "goals:<id>" or "liabilities:<id>", or empty: most
   // expenses are for nothing in particular. A loan picked sets Debt.
   const [against, setAgainst] = useState("");
-  const hasTargets = targets.assets.length + targets.goals.length + targets.loans.length > 0;
 
   if (accounts.length === 0) {
     return (
@@ -556,49 +598,14 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
           </select>
         </Labelled>
       </div>
-      {hasTargets && (
-        <Labelled label="For (optional)">
-          <select
-            className="input"
-            name="against"
-            value={against}
-            onChange={(e) => {
-              setAgainst(e.target.value);
-              if (e.target.value.startsWith("liabilities:")) setCategory("Debt");
-            }}
-            style={{ minHeight: "2.625rem" }}
-          >
-            <option value="">Nothing in particular</option>
-            {targets.loans.length > 0 && (
-              <optgroup label="Paying a loan">
-                {targets.loans.map((l) => (
-                  <option key={l.id} value={`liabilities:${l.id}`}>
-                    {l.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {targets.assets.length > 0 && (
-              <optgroup label="An asset">
-                {targets.assets.map((a) => (
-                  <option key={a.id} value={`assets:${a.id}`}>
-                    {a.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {targets.goals.length > 0 && (
-              <optgroup label="A goal">
-                {targets.goals.map((g) => (
-                  <option key={g.id} value={`goals:${g.id}`}>
-                    {g.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </Labelled>
-      )}
+      <ForSelect
+        targets={targets}
+        value={against}
+        onChange={(v) => {
+          setAgainst(v);
+          if (v.startsWith("liabilities:")) setCategory("Debt");
+        }}
+      />
       {/* Money on an asset is upkeep (a living cost), an addition (the
           asset is worth more) or buying it (its value is already on
           record), as Move money asks (20261023232000). */}
@@ -611,11 +618,7 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
           </select>
         </Labelled>
       )}
-      {against.startsWith("liabilities:") && (
-        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>
-          Kin splits it into interest and the part that pays the loan down, from the loan&apos;s rate; the loan&apos;s balance drops by that part.
-        </p>
-      )}
+      {against.startsWith("liabilities:") && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>{LOAN_SPLIT_NOTE}</p>}
       <Labelled label="Whose is it?">
         <WhoseSelect name="whose" options={whose} />
       </Labelled>
@@ -633,7 +636,7 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
 
 /** The sheet's "Due later" half: a bill. Due on starts on today and is
  * required, so every bill reaches Today, the calendar and its reminder. */
-function DueExpenseForm({ whose, accounts, currency, today, onDone, onCancel }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; onDone: () => void; onCancel: () => void }) {
+function DueExpenseForm({ whose, accounts, currency, today, targets, onDone, onCancel }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets; onDone: () => void; onCancel: () => void }) {
   const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(async (prev: ActionState, fd: FormData) => {
     const res = await addBillAction(prev, fd);
@@ -644,6 +647,10 @@ function DueExpenseForm({ whose, accounts, currency, today, onDone, onCancel }: 
   // most 3 days ahead (weeklyRemindDays).
   const [recurrence, setRecurrence] = useState("monthly");
   const remindChoices = recurrence === "weekly" ? BILL_REMIND_DAYS.filter((d) => d <= WEEKLY_REMIND_MAX) : BILL_REMIND_DAYS;
+  const [category, setCategory] = useState<string>("Utilities");
+  // What it is for (20261026150000): settling it then pays the loan down,
+  // sits on the asset or counts toward the goal.
+  const [against, setAgainst] = useState("");
 
   return (
     <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
@@ -661,7 +668,7 @@ function DueExpenseForm({ whose, accounts, currency, today, onDone, onCancel }: 
       </div>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label="Spent on" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
+          <select className="input" name="category" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {categoryLabel(c)}
@@ -691,6 +698,16 @@ function DueExpenseForm({ whose, accounts, currency, today, onDone, onCancel }: 
           </select>
         </Labelled>
       )}
+      <ForSelect
+        targets={targets}
+        value={against}
+        onChange={(v) => {
+          setAgainst(v);
+          if (v.startsWith("liabilities:")) setCategory("Debt");
+        }}
+      />
+      {against.startsWith("liabilities:") && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>Each time it is settled, {LOAN_SPLIT_NOTE[0].toLowerCase()}{LOAN_SPLIT_NOTE.slice(1)}</p>}
+      {against.startsWith("assets:") && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>Upkeep on it: dues, insurance, repairs. Buying it or adding to it is an expense already paid.</p>}
       <Labelled label="Whose is it?">
         <WhoseSelect name="whose" options={whose} />
       </Labelled>

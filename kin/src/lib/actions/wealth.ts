@@ -489,6 +489,17 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       .eq("id", entry.source_id)
       .eq("family_id", entry.family_id);
     if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(error)}`;
+  } else {
+    // A bill for a loan, an asset or a goal (20261026150000): its payment's
+    // source is what the money was for, and the bill is tied to the
+    // payment by transaction_id instead. No such bill: nothing changes.
+    const { error } = await supabase
+      .from("bills")
+      .update({ status: "paid", paid_at: entry.occurred_at, paid_from_account_id: entry.account_id, paid_by_member_id: memberId })
+      .eq("transaction_id", entry.id)
+      .eq("family_id", entry.family_id)
+      .in("status", ["unpaid", "scheduled"]);
+    if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(error)}`;
   }
 
   if (entry.source_table === "income_schedules" && entry.source_id) {
@@ -778,6 +789,15 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
       .eq("id", entry.source_id)
       .eq("family_id", familyId);
     if (error) return `The bill could not be reopened, so the payment was left in place. ${refusalMessage(error)}`;
+  } else {
+    // A bill paid for a loan, an asset or a goal is tied to its payment by
+    // transaction_id (20261026150000).
+    const { error } = await supabase
+      .from("bills")
+      .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
+      .eq("transaction_id", entry.id)
+      .eq("family_id", familyId);
+    if (error) return `The bill could not be reopened, so the payment was left in place. ${refusalMessage(error)}`;
   }
   if (entry.source_table === "income_schedules" && entry.source_id) {
     const { error } = await supabase
@@ -847,9 +867,9 @@ export async function updateTransactionAction(
     .eq("id", transactionId)
     .eq("family_id", me.family_id);
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
-  if (accountId && entry.source_table === "bills" && entry.source_id) {
-    await supabase.from("bills").update({ paid_from_account_id: accountId }).eq("id", entry.source_id).eq("family_id", me.family_id).eq("transaction_id", transactionId);
-  }
+  // The bill it settled, whichever way it is tied (by source, or by
+  // transaction_id when paid for a loan, an asset or a goal).
+  if (accountId) await supabase.from("bills").update({ paid_from_account_id: accountId }).eq("transaction_id", transactionId).eq("family_id", me.family_id);
 
   const delta = Number(entry.principal_amount ?? 0) - Number(principal ?? 0);
   if (entry.source_table === "liabilities" && entry.source_id && entry.status === "confirmed" && delta !== 0) {
@@ -1004,6 +1024,12 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   // choose when settling. Read as the member: an account they can't see,
   // or another household's, is simply not found.
   const accountId = String(formData.get("account_id") ?? "") || null;
+  // What it is for (20261026150000): "liabilities:<id>", "assets:<id>",
+  // "goals:<id>" or nothing. Read as the member, as the account is; the
+  // database refuses another household's row besides.
+  const against = String(formData.get("against") ?? "");
+  const [againstTable, againstId] = against.includes(":") ? against.split(":", 2) : ["", ""];
+  if (againstTable && !["liabilities", "assets", "goals"].includes(againstTable)) return { error: "That isn't something a bill can be for." };
   // A weekly bill's reminder comes at most WEEKLY_REMIND_MAX days ahead.
   const remindDaysBefore = recurrence === "weekly" ? Math.min(WEEKLY_REMIND_MAX, billRemindDays(formData.get("remind_days_before"))) : billRemindDays(formData.get("remind_days_before"));
   if (!name) return { error: "Name and amount are required." };
@@ -1015,11 +1041,15 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
     const { data: account } = await supabase.from("accounts").select("id").eq("id", accountId).eq("family_id", me.family_id).is("deleted_at", null).maybeSingle();
     if (!account) return { error: "Choose an account this household actually has." };
   }
+  if (againstTable && againstId) {
+    const { data: target } = await supabase.from(againstTable as "liabilities" | "assets" | "goals").select("id").eq("id", againstId).eq("family_id", me.family_id).maybeSingle();
+    if (!target) return { error: "That isn't one of your household's records." };
+  }
 
   const { data: bill, error } = await supabase
     .from("bills")
     // The default is the column's own, so a bill left at 3 writes nothing new.
-    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, account_id: accountId, ...parseWhose(formData.get("whose"), me.id), ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
+    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, account_id: accountId, against_table: againstTable || null, against_id: againstId || null, ...parseWhose(formData.get("whose"), me.id), ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
     .select()
     .single();
   if (error) return { error: databaseError(error) };
@@ -1080,31 +1110,71 @@ export async function payBillAction(input: {
   if (!bill) return { error: "Bill not found." };
   if (!account) return { error: "Choose an account to pay from." };
 
+  // A bill for a loan, an asset or a goal (20261026150000): the payment's
+  // source is what the money was for, as Move money records it -- a loan
+  // payment pays the loan down by its principal once confirmed, upkeep
+  // sits on the asset, a contribution counts toward the goal -- and the
+  // bill is tied to the payment by transaction_id. A target no longer
+  // there (the database lets the bill go of it on delete, but a race is
+  // possible) settles as a plain bill.
+  const link = await billLink(supabase, me.family_id, bill, input.amount);
   const status = input.viaApp ? "pending" : "confirmed";
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
     accountId: input.accountId,
     direction: "out",
     amount: input.amount,
     particulars: `${bill.name} bill`,
-    category: bill.category ?? "Utilities",
+    category: bill.category ?? (link?.table === "liabilities" ? "Debt" : "Utilities"),
     status,
-    sourceTable: "bills",
-    sourceId: bill.id,
+    sourceTable: link ? link.table : "bills",
+    sourceId: link ? link.id : bill.id,
+    principal: link?.principal ?? null,
+    goalId: link?.table === "goals" ? link.id : null,
     // The payment is whoever the bill is for, whichever account paid it.
     owner: bill.is_joint === null ? null : { is_joint: bill.is_joint, owner_member_id: bill.owner_member_id },
   });
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
+  // Tied to its payment before settling, so applySettlement finds it by
+  // transaction_id; pending, it waits as scheduled until confirmed.
+  const { error: tieError } = await supabase
+    .from("bills")
+    .update({ transaction_id: entry.id, ...(status === "confirmed" ? {} : { status: "scheduled" }) })
+    .eq("id", bill.id)
+    .eq("family_id", me.family_id);
+  if (tieError) return { error: `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(tieError)}` };
+
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
     if (settled) return { error: settled };
   }
-  else await supabase.from("bills").update({ status: "scheduled" }).eq("id", bill.id);
 
   revalidateWealth();
   // Paid in another app it is only scheduled until confirmed; the offer
   // comes on Cash Flow and Today once it is paid.
   return { error: null, appUrl: input.viaApp ? account.linked_app_url : null, next: status === "confirmed" ? await offerNextBill(supabase, me, bill.id) : null };
+}
+
+/** What a bill's payment is for, checked against the household: the loan
+ * with its principal split (loanPaymentSplit on what is still owed, capped
+ * at it), the asset, or the goal. Null for a plain bill, or one whose
+ * target is gone. */
+async function billLink(
+  supabase: Db,
+  familyId: string,
+  bill: { against_table: string | null; against_id: string | null },
+  amount: number,
+): Promise<{ table: "liabilities" | "assets" | "goals"; id: string; principal: number | null } | null> {
+  if (!bill.against_table || !bill.against_id) return null;
+  if (bill.against_table === "liabilities") {
+    const { data: loan } = await supabase.from("liabilities").select("id, balance, interest_rate").eq("id", bill.against_id).eq("family_id", familyId).maybeSingle();
+    if (!loan) return null;
+    const split = loanPaymentSplit(Number(loan.balance), loan.interest_rate == null ? null : Number(loan.interest_rate), amount);
+    return { table: "liabilities", id: loan.id, principal: Math.min(split.principal, Number(loan.balance)) };
+  }
+  if (bill.against_table !== "assets" && bill.against_table !== "goals") return null;
+  const { data: target } = await supabase.from(bill.against_table).select("id").eq("id", bill.against_id).eq("family_id", familyId).maybeSingle();
+  return target ? { table: bill.against_table, id: target.id, principal: null } : null;
 }
 
 /** The same name and repeat, every one the household has: what decides
@@ -1152,8 +1222,10 @@ export async function addNextBillAction(input: { fromBillId: string; amount: num
       created_by: me.id,
       is_joint: from.is_joint,
       owner_member_id: from.owner_member_id,
-      // Next month's comes out of the same account.
+      // Next month's comes out of the same account, for the same thing.
       account_id: from.account_id,
+      against_table: from.against_table,
+      against_id: from.against_id,
     })
     .select()
     .single();
