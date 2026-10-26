@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { wealthRows, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
+import { wealthRows, valuesToCheck, type AssetLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
 
 /** Wealth on Today (23 October): the rows and the week's Coming up lines,
  * from the same sums the Wealth tab shows. Friday 23 October 2026. */
@@ -85,4 +85,20 @@ test("a loan's fixed rate ending within the month is in Coming up; past or furth
   expect(soonFor("2026-12-01")).toEqual([]);
   expect(soonFor("2026-10-22")).toEqual([]);
   expect(soonFor(null)).toEqual([]);
+});
+
+test("values last set a year or more ago: one row in the first three days of a month, not otherwise", () => {
+  const assets: AssetLike[] = [
+    { id: "a1", name: "House in San Juan", valued_on: "2025-09-01", annual_change_pct: 5 },
+    { id: "a2", name: "Car", valued_on: "2025-11-30", annual_change_pct: -10 },
+    { id: "a3", name: "Piano", valued_on: "2024-01-01", annual_change_pct: null },
+    { id: "a4", name: "Never set", valued_on: null, annual_change_pct: null },
+  ];
+  expect(valuesToCheck(assets, "2026-11-02").map((a) => a.id)).toEqual(["a3", "a1"]);
+  expect(valuesToCheck(assets, "2026-12-01").map((a) => a.id)).toEqual(["a3", "a1", "a2"]);
+  const row = (day: string) => wealthRows({ ...none, assets }, day, "PHP").today.find((r) => r.id.startsWith("values-"));
+  expect(row("2026-11-02")).toMatchObject({ id: "values-2026-10", title: "Check what these are worth now", meta: "Piano, House in San Juan · last set over a year ago", href: "/wealth?seg=assets" });
+  expect(row("2026-11-04")).toBeUndefined();
+  expect(wealthRows({ ...none, assets: [assets[2]] }, "2026-11-01", "PHP").today.find((r) => r.id.startsWith("values-"))?.title).toBe("Check what it's worth now");
+  expect(wealthRows({ ...none, assets: [assets[3]] }, "2026-11-01", "PHP").today.find((r) => r.id.startsWith("values-"))).toBeUndefined();
 });

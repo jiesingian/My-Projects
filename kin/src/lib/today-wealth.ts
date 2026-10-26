@@ -40,6 +40,7 @@ export type PaluwaganLike = {
 };
 export type LoanLike = { id: string; name: string; monthly_payment: number | null; next_payment_date: string | null; payments_remaining: number | null; rate_fixed_until?: string | null };
 export type FundLike = { id: string; title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean; created_at: string };
+export type AssetLike = { id: string; name: string; valued_on: string | null; annual_change_pct: number | string | null };
 export type IncomeLike = { id: string; name: string; amount: number; next_date: string | null; status: string };
 
 const DAY_MS = 86_400_000;
@@ -57,7 +58,7 @@ function soonItem(partial: Omit<BriefItem, "whose" | "memberIds"> & { at: number
   return { ...partial, whose: "family", memberIds: [] };
 }
 
-export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[] }, today: string, currency: string): WealthRows {
+export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[] }, today: string, currency: string): WealthRows {
   const fmt = (n: number) => formatCurrency(n, currency);
   const todayRows: BriefItem[] = [];
   const soon: BriefItem[] = [];
@@ -174,7 +175,24 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
   if (Number(today.slice(8, 10)) <= 3) {
     const month = recapMonthFor(today);
     todayRows.push({ id: `recap-${month}`, icon: "wallet", tint: "money", title: `Your ${monthLabel(month)} money recap`, meta: "last month's spending, bills and savings", href: `/wealth/recap?month=${month}` });
+
+    // Beside it, the values not set in a year or more (Jonathan, 26
+    // October): a yearly change is an estimate, and it drifts. One row for
+    // all of them, in the same three days, so it reminds without nagging;
+    // Update on A&L sets the value again and the row goes.
+    const stale = valuesToCheck(input.assets ?? [], today);
+    if (stale.length > 0) {
+      const names = stale.slice(0, 3).map((a) => a.name).join(", ") + (stale.length > 3 ? ` and ${stale.length - 3} more` : "");
+      todayRows.push({ id: `values-${month}`, icon: "house", tint: "money", title: stale.length === 1 ? "Check what it's worth now" : "Check what these are worth now", meta: `${names} · last set over a year ago`, href: "/wealth?seg=assets" });
+    }
   }
 
   return { today: todayRows, soon };
+}
+
+/** Assets whose value was last set a year or more before `today`, oldest
+ * first. An asset with no date is left out: it was never set by hand. */
+export function valuesToCheck<T extends AssetLike>(assets: T[], today: string): T[] {
+  const yearAgo = `${Number(today.slice(0, 4)) - 1}${today.slice(4, 10)}`;
+  return assets.filter((a) => !!a.valued_on && a.valued_on.slice(0, 10) <= yearAgo).sort((x, y) => (x.valued_on! < y.valued_on! ? -1 : 1));
 }
