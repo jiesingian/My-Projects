@@ -20,12 +20,15 @@ export function AddGoalForm({ accounts, currency, kids: children = [] }: { accou
   const [yearly, setYearly] = useState(false);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
+  // The same goal as a ring on Planner (26 October): on unless unticked.
+  const [onPlanner, setOnPlanner] = useState(true);
 
   return (
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <input type="hidden" name="owner" value={isJoint ? "" : whose} />
       <input type="hidden" name="repeats_yearly" value={yearly ? "on" : ""} />
+      <input type="hidden" name="track_on_planner" value={onPlanner ? "on" : ""} />
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "0.5rem" }}>
         <button type="button" className="chip" data-active={!yearly} onClick={() => setYearly(false)}>
@@ -98,6 +101,13 @@ export function AddGoalForm({ accounts, currency, kids: children = [] }: { accou
           </select>
         </Field>
       )}
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.8125rem", margin: "0 0 1rem", cursor: "pointer" }}>
+        <input type="checkbox" checked={onPlanner} onChange={(e) => setOnPlanner(e.target.checked)} style={{ marginTop: "0.125rem" }} />
+        <span>
+          Also a goal ring on Planner
+          <span style={{ display: "block", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>The same goal, entered once: the ring fills from what is set aside here. Deleting the goal removes its ring.</span>
+        </span>
+      </label>
       <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save goal</SubmitButton>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         A dated goal shows up on {isJoint ? "everyone\u2019s calendar" : whose === "me" ? "your calendar" : "the grown-ups\u2019 calendars and theirs"}, and money you put in comes out of a real account.

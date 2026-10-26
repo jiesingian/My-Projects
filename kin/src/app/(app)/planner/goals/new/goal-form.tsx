@@ -216,18 +216,19 @@ export function GoalForm({
             </div>
           )}
 
-          {kind === "money" && savings.length > 0 && (
+          {kind === "money" && (
             <div className="field" data-field="savings_goal_id" style={{ marginBottom: "0.875rem" }}>
-              <label htmlFor={`${uid}-savings`}>Fill from a savings goal (optional)</label>
-              <select id={`${uid}-savings`} className="input" name="savings_goal_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
-                <option value="">No — I&rsquo;ll add to it here</option>
+              <label htmlFor={`${uid}-savings`}>Where the money is kept</label>
+              <select id={`${uid}-savings`} className="input" name="savings_goal_id" defaultValue="new" style={{ minHeight: "2.75rem" }}>
+                <option value="new">A new savings goal on Wealth, made with this</option>
                 {savings.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.title}
+                    Fill from “{s.title}” on Wealth
                   </option>
                 ))}
+                <option value="">Nowhere — I&rsquo;ll log what I put by here</option>
               </select>
-              <span style={hint}>Linked, the ring follows the savings goal&rsquo;s balance on Wealth.</span>
+              <span style={hint}>A savings goal on Wealth is money set aside from a real account; the ring follows its balance. Logged here, nothing moves in your accounts.</span>
             </div>
           )}
 
