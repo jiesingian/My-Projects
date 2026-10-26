@@ -421,7 +421,7 @@ export function incomeSourceColor(category: string): string {
  * for `pctChange` rather than reporting it as Infinity or -Infinity. */
 export function periodOverPeriodChange(
   history: { income: number; expense: number }[],
-): { netDelta: number; previousNet: number; currentNet: number; pctChange: number | null } | null {
+): { netDelta: number; previousNet: number; currentNet: number; pctChange: number | null; previousActive: boolean } | null {
   if (history.length < 2) return null;
   const previous = history[history.length - 2];
   const current = history[history.length - 1];
@@ -429,7 +429,11 @@ export function periodOverPeriodChange(
   const currentNet = current.income - current.expense;
   const netDelta = currentNet - previousNet;
   const pctChange = previousNet === 0 ? null : (netDelta / Math.abs(previousNet)) * 100;
-  return { netDelta, previousNet, currentNet, pctChange };
+  // A period with nothing in it at all (the household's first month, say)
+  // is not one to compare against: "▲ last month ₱0" read as a change
+  // when there was nothing before to change from (27 October).
+  const previousActive = previous.income !== 0 || previous.expense !== 0;
+  return { netDelta, previousNet, currentNet, pctChange, previousActive };
 }
 
 /** A cash-balance trend across the same window the history strip already

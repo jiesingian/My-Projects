@@ -245,7 +245,7 @@ function Key({ swatch, label }: { swatch: React.ReactNode; label: string }) {
  * the way transactions do, so a full net-worth trend needs a stored monthly
  * snapshot -- a migration, not this. Shared by the Accounts tab and each
  * account's own page, which draws the same line for that account alone. */
-export function CashTrendLine({ trend, currency }: { trend: { key: string; label: string; balance: number }[]; currency: string }) {
+export function CashTrendLine({ trend, currency, periodNoun = "period" }: { trend: { key: string; label: string; balance: number }[]; currency: string; periodNoun?: string }) {
   if (trend.length < 2) return null;
   const values = trend.map((t) => t.balance);
   const min = Math.min(...values);
@@ -273,7 +273,7 @@ export function CashTrendLine({ trend, currency }: { trend: { key: string; label
             color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
           }}
         >
-          <span aria-hidden="true">{up ? "▲" : "▼"}</span> {formatCurrency(Math.abs(changed), currency)} over {trend.length} periods
+          <span aria-hidden="true">{up ? "▲" : "▼"}</span> {formatCurrency(Math.abs(changed), currency)} over {trend.length} {periodNoun}s
         </span>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: 44, display: "block" }} aria-hidden="true">
@@ -293,7 +293,7 @@ export function CashTrendLine({ trend, currency }: { trend: { key: string; label
         ))}
       </svg>
       <p className="sr-only">
-        Cash trend, {trend.length} periods, {formatCurrency(trend[0].balance, currency)} to {formatCurrency(trend[trend.length - 1].balance, currency)}.{" "}
+        Cash trend, {trend.length} {periodNoun}s, {formatCurrency(trend[0].balance, currency)} to {formatCurrency(trend[trend.length - 1].balance, currency)}.{" "}
         {trend.map((t) => `${t.label}: ${formatCurrency(t.balance, currency)}`).join("; ")}.
       </p>
     </div>
@@ -751,7 +751,10 @@ export function GroupedBreakdown({
     return i < 0 ? categoryOrder.length : i;
   };
 
-  const owners = [...new Set(items.filter((i) => i.amount >= 0).map((i) => i.ownerKey))]
+  // An owner with nothing counted (a child whose only goal is still empty)
+  // has no slice, so no legend row either: "ERYNNE — —" said nothing
+  // (27 October). Their items still list in the sections below.
+  const owners = [...new Set(items.filter((i) => i.amount > 0).map((i) => i.ownerKey))]
     .map((key) => {
       const mine = items.filter((i) => i.ownerKey === key && i.amount >= 0);
       const cats = [...new Set(mine.map((i) => i.category))].sort((x, y) => catRank(x) - catRank(y) || x.localeCompare(y));
