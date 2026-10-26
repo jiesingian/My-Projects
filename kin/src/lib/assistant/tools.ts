@@ -146,17 +146,18 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   },
   {
     name: "add_bill",
-    description: "Track a bill to be paid. It appears in Wealth > Bills and, if dated, on everyone's calendar.",
+    description:
+      "Track a bill to be paid later: money due on a day. It appears under Wealth > Expenses, on Today and everyone's calendar when due, and reminds ahead. A bill is always dated: if the person did not say when it is due, ask before calling this. For money already spent, do not use this.",
     input_schema: {
       type: "object",
       properties: {
         name: { type: "string" },
         amount: { type: "number" },
-        due_date: { type: "string", description: "YYYY-MM-DD." },
+        due_date: { type: "string", description: "YYYY-MM-DD, the day it is due. Required: ask if the person did not say." },
         category: { type: "string", enum: [...EXPENSE_CATEGORIES] },
-        recurrence: { type: "string", enum: ["monthly", "quarterly", "yearly", "once"] },
+        recurrence: { type: "string", enum: ["weekly", "monthly", "quarterly", "yearly", "once"] },
       },
-      required: ["name", "amount"],
+      required: ["name", "amount", "due_date"],
     },
   },
   {
@@ -659,7 +660,11 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const name_ = str(input, "name");
       const amount = num(input, "amount");
       if (!name_ || !amount) return fail("A bill needs a name and an amount.");
+      // A bill is money due on a day (Jonathan, 26 October; addBillAction
+      // requires it too): undated, it reached neither Today, the calendar
+      // nor a reminder. The model is told to ask; this is the backstop.
       const dueDate = str(input, "due_date");
+      if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return fail("A bill needs the day it is due (YYYY-MM-DD). Ask the person when it is due.");
 
       const { data: bill, error } = await supabase
         .from("bills")
@@ -677,15 +682,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         .single();
       if (error) return fail(error.message);
 
-      if (dueDate) {
-        await syncRowToCalendars(
-          familyId,
-          "bills",
-          bill.id,
-          allDayEvent(`${name_} due`, dueDate),
-          { kind: "all" },
-        );
-      }
+      await syncRowToCalendars(familyId, "bills", bill.id, allDayEvent(`${name_} due`, dueDate), { kind: "all" });
       return done({ added: "bill", name: name_, amount, due_date: dueDate });
     }
 
