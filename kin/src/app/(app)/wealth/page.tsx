@@ -6,11 +6,11 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
+import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
 import {
   PayBillControl,
   ReceiveIncomeControl,
@@ -474,13 +474,15 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
   const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [cf, budget, accounts, who, nextBills] = await Promise.all([
+  const [cf, budget, accounts, who, nextBills, targets] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
     getAccounts(familyId),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=cashflow&range=${range}&who=${w}`),
     // "Add the next one?" for paid repeating bills: a grown-up's, on Plus.
     grownUp && plus ? getNextBillOffers(familyId) : Promise.resolve([]),
+    // What an expense already paid can be for: a loan, an asset, a goal.
+    getAttributableTargets(familyId),
   ]);
   // Utang in instalments (20261022180000), each one's next instalment on
   // its date: money lent coming back under INCOME, money borrowed going
@@ -668,11 +670,16 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     if (bill.id === billId) line.reveal = true;
     // The account it comes out of, when one was chosen on Add expense.
     const from = bill.account_id ? accounts.find((a) => a.id === bill.account_id) : null;
-    line.tail.push(`${bill.status === "scheduled" ? "Payment waiting on confirmation" : "Due"}${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""} · ${formatCurrency(Number(bill.amount), currency)}${from ? ` · from ${from.name}` : ""}`);
+    // Its day come (Jonathan, 26 October): the line asks whether it went
+    // through, and Settle opens on that question.
+    const dueDay = bill.due_date?.slice(0, 10) ?? null;
+    const due = bill.status !== "scheduled" && dueDay ? (dueDay < today ? "overdue" : dueDay === today ? "today" : null) : null;
+    const when = bill.status === "scheduled" ? "Payment waiting on confirmation" : due === "today" ? "Due today" : due === "overdue" ? `Overdue since ${fmtDate(bill.due_date!)}` : `Due${bill.due_date ? ` ${fmtDate(bill.due_date)}` : ""}`;
+    line.tail.push(`${when} · ${formatCurrency(Number(bill.amount), currency)}${from ? ` · from ${from.name}` : ""}${due ? " · did it go through?" : ""}`);
     // The id is what Today's Pay button lands on.
     line.buttons.push(
       <span key={bill.id} id={`bill-${bill.id}`} className="kin-bill-actions" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
-        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} defaultAccountId={bill.account_id} />
+        <PayBillControl billId={bill.id} amount={Number(bill.amount)} accounts={pickable} currency={currency} defaultAccountId={bill.account_id} due={due} autoOpen={bill.id === billId} />
         {bill.due_date && <BillReminderPicker billId={bill.id} days={bill.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} weekly={bill.recurrence === "weekly"} />}
         <RemoveButton id={bill.id} kind="bill" label={`Delete "${bill.name}"`} />
       </span>,
@@ -796,7 +803,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <UtangInstalments heading="MONEY LENT COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
-      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} openLent={openLent} currency={currency} grownUp={grownUp} />
+      <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} openLent={openLent} currency={currency} grownUp={grownUp} today={today} />
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
@@ -817,7 +824,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           />
         </Blueprint>
       )}
-      <AddBillForm whose={whose} accounts={pickable} currency={currency} />
+      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={{ assets: targets.assets, goals: targets.goals, loans: targets.loans.map((l) => ({ id: l.id, name: l.name })) }} />
       <div style={{ height: "1.25rem" }} />
 
       {/* The month's budget is its categories added up (26 October): no

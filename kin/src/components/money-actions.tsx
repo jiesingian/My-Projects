@@ -113,6 +113,8 @@ export function PayBillControl({
   accounts,
   currency,
   defaultAccountId,
+  due = null,
+  autoOpen = false,
 }: {
   billId: string;
   amount: number;
@@ -121,8 +123,13 @@ export function PayBillControl({
   /** The account the bill was added against (bills.account_id); Settle
    * starts on it. Null, or one the member can't pay from: the most used. */
   defaultAccountId?: string | null;
+  /** Due today or overdue (Jonathan, 26 October): the sheet asks whether it
+   * went through, the amount there to change if the bill came to more. */
+  due?: "today" | "overdue" | null;
+  /** Arrived from Today's Pay: open the sheet straight away. */
+  autoOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!autoOpen);
   const [accountId, setAccountId] = useState((defaultAccountId && accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId : accounts[0]?.id) ?? "");
   const [payAmount, setPayAmount] = useState(amount);
   const [viaApp, setViaApp] = useState(true);
@@ -140,9 +147,14 @@ export function PayBillControl({
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", marginTop: "0.375rem" }} onClick={() => setOpen(true)}>
         Settle
       </button>
-      <FormSheet open={open} onClose={() => setOpen(false)} title="Settle">
+      <FormSheet open={open} onClose={() => setOpen(false)} title={due ? "Did it go through?" : "Settle"}>
         <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
           <Err message={error} />
+          {due && (
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem", lineHeight: 1.45 }}>
+              {due === "today" ? "Due today." : "The due day has passed."} Mark it paid if it went through, changing the amount first if the bill came to more or less.
+            </p>
+          )}
           <div className="field" style={{ marginBottom: "0.5rem" }}>
             <label htmlFor={`${uid}-account`}>Pay from</label>
             <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />

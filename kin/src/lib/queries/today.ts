@@ -359,7 +359,9 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       icon: "wallet",
       tint: "money",
       title: b.name,
-      meta: `${formatCurrency(Number(b.amount), currency)} · ${overdue ? "overdue" : "due today"}`,
+      // Its day come, Today asks (Jonathan, 26 October); Pay lands on the
+      // same question in Wealth, the amount there to change.
+      meta: `${formatCurrency(Number(b.amount), currency)} · ${overdue ? "overdue" : "due today"} · did it go through?`,
       // Straight to this bill's Pay row. Bills sit inside Cash Flow's
       // Expenses group, folded by default, so the link asks for it open and
       // names the row; "Pay" that lands on a chart costs the tap it saved.

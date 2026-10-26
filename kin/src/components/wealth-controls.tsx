@@ -15,6 +15,7 @@ import {
   setSpendingBudgetAction,
   setBudgetVisibilityAction,
   addBillAction,
+  addPaidExpenseAction,
   addIncomeScheduleAction,
   addIncomeGroupAction,
   setBillReminderAction,
@@ -447,19 +448,25 @@ export function AddAccountForm({
   );
 }
 
-/** Despite the name, this covers every kind of expense, due-dated or not --
- * a mortgage payment, groceries, a checkup, fuel, same as a recurring bill.
- * "once" under REPEATS is how a one-off expense is entered here. Renamed
- * addBillAction/bills throughout the code would be a much bigger change for
- * no functional gain, so only the copy shown to a member changed. */
-export function AddBillForm({ whose, accounts, currency }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string }) {
-  const sym = useCurrencySymbol();
+/** Add expense (Jonathan, 26 October): two kinds of expense, one sheet.
+ *
+ * "Already paid" -- groceries, a meal, fuel, a fare: the money has left, so
+ * it is recorded on the day it was paid, out of the account it came from,
+ * and the balance drops now (addPaidExpenseAction). No repeat, no reminder,
+ * no Settle. "For" ties it to a loan it pays down, an asset or a goal, as
+ * Move money does.
+ *
+ * "Due later" -- a bill: Meralco, tuition, the mortgage. Nothing moves until
+ * the day comes; then Today and its line here ask whether it went through
+ * (Settle, the amount editable). It keeps the account it comes out of
+ * (bills.account_id), repeats if it does, and reminds ahead. Still a row in
+ * `bills` through addBillAction, as every due-dated expense always was;
+ * only the sheet changed. Opens on "Already paid": the everyday case. */
+export type ExpenseTargets = { assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: { id: string; name: string }[] };
+
+export function AddExpenseForm({ whose, accounts, currency, today, targets }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(addBillAction, initialState);
-  // A weekly bill is due again within the week, so its reminder comes at
-  // most 3 days ahead (weeklyRemindDays).
-  const [recurrence, setRecurrence] = useState("monthly");
-  const remindChoices = recurrence === "weekly" ? BILL_REMIND_DAYS.filter((d) => d <= WEEKLY_REMIND_MAX) : BILL_REMIND_DAYS;
+  const [mode, setMode] = useState<"paid" | "due">("paid");
 
   return (
     <>
@@ -472,75 +479,239 @@ export function AddBillForm({ whose, accounts, currency }: { whose: WhoseOption[
         + ADD EXPENSE
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Add expense">
-        <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-          <ErrorText message={state.error} />
-          <Labelled label="What it's for">
-            <input className="input" name="name" required placeholder="Electric bill, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
-          </Labelled>
-          <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
-              <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
-            </Labelled>
-            <Labelled label="Due on" style={{ flex: 1 }}>
-              <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
-            </Labelled>
-          </div>
-          <div style={{ display: "flex", gap: "0.625rem" }}>
-            <Labelled label="Spent on" style={{ flex: 1 }}>
-              <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {categoryLabel(c)}
-                  </option>
-                ))}
-              </select>
-            </Labelled>
-            <Labelled label="Repeats" style={{ flex: 1 }}>
-              <select className="input" name="recurrence" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} style={{ minHeight: "2.625rem" }}>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-                <option value="once">One-off</option>
-              </select>
-            </Labelled>
-          </div>
-          <Labelled label="Whose is it?">
-            <WhoseSelect name="whose" options={whose} />
-          </Labelled>
-          {/* Which account it comes out of (Jonathan, 26 October): the one
-              Settle then starts on. Most used first, as every money form;
-              or left for later, for a bill paid from wherever has money
-              that day. No accounts yet: nothing to choose, the row stays
-              empty as before. */}
-          {accounts.length > 0 && (
-            <Labelled label="Paid from">
-              <select className="input" name="account_id" defaultValue={sortByUse(accounts)[0]?.id ?? ""} style={{ minHeight: "2.625rem" }}>
-                <AccountOptions accounts={accounts} currency={currency} />
-                <option value="">Decide when settling</option>
-              </select>
-            </Labelled>
-          )}
-          <Labelled label="Remind me">
-            <select key={recurrence === "weekly" ? "weekly" : "longer"} className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
-              {remindChoices.map((d) => (
-                <option key={d} value={d}>
-                  {remindLabel(d)}
-                </option>
-              ))}
-            </select>
-          </Labelled>
-          <div style={{ display: "flex", gap: "0.625rem" }}>
-            <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-              Save expense
-            </SubmitButton>
-            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-              Cancel
+        <div role="group" aria-label="Paid already, or due later" style={{ display: "flex", gap: "0.5rem", marginTop: "0.875rem" }}>
+          {(["paid", "due"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              className={mode === m ? "btn btn-primary" : "btn btn-secondary"}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() => setMode(m)}
+            >
+              {m === "paid" ? "Already paid" : "Due later"}
             </button>
-          </div>
-        </form>
+          ))}
+        </div>
+        {mode === "paid" ? (
+          <PaidExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} targets={targets} onDone={() => setOpen(false)} onCancel={() => setOpen(false)} />
+        ) : (
+          <DueExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} onCancel={() => setOpen(false)} onDone={() => setOpen(false)} />
+        )}
       </FormSheet>
     </>
+  );
+}
+
+/** The sheet's "Already paid" half. The sheet closes once the entry is in;
+ * an error keeps it open with the message at the top. */
+function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, onCancel }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets; onDone: () => void; onCancel: () => void }) {
+  const sym = useCurrencySymbol();
+  const [state, formAction] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const res = await addPaidExpenseAction(prev, fd);
+    if (!res.error) onDone();
+    return res;
+  }, initialState);
+  const [category, setCategory] = useState<string>("Groceries");
+  // "assets:<id>", "goals:<id>" or "liabilities:<id>", or empty: most
+  // expenses are for nothing in particular. A loan picked sets Debt.
+  const [against, setAgainst] = useState("");
+  const hasTargets = targets.assets.length + targets.goals.length + targets.loans.length > 0;
+
+  if (accounts.length === 0) {
+    return (
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "1rem", lineHeight: 1.45 }}>
+        An expense already paid is recorded out of an account. Add one on the Accounts tab first, or enter this as Due later.
+      </p>
+    );
+  }
+
+  return (
+    <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+      <ErrorText message={state.error} />
+      <Labelled label="What it's for">
+        <input className="input" name="name" required maxLength={200} placeholder="Groceries, lunch, fuel, a fare…" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+        <Labelled label="Paid on" style={{ flex: 1 }}>
+          <DateInput className="input" name="occurred_on" defaultValue={today} required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+      </div>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label="Spent on" style={{ flex: 1 }}>
+          <select className="input" name="category" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {categoryLabel(c)}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+        <Labelled label="Paid from" style={{ flex: 1 }}>
+          <select className="input" name="account_id" required defaultValue={sortByUse(accounts)[0]?.id ?? ""} style={{ minHeight: "2.625rem" }}>
+            <AccountOptions accounts={accounts} currency={currency} />
+          </select>
+        </Labelled>
+      </div>
+      {hasTargets && (
+        <Labelled label="For (optional)">
+          <select
+            className="input"
+            name="against"
+            value={against}
+            onChange={(e) => {
+              setAgainst(e.target.value);
+              if (e.target.value.startsWith("liabilities:")) setCategory("Debt");
+            }}
+            style={{ minHeight: "2.625rem" }}
+          >
+            <option value="">Nothing in particular</option>
+            {targets.loans.length > 0 && (
+              <optgroup label="Paying a loan">
+                {targets.loans.map((l) => (
+                  <option key={l.id} value={`liabilities:${l.id}`}>
+                    {l.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {targets.assets.length > 0 && (
+              <optgroup label="An asset">
+                {targets.assets.map((a) => (
+                  <option key={a.id} value={`assets:${a.id}`}>
+                    {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {targets.goals.length > 0 && (
+              <optgroup label="A goal">
+                {targets.goals.map((g) => (
+                  <option key={g.id} value={`goals:${g.id}`}>
+                    {g.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </Labelled>
+      )}
+      {/* Money on an asset is upkeep (a living cost), an addition (the
+          asset is worth more) or buying it (its value is already on
+          record), as Move money asks (20261023232000). */}
+      {against.startsWith("assets:") && (
+        <Labelled label="What was it?">
+          <select className="input" name="asset_use" defaultValue="upkeep" style={{ minHeight: "2.625rem" }}>
+            <option value="upkeep">Upkeep — repairs, dues, fuel: a living cost</option>
+            <option value="add">Adding to it — it is now worth this much more</option>
+            <option value="buy">Buying it, or a down payment</option>
+          </select>
+        </Labelled>
+      )}
+      {against.startsWith("liabilities:") && (
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>
+          Kin splits it into interest and the part that pays the loan down, from the loan&apos;s rate; the loan&apos;s balance drops by that part.
+        </p>
+      )}
+      <Labelled label="Whose is it?">
+        <WhoseSelect name="whose" options={whose} />
+      </Labelled>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+          Save expense
+        </SubmitButton>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** The sheet's "Due later" half: a bill. Due on starts on today and is
+ * required, so every bill reaches Today, the calendar and its reminder. */
+function DueExpenseForm({ whose, accounts, currency, today, onDone, onCancel }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; onDone: () => void; onCancel: () => void }) {
+  const sym = useCurrencySymbol();
+  const [state, formAction] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const res = await addBillAction(prev, fd);
+    if (!res.error) onDone();
+    return res;
+  }, initialState);
+  // A weekly bill is due again within the week, so its reminder comes at
+  // most 3 days ahead (weeklyRemindDays).
+  const [recurrence, setRecurrence] = useState("monthly");
+  const remindChoices = recurrence === "weekly" ? BILL_REMIND_DAYS.filter((d) => d <= WEEKLY_REMIND_MAX) : BILL_REMIND_DAYS;
+
+  return (
+    <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+      <ErrorText message={state.error} />
+      <Labelled label="What it's for">
+        <input className="input" name="name" required placeholder="Electric bill, tuition, mortgage…" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+        <Labelled label="Due on" style={{ flex: 1 }}>
+          <DateInput className="input" name="due_date" defaultValue={today} required style={{ minHeight: "2.625rem" }} />
+        </Labelled>
+      </div>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <Labelled label="Spent on" style={{ flex: 1 }}>
+          <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {categoryLabel(c)}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+        <Labelled label="Repeats" style={{ flex: 1 }}>
+          <select className="input" name="recurrence" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} style={{ minHeight: "2.625rem" }}>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+            <option value="once">One-off</option>
+          </select>
+        </Labelled>
+      </div>
+      {/* Which account it comes out of: the one Settle then starts on.
+          Most used first, as every money form; or left for later, for a
+          bill paid from wherever has money that day. No accounts yet:
+          nothing to choose. */}
+      {accounts.length > 0 && (
+        <Labelled label="Paid from">
+          <select className="input" name="account_id" defaultValue={sortByUse(accounts)[0]?.id ?? ""} style={{ minHeight: "2.625rem" }}>
+            <AccountOptions accounts={accounts} currency={currency} />
+            <option value="">Decide when settling</option>
+          </select>
+        </Labelled>
+      )}
+      <Labelled label="Whose is it?">
+        <WhoseSelect name="whose" options={whose} />
+      </Labelled>
+      <Labelled label="Remind me">
+        <select key={recurrence === "weekly" ? "weekly" : "longer"} className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
+          {remindChoices.map((d) => (
+            <option key={d} value={d}>
+              {remindLabel(d)}
+            </option>
+          ))}
+        </select>
+      </Labelled>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+          Save expense
+        </SubmitButton>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -591,7 +762,7 @@ export function BillReminderPicker({ billId, days, weekly = false }: { billId: s
   );
 }
 
-export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency, grownUp = false }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; openLent?: OpenLent[]; currency: string; grownUp?: boolean }) {
+export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency, grownUp = false, today }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; openLent?: OpenLent[]; currency: string; grownUp?: boolean; /** The household's day: what every date here starts on. */ today?: string }) {
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
@@ -634,7 +805,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
           </div>
         )}
         {grownUp && mode === "regular" ? (
-          <IncomeGroupForm accounts={accounts} whose={whose} onCancel={() => setOpen(false)} />
+          <IncomeGroupForm accounts={accounts} whose={whose} today={today} onCancel={() => setOpen(false)} />
         ) : (
         <div style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <Labelled label="Category">
@@ -662,7 +833,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
               <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
             </Labelled>
             <Labelled label="Expected on" style={{ flex: 1 }}>
-              <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
+              <DateInput className="input" name="next_date" defaultValue={today} style={{ minHeight: "2.625rem" }} />
             </Labelled>
           </div>
           <div style={{ display: "flex", gap: "0.625rem" }}>
@@ -710,7 +881,7 @@ export function AddIncomeScheduleForm({ accounts, whose, openLent = [], currency
 
 /** A regular income, set up once: what it is, its usual amount, how often,
  * when the next one comes, and if wanted a monthly target. */
-function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; onCancel: () => void }) {
+function IncomeGroupForm({ accounts, whose, today, onCancel }: { accounts: { id: string; name: string }[]; whose: WhoseOption[]; today?: string; onCancel: () => void }) {
   const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addIncomeGroupAction, initialState);
   return (
@@ -744,7 +915,7 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
           <input className="input" type="number" step="0.01" min="0" name="usual_amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="Next one expected" style={{ flex: 1 }}>
-          <DateInput className="input" name="first_date" required style={{ minHeight: "2.625rem" }} />
+          <DateInput className="input" name="first_date" defaultValue={today} required style={{ minHeight: "2.625rem" }} />
         </Labelled>
       </div>
       <Labelled label={`Monthly target (${sym}, optional)`}>
