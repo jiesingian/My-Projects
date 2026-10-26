@@ -159,19 +159,21 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   // Nothing moved yet.
   expect(await rows<Entry>("wealth_transactions", `select=id&particulars=eq.${encodeURIComponent(`${RUN} tuition bill`)}`)).toHaveLength(0);
 
-  // Its day come, the line asks; Settle opens on that question, with the
-  // bill's own account, and Mark paid settles it.
+  // Its day come, the line asks; arrived from the bill's link (Today's
+  // Pay), Settle is already open on that question with the bill's own
+  // account, and Mark paid settles it. The sheet is checked before any
+  // fold is touched: a modal sheet would block the clicks that open them.
   await page.goto(`/wealth?seg=cashflow&open=expenses&bill=${bill.id}`);
-  await expandAllCollapsedGroups(page);
-  const line = page.getByText(new RegExp(`^Bills & utilities - ${RUN} tuition`)).first();
-  await expect(line).toBeVisible();
-  await expect(page.getByText(/Due today .*did it go through\?/).first()).toBeVisible();
-  // Arrived from the bill's link, the sheet is already open on the question.
   const sheet = page.getByRole("dialog", { name: "Did it go through?" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByLabel("Pay from")).toHaveValue(accountId);
   await sheet.getByRole("button", { name: "Mark paid" }).click();
   await expect(sheet).toBeHidden();
+  // The line, now settled, under its category.
+  await expandAllCollapsedGroups(page);
+  const line = page.getByText(new RegExp(`^Bills & utilities - ${RUN} tuition`)).first();
+  await expect(line).toBeVisible();
+  await expect(page.getByText(/Settled/).first()).toBeVisible();
 
   const [paid] = await rows<Bill>("bills", `select=id,name,amount,due_date,status,account_id,transaction_id,recurrence&id=eq.${bill.id}`);
   expect(paid.status).toBe("paid");

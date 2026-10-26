@@ -3,7 +3,10 @@
 import Link from "next/link";
 
 import { FormSheet } from "@/components/form-sheet";
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useSyncExternalStore, useTransition } from "react";
+
+/** For useSyncExternalStore where only the server/client difference matters. */
+const subscribeNever = () => () => {};
 import { useRouter } from "next/navigation";
 import {
   payBillAction,
@@ -139,7 +142,16 @@ export function PayBillControl({
    * Kin's split into interest and principal, the principal there to change. */
   loan?: SplitLoan | null;
 }) {
-  const [open, setOpen] = useState(!!autoOpen);
+  // Opened after hydration, not as the first state: a sheet whose open
+  // flag is already true when the server's HTML hydrates never slid in
+  // (the Add expense spec's first runs, 26 October); opened a moment
+  // later, as a tap would, it does. `hydrated` is false in the server's
+  // HTML and true on the client's first render after it, so an arrival
+  // from Today's Pay opens the sheet then; a tap or a close takes over.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? (autoOpen && hydrated);
+  const setOpen = setChosen;
   const [accountId, setAccountId] = useState((defaultAccountId && accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId : accounts[0]?.id) ?? "");
   const [payAmount, setPayAmount] = useState(amount);
   // The principal the person typed, null to follow Kin's split.
