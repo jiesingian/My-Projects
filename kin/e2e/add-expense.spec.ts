@@ -84,6 +84,19 @@ const addSheet = (page: Page) => page.getByRole("dialog", { name: "Add expense" 
 
 test.describe.configure({ mode: "serial" });
 
+// What the page held when a test failed, in the job log (26 October): the
+// report's own snapshot is left out once the folds have been clicked, and
+// the report itself cannot be downloaded from a session.
+test.afterEach(async ({ page }, info) => {
+  if (info.status === info.expectedStatus) return;
+  console.log(`[add-expense] failed at ${page.url()}`);
+  try {
+    console.log(await page.locator("body").ariaSnapshot({ timeout: 5000 }));
+  } catch (e) {
+    console.log(`[add-expense] no snapshot: ${e instanceof Error ? e.message : String(e)}`);
+  }
+});
+
 test.beforeAll(async () => {
   // Its own account, joint so any grown-up sees it: the private database's
   // household starts with none, and "Already paid" needs one.
