@@ -5,7 +5,8 @@ import { RemittanceFields, UtangFields, type OpenLent } from "@/components/incom
 import Link from "next/link";
 import { FormSheet } from "@/components/form-sheet";
 import { AccountOptions } from "@/components/account-options";
-import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
+import { LoanSplitBox } from "@/components/loan-split";
+import { ForSelect, type ExpenseTargets } from "@/components/for-select";
 import { sortByUse, type PickableAccount } from "@/lib/account-picker";
 import { confirm } from "@/components/confirm-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
@@ -464,7 +465,6 @@ export function AddAccountForm({
  * (bills.account_id), repeats if it does, and reminds ahead. Still a row in
  * `bills` through addBillAction, as every due-dated expense always was;
  * only the sheet changed. Opens on "Already paid": the everyday case. */
-export type ExpenseTargets = { assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: SplitLoan[] };
 
 /** `scan` puts "Snap it" in the sheet: a receipt or a payment screenshot
  * read by Kin AI (/wealth/scan), offered only once the key is on the
@@ -510,47 +510,6 @@ export function AddExpenseForm({ whose, accounts, currency, today, targets, scan
         )}
       </FormSheet>
     </>
-  );
-}
-
-/** "For (optional)": a loan it pays down, an asset, a goal -- the same
- * choice Move money offers. Nothing to pick from: nothing shown. Picking a
- * loan sets the category to Debt. */
-function ForSelect({ targets, value, onChange }: { targets: ExpenseTargets; value: string; onChange: (v: string) => void }) {
-  if (targets.assets.length + targets.goals.length + targets.loans.length === 0) return null;
-  return (
-    <Labelled label="For (optional)">
-      <select className="input" name="against" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: "2.625rem" }}>
-        <option value="">Nothing in particular</option>
-        {targets.loans.length > 0 && (
-          <optgroup label="Paying a loan">
-            {targets.loans.map((l) => (
-              <option key={l.id} value={`liabilities:${l.id}`}>
-                {l.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {targets.assets.length > 0 && (
-          <optgroup label="An asset">
-            {targets.assets.map((a) => (
-              <option key={a.id} value={`assets:${a.id}`}>
-                {a.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {targets.goals.length > 0 && (
-          <optgroup label="A goal">
-            {targets.goals.map((g) => (
-              <option key={g.id} value={`goals:${g.id}`}>
-                {g.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
-    </Labelled>
   );
 }
 
@@ -640,7 +599,7 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
           </select>
         </Labelled>
       </div>
-      <ForSelect targets={targets} value={against} onChange={pickAgainst} />
+      <ForSelect targets={targets} value={against} onChange={pickAgainst} name="against" />
       {/* Money on an asset is upkeep (a living cost), an addition (the
           asset is worth more) or buying it (its value is already on
           record), as Move money asks (20261023232000). */}
@@ -736,6 +695,7 @@ function DueExpenseForm({ whose, accounts, currency, today, targets, onDone, onC
       <ForSelect
         targets={targets}
         value={against}
+        name="against"
         onChange={(v) => {
           setAgainst(v);
           if (v.startsWith("liabilities:")) setCategory("Debt");

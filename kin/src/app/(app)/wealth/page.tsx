@@ -29,6 +29,7 @@ import {
   RestoreAccountButton,
   DeleteAccountButton,
 } from "@/components/money-actions";
+import { entryFor } from "@/lib/entry-for";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
 import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
@@ -596,11 +597,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         buttons.length || entries.length ? (
           <>
             {buttons}
-            <LineEntries entries={entries} accounts={pickable} currency={currency} dateFormat={dateFormat} />
+            <LineEntries entries={entries} accounts={pickable} targets={targets} currency={currency} dateFormat={dateFormat} />
           </>
         ) : undefined,
     }));
-  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountId: t.account_id, accountName: t.accountName });
+  const toLineEntry = (t: LedgerEntry): LineEntry => ({ id: t.id, particulars: t.particulars, amount: Number(t.amount), occurredOn: t.occurred_at.slice(0, 10), category: t.category, direction: t.direction, accountId: t.account_id, accountName: t.accountName, ...entryFor(t) });
 
   const incomeLines = new Map<string, Line>();
   for (const g of cf.incomeGroups.filter((x) => ownedHere(x.owner))) {

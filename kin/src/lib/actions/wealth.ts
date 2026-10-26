@@ -824,7 +824,22 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
  * two entries that must agree, so it is not edited here. */
 export async function updateTransactionAction(
   transactionId: string,
-  input: { particulars: string; amount: number; occurredOn: string; category: string | null; accountId?: string },
+  input: {
+    particulars: string;
+    amount: number;
+    occurredOn: string;
+    category: string | null;
+    accountId?: string;
+    /** What it was for, when that changes (Jonathan, 26 October):
+     * "liabilities:<id>", "assets:<id>", "goals:<id>" or "" for nothing in
+     * particular. Left out: unchanged. Only an entry that is nobody else's
+     * -- not a bill's settlement, a hub's posting, or an asset purchase --
+     * can be re-tied; the loan or goal it leaves is put back as it was. */
+    against?: string;
+    /** On a loan: the part that pays it down, when the person changed
+     * Kin's split. Null follows the split. */
+    principal?: number | null;
+  },
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -849,21 +864,53 @@ export async function updateTransactionAction(
     if (!account) return { error: "Choose an account this household actually has." };
   }
 
+  // What it was for. The entry's own tie, as "table:id" ("" for none),
+  // and the one asked for; only a free entry's can change.
+  const ownTie = entry.source_table === "liabilities" || entry.source_table === "assets" || entry.source_table === "goals" ? `${entry.source_table}:${entry.source_id ?? entry.goal_id ?? ""}` : entry.source_table ? null : "";
+  const retie = input.against !== undefined && ownTie !== null && !entry.capital && input.against !== ownTie;
+  if (input.against !== undefined && input.against !== (ownTie ?? "") && !retie) return { error: "What this entry was for can't be changed here: it settled a bill, came from another hub, or bought or added to an asset." };
+  const against = input.against ?? "";
+  const [newTable, newId] = retie && against.includes(":") ? against.split(":", 2) : ["", ""];
+  if (retie && newTable && !["liabilities", "assets", "goals"].includes(newTable)) return { error: "That isn't something an entry can be for." };
+  if (retie && newTable === "liabilities" && entry.direction !== "out") return { error: "A loan is paid with money going out." };
+  // After the change: what the entry is tied to, and the loan to split on.
+  const tiedTable = retie ? newTable || null : entry.source_table;
+  const tiedId = retie ? newId || null : entry.source_id;
+  if (retie && tiedTable && tiedId) {
+    const { data: target } = await supabase.from(tiedTable as "liabilities" | "assets" | "goals").select("id").eq("id", tiedId).eq("family_id", me.family_id).maybeSingle();
+    if (!target) return { error: "That isn't one of your household's records." };
+  }
+
   // Keep the time of day it was recorded; only the date moves.
   const occurredAt = `${input.occurredOn}${entry.occurred_at.slice(10)}`;
-  let principal = entry.principal_amount;
-  if (entry.source_table === "liabilities" && entry.source_id && Number(entry.amount) !== amount) {
-    const { data: loan } = await supabase.from("liabilities").select("balance, interest_rate").eq("id", entry.source_id).maybeSingle();
+  // The loan's principal: the person's own figure when given; else worked
+  // out again when the amount or the loan changed; else as it was.
+  const stayingOnLoan = !retie && entry.source_table === "liabilities" && entry.source_id;
+  let principal: number | null = tiedTable === "liabilities" ? entry.principal_amount : null;
+  if (tiedTable === "liabilities" && tiedId && (input.principal != null || retie || Number(entry.amount) !== amount)) {
+    const { data: loan } = await supabase.from("liabilities").select("balance, interest_rate").eq("id", tiedId).maybeSingle();
     if (loan) {
       // What was owed before this payment, if it already lowered the balance.
-      const before = Number(loan.balance) + (entry.status === "confirmed" ? Number(entry.principal_amount ?? 0) : 0);
-      principal = loanPaymentSplit(before, loan.interest_rate == null ? null : Number(loan.interest_rate), amount).principal;
+      const before = Number(loan.balance) + (stayingOnLoan && entry.status === "confirmed" ? Number(entry.principal_amount ?? 0) : 0);
+      if (input.principal != null) {
+        principal = Math.round(input.principal * 100) / 100;
+        if (!(principal >= 0 && principal <= amount)) return { error: "The part that pays the loan down has to be between zero and the whole payment." };
+        if (principal > before) return { error: "That pays down more than is still owed on the loan." };
+      } else principal = Math.min(loanPaymentSplit(before, loan.interest_rate == null ? null : Number(loan.interest_rate), amount).principal, before);
     } else principal = Math.min(Number(entry.principal_amount ?? 0), amount);
   }
 
   const { error } = await supabase
     .from("wealth_transactions")
-    .update({ particulars, amount, occurred_at: occurredAt, category: clamp(input.category ?? "", 100) || null, principal_amount: principal, ...(accountId ? { account_id: accountId } : {}) })
+    .update({
+      particulars,
+      amount,
+      occurred_at: occurredAt,
+      category: clamp(input.category ?? "", 100) || null,
+      principal_amount: principal,
+      ...(accountId ? { account_id: accountId } : {}),
+      ...(retie ? { source_table: tiedTable, source_id: tiedId, goal_id: tiedTable === "goals" ? tiedId : null } : {}),
+    })
     .eq("id", transactionId)
     .eq("family_id", me.family_id);
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
@@ -871,13 +918,31 @@ export async function updateTransactionAction(
   // transaction_id when paid for a loan, an asset or a goal).
   if (accountId) await supabase.from("bills").update({ paid_from_account_id: accountId }).eq("transaction_id", transactionId).eq("family_id", me.family_id);
 
-  const delta = Number(entry.principal_amount ?? 0) - Number(principal ?? 0);
-  if (entry.source_table === "liabilities" && entry.source_id && entry.status === "confirmed" && delta !== 0) {
-    const { error: loanError } = await supabase.rpc("adjust_liability_balance", { p_liability_id: entry.source_id, p_delta: delta });
-    if (loanError) return { error: `The entry was corrected, but the loan's balance was not. ${refusalMessage(loanError)}` };
+  // The loans: what this payment had paid down comes back on the loan it
+  // leaves (or stays on, less what it now pays), and the one it joins or
+  // stays on goes down by the new principal. A pending payment never
+  // touched either.
+  if (entry.status === "confirmed") {
+    const oldLoan = entry.source_table === "liabilities" ? entry.source_id : null;
+    const newLoan = tiedTable === "liabilities" ? tiedId : null;
+    const oldPrincipal = Number(entry.principal_amount ?? 0);
+    const newPrincipal = Number(principal ?? 0);
+    const moves: { id: string; delta: number }[] = [];
+    if (oldLoan && oldLoan === newLoan) {
+      if (oldPrincipal !== newPrincipal) moves.push({ id: oldLoan, delta: oldPrincipal - newPrincipal });
+    } else {
+      if (oldLoan && oldPrincipal > 0) moves.push({ id: oldLoan, delta: oldPrincipal });
+      if (newLoan && newPrincipal > 0) moves.push({ id: newLoan, delta: -newPrincipal });
+    }
+    for (const m of moves) {
+      const { error: loanError } = await supabase.rpc("adjust_liability_balance", { p_liability_id: m.id, p_delta: m.delta });
+      if (loanError) return { error: `The entry was corrected, but the loan's balance was not. ${refusalMessage(loanError)}` };
+    }
   }
   if (entry.capital) await supabase.from("asset_items").update({ cost: amount, name: clamp(particulars, 150) }).eq("transaction_id", transactionId);
-  if (entry.goal_id) await recalcGoalTotal(supabase, entry.goal_id);
+  // The goals: the one it left and the one it joined are both recounted.
+  const goals = new Set([entry.goal_id, tiedTable === "goals" ? tiedId : null].filter((g): g is string => !!g));
+  for (const goalId of goals) await recalcGoalTotal(supabase, goalId);
 
   revalidateWealth();
   return { error: null };
