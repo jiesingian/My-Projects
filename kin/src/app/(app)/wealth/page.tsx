@@ -860,11 +860,6 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <span style={{ flex: 1 }}>Subscriptions: what repeats, and its cost a year</span>
         <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
       </Link>
-      {/* Snap a receipt lives inside the sheet now, and only once Kin AI
-          has its key: with no key the page could only say it is off. */}
-      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={targets} scan={kinAiReady()} />
-      <div style={{ height: "1.25rem" }} />
-
       {/* The month's budget is its categories added up (26 October): no
           budget set, what was spent, against nothing. */}
       <Meter
@@ -890,6 +885,12 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       )}
 
       <UtangInstalments heading="MONEY BORROWED TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
+      {/* Last in the group (Jonathan, 26 October), under the budget and
+          Spending by person, as Add income closes INCOME and Add account
+          closes the Accounts list: the group reads top to bottom, then
+          adds. Snap a receipt lives inside the sheet, and only once Kin AI
+          has its key: with no key the page could only say it is off. */}
+      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={targets} scan={kinAiReady()} />
       </CollapsibleGroup>
     </>
   );
