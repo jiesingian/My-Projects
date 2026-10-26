@@ -8,7 +8,7 @@ import { FREE_AI_PER_MONTH } from "@/lib/access";
 export const FREE_FEATURES: string[] = [
   "Family calendar, planner and Google Calendar sync",
   "Chores, stars, rewards and kid view",
-  "Weekly baon and the alkansya: gastos, ipon, bigay",
+  "Weekly allowance and the piggy bank: spend, save, give",
   "Shopping list, pantry and meal plans",
   "Family chat, polls, voice and video calls",
   "Journal and photos, 1 GB",
@@ -20,7 +20,7 @@ export const FREE_FEATURES: string[] = [
 export const PLUS_FEATURES: string[] = [
   "Everything in Kin Free",
   "Wealth: accounts, budgets, bills and reminders, net worth",
-  "Utang and paluwagan, with reminders you send yourself",
+  "Lending and savings circles, with reminders you send yourself",
   "The vault: documents and passwords behind Face ID",
   "Medicines with dose reminders, the illness log, vitals, growth charts, Apple Health",
   "Kin AI and flyer scans without a monthly limit",

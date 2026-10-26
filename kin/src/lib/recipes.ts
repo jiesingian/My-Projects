@@ -78,7 +78,7 @@ export const RECIPE_CATEGORY_LABEL: Record<RecipeCategory, string> = {
   vegetables: "Vegetables",
   soup: "Soups",
   noodles: "Noodles",
-  merienda: "Merienda",
+  merienda: "Snacks",
 };
 
 /** The key a household's own category is stored under. Slugged so it can
@@ -109,7 +109,7 @@ export function guessCategories(name: string, ingredientNames: string[]): Recipe
   if (has("noodle", "pancit", "spaghetti", "pasta", "bihon", "canton", "sotanghon")) found.push("noodles");
   if (has("sinigang", "soup", "sabaw", "nilaga", "tinola", "bulalo", "caldo", "lugaw")) found.push("soup");
   if (has("rice", "kanin", "silog", "champorado")) found.push("rice");
-  if (has("turon", "banana cue", "bilo", "halo-halo", "leche", "cake", "biko", "puto", "merienda")) found.push("merienda");
+  if (has("turon", "banana cue", "bilo", "halo-halo", "leche", "cake", "biko", "puto", "merienda", "snack")) found.push("merienda");
   if (has("kangkong", "talong", "sitaw", "kalabasa", "gulay", "vegetable", "monggo", "pechay")) found.push("vegetables");
 
   return found;

@@ -4,7 +4,7 @@
 export type GiftKind = "family" | "inaanak" | "other";
 export const GIFT_KINDS: { key: GiftKind; label: string }[] = [
   { key: "family", label: "Family" },
-  { key: "inaanak", label: "Inaanak" },
+  { key: "inaanak", label: "Godchild" },
   { key: "other", label: "Others" },
 ];
 
@@ -76,5 +76,5 @@ export function parseGiftIdea(text: string): { label: string; cost: number | nul
 /** What the Wealth entry says: never a name, so a shared account's ledger
  * doesn't give the gift away. */
 export function spendParticulars(item: Pick<GiftItem, "isCash">): string {
-  return item.isCash ? "Aguinaldo" : "Christmas gift";
+  return item.isCash ? "Cash gift" : "Christmas gift";
 }

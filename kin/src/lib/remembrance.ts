@@ -48,7 +48,7 @@ export function remembranceOn(p: Departed, today: string): RemembranceDay | null
 /** What a remembrance day says, the same words as the push. */
 export function remembranceLine(r: RemembranceDay): string {
   if (r.kind === "fortieth") return "The 40th day since their passing";
-  if (r.kind === "first-year") return "One year since their passing · babang-luksa";
+  if (r.kind === "first-year") return "One year since their passing · the end of the mourning year";
   return `${r.years} years since their passing`;
 }
 
@@ -73,7 +73,7 @@ export function remembranceItems(people: Departed[], today: string, ahead = 7): 
       if (before.length > 0) {
         items.push({
           id: `undas-${d}`,
-          title: i === 0 ? "Undas · remembering" : `Undas ${on}`,
+          title: i === 0 ? "All Saints' Day · remembering" : `All Saints' Day ${on}`,
           meta: i === 0 ? namesLine(before.map((p) => p.name)) : `${namesLine(before.map((p) => p.name))} · candles and flowers?`,
           inDays: i,
         });

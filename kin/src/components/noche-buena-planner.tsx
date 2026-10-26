@@ -32,7 +32,7 @@ export function NocheBuenaPlanner({ dishes, canPlan, mealsHref }: { dishes: Noch
 
   return (
     <div>
-      <ul className="kin-pasko-dishes" aria-label="Noche Buena dishes">
+      <ul className="kin-pasko-dishes" aria-label="Christmas Eve dishes">
         {dishes.map((d) => (
           <li key={d.key}>
             <label>

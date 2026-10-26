@@ -91,9 +91,9 @@ export default async function HouseholdSettingsPage() {
         )}
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Linked relatives</div>
         <ShareWithRelativesSwitch on={me.families.share_with_relatives} canChange={me.is_organiser} />
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Undas and babang-luksa</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>All Saints&rsquo; Day and remembrance</div>
         <RememberTheDepartedSwitch on={me.families.remember_the_departed} canChange={me.is_organiser} />
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Pasko</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Christmas</div>
         <ChristmasOnTodaySwitch on={me.families.christmas_on_today} canChange={me.is_organiser} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Currency, dates, week start and country</div>
         {me.is_organiser ? (
@@ -120,7 +120,7 @@ export default async function HouseholdSettingsPage() {
           <div style={{ marginBottom: "1.25rem" }}>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Helpers</div>
             <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
-              Your kasambahay, yaya or driver. They get a link of their own and see only what you switch on, never money, health, chat or photos.
+              Your household helper, nanny or driver. They get a link of their own and see only what you switch on, never money, health, chat or photos.
             </p>
             <HouseholdHelpers helpers={helpers} householdName={me.families.name} />
           </div>

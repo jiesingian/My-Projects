@@ -64,7 +64,7 @@ test("withdrawalProblem keeps giving to bigay and spending out of it", () => {
   expect(withdrawalProblem("spend", "gastos", 20, 50)).toBeNull();
   expect(withdrawalProblem("spend", "ipon", 20, 50)).toBeNull();
   expect(withdrawalProblem("give", "bigay", 10, 10)).toBeNull();
-  expect(withdrawalProblem("give", "gastos", 10, 50)).toMatch(/bigay/);
+  expect(withdrawalProblem("give", "gastos", 10, 50)).toMatch(/Give jar/);
   expect(withdrawalProblem("spend", "bigay", 10, 50)).toMatch(/giving/);
   expect(withdrawalProblem("spend", "gastos", 60, 50)).toMatch(/only has 50\.00/);
   expect(withdrawalProblem("spend", "gastos", 0, 50)).toMatch(/how much/);

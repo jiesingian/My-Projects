@@ -3,9 +3,8 @@
  * where each round one member takes the pot.
  *
  * Kin keeps the record and never contacts anybody. A reminder is a message
- * written here for a grown-up to send themselves -- polite, in the Taglish a
- * tita would actually receive, and only for an entry they switched it on
- * for. */
+ * written here for a grown-up to send themselves -- polite, in plain
+ * English, and only for an entry they switched it on for. */
 
 import { formatCurrency } from "@/lib/format";
 
@@ -14,7 +13,7 @@ export type PaluwaganFrequency = "weekly" | "semi_monthly" | "monthly";
 
 export const FREQUENCY_LABEL: Record<PaluwaganFrequency, string> = {
   weekly: "Every week",
-  semi_monthly: "Twice a month (kinsenas)",
+  semi_monthly: "Twice a month (15th and 30th)",
   monthly: "Every month",
 };
 
@@ -35,7 +34,7 @@ export function utangLeft(amount: number, payments: { amount: number | string }[
 /** Why a payment cannot be recorded, or null. */
 export function paymentProblem(amount: number, left: number): string | null {
   if (!(amount > 0)) return "Enter how much was paid.";
-  if (amount > left) return `Only ${left.toFixed(2)} is left on this utang.`;
+  if (amount > left) return `Only ${left.toFixed(2)} is left on this IOU.`;
   return null;
 }
 
@@ -154,12 +153,12 @@ export function greetingName(name: string): string {
 export function utangReminder(u: { direction: UtangDirection; personName: string; amount: number; paid: number; left: number; dueOn: string | null; currency: string }): string | null {
   if (u.direction !== "lent" || u.left <= 0) return null;
   const money = (n: number) => formatCurrency(n, u.currency);
-  const paidLine = u.paid > 0 ? ` Salamat po sa ${money(u.paid)} na naibalik na — ${money(u.left)} na lang po ang natitira.` : "";
-  const due = u.dueOn ? ` Kung kaya po bago mag-${day(u.dueOn)}, malaking tulong na po.` : " Kahit paunti-unti lang po, okay lang.";
-  return `Hi ${greetingName(u.personName)}! Kumusta po? Gentle reminder lang po sa ${money(u.amount)} na hiniram.${paidLine}${due} Walang pressure po, salamat! 🙏`;
+  const paidLine = u.paid > 0 ? ` Thank you for the ${money(u.paid)} already paid back — only ${money(u.left)} is left.` : "";
+  const due = u.dueOn ? ` If you can manage it before ${day(u.dueOn)}, that would be a big help.` : " Even a little at a time is fine.";
+  return `Hi ${greetingName(u.personName)}! Hope you're well. A gentle reminder about the ${money(u.amount)} you borrowed.${paidLine}${due} No pressure, thank you! 🙏`;
 }
 
-/** A gentle reminder for a member whose hulog for this round is not in yet. */
+/** A gentle reminder for a member whose contribution for this round is not in yet. */
 export function paluwaganReminder(p: { memberName: string; groupName: string; round: number; contribution: number; dueOn: string; currency: string }): string {
-  return `Hi ${greetingName(p.memberName)}! Paalala lang po sa hulog para sa paluwagan "${p.groupName}" — round ${p.round}, ${formatCurrency(p.contribution, p.currency)}, para sa ${day(p.dueOn)}. Salamat po! 🙏`;
+  return `Hi ${greetingName(p.memberName)}! A quick reminder about your contribution to the savings circle "${p.groupName}" — round ${p.round}, ${formatCurrency(p.contribution, p.currency)}, for ${day(p.dueOn)}. Thank you! 🙏`;
 }

@@ -64,7 +64,7 @@ export function AddUtangForm({ today }: { today: string }) {
     return r;
   }, initialState);
 
-  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Record an utang" />;
+  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Record an IOU" />;
   return (
     <>
       <Opener open onToggle={() => setOpen(false)} text="" />
@@ -80,7 +80,7 @@ export function AddUtangForm({ today }: { today: string }) {
             ))}
           </div>
           <label htmlFor={`${uid}-who`} style={label}>{direction === "lent" ? "Lent to" : "Borrowed from"}</label>
-          <input id={`${uid}-who`} className="input" name="person_name" required maxLength={120} placeholder="Tita Baby" style={field} />
+          <input id={`${uid}-who`} className="input" name="person_name" required maxLength={120} placeholder="Aunt Baby" style={field} />
           <div style={two}>
             <span>
               <label htmlFor={`${uid}-amount`} style={label}>How much</label>
@@ -235,7 +235,7 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
             disabled={pending}
             style={{ ...small, minHeight: "1.875rem", color: "var(--color-neutral-700)" }}
             onClick={async () => {
-              if (!(await confirm({ title: "Remove this utang?", description: "Its payments go with it.", confirmLabel: "Remove" }))) return;
+              if (!(await confirm({ title: "Remove this IOU?", description: "Its payments go with it.", confirmLabel: "Remove" }))) return;
               run(() => deleteUtangAction(u.id));
             }}
           >
@@ -311,7 +311,7 @@ export function AddPaluwaganForm({ today }: { today: string }) {
     return r;
   }, initialState);
 
-  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Add a paluwagan" />;
+  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Add a savings circle" />;
   return (
     <>
       <Opener open onToggle={() => setOpen(false)} text="" />
@@ -319,10 +319,10 @@ export function AddPaluwaganForm({ today }: { today: string }) {
         <form action={formAction}>
           <ErrorText message={state.error} />
           <label htmlFor={`${uid}-name`} style={{ ...label, marginTop: 0 }}>Name</label>
-          <input id={`${uid}-name`} className="input" name="name" required maxLength={80} placeholder="Opisina paluwagan" style={field} />
+          <input id={`${uid}-name`} className="input" name="name" required maxLength={80} placeholder="Office savings circle" style={field} />
           <div style={two}>
             <span>
-              <label htmlFor={`${uid}-hulog`} style={label}>Hulog per member, each round</label>
+              <label htmlFor={`${uid}-hulog`} style={label}>Contribution per member, each round</label>
               <AmountInput id={`${uid}-hulog`} name="contribution" required style={field} />
             </span>
             <span>
@@ -337,13 +337,13 @@ export function AddPaluwaganForm({ today }: { today: string }) {
           <label htmlFor={`${uid}-start`} style={label}>First round</label>
           <DateInput id={`${uid}-start`} name="starts_on" defaultValue={today} className="input" style={field} required />
           <label htmlFor={`${uid}-members`} style={label}>The other members, one per line, in turn order</label>
-          <textarea id={`${uid}-members`} className="input" name="members" rows={5} required placeholder={"Ate Joy\nKuya Ben\nTita Linda"} style={{ ...field, padding: "0.5rem 0.625rem" }} />
+          <textarea id={`${uid}-members`} className="input" name="members" rows={5} required placeholder={"Joy\nBen\nAunt Linda"} style={{ ...field, padding: "0.5rem 0.625rem" }} />
           <label htmlFor={`${uid}-us`} style={label}>Our turn (0 if we only keep the record)</label>
           <input id={`${uid}-us`} className="input" name="us_turn" type="number" min="0" max="100" defaultValue={1} style={field} />
           <Visibility id={`${uid}-vis`} />
           <label style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
             <input type="checkbox" name="remind" value="on" style={{ marginTop: "0.1875rem" }} />
-            <span>Prepare a gentle reminder for anyone whose hulog is not in. Kin never messages anyone.</span>
+            <span>Prepare a gentle reminder for anyone whose contribution is not in. Kin never messages anyone.</span>
           </label>
           <div style={{ marginTop: "0.75rem" }}>
             <SubmitButton style={small}>Save</SubmitButton>

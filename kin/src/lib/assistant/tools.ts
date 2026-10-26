@@ -23,7 +23,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Words to look for, e.g. 'dentist', 'Meralco', 'Baguio'." },
+        query: { type: "string", description: "Words to look for, e.g. 'dentist', 'electric bill', 'beach trip'." },
       },
       required: ["query"],
     },
@@ -64,7 +64,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
     input_schema: {
       type: "object",
       properties: {
-        member_name: { type: "string", description: "The member's first name as used in the household, e.g. 'Lia', 'Lolo', 'Dad'. Use get_family first if unsure who is who." },
+        member_name: { type: "string", description: "The member's first name as used in the household, e.g. 'Lia', 'Grandpa', 'Dad'. Use get_family first if unsure who is who." },
       },
       required: ["member_name"],
     },

@@ -25,7 +25,7 @@ export function NewPotForm({ linked }: { linked: { id: string; name: string }[] 
       <form action={formAction}>
         <ErrorText message={state.error} />
         <label htmlFor={`${uid}-title`} style={label}>What it&apos;s for</label>
-        <input id={`${uid}-title`} name="title" className="input" required maxLength={120} placeholder="Lola's medicines and check-ups" style={field} />
+        <input id={`${uid}-title`} name="title" className="input" required maxLength={120} placeholder="Grandma's medicines and check-ups" style={field} />
         <label htmlFor={`${uid}-note`} style={label}>Note (optional)</label>
         <input id={`${uid}-note`} name="note" className="input" maxLength={500} placeholder="Maintenance, check-ups, the caregiver" style={field} />
         <fieldset style={{ border: 0, padding: 0, margin: "0.5rem 0 0" }}>
@@ -100,7 +100,7 @@ export function AddEntryForm({ potId, today, others }: { potId: string; today: s
           </>
         )}
         <label htmlFor={`${uid}-what`} style={label}>{open === "cost" ? "What for" : "Note (optional)"}</label>
-        <input id={`${uid}-what`} name="description" className="input" maxLength={200} required={open === "cost"} placeholder={open === "cost" ? "Maintenance, October" : "GCash"} style={field} />
+        <input id={`${uid}-what`} name="description" className="input" maxLength={200} required={open === "cost"} placeholder={open === "cost" ? "Maintenance, October" : "Bank transfer"} style={field} />
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
           <SubmitButton style={{ ...small, flex: 1 }}>{open === "cost" ? "Add cost" : "Record payment"}</SubmitButton>
           <button type="button" className="btn btn-secondary" style={{ ...small, flex: 1 }} onClick={() => setOpen(null)}>

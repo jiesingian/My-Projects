@@ -44,7 +44,7 @@ export function PaluwaganOptions({ groupId, remind, isPrivate, mine }: { groupId
           disabled={pending}
           style={{ ...small, color: "var(--color-neutral-700)" }}
           onClick={async () => {
-            if (!(await confirm({ title: "Remove this paluwagan?", description: "Its members and every round's record go with it.", confirmLabel: "Remove" }))) return;
+            if (!(await confirm({ title: "Remove this savings circle?", description: "Its members and every round's record go with it.", confirmLabel: "Remove" }))) return;
             run(() => deletePaluwaganAction(groupId), () => router.push("/wealth/utang"));
           }}
         >
@@ -81,7 +81,7 @@ export function PaidTick({ groupId, memberId, round, name, paid, reminder }: { g
           </button>
         )}
       </span>
-      {showReminder && reminder && <ShareMessage text={reminder} title={`Paluwagan reminder for ${name}`} />}
+      {showReminder && reminder && <ShareMessage text={reminder} title={`Savings circle reminder for ${name}`} />}
       {error && <span role="alert" style={{ fontSize: "0.71875rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </span>
   );

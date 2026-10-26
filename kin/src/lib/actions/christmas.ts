@@ -17,12 +17,12 @@ import { reportError } from "@/lib/report-error";
  * as they are; a grown-up, never kid view. */
 export async function planNocheBuenaAction(keys: string[]): Promise<{ error: string | null; added: number }> {
   const me = await requireCurrentMember();
-  if (inKidView(me) || !isGrownUp(me.role)) return { error: "Ask a grown-up to plan Noche Buena.", added: 0 };
+  if (inKidView(me) || !isGrownUp(me.role)) return { error: "Ask a grown-up to plan Christmas Eve dinner.", added: 0 };
   const chosen = (Array.isArray(keys) ? keys : []).filter((k): k is (typeof NOCHE_BUENA_DISHES)[number] => (NOCHE_BUENA_DISHES as readonly string[]).includes(k));
   if (chosen.length === 0) return { error: "Tick at least one dish.", added: 0 };
   const today = familyDay(new Date(), me.families.time_zone);
   const date = nocheBuenaDate(today);
-  if (date < today) return { error: "Noche Buena has passed; see you next year.", added: 0 };
+  if (date < today) return { error: "Christmas Eve has passed; see you next year.", added: 0 };
   const supabase = await createClient();
   const { data: planned } = await supabase.from("meal_plans").select("recipe_key, dish").eq("family_id", me.family_id).eq("plan_date", date).eq("slot", "dinner");
   const toAdd = nocheBuenaToAdd(chosen, planned ?? []);

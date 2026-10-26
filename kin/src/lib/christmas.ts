@@ -28,14 +28,14 @@ export type CountdownLine = { title: string; meta: string };
 export function christmasCountdown(todayISO: string): CountdownLine | null {
   if (!isChristmasSeason(todayISO)) return null;
   const md = todayISO.slice(5, 10);
-  if (md === "01-01") return { title: "Manigong Bagong Taon!", meta: "A new year, the whole family in it" };
+  if (md === "01-01") return { title: "Happy New Year!", meta: "A new year, the whole family in it" };
   const toNocheBuena = Math.round((day(nocheBuenaDate(todayISO)) - day(todayISO)) / 86_400_000);
-  if (toNocheBuena > 0) return { title: `${sleeps(toNocheBuena)} to Noche Buena`, meta: "24 December, the family table at midnight" };
-  if (toNocheBuena === 0) return { title: "Noche Buena tonight!", meta: "The table at midnight, everyone home" };
-  if (md === "12-25") return { title: "Maligayang Pasko!", meta: "Merry Christmas from Kin" };
+  if (toNocheBuena > 0) return { title: `${sleeps(toNocheBuena)} to Christmas Eve`, meta: "24 December, the family table at midnight" };
+  if (toNocheBuena === 0) return { title: "Christmas Eve dinner tonight!", meta: "The table at midnight, everyone home" };
+  if (md === "12-25") return { title: "Merry Christmas!", meta: "From all of us at Kin" };
   const toMediaNoche = Math.round((day(`${todayISO.slice(0, 4)}-12-31`) - day(todayISO)) / 86_400_000);
-  if (toMediaNoche > 0) return { title: `${sleeps(toMediaNoche)} to Media Noche`, meta: "31 December, round fruits on the table" };
-  return { title: "Media Noche tonight!", meta: "Twelve round fruits, and the noise at midnight" };
+  if (toMediaNoche > 0) return { title: `${sleeps(toMediaNoche)} to New Year's Eve`, meta: "31 December, round fruits on the table" };
+  return { title: "New Year's Eve dinner tonight!", meta: "Twelve round fruits, and the noise at midnight" };
 }
 
 /** The ready Noche Buena plan: the dishes a Filipino table starts from,
@@ -74,7 +74,7 @@ export function dishesLine(dishes: string[]): string {
 
 /** The gift list's one line on Today: "3 of 5 done · ₱4,500 of ₱6,000". */
 export function giftListLine(t: { people: number; done: number; bought: number; budget: number }, money: (n: number) => string): string {
-  if (t.people === 0) return "A budget for each person and inaanak, ticked when bought";
+  if (t.people === 0) return "A budget for each person and godchild, ticked when bought";
   const spend = t.budget > 0 ? ` · ${money(t.bought)} of ${money(t.budget)}` : t.bought > 0 ? ` · ${money(t.bought)} bought` : "";
   return `${t.done} of ${t.people} done${spend}`;
 }

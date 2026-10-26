@@ -47,7 +47,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
     return (
       <section aria-labelledby="simple-pasko" className="kin-pasko kin-pasko-simple">
         <h3 id="simple-pasko" className="kin-simple-h">
-          Pasko
+          Christmas
         </h3>
         <div className="kin-simple-list">
           <div className="kin-simple-row" style={{ cursor: "default" }}>
@@ -60,7 +60,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
           <Link href={mealsHref} className="kin-simple-row">
             <Icon name="utensils" size="1.5rem" />
             <span style={{ minWidth: 0 }}>
-              <span className="kin-simple-row-title">Noche Buena</span>
+              <span className="kin-simple-row-title">Christmas Eve dinner</span>
               <span className="kin-simple-row-meta">{plannedDishes.length > 0 ? dishesLine(plannedDishes) : beforeNocheBuena ? "Plan the table in Meals" : "Was on 24 December"}</span>
             </span>
           </Link>
@@ -68,7 +68,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
             <Link href="/planner/gifts" className="kin-simple-row">
               <Icon name="gift" size="1.5rem" />
               <span style={{ minWidth: 0 }}>
-                <span className="kin-simple-row-title">Gifts and aguinaldo</span>
+                <span className="kin-simple-row-title">Gifts and cash gifts</span>
                 <span className="kin-simple-row-meta">{giftListLine(totals, money)}</span>
               </span>
             </Link>
@@ -76,7 +76,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
           <Link href="/planner/monito" className="kin-simple-row">
             <Icon name="gift" size="1.5rem" />
             <span style={{ minWidth: 0 }}>
-              <span className="kin-simple-row-title">Monito-monita</span>
+              <span className="kin-simple-row-title">Gift exchange</span>
               <span className="kin-simple-row-meta">{drawsLine}</span>
             </span>
           </Link>
@@ -88,7 +88,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
   return (
     <section className="kin-pasko" aria-labelledby="pasko-h" style={{ marginBottom: "1.625rem" }}>
       <h3 id="pasko-h" className="kin-eyebrow">
-        Pasko
+        Christmas
       </h3>
       <p className="kin-pasko-count">
         <Icon name="star" size={18} />
@@ -101,7 +101,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
       <div className="kin-pasko-card">
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.375rem" }}>
           <Icon name="utensils" size={16} />
-          <span style={{ fontWeight: 600 }}>Noche Buena</span>
+          <span style={{ fontWeight: 600 }}>Christmas Eve dinner</span>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>· {readableDay(date)}</span>
         </div>
         {plannedDishes.length > 0 ? (
@@ -117,7 +117,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
             <NocheBuenaPlanner dishes={nocheBuenaDishes()} canPlan={grownUp} mealsHref={mealsHref} />
           </>
         ) : (
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-neutral-600)" }}>Noche Buena was on 24 December. Media Noche is in Meals, if you plan it.</p>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-neutral-600)" }}>Christmas Eve dinner was on 24 December. New Year&rsquo;s Eve dinner is in Meals, if you plan it.</p>
         )}
       </div>
 
@@ -126,7 +126,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
           <Link href="/planner/gifts" className="kin-potluck-invite">
             <Icon name="gift" size={18} />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and aguinaldo</span>
+              <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and cash gifts</span>
               <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{giftListLine(totals, money)}</span>
             </span>
           </Link>
@@ -134,7 +134,7 @@ export async function ChristmasOnToday({ simple = false }: { simple?: boolean })
         <Link href="/planner/monito" className="kin-potluck-invite">
           <Icon name="gift" size={18} />
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 600 }}>Monito-monita</span>
+            <span style={{ display: "block", fontWeight: 600 }}>Gift exchange</span>
             <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{drawsLine}</span>
           </span>
         </Link>

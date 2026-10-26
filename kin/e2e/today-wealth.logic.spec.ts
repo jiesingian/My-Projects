@@ -46,14 +46,14 @@ const group: PaluwaganLike = {
 test("a paluwagan: our hulog for the round that is on until it is in; our turn on its day; next week's round", () => {
   // Round 3 falls today (23 Oct); our hulog for it is not in.
   const r = wealthRows({ ...none, paluwagans: [group] }, today, "PHP");
-  expect(r.today.map((x) => [x.id, x.title, x.meta, x.action])).toEqual([["paluwagan-g1", "Hulog · Ate Joy's", "₱1,000 · round 3 of 3 · due today", "pay"]]);
+  expect(r.today.map((x) => [x.id, x.title, x.meta, x.action])).toEqual([["paluwagan-g1", "Contribution · Ate Joy's", "₱1,000 · round 3 of 3 · due today", "pay"]]);
   expect(r.soon).toEqual([]);
   // Our own turn, round 2, on 23 September: the pot, and our hulog in already.
   const ours = wealthRows({ ...none, paluwagans: [group] }, "2026-09-23", "PHP");
   expect(ours.today.map((x) => [x.id, x.meta])).toEqual([["paluwagan-turn-g1", "Our turn · the pot is ₱3,000"]]);
   // A week before round 3: coming up, as a hulog.
   const ahead = wealthRows({ ...none, paluwagans: [group] }, "2026-10-18", "PHP");
-  expect(ahead.soon.map((x) => [x.title, x.meta, x.at])).toEqual([["Hulog · Ate Joy's", "₱1,000 on Friday · round 3 of 3", 5]]);
+  expect(ahead.soon.map((x) => [x.title, x.meta, x.at])).toEqual([["Contribution · Ate Joy's", "₱1,000 on Friday · round 3 of 3", 5]]);
 });
 
 test("a loan's payment on its date, a sinking fund on its, income expected today", () => {

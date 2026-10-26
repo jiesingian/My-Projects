@@ -60,7 +60,7 @@ export function AddGiftPerson({ year, household }: { year: number; household: { 
         </div>
       )}
       <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.5rem" }}>
-        <input className="input" aria-label="Who it's for" placeholder={f.kind === "inaanak" ? "Your inaanak's name" : "Name"} value={f.name} maxLength={80} onChange={(e) => setF({ ...f, name: e.target.value, memberId: "" })} style={{ flex: 2, minHeight: "2.5rem" }} disabled={pending} />
+        <input className="input" aria-label="Who it's for" placeholder={f.kind === "inaanak" ? "Your godchild's name" : "Name"} value={f.name} maxLength={80} onChange={(e) => setF({ ...f, name: e.target.value, memberId: "" })} style={{ flex: 2, minHeight: "2.5rem" }} disabled={pending} />
         <input className="input" aria-label="Budget" inputMode="decimal" placeholder="Budget" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value })} style={{ flex: 1, minHeight: "2.5rem" }} disabled={pending} />
         <button type="submit" className="btn btn-primary" style={{ minHeight: "2.5rem" }} disabled={pending || !f.name.trim()}>
           Add
@@ -83,7 +83,7 @@ export function GiftPersonCard({ person, currency, accounts, recorded }: { perso
       <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
         <div style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "1rem" }}>
           {person.name}
-          {person.kind === "inaanak" && <span style={{ fontWeight: 400, color: "var(--color-neutral-600)", fontSize: "0.8125rem" }}> · inaanak</span>}
+          {person.kind === "inaanak" && <span style={{ fontWeight: 400, color: "var(--color-neutral-600)", fontSize: "0.8125rem" }}> · godchild</span>}
         </div>
         <button type="button" className="kin-potluck-remove" aria-label={`Take ${person.name} off the list`} disabled={pending} onClick={() => window.confirm(`Take ${person.name} off the list, with their ideas?`) && run(() => removeGiftPersonAction(person.id))}>
           <Icon name="trash" size={14} />
@@ -124,7 +124,7 @@ export function GiftPersonCard({ person, currency, accounts, recorded }: { perso
           if (idea.trim()) run(() => addGiftIdeaAction(person.id, idea), () => setIdea(""));
         }}
       >
-        <input className="input" aria-label={`An idea for ${person.name}`} placeholder={person.kind === "inaanak" ? "Aguinaldo 500" : "An idea, like “Lego set 1,200”"} value={idea} onChange={(e) => setIdea(e.target.value)} maxLength={140} style={{ flex: 1, minHeight: "2.375rem" }} disabled={pending} />
+        <input className="input" aria-label={`An idea for ${person.name}`} placeholder={person.kind === "inaanak" ? "Cash gift 500" : "An idea, like “Lego set 1,200”"} value={idea} onChange={(e) => setIdea(e.target.value)} maxLength={140} style={{ flex: 1, minHeight: "2.375rem" }} disabled={pending} />
         <button type="submit" className="btn btn-secondary" style={{ minHeight: "2.375rem", fontSize: "0.8125rem" }} disabled={pending || !idea.trim()}>
           Add
         </button>

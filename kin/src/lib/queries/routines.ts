@@ -481,7 +481,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       .eq("member_id", historyFor)
       .gt("points", 0);
     for (const c of changed ?? []) {
-      entries.push({ date: c.occurred_on, kind: "alkansya", title: "Changed into pesos for the alkansya", points: -c.points, status: "granted" });
+      entries.push({ date: c.occurred_on, kind: "alkansya", title: "Changed into cash for the piggy bank", points: -c.points, status: "granted" });
     }
   }
   entries.sort((a, b) => b.date.localeCompare(a.date));

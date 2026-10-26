@@ -85,7 +85,7 @@ function AddressForm({
         <PlaceInput
           id={`${uid}-search`}
           ariaLabel="Search for the address"
-          placeholder="Street, barangay or city"
+          placeholder="Street, district or city"
           style={{ minHeight: "2.5rem" }}
           disabled={busy}
           onPick={(p) => {
@@ -114,8 +114,8 @@ function AddressForm({
       </div>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-barangay`}>Barangay</label>
-          <input id={`${uid}-barangay`} aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
+          <label htmlFor={`${uid}-barangay`}>District</label>
+          <input id={`${uid}-barangay`} aria-label="District" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-city`}>City / municipality</label>

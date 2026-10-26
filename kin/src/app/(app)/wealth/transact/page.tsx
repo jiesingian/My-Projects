@@ -35,7 +35,7 @@ export default async function TransactPage({
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 6px" }}>Move money</h3>
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
-          Got a receipt or a GCash screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
+          Got a receipt or a payment screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
         </p>
         <TransactForm
           accounts={toPickable(accounts, me.id, { everyone: true })}

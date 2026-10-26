@@ -39,7 +39,7 @@ export function GroupCreateForm({ people, announce, existingNames = [] }: { peop
           value={name}
           maxLength={60}
           onChange={(e) => setName(e.target.value)}
-          placeholder={announceOnly ? "Family news" : "Cousins, Siblings, Lola's 80th…"}
+          placeholder={announceOnly ? "Family news" : "Cousins, Siblings, Grandma's 80th…"}
           style={{ width: "100%" }}
           aria-describedby={duplicate ? "group-name-duplicate" : undefined}
         />

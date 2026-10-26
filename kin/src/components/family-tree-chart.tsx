@@ -724,7 +724,7 @@ export function FamilyTreeChart({
           setSelected(p.id);
           setAdding(null);
         }}
-        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}${stories > 0 ? `, ${storyCountLabel(stories).toLowerCase()}` : ""}${candle ? ", remembered this Undas" : ""}`}
+        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}${stories > 0 ? `, ${storyCountLabel(stories).toLowerCase()}` : ""}${candle ? ", remembered this All Saints' Day" : ""}`}
       >
         <span className="kin-tp-av" aria-hidden="true">
           {p.avatarUrl ? (

@@ -129,7 +129,7 @@ export function EventGuestLink({
           <span>Guests may join the draw:</span>
           <select
             className="input"
-            aria-label="Which monito-monita draw guests may join"
+            aria-label="Which gift exchange draw guests may join"
             style={{ minHeight: "2.25rem", fontSize: "0.84375rem", flex: "1 1 10rem", minWidth: 0 }}
             value={drawId}
             disabled={pending}

@@ -100,9 +100,9 @@ async function testWords(kind: PushTestKind, me: { id: string; family_id: string
   const first = me.full_name.split(" ")[0];
   switch (kind) {
     case "tree_story":
-      return treeStoryWords({ id: "test", personId: me.id, ours: true, title: "The day she met Lolo at the fiesta", writerFirst: first, personFirst: "Lola" });
+      return treeStoryWords({ id: "test", personId: me.id, ours: true, title: "The day she met Grandpa at the town fair", writerFirst: first, personFirst: "Grandma" });
     case "helper_line":
-      return helperListWords({ familyId: me.family_id, name: "Itlog", by: first });
+      return helperListWords({ familyId: me.family_id, name: "Eggs", by: first });
     case "arrived": {
       const tz = me.families.time_zone || "Asia/Manila";
       const home = { id: "test", name: "Home", lat: 14.5995, lng: 120.9842, radiusM: 150, notify: true };

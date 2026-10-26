@@ -419,7 +419,7 @@ function StoryForm({
 
       <label className="kin-story-field">
         <span>Title</span>
-        <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={STORY_TITLE_MAX} placeholder="How Lola came to Manila" />
+        <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={STORY_TITLE_MAX} placeholder="How Grandma came to the city" />
       </label>
       {!story && title.trim() !== prompt && (
         <button type="button" className="chip kin-story-prompt" onClick={() => setTitle(prompt)}>
@@ -445,7 +445,7 @@ function StoryForm({
           value={tellerName}
           onChange={(e) => setTellerName(e.target.value)}
           maxLength={STORY_TELLER_MAX}
-          placeholder="Lolo Ben, told to Mia"
+          placeholder="Grandpa Ben, told to Mia"
           aria-label="Who told it"
         />
       )}

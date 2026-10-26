@@ -17,7 +17,7 @@ const KIND: Record<QuickParse["kind"], { label: string; icon: IconName; tint: st
   meal: { label: "Meal", icon: "bowl", tint: "home" },
 };
 
-const SLOT_LABEL: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", morning_snack: "Snack", afternoon_snack: "Merienda" };
+const SLOT_LABEL: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", morning_snack: "Morning snack", afternoon_snack: "Afternoon snack" };
 
 const EVENT_LABEL: Record<string, string> = { birthday: "Birthday", anniversary: "Anniversary", travel: "Travel" };
 
@@ -95,7 +95,7 @@ export function QuickLine({ members, meId, today, defaultDate, currency = "PHP" 
             setText(e.target.value);
             setMessage(null);
           }}
-          placeholder='Type it: "Ben dentist Tue 3pm", "paid Meralco 2300"'
+          placeholder='Type it: "Ben dentist Tue 3pm", "paid electric bill 2300"'
           aria-label="Add in one line"
           enterKeyHint="done"
           autoComplete="off"

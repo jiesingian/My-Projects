@@ -23,13 +23,13 @@ export default async function AlkansyaPage() {
     <div>
       <DetailHeader backHref="/planner?seg=goals&g=shop" eyebrow="Shop" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        <h3 style={{ fontSize: "2rem", margin: "0 0 0.375rem" }}>Alkansya</h3>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 0.375rem" }}>Piggy bank</h3>
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 1rem", lineHeight: 1.45 }}>
-          Each child&rsquo;s weekly baon and the points they change into pesos, split into gastos, ipon and bigay. {ALKANSYA_DISCLAIMER}
+          Each child&rsquo;s weekly allowance and the points they change into cash, split into Spend, Save and Give. {ALKANSYA_DISCLAIMER}
         </p>
 
         {children.length === 0 && (
-          <Empty icon={<Icon name="wallet" size={26} />} title="No children yet" line="Add a child on Family, and their alkansya starts here." />
+          <Empty icon={<Icon name="wallet" size={26} />} title="No children yet" line="Add a child on Family, and their piggy bank starts here." />
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
@@ -44,7 +44,7 @@ export default async function AlkansyaPage() {
                   {c.plan && c.plan.active && c.plan.weeklyAmount > 0
                     ? `${formatCurrency(c.plan.weeklyAmount, currency)} every ${WEEKDAYS[c.plan.payWeekday]}`
                     : c.plan
-                      ? "No weekly baon"
+                      ? "No weekly allowance"
                       : "Not set up yet"}
                 </div>
                 <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.375rem", fontSize: "0.78125rem" }}>

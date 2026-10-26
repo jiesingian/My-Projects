@@ -52,7 +52,7 @@ test("utang: lend, get paid back in full, settled", async ({ page }) => {
   try {
     await page.goto("/wealth/utang", { waitUntil: "networkidle" });
     test.skip(!(await onPlus(page)), "the sample household is not on Kin Plus");
-    await page.getByRole("button", { name: "Record an utang" }).click();
+    await page.getByRole("button", { name: "Record an IOU" }).click();
     await page.getByRole("radio", { name: "We lent" }).check();
     await page.getByLabel("Lent to").fill(who);
     await page.getByLabel("How much").fill("1500");
@@ -76,9 +76,9 @@ test("paluwagan: start one, mark our hulog paid for round 1", async ({ page }) =
   try {
     await page.goto("/wealth/utang", { waitUntil: "networkidle" });
     test.skip(!(await onPlus(page)), "the sample household is not on Kin Plus");
-    await page.getByRole("button", { name: "Add a paluwagan" }).click();
+    await page.getByRole("button", { name: "Add a savings circle" }).click();
     await page.getByLabel("Name", { exact: true }).fill(name);
-    await page.getByLabel("Hulog per member, each round").fill("1000");
+    await page.getByLabel("Contribution per member, each round").fill("1000");
     await page.getByLabel("The other members, one per line, in turn order").fill("Ate Joy\nKuya Ben");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await page.waitForURL(/\/wealth\/paluwagan\//);
@@ -102,14 +102,14 @@ test("alkansya: money in, money out, the line taken off again", async ({ page })
     await child.click();
     await page.waitForURL(/\/planner\/alkansya\/.+/);
     await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: /alkansya/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /piggy bank/i })).toBeVisible();
 
     // The jars open once a plan exists ("Add money" waits for one). A child
     // without one gets a ₱100 weekly baon, and keeps it: a plan is paused,
     // never deleted (alkansya_plans has no delete policy), so the sample
     // child simply has one from the first run on.
     if (!(await page.getByRole("button", { name: "Add money" }).isVisible())) {
-      await page.getByRole("textbox", { name: "Weekly baon" }).fill("100");
+      await page.getByRole("textbox", { name: "Weekly allowance" }).fill("100");
       await page.getByRole("button", { name: "Save", exact: true }).click();
       await expect(page.getByRole("button", { name: "Add money" })).toBeVisible();
     }

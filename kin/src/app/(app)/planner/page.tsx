@@ -1192,8 +1192,8 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
         <Link href="/planner/gifts" className="kin-potluck-invite">
           <Icon name="gift" size={18} />
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and aguinaldo</span>
-            <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>A budget for each person and inaanak, ticked when bought</span>
+            <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and cash gifts</span>
+            <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>A budget for each person and godchild, ticked when bought</span>
           </span>
         </Link>
       )}
@@ -1203,7 +1203,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
         <Link href="/planner/monito" className="kin-potluck-invite">
           <Icon name="gift" size={18} />
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: "block", fontWeight: 600 }}>Monito-monita</span>
+            <span style={{ display: "block", fontWeight: 600 }}>Gift exchange</span>
             <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {draws.length > 0 ? draws.map((d) => `${d.title}${d.drawn ? " · drawn" : d.mine ? "" : ` · ${d.hostName}`}`).join(", ") : "Draw names for the gift exchange"}
             </span>

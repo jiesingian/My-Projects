@@ -12,7 +12,7 @@ import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 test("five pages, one slug each, all in the landing's footer order", () => {
   expect(FEATURE_SLUGS).toEqual(["paluwagan", "utang", "family-tree", "medicine-reminders", "monito-monita"]);
   expect(new Set(FEATURE_SLUGS).size).toBe(5);
-  expect(featurePage("paluwagan")?.name).toBe("Paluwagan");
+  expect(featurePage("paluwagan")?.name).toBe("Savings circle");
   expect(featurePage("nope")).toBeUndefined();
 });
 
@@ -54,7 +54,7 @@ test("the free or Plus line agrees with the plan lists", () => {
   const freeList = FREE_FEATURES.join(" ");
   expect(featurePage("paluwagan")?.plan).toBe("plus");
   expect(featurePage("utang")?.plan).toBe("plus");
-  expect(plusList).toContain("paluwagan");
+  expect(plusList).toContain("savings circles");
   expect(featurePage("medicine-reminders")?.plan).toBe("plus");
   expect(plusList).toContain("Medicines with dose reminders");
   expect(featurePage("family-tree")?.plan).toBe("free");

@@ -53,10 +53,10 @@ test("the utang reminder is for money lent, still owed, and says what came back"
   expect(text).toContain("₱5,000");
   expect(text).toContain("₱2,000");
   expect(text).toContain("₱3,000");
-  expect(text).toMatch(/Walang pressure/);
+  expect(text).toMatch(/No pressure/);
   expect(utangReminder({ ...base, direction: "borrowed" })).toBeNull();
   expect(utangReminder({ ...base, direction: "lent", paid: 5000, left: 0 })).toBeNull();
-  expect(utangReminder({ ...base, direction: "lent", paid: 0, left: 5000 })).not.toMatch(/naibalik/);
+  expect(utangReminder({ ...base, direction: "lent", paid: 0, left: 5000 })).not.toMatch(/already paid back/);
 });
 
 test("the paluwagan reminder names the group, round and hulog", () => {

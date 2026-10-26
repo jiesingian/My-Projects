@@ -47,7 +47,7 @@ test("Coming up a week before Undas names everyone remembered, oldest passing fi
   const items = remembranceItems([lolo, lola, tito], "2026-10-26");
   const undas = items.find((i) => i.id === "undas-2026-11-01")!;
   expect(undas.inDays).toBe(6);
-  expect(undas.title).toBe("Undas in 6 days");
+  expect(undas.title).toBe("All Saints' Day in 6 days");
   expect(undas.meta).toBe("Lola Remedios, Lolo Ben and Tito Recent · candles and flowers?");
   // Lolo Ben's first year on the 30th, Tito's 40th day on the 31st.
   expect(items.map((i) => i.id)).toEqual(["remember-lolo-2026-10-30", "remember-tito-2026-10-31", "undas-2026-11-01"]);
@@ -56,7 +56,7 @@ test("Coming up a week before Undas names everyone remembered, oldest passing fi
 test("on Undas itself, Today says who is remembered, on both days", () => {
   for (const d of ["2026-11-01", "2026-11-02"]) {
     const today = remembranceItems([lola, lolo], d, 0);
-    expect(today).toEqual([{ id: `undas-${d}`, title: "Undas · remembering", meta: "Lola Remedios and Lolo Ben", inDays: 0 }]);
+    expect(today).toEqual([{ id: `undas-${d}`, title: "All Saints' Day · remembering", meta: "Lola Remedios and Lolo Ben", inDays: 0 }]);
   }
 });
 

@@ -128,11 +128,11 @@ type NewScreen = { name: string; path?: string; from?: string; links?: string[];
 const NEW_SCREENS: NewScreen[] = [
   { name: "Year book", path: "/journal/year-book" },
   { name: "Tree file (GEDCOM)", path: "/family/tree-file" },
-  { name: "Utang & paluwagan", path: "/wealth/utang" },
+  { name: "Lending & savings circles", path: "/wealth/utang" },
   { name: "Family statements", path: "/wealth/statements" },
-  { name: "A paluwagan", from: "/wealth/utang", links: ["/wealth/paluwagan/"] },
-  { name: "Alkansya & baon", path: "/planner/alkansya" },
-  { name: "A child's alkansya", from: "/planner/alkansya", links: ["/planner/alkansya/"] },
+  { name: "A savings circle", from: "/wealth/utang", links: ["/wealth/paluwagan/"] },
+  { name: "Piggy bank & allowance", path: "/planner/alkansya" },
+  { name: "A child's piggy bank", from: "/planner/alkansya", links: ["/planner/alkansya/"] },
   { name: "Statement import", from: "/wealth?seg=accounts", links: ["/wealth/accounts/"], then: "/import" },
   { name: "Helper access settings", path: "/settings/household" },
   // A member who helps nowhere is sent to their own Kin; that hop has to be clean too.

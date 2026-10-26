@@ -121,7 +121,7 @@ export const SINKING_FUND_PRESETS = [
   { title: "Tuition", note: "School fees for the next school year" },
   { title: "Car registration", note: "LTO renewal and insurance" },
   { title: "Insurance premium", note: "The yearly premium" },
-  { title: "Christmas", note: "Noche Buena, gifts, the 13th-month season" },
+  { title: "Christmas", note: "Christmas Eve dinner, gifts, the bonus season" },
 ] as const;
 
 /** The expense category a fund's payment most likely belongs in, from its

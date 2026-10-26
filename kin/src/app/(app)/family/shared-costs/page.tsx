@@ -39,7 +39,7 @@ export default async function SharedCostsPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 0.375rem" }}>Shared costs</h3>
         <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0 0 0.875rem" }}>
-          Costs you share with a linked household — Lola&apos;s medicines, her check-ups. Each household records what it paid; Kin works out each one&apos;s share and who owes whom. Only the grown-ups of the households in a pot see it.
+          Costs you share with a linked household — Grandma&apos;s medicines, her check-ups. Each household records what it paid; Kin works out each one&apos;s share and who owes whom. Only the grown-ups of the households in a pot see it.
         </p>
 
         {pots.length === 0 && <Empty icon={<Icon name="users" size={26} />} title="No shared pots yet" line="Start one below with a household you're linked to." />}

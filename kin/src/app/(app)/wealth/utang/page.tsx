@@ -24,7 +24,7 @@ export default async function UtangPage() {
       <div>
         <DetailHeader backHref="/wealth" eyebrow="Wealth" />
         <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-          <Empty icon={<Icon name="wallet" size={26} />} title="For grown-ups" line="Utang and paluwagan are kept by the grown-ups in the household." />
+          <Empty icon={<Icon name="wallet" size={26} />} title="For grown-ups" line="Lending and savings circles are kept by the grown-ups in the household." />
         </div>
       </div>
     );
@@ -41,7 +41,7 @@ export default async function UtangPage() {
     <div>
       <DetailHeader backHref="/wealth" eyebrow="Wealth" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Utang &amp; paluwagan</h3>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Lending &amp; savings circles</h3>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.5rem", marginBottom: "0.875rem" }}>
           <Blueprint style={{ padding: "0.8125rem" }}>
@@ -54,13 +54,13 @@ export default async function UtangPage() {
           </Blueprint>
         </div>
 
-        <section aria-label="Utang" style={{ marginBottom: "1.5rem" }}>
+        <section aria-label="Lending" style={{ marginBottom: "1.5rem" }}>
           <div style={{ display: "flex", alignItems: "baseline", margin: "0 0 0.5rem" }}>
-            <span className="kin-eyebrow">UTANG</span>
+            <span className="kin-eyebrow">LENDING</span>
           </div>
           <AddUtangForm today={today} />
           {utang.length === 0 ? (
-            <Empty icon={<Icon name="wallet" size={26} />} title="No utang recorded" line="Money lent to a relative, or borrowed from one, and every bit paid back." />
+            <Empty icon={<Icon name="wallet" size={26} />} title="No IOUs recorded" line="Money lent to a relative, or borrowed from one, and every bit paid back." />
           ) : (
             utang.map((u) => (
               <UtangRow
@@ -74,11 +74,11 @@ export default async function UtangPage() {
           )}
         </section>
 
-        <section aria-label="Paluwagan">
-          <div className="kin-eyebrow" style={{ margin: "0 0 0.5rem" }}>PALUWAGAN</div>
+        <section aria-label="Savings circles">
+          <div className="kin-eyebrow" style={{ margin: "0 0 0.5rem" }}>SAVINGS CIRCLES</div>
           <AddPaluwaganForm today={today} />
           {groups.length === 0 && (
-            <Empty icon={<Icon name="users" size={26} />} title="No paluwagan yet" line="Everyone puts in the same each round, and each round one member takes the pot. Keep track of turns and who has paid." />
+            <Empty icon={<Icon name="users" size={26} />} title="No savings circles yet" line="Everyone puts in the same each round, and each round one member takes the pot. Keep track of turns and who has paid." />
           )}
           {groups.map((g) => {
             const rounds = g.members.length;

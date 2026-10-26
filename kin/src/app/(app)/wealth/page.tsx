@@ -433,7 +433,7 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 }
 
 /** The A&L group utang and paluwagan sit in, in both donuts. */
-const UTANG_GROUP = "Utang & paluwagan";
+const UTANG_GROUP = "Lending & savings circles";
 
 /* ----------------------------------------------------------------- cash flow */
 
@@ -780,7 +780,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       ) : (
         <GroupedBreakdown items={incomeItems} currency={currency} storageKey="kin-income" categoryOrder={INCOME_SOURCES.map(categoryLabel)} center={{ label: `this ${periodNoun}`, note: "money in" }} />
       )}
-      <UtangInstalments heading="UTANG COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
+      <UtangInstalments heading="MONEY LENT COMING BACK" rows={comingBack} currency={currency} fmtDate={fmtDate} />
       {/* Remittances and utang & paluwagan open from inside this sheet
           (22 October): they are ways money comes in, not rows of their own. */}
       <AddIncomeScheduleForm accounts={bareAccounts} whose={whose} openLent={openLent} currency={currency} grownUp={grownUp} />
@@ -863,7 +863,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
       >
         <Icon name="camera" size={18} />
-        <span style={{ flex: 1 }}>Snap a receipt or GCash screenshot</span>
+        <span style={{ flex: 1 }}>Snap a receipt or payment screenshot</span>
         <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
       </Link>
 
@@ -879,7 +879,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </Link>
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
-      <UtangInstalments heading="UTANG TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
+      <UtangInstalments heading="MONEY BORROWED TO PAY BACK" rows={toPayBack} currency={currency} fmtDate={fmtDate} />
       </CollapsibleGroup>
     </>
   );
@@ -1148,13 +1148,13 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
     ...assets.map((a) => ({ id: `asset-${a.id}`, name: a.name, amount: a.worth.total, category: ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, ...who.sliceOwner(a.owner_member_id, a.is_joint) })),
     // Utang and paluwagan count too (Janine, 23 October): money lent is
     // owed to us, a paluwagan holds what we have put in. Household records.
-    ...(owedToUs > 0 ? [{ id: "utang-lent", name: "Utang owed to us", amount: owedToUs, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
-    ...(paluwaganIn > 0 ? [{ id: "paluwagan-in", name: "Paluwagan put in", amount: paluwaganIn, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(owedToUs > 0 ? [{ id: "utang-lent", name: "Money lent, owed to us", amount: owedToUs, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(paluwaganIn > 0 ? [{ id: "paluwagan-in", name: "Savings circle, put in", amount: paluwaganIn, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
   ];
   const owed: BreakdownItem[] = [
     ...liabilities.map((l) => ({ id: l.id, name: l.name, amount: Number(l.balance), category: LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind, ...who.sliceOwner(l.owner_member_id, l.is_joint) })),
-    ...(weOwe > 0 ? [{ id: "utang-borrowed", name: "Utang we owe", amount: weOwe, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
-    ...(paluwaganOwed > 0 ? [{ id: "paluwagan-owed", name: "Paluwagan pot taken early", amount: paluwaganOwed, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(weOwe > 0 ? [{ id: "utang-borrowed", name: "Money borrowed, we owe", amount: weOwe, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
+    ...(paluwaganOwed > 0 ? [{ id: "paluwagan-owed", name: "Savings circle pot taken early", amount: paluwaganOwed, category: UTANG_GROUP, ...who.sliceOwner(null, true) }] : []),
   ];
   // Each kind its own group, folded or open as the viewer last left it; a
   // kind the list doesn't know is shown under Other.
@@ -1371,7 +1371,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         >
           <Icon name="users" size={18} />
           <span style={{ flex: 1 }}>
-            Utang &amp; paluwagan
+            Lending &amp; savings circles
             <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
               {receivables > 0 ? `${formatCurrency(receivables, currency)} owed to us` : ""}
               {receivables > 0 && payables > 0 ? " · " : ""}

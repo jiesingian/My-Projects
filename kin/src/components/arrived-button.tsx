@@ -63,7 +63,7 @@ export function ArrivedButton({ auto = false, big = false }: { auto?: boolean; b
       aria-busy={busy}
     >
       <Icon name="mapPin" size={16} />
-      {busy ? "Sending where you are…" : "Nakarating na ako"}
+      {busy ? "Sending where you are…" : "I’ve arrived"}
     </button>
   );
 }

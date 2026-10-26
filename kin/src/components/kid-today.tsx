@@ -55,7 +55,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
       </div>
       <h2 style={{ fontSize: "min(2.25rem, 12vw)", margin: "0 0 0.5rem" }}>Hi {first}!</h2>
       <CheckInPrompt checkIns={checkIns} />
-      {/* "Nakarating na ako": at school, at Lola's -- one tap tells home. */}
+      {/* "I've arrived": at school, at Grandma's -- one tap tells home. */}
       <ArrivedButton auto={arrivedNow} big />
       {/* A letter written to them years ago, on the day it opens. */}
       <LettersOpeningToday familyId={me.family_id} />
@@ -73,7 +73,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
       {alkansya && (alkansya.plan || alkansya.balances.total > 0) && (
         <Link href={`/planner/alkansya/${me.id}`} className="blueprint" style={{ display: "block", padding: "0.75rem 0.875rem", marginTop: "0.75rem", textDecoration: "none", color: "inherit" }}>
           <span style={{ display: "flex", alignItems: "baseline" }}>
-            <span style={{ fontWeight: 600 }}>My alkansya</span>
+            <span style={{ fontWeight: 600 }}>My piggy bank</span>
             <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontWeight: 600 }}>{formatCurrency(alkansya.balances.total, me.families.currency)}</span>
           </span>
           <span style={{ display: "flex", gap: "0.75rem", fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>

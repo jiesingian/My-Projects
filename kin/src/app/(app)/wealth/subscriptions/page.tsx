@@ -40,7 +40,7 @@ export default async function SubscriptionsPage() {
           <Empty
             icon={<Icon name="receipt" size={26} />}
             title="No repeating charges"
-            line="An expense set to repeat every month, quarter or year shows here — Netflix, Meralco, the internet, insurance — with what it costs a year."
+            line="An expense set to repeat every month, quarter or year shows here — Netflix, the electric bill, the internet, insurance — with what it costs a year."
           />
         )}
         {subs.charges.map((s) => (

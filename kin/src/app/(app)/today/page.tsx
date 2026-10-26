@@ -58,7 +58,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const params = await searchParams;
-  // The Action Button's "Nakarating na ako" (/go/arrived) sends on arrival.
+  // The Action Button's "I've arrived" (/go/arrived) sends on arrival.
   const arrivedNow = params.arrived === "1";
   if (inKidView(me)) return <KidToday me={me} arrivedNow={arrivedNow} />;
   if (inSimpleMode(me)) return <SimpleToday me={me} arrivedNow={arrivedNow} />;
@@ -287,7 +287,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         })}
       </nav>
 
-      {/* "Nakarating na ako": one tap tells the household where you are. */}
+      {/* "I've arrived": one tap tells the household where you are. */}
       <ArrivedButton auto={arrivedNow} />
 
       {/* Who's where: only when someone in the household shares (item 10). */}

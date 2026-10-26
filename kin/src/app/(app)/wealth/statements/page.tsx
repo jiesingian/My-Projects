@@ -140,7 +140,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
         <div style={row}>
           <span style={label}>
             Borrowing and lending
-            <span style={{ ...sub, display: "block" }}>{money(s.cash.debtPaid)} paid off loans · {money(s.cash.utangBack)} utang paid back to us</span>
+            <span style={{ ...sub, display: "block" }}>{money(s.cash.debtPaid)} paid off loans · {money(s.cash.utangBack)} lent money paid back to us</span>
           </span>
           <span style={num}>{money(s.cash.borrowing)}</span>
         </div>
@@ -177,7 +177,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
         ))}
         {nw.receivables > 0 && (
           <div style={row}>
-            <span style={label}>Utang and paluwagan owed to us</span>
+            <span style={label}>Lending and savings circles owed to us</span>
             <span style={num}>{money(nw.receivables)}</span>
           </div>
         )}
@@ -200,7 +200,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
         ))}
         {nw.payables > 0 && (
           <div style={row}>
-            <span style={label}>Utang and paluwagan we owe</span>
+            <span style={label}>Lending and savings circles we owe</span>
             <span style={num}>−{money(nw.payables)}</span>
           </div>
         )}

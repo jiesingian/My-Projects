@@ -38,7 +38,7 @@ export default async function GiftsPage({ searchParams }: { searchParams: Promis
       <DetailHeader backHref="/planner?seg=events" eyebrow="Christmas gifts" />
       <div style={{ padding: "0 var(--gutter) 1.5rem" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.75rem", marginBottom: "0.25rem" }}>
-          <h1 style={{ fontSize: "1.375rem", margin: 0, flex: 1 }}>Gifts and aguinaldo {year}</h1>
+          <h1 style={{ fontSize: "1.375rem", margin: 0, flex: 1 }}>Gifts and cash gifts {year}</h1>
           <Link href={`/planner/gifts?year=${year - 1}`} style={{ fontSize: "0.8125rem" }}>
             {year - 1}
           </Link>
@@ -66,7 +66,7 @@ export default async function GiftsPage({ searchParams }: { searchParams: Promis
               <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>budget</div>
             </div>
             <div style={{ gridColumn: "1 / -1", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-              {t.done} of {t.people} done{t.aguinaldo > 0 ? ` · ${money(t.aguinaldo)} in aguinaldo` : ""}
+              {t.done} of {t.people} done{t.aguinaldo > 0 ? ` · ${money(t.aguinaldo)} in cash gifts` : ""}
             </div>
           </div>
         )}

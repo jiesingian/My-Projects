@@ -161,7 +161,7 @@ export const INCOME_SOURCES = [
  * here reads as it is saved. */
 export const CATEGORY_LABELS: Record<string, string> = {
   // Money out
-  Groceries: "Groceries & palengke",
+  Groceries: "Groceries & market",
   Dining: "Eating out & delivery",
   Utilities: "Bills & utilities",
   Housing: "Rent & housing",
@@ -180,6 +180,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   Investment: "Interest & dividends",
   Gift: "Gifts received",
   Refund: "Refunds & cashback",
+  "Utang paid back": "Lent money paid back",
+  // Add income's own choice (UTANG_CATEGORY), never saved as a category.
+  "Utang & paluwagan": "Lending & savings circles",
 };
 export function categoryLabel(category: string): string {
   return CATEGORY_LABELS[category] ?? category;

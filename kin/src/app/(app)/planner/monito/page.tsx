@@ -22,7 +22,7 @@ export default async function MonitoPage() {
 
   return (
     <div>
-      <DetailHeader backHref="/planner?seg=events" eyebrow="Monito-monita" />
+      <DetailHeader backHref="/planner?seg=events" eyebrow="Gift exchange" />
       <div style={{ padding: "0 var(--gutter) 1.5rem" }}>
         {draws.length > 0 && (
           <section style={{ marginBottom: "1.5rem" }}>

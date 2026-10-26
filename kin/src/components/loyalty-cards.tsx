@@ -22,7 +22,7 @@ const STORES = [
   "Mercury Drug",
   "Watsons",
   "Rose Pharmacy",
-  "Palengke",
+  "Market",
 ];
 
 const QR_MARGIN = 4;
@@ -244,13 +244,13 @@ function CardForm({ card, onDone }: { card: LoyaltyCard | null; onDone: () => vo
 
   return (
     <div style={{ padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginBottom: "0.75rem" }}>
-      <input className="input" value={store} onChange={(e) => setStore(e.target.value)} list={listId} aria-label="Store" placeholder="Store — SM Supermarket, Puregold, the palengke…" maxLength={80} style={field} />
+      <input className="input" value={store} onChange={(e) => setStore(e.target.value)} list={listId} aria-label="Store" placeholder="Store — SM Supermarket, Puregold, the market…" maxLength={80} style={field} />
       <datalist id={listId}>
         {STORES.map((s) => (
           <option key={s} value={s} />
         ))}
       </datalist>
-      <input className="input" value={cardName} onChange={(e) => setCardName(e.target.value)} aria-label="Card name" placeholder="Card name — SM Advantage, Suki card (optional)" maxLength={80} style={field} />
+      <input className="input" value={cardName} onChange={(e) => setCardName(e.target.value)} aria-label="Card name" placeholder="Card name — SM Advantage, store card (optional)" maxLength={80} style={field} />
       <input
         className="input"
         value={cardNumber}
@@ -261,7 +261,7 @@ function CardForm({ card, onDone }: { card: LoyaltyCard | null; onDone: () => vo
         autoComplete="off"
         style={{ ...field, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
       />
-      <input className="input" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note" placeholder="Note — ask for suki price, Mama's card (optional)" maxLength={200} style={field} />
+      <input className="input" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note" placeholder="Note — ask for the regular price, Mama's card (optional)" maxLength={200} style={field} />
       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", marginBottom: "0.625rem" }}>
         <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />
         Show the number as a QR code for the scanner
