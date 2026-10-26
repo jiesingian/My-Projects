@@ -12,9 +12,11 @@ import { SINKING_FUND_PRESETS } from "@/lib/sinking-fund";
 
 const initialState: ActionState = { error: null };
 
-export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[]; currency: string }) {
+export function AddGoalForm({ accounts, currency, kids: children = [] }: { accounts: PickableAccount[]; currency: string; kids?: { id: string; label: string }[] }) {
   const [state, formAction] = useActionState(createGoalAction, initialState);
-  const [isJoint, setIsJoint] = useState(true);
+  // "joint", "me", or a child's member id (26 October).
+  const [whose, setWhose] = useState("joint");
+  const isJoint = whose === "joint";
   const [yearly, setYearly] = useState(false);
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
@@ -22,6 +24,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
   return (
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
+      <input type="hidden" name="owner" value={isJoint ? "" : whose} />
       <input type="hidden" name="repeats_yearly" value={yearly ? "on" : ""} />
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "0.5rem" }}>
@@ -61,14 +64,24 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
       <Field label="Note">
         <input className="input" name="sub_note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Six months of household costs" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "1rem" }}>
-        <button type="button" className="chip" data-active={isJoint} onClick={() => setIsJoint(true)}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4375rem", marginBottom: "1rem" }}>
+        <button type="button" className="chip" data-active={isJoint} onClick={() => setWhose("joint")}>
           Joint
         </button>
-        <button type="button" className="chip" data-active={!isJoint} onClick={() => setIsJoint(false)}>
+        {children.map((c) => (
+          <button key={c.id} type="button" className="chip" data-active={whose === c.id} onClick={() => setWhose(c.id)}>
+            {c.label}
+          </button>
+        ))}
+        <button type="button" className="chip" data-active={whose === "me"} onClick={() => setWhose("me")}>
           Mine
         </button>
       </div>
+      {children.some((c) => c.id === whose) && (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "-0.5rem 0 1rem" }}>
+          {children.find((c) => c.id === whose)!.label}&rsquo;s goal: the grown-ups and {children.find((c) => c.id === whose)!.label} see it; any grown-up can change it.
+        </p>
+      )}
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label={`Target amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
@@ -87,7 +100,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
       )}
       <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save goal</SubmitButton>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
-        A dated goal shows up on everyone&apos;s calendar, and money you put in comes out of a real account.
+        A dated goal shows up on {isJoint ? "everyone\u2019s calendar" : whose === "me" ? "your calendar" : "the grown-ups\u2019 calendars and theirs"}, and money you put in comes out of a real account.
       </p>
     </form>
   );

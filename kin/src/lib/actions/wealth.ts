@@ -1535,7 +1535,18 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const title = clamp(String(formData.get("title") ?? ""), 150);
   const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
   const isJoint = formData.get("is_joint") === "on";
-  const ownerMemberId = isJoint ? null : me.id;
+  // A grown-up may set one up for a child of the household (26 October);
+  // anyone else's is their own. goals_child_insert is the lock.
+  const requestedOwner = String(formData.get("owner") ?? "");
+  let ownerMemberId: string | null = isJoint ? null : me.id;
+  let childGoal = false;
+  if (!isJoint && /^[0-9a-f-]{36}$/i.test(requestedOwner) && requestedOwner !== me.id) {
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can set up a goal for someone else." };
+    const { data: child } = await supabase.from("members").select("id, role").eq("id", requestedOwner).eq("family_id", me.family_id).maybeSingle();
+    if (!child || isGrownUp(child.role)) return { error: "A goal can be set up for a child of the household, or for yourself." };
+    ownerMemberId = child.id;
+    childGoal = true;
+  }
   const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
   const targetDate = String(formData.get("target_date") ?? "") || null;
   const requestedAccountId = String(formData.get("linked_account_id") ?? "") || null;
@@ -1570,7 +1581,15 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   if (error) return { error: databaseError(error) };
 
   if (targetDate) {
-    const target: CalendarTarget = isJoint ? { kind: "all" } : { kind: "member", memberId: ownerMemberId };
+    // A child's goal: on the child's calendar and the grown-ups'.
+    const grownUps = childGoal
+      ? ((await supabase.from("members").select("id, role").eq("family_id", me.family_id).eq("status", "active")).data ?? []).filter((m) => isGrownUp(m.role)).map((m) => m.id)
+      : [];
+    const target: CalendarTarget = isJoint
+      ? { kind: "all" }
+      : childGoal
+        ? { kind: "members", memberIds: [ownerMemberId!, ...grownUps] }
+        : { kind: "member", memberId: ownerMemberId };
     await syncRowToCalendars(me.family_id, "goals", goal.id, allDayEvent(title, targetDate), target);
   }
 
