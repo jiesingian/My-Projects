@@ -590,6 +590,14 @@ export async function getAttributableTargets(familyId: string): Promise<{ assets
   };
 }
 
+/** The loans that already have a bill waiting (unpaid or scheduled) under
+ * Expenses, by loan id -- so A&L offers "Add as monthly bill" only once. */
+export async function getLoanBillIds(familyId: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("bills").select("against_id").eq("family_id", familyId).eq("against_table", "liabilities").in("status", ["unpaid", "scheduled"]);
+  return new Set((data ?? []).map((b) => b.against_id).filter((id): id is string => !!id));
+}
+
 export type RemittanceWithAllocations = Tables<"remittances"> & { allocations: Tables<"remittance_allocations">[] };
 
 /** Every remittance this grown-up may see, newest first, with what each one

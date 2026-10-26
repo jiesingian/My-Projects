@@ -40,6 +40,15 @@ function AssetForm() {
   // Still being paid off (Jonathan, 26 October): the loan goes in with the
   // asset, linked to it, so one entry carries both sides.
   const [onLoan, setOnLoan] = useState(false);
+  // A vehicle starts at -10% a year (Jonathan, 26 October): a car loses
+  // about that, and a blank box read as "keeps its value". Typed over, the
+  // typed figure stays whatever kind is picked after.
+  const [change, setChange] = useState("");
+  const [changeTyped, setChangeTyped] = useState(false);
+  const pickKind = (k: string) => {
+    setKind(k);
+    if (!changeTyped) setChange(k === "vehicle" ? "-10" : "");
+  };
   const isPlace = kind === "property";
   // Rows left wholly blank are dropped; a half-filled one is sent and named in the error.
   const filled = items.filter((i) => i.name.trim() || i.cost.trim());
@@ -59,7 +68,7 @@ function AssetForm() {
       </p>
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="Kind" style={{ flex: 1 }}>
-          <select className="input" name="kind" value={kind} onChange={(e) => setKind(e.target.value)} style={{ minHeight: "2.75rem" }}>
+          <select className="input" name="kind" value={kind} onChange={(e) => pickKind(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {ASSET_KINDS.map((k) => (
               <option key={k} value={k}>
                 {ASSET_KIND_LABELS[k]}
@@ -76,7 +85,21 @@ function AssetForm() {
           <DateInput className="input" name="acquired_on" style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="Changes a year (%)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.1" min="-50" max="50" name="annual_change_pct" placeholder={ASSET_KIND_CHANGE_HINTS[kind as AssetKind] ?? "Leave blank"} style={{ minHeight: "2.75rem" }} />
+          <input
+            className="input"
+            type="number"
+            step="0.1"
+            min="-50"
+            max="50"
+            name="annual_change_pct"
+            value={change}
+            onChange={(e) => {
+              setChange(e.target.value);
+              setChangeTyped(true);
+            }}
+            placeholder={ASSET_KIND_CHANGE_HINTS[kind as AssetKind] ?? "Leave blank"}
+            style={{ minHeight: "2.75rem" }}
+          />
         </Field>
       </div>
 

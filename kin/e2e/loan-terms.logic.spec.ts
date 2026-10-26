@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, assetGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, loanOriginStatus, loanKindFor } from "@/lib/wealth";
+import { accountGroup, assetGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, loanOriginStatus, loanKindFor, paymentsLeftForBalance } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -96,4 +96,18 @@ test("loanOriginStatus needs the terms; without a typed payment it uses the bank
   expect(fresh.made).toBe(0);
   expect(fresh.expectedBalance).toBe(2_000_000);
   expect(fresh.gap).toBe(0);
+});
+
+test("paymentsLeftForBalance reads the schedule off the balance: the other way to close the gap", () => {
+  // ₱1.8M owed on the ₱2M loan: the table reaches that after about 46
+  // payments, so about 194 are left -- not the 216 on the schedule.
+  const left = paymentsLeftForBalance(loan, 1_800_000)!;
+  expect(left).toBeLessThan(216);
+  expect(left).toBeGreaterThan(180);
+  // The balance the terms give for 24 payments made says 216 left exactly.
+  expect(paymentsLeftForBalance(loan, loanOriginStatus(loan, "2026-10-26")!.expectedBalance)).toBe(216);
+  // Nothing paid: the whole term. Paid off: none. No terms: nothing to read.
+  expect(paymentsLeftForBalance(loan, 2_000_000)).toBe(240);
+  expect(paymentsLeftForBalance(loan, 0)).toBe(0);
+  expect(paymentsLeftForBalance({ ...loan, term_months: null }, 1_800_000)).toBeNull();
 });

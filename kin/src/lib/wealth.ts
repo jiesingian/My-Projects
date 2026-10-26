@@ -1181,3 +1181,20 @@ export function loanOriginStatus(loan: LoanTerms, today: string): LoanOriginStat
     fixedMonthsLeft,
   };
 }
+
+/** The other way to read a gap between a loan's balance and its terms: the
+ * balance is right and the schedule is off. How many payments are left if
+ * `balance` is what is owed -- the first point on the amortisation table
+ * at or below it. Null unless what was borrowed and the term are known. */
+export function paymentsLeftForBalance(loan: LoanTerms, balance: number): number | null {
+  const original = loan.original_amount == null ? null : Number(loan.original_amount);
+  const term = loan.term_months;
+  if (original == null || !(original > 0) || !term || term < 1) return null;
+  const rate = loan.interest_rate == null ? null : Number(loan.interest_rate);
+  const typed = loan.monthly_payment == null ? null : Number(loan.monthly_payment);
+  const payment = typed && typed > 0 ? typed : amortisedPayment(original, rate, term);
+  for (let made = 0; made <= term; made++) {
+    if (amortise(original, rate, payment, made).balance <= balance + 0.005) return term - made;
+  }
+  return 0;
+}
