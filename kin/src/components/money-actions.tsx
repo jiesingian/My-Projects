@@ -48,6 +48,7 @@ import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type A
 export type { PickableAccount } from "@/lib/account-picker";
 import type { PickableAccount } from "@/lib/account-picker";
 import { AccountOptions } from "@/components/account-options";
+import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
 import { raiseNextBill } from "@/components/next-bill-offer";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
@@ -115,7 +116,7 @@ export function PayBillControl({
   defaultAccountId,
   due = null,
   autoOpen = false,
-  paysLoan = null,
+  loan = null,
 }: {
   billId: string;
   amount: number;
@@ -129,13 +130,15 @@ export function PayBillControl({
   due?: "today" | "overdue" | null;
   /** Arrived from Today's Pay: open the sheet straight away. */
   autoOpen?: boolean;
-  /** The loan this bill pays down (bills.against_table), by name: the
-   * sheet says the payment is split into interest and principal. */
-  paysLoan?: string | null;
+  /** The loan this bill pays down (bills.against_table): the sheet shows
+   * Kin's split into interest and principal, the principal there to change. */
+  loan?: SplitLoan | null;
 }) {
   const [open, setOpen] = useState(!!autoOpen);
   const [accountId, setAccountId] = useState((defaultAccountId && accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId : accounts[0]?.id) ?? "");
   const [payAmount, setPayAmount] = useState(amount);
+  // The principal the person typed, null to follow Kin's split.
+  const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
@@ -159,19 +162,24 @@ export function PayBillControl({
               {due === "today" ? "Due today." : "The due day has passed."} Mark it paid if it went through, changing the amount first if the bill came to more or less.
             </p>
           )}
-          {paysLoan && (
-            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem", lineHeight: 1.45 }}>
-              Pays {paysLoan}: Kin splits it into interest and the part that pays the loan down, from the loan&apos;s rate, and lowers the loan by that part.
-            </p>
-          )}
           <div className="field" style={{ marginBottom: "0.5rem" }}>
             <label htmlFor={`${uid}-account`}>Pay from</label>
             <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
           </div>
           <div className="field" style={{ marginBottom: "0.5rem" }}>
             <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
-            <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
+            <AmountInput
+              id={`${uid}-amount`}
+              ariaLabel={`Amount (${currencySymbol(currency)})`}
+              defaultValue={payAmount}
+              onValueChange={(v) => {
+                setPayAmount(v);
+                setPrincipalOverride(null);
+              }}
+              style={{ minHeight: "2.625rem" }}
+            />
           </div>
+          {loan && <LoanSplitBox loan={loan} amount={payAmount} currency={currency} override={principalOverride} onOverride={setPrincipalOverride} />}
           <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
@@ -179,7 +187,7 @@ export function PayBillControl({
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), (res) => { setOpen(false); raiseNextBill(res.next); })}
+              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url, principal: loan ? principalOverride : null }), (res) => { setOpen(false); raiseNextBill(res.next); })}
             >
               {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark paid"}
             </button>
