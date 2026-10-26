@@ -115,9 +115,9 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} />}
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
-        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
+        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} includePrivate={me.wealth_include_private} />}
         {seg !== "assets" && (
           <Suspense fallback={null}>
             <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
@@ -170,6 +170,43 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 /* --------------------------------------------------------------- shared bits */
 
+/** The Who picker and what it means, the same on every tab (27 October):
+ * each tab had its own wording, and only Accounts said that the viewer's
+ * Only-you accounts were left out of All, though Cash Flow's figures and
+ * A&L's cash leave them out just the same (flowFilter, getNetWorth). The
+ * switch that puts them back sits under it on every tab for the same
+ * reason. */
+function WhoRow({ who, scope, memberId, includePrivate, captions }: { who: Awaited<ReturnType<typeof whoPicker>>; scope: WealthScope; memberId: string; includePrivate: boolean; captions?: { family: string; mine: string; theirs: string } }) {
+  const caption =
+    scope === "all"
+      ? includePrivate
+        ? "Everything you can see"
+        : "Everything you can see, except your Only-you accounts"
+      : scope === WEALTH_FAMILY
+        ? (captions?.family ?? "Joint, and not in anyone's name")
+        : scope === memberId
+          ? (captions?.mine ?? "Yours only")
+          : (captions?.theirs ?? "Theirs, as shared with you");
+  return (
+    <div style={{ margin: "14px 0 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{caption}</span>
+      </div>
+      {scope === "all" && <IncludePrivateToggle include={includePrivate} />}
+    </div>
+  );
+}
+
+/** The graph-range picker, the same row on every tab that has one. */
+function RangeRow({ range, hrefFor }: { range: CashFlowRange; hrefFor: (r: CashFlowRange) => string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 10px" }}>
+      <PickButton title="Graph range" icon="calendarDays" label={CASH_FLOW_RANGE_LABELS[range]} options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: hrefFor(r), active: range === r }))} />
+    </div>
+  );
+}
+
 /** An account as every breakdown names it: bank or e-wallet, then the
  * account -- "BPI - Payroll" (Janine, 23 October). */
 function accountLabel(a: { name: string; institution?: string | null }) {
@@ -211,7 +248,7 @@ function Hero({ label, amount, currency, caption, delta, breakdown }: { label: s
  * against September's +₱130,229 (21 October audit). The arrow still says
  * which way it went; the number is one a family can check against the bar. */
 function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof periodOverPeriodChange>; currency: string; noun: string }) {
-  if (!change || change.netDelta === 0) return null;
+  if (!change || change.netDelta === 0 || !change.previousActive) return null;
   const up = change.netDelta > 0;
   const prev = change.previousNet;
   const prevLabel = `${prev > 0 ? "+" : prev < 0 ? "−" : ""}${formatCurrency(Math.abs(prev), currency)}`;
@@ -487,7 +524,7 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
   );
 }
 
-async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
+async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null, includePrivate }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null; includePrivate: boolean }) {
   const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [cf, budget, accounts, who, nextBills, targets] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
@@ -773,16 +810,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   );
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
-        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {/* Cash Flow is by whose the money is, not whose account it moved
-              through (entry_owner, 23 October); the caption says so. */}
-          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "The family's, in nobody's name" : mine ? "Your own income and expenses" : "Their income and expenses, as shared"}
-        </span>
-      </div>
+      {/* Cash Flow is by whose the money is, not whose account it moved
+          through (entry_owner, 23 October); its captions say so. */}
+      <WhoRow who={who} scope={scope} memberId={memberId} includePrivate={includePrivate} captions={{ family: "The family's, in nobody's name", mine: "Your own income and expenses", theirs: "Their income and expenses, as shared" }} />
 
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", margin: "4px 0 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", margin: "0 0 10px" }}>
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
           {cf.net > 0
             ? `More came in than went out this ${periodNoun}: net +${formatCurrency(cf.net, currency)}.`
@@ -793,14 +825,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 10px" }}>
-        <PickButton
-          title="Graph range"
-          icon="calendarDays"
-          label={CASH_FLOW_RANGE_LABELS[range]}
-          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}&who=${scope}`, active: range === r }))}
-        />
-      </div>
+      <RangeRow range={range} hrefFor={(r) => `/wealth?seg=cashflow&range=${r}&who=${scope}`} />
       <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} budgets={Object.fromEntries(budgetHistory)} />
 
       {/* Open, above the groups: in EXPENSES they sat in a group that is
@@ -969,21 +994,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
-        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all"
-            ? includePrivate
-              ? "Everything you can see"
-              : "Everything you can see, except your Only-you accounts"
-            : scope === WEALTH_FAMILY
-              ? "Joint, and not in anyone's name"
-              : mine
-                ? "Your own accounts"
-                : "Their accounts, as shared"}
-        </span>
-      </div>
-      {scope === "all" && <IncludePrivateToggle include={includePrivate} />}
+      <WhoRow who={who} scope={scope} memberId={memberId} includePrivate={includePrivate} />
 
       <Hero
         label={scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS · COMBINED" : isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
@@ -994,17 +1005,10 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         breakdown={breakdown}
       />
 
-      <CashTrendLine trend={cashTrend} currency={currency} />
-
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 4px" }}>
-        <PickButton
-          title="Graph range"
-          icon="calendarDays"
-          label={CASH_FLOW_RANGE_LABELS[range]}
-          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=accounts&range=${r}&who=${scope}`, active: range === r }))}
-        />
-        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Money in against money out, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
-      </div>
+      {/* Above both charts it drives (27 October): under the trend line it
+          read as the strip's alone, and the trend seemed stuck on months. */}
+      <RangeRow range={range} hrefFor={(r) => `/wealth?seg=accounts&range=${r}&who=${scope}`} />
+      <CashTrendLine trend={cashTrend} currency={currency} periodNoun={periodNoun} />
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
       <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
@@ -1159,7 +1163,7 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 /* -------------------------------------------------------------------- A&L */
 
-async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
+async function AssetsPane({ familyId, memberId, currency, scope, includePrivate }: { familyId: string; memberId: string; currency: string; scope: WealthScope; includePrivate: boolean }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [nw, who, allAccounts, loanBills, onPlanner] = await Promise.all([
     getNetWorth(familyId, scope, today),
@@ -1174,7 +1178,6 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // from has to be one the viewer themself can pay out of, regardless of
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
-  const mine = scope === memberId;
   // What is still owed on each asset, from the loans linked to it
   // (20261023231000): its value less this is the household's equity in it.
   const owedOn = new Map<string, number>();
@@ -1349,15 +1352,10 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
-        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own" : "Theirs, as shared"}
-        </span>
-      </div>
+      <WhoRow who={who} scope={scope} memberId={memberId} includePrivate={includePrivate} />
 
       <Hero
-        label="Net worth"
+        label="NET WORTH"
         amount={netWorth}
         currency={currency}
         caption={`${captionParts.join(" + ")} − ${formatCurrency(liabilityTotal + payables + creditOwed, currency)} owed`}

@@ -32,6 +32,14 @@ test("periodOverPeriodChange reports no percentage when the previous period had 
   expect(change!.pctChange).toBeNull();
 });
 
+test("periodOverPeriodChange says whether the previous period had anything in it", () => {
+  // The household's first month: nothing before it to compare against,
+  // so the badge stays off rather than reading "▲ last month ₱0".
+  expect(periodOverPeriodChange([{ income: 0, expense: 0 }, { income: 38000, expense: 4216 }])!.previousActive).toBe(false);
+  // Came out even is still a month that happened.
+  expect(periodOverPeriodChange([{ income: 50, expense: 50 }, { income: 100, expense: 20 }])!.previousActive).toBe(true);
+});
+
 test("cashBalanceTrend reconstructs backward from the current total", () => {
   const history = [
     { key: "1", label: "JAN", income: 1000, expense: 400 }, // net +600

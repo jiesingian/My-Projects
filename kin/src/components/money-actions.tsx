@@ -1540,7 +1540,7 @@ function DeletionSummary({ accountName, deleted, kept, effects }: { accountName:
 export function IncludePrivateToggle({ include }: { include: boolean }) {
   const { error, pending, run } = useMoneyAction();
   return (
-    <div style={{ margin: "0 0 0.75rem" }}>
+    <div style={{ margin: "0.375rem 0 0" }}>
       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
         <input type="checkbox" checked={include} disabled={pending} onChange={(e) => run(() => setIncludePrivateInTotalsAction(e.target.checked))} />
         Include my private accounts in All totals
