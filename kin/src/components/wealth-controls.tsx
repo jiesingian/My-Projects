@@ -4,6 +4,7 @@ import { WhoseSelect } from "@/components/whose-select";
 import { RemittanceFields, UtangFields, type OpenLent } from "@/components/income-category-extras";
 import { FormSheet } from "@/components/form-sheet";
 import { AccountOptions } from "@/components/account-options";
+import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
 import { sortByUse, type PickableAccount } from "@/lib/account-picker";
 import { confirm } from "@/components/confirm-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
@@ -462,7 +463,7 @@ export function AddAccountForm({
  * (bills.account_id), repeats if it does, and reminds ahead. Still a row in
  * `bills` through addBillAction, as every due-dated expense always was;
  * only the sheet changed. Opens on "Already paid": the everyday case. */
-export type ExpenseTargets = { assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: { id: string; name: string }[] };
+export type ExpenseTargets = { assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: SplitLoan[] };
 
 export function AddExpenseForm({ whose, accounts, currency, today, targets }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets }) {
   const [open, setOpen] = useState(false);
@@ -557,8 +558,29 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
   }, initialState);
   const [category, setCategory] = useState<string>("Groceries");
   // "assets:<id>", "goals:<id>" or "liabilities:<id>", or empty: most
-  // expenses are for nothing in particular. A loan picked sets Debt.
+  // expenses are for nothing in particular. A loan picked sets Debt, and
+  // fills in the usual payment and a name when they are still empty.
   const [against, setAgainst] = useState("");
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState(0);
+  // Remounts the amount field when a loan fills it in.
+  const [amountKey, setAmountKey] = useState(0);
+  // Paying a loan: the part that pays it down, when the person changed
+  // Kin's split; null follows the split as the amount changes.
+  const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
+  const loan = against.startsWith("liabilities:") ? targets.loans.find((l) => `liabilities:${l.id}` === against) : undefined;
+  function pickAgainst(v: string) {
+    setAgainst(v);
+    setPrincipalOverride(null);
+    const picked = v.startsWith("liabilities:") ? targets.loans.find((l) => `liabilities:${l.id}` === v) : undefined;
+    if (!picked) return;
+    setCategory("Debt");
+    if (!(amount > 0) && picked.monthlyPayment) {
+      setAmount(picked.monthlyPayment);
+      setAmountKey((k) => k + 1);
+    }
+    if (!name.trim()) setName(`${picked.name} payment`);
+  }
 
   if (accounts.length === 0) {
     return (
@@ -572,11 +594,22 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
     <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
       <Labelled label="What it's for">
-        <input className="input" name="name" required maxLength={200} placeholder="Groceries, lunch, fuel, a fare…" style={{ minHeight: "2.625rem" }} />
+        <input className="input" name="name" required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} placeholder="Groceries, lunch, fuel, a fare…" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
+          <AmountInput
+            key={amountKey}
+            name="amount"
+            required
+            ariaLabel={`Amount (${sym})`}
+            defaultValue={amount}
+            onValueChange={(v) => {
+              setAmount(v);
+              setPrincipalOverride(null);
+            }}
+            style={{ minHeight: "2.625rem" }}
+          />
         </Labelled>
         <Labelled label="Paid on" style={{ flex: 1 }}>
           <DateInput className="input" name="occurred_on" defaultValue={today} required style={{ minHeight: "2.625rem" }} />
@@ -598,14 +631,7 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
           </select>
         </Labelled>
       </div>
-      <ForSelect
-        targets={targets}
-        value={against}
-        onChange={(v) => {
-          setAgainst(v);
-          if (v.startsWith("liabilities:")) setCategory("Debt");
-        }}
-      />
+      <ForSelect targets={targets} value={against} onChange={pickAgainst} />
       {/* Money on an asset is upkeep (a living cost), an addition (the
           asset is worth more) or buying it (its value is already on
           record), as Move money asks (20261023232000). */}
@@ -618,7 +644,7 @@ function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, on
           </select>
         </Labelled>
       )}
-      {against.startsWith("liabilities:") && <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.25rem 0 0.75rem", lineHeight: 1.45 }}>{LOAN_SPLIT_NOTE}</p>}
+      {loan && <LoanSplitBox loan={loan} amount={amount} currency={currency} override={principalOverride} onOverride={setPrincipalOverride} name="principal" />}
       <Labelled label="Whose is it?">
         <WhoseSelect name="whose" options={whose} />
       </Labelled>

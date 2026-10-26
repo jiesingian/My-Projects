@@ -976,6 +976,9 @@ export async function addPaidExpenseAction(_prev: ActionState, formData: FormDat
   const category = clamp(String(formData.get("category") ?? ""), 100) || "Other";
   const against = String(formData.get("against") ?? "");
   const assetUse = String(formData.get("asset_use") ?? "upkeep");
+  // Paying a loan: the part that pays it down, when the person changed
+  // Kin's split (LoanSplitBox); recordMovementAction checks it.
+  const principalRaw = String(formData.get("principal") ?? "");
   if (!particulars) return { error: "Say what it was for." };
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return { error: "Choose the day it was paid." };
@@ -999,6 +1002,7 @@ export async function addPaidExpenseAction(_prev: ActionState, formData: FormDat
     againstTable: againstTable ? (againstTable as "assets" | "goals" | "liabilities") : null,
     againstId: againstId || null,
     assetUse: againstTable === "assets" && ["buy", "add", "upkeep"].includes(assetUse) ? (assetUse as "buy" | "add" | "upkeep") : undefined,
+    principal: againstTable === "liabilities" && principalRaw !== "" ? Number(principalRaw) : null,
     whose: String(formData.get("whose") ?? "me"),
   });
   return { error: res.error };
@@ -1097,6 +1101,9 @@ export async function payBillAction(input: {
   accountId: string;
   amount: number;
   viaApp: boolean;
+  /** A bill for a loan: the part that pays it down, when the person changed
+   * Kin's split (LoanSplitBox). Null or left out follows the split. */
+  principal?: number | null;
 }): Promise<{ error: string | null; appUrl?: string | null; next?: NextBillOffer | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1117,7 +1124,8 @@ export async function payBillAction(input: {
   // bill is tied to the payment by transaction_id. A target no longer
   // there (the database lets the bill go of it on delete, but a race is
   // possible) settles as a plain bill.
-  const link = await billLink(supabase, me.family_id, bill, input.amount);
+  const link = await billLink(supabase, me.family_id, bill, input.amount, input.principal ?? null);
+  if (link && "error" in link) return { error: link.error };
   const status = input.viaApp ? "pending" : "confirmed";
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
     accountId: input.accountId,
@@ -1156,21 +1164,30 @@ export async function payBillAction(input: {
 }
 
 /** What a bill's payment is for, checked against the household: the loan
- * with its principal split (loanPaymentSplit on what is still owed, capped
- * at it), the asset, or the goal. Null for a plain bill, or one whose
- * target is gone. */
+ * with its principal (the person's own figure when given, else
+ * loanPaymentSplit on what is still owed, capped at it), the asset, or the
+ * goal. Null for a plain bill, or one whose target is gone; an error for a
+ * principal that cannot be. */
 async function billLink(
   supabase: Db,
   familyId: string,
   bill: { against_table: string | null; against_id: string | null },
   amount: number,
-): Promise<{ table: "liabilities" | "assets" | "goals"; id: string; principal: number | null } | null> {
+  principalOverride: number | null,
+): Promise<{ table: "liabilities" | "assets" | "goals"; id: string; principal: number | null } | { error: string } | null> {
   if (!bill.against_table || !bill.against_id) return null;
   if (bill.against_table === "liabilities") {
     const { data: loan } = await supabase.from("liabilities").select("id, balance, interest_rate").eq("id", bill.against_id).eq("family_id", familyId).maybeSingle();
     if (!loan) return null;
-    const split = loanPaymentSplit(Number(loan.balance), loan.interest_rate == null ? null : Number(loan.interest_rate), amount);
-    return { table: "liabilities", id: loan.id, principal: Math.min(split.principal, Number(loan.balance)) };
+    const balance = Number(loan.balance);
+    let principal: number;
+    if (principalOverride == null) principal = Math.min(loanPaymentSplit(balance, loan.interest_rate == null ? null : Number(loan.interest_rate), amount).principal, balance);
+    else {
+      principal = Math.round(principalOverride * 100) / 100;
+      if (!(principal >= 0 && principal <= amount)) return { error: "The part that pays the loan down has to be between zero and the whole payment." };
+      if (principal > balance) return { error: "That pays down more than is still owed on the loan." };
+    }
+    return { table: "liabilities", id: loan.id, principal };
   }
   if (bill.against_table !== "assets" && bill.against_table !== "goals") return null;
   const { data: target } = await supabase.from(bill.against_table).select("id").eq("id", bill.against_id).eq("family_id", familyId).maybeSingle();
