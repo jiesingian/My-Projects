@@ -236,7 +236,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
       {withLetters && <SealedEnvelopes envelopes={envelopes} openWhen={openWhen} />}
       {withLetters && <OpenCards cards={cards} />}
       {withLetters && me.grownUp && <LetterCompose recipients={recipients} today={today} sealedByMe={sealedByMe} />}
-      {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
+      {!mine && !milestonesOnly && <Link scroll={false} href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>
         <span className="kin-story-q">{question}</span>
         <span className="kin-story-cta">Answer it in the journal →</span>
@@ -334,6 +334,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
         );
       })}
       <Link
+          scroll={false}
         href={mine ? "/journal/new?for=me" : milestonesOnly ? "/journal/milestones/new" : "/journal/new"}
         className="btn btn-primary btn-block"
         style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}

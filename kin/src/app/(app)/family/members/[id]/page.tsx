@@ -491,6 +491,7 @@ export default async function MemberDetailPage({
         </div>
 
         <Link
+          scroll={false}
           href={`/family/members/${id}/health/new`}
           className="btn btn-primary btn-block"
           style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.25rem" }}
@@ -577,7 +578,7 @@ async function MomentsPane({
         <p style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: "0 0 0.75rem" }}>
           {isSelf ? "Nothing here yet. Journal entries you write or are in show up here." : `Nothing here yet. When ${firstName} is in a journal entry, it shows up here.`}
         </p>
-        <Link href="/journal/new" className="btn btn-secondary btn-block">
+        <Link scroll={false} href="/journal/new" className="btn btn-secondary btn-block">
           Add a moment
         </Link>
       </Blueprint>

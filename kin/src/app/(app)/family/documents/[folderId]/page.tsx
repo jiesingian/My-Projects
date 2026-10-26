@@ -89,6 +89,7 @@ export default async function DocFolderPage({
         </DocSelectionProvider>
 
         <Link
+          scroll={false}
           href={`/family/documents/new?folder=${folder.id}`}
           className="btn btn-primary btn-block"
           style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.125rem" }}

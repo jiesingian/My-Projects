@@ -51,7 +51,9 @@ export function DetailHeader({
   trail?: { label: string; href?: string }[];
 }) {
   return (
-    <div style={{ padding: "1.125rem var(--gutter-head) 0" }}>
+    // kin-detail-header: hidden when the page opens as a sheet over another
+    // (route-sheet.tsx), where the sheet itself is the way back.
+    <div className="kin-detail-header" style={{ padding: "1.125rem var(--gutter-head) 0" }}>
       {trail && trail.length > 0 && (
         <nav aria-label="Breadcrumb" style={{ marginBottom: "0.375rem" }}>
           <ol style={{ listStyle: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem", margin: 0, padding: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>

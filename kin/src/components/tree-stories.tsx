@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { FormSheet } from "@/components/form-sheet";
 import { confirm } from "@/components/confirm-sheet";
 import { toast } from "@/components/toast";
 import { uploadFileDirect } from "@/lib/upload-client";
@@ -65,8 +66,14 @@ export function TreeStories({
 
   return (
     <div className="kin-stories">
-      {canAdd &&
-        (adding ? (
+      {canAdd && (
+        <button type="button" className="btn btn-primary btn-block" onClick={() => setAdding(true)}>
+          <Icon name="plus" size="1rem" /> Add a story about {firstName}
+        </button>
+      )}
+      {/* Opens over the page (Jonathan, 26 October). */}
+      {canAdd && (
+        <FormSheet open={adding} onClose={() => setAdding(false)} title={`A story about ${firstName}`}>
           <StoryForm
             personId={personId}
             firstName={firstName}
@@ -76,11 +83,8 @@ export function TreeStories({
             today={today}
             onDone={() => setAdding(false)}
           />
-        ) : (
-          <button type="button" className="btn btn-primary btn-block" onClick={() => setAdding(true)}>
-            <Icon name="plus" size="1rem" /> Add a story about {firstName}
-          </button>
-        ))}
+        </FormSheet>
+      )}
 
       {stories.length === 0 && linkedStories.length === 0 ? (
         <p className="kin-stories-empty">

@@ -114,7 +114,7 @@ export async function GoalsPane({
         finished.map((g, i) => (
           <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} targets={targetCount.get(g.id) ?? 0} />
         ))}
-      <Link href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
+      <Link scroll={false} href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
         <Icon name="plus" size={17} /> Set a goal
       </Link>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>

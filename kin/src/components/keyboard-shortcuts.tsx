@@ -68,7 +68,7 @@ export function KeyboardShortcuts({ simple, places, ask }: { simple: boolean; pl
           if (line) {
             line.closest("details")?.setAttribute("open", "");
             line.focus();
-          } else router.push("/planner/add");
+          } else router.push("/planner/new", { scroll: false });
           return true;
         }
         case "step":

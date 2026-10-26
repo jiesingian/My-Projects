@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addFamilyAddressAction, updateFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
 import { confirm } from "@/components/confirm-sheet";
+import { FormSheet } from "@/components/form-sheet";
 
 export type FamilyAddress = {
   id: string;
@@ -208,13 +209,11 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
       {/* Removing an address has no form open to show its own error in --
           this is the only place a failed remove() is ever visible. */}
       {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
-      {addresses.length === 0 && editingId !== "new" && (
+      {addresses.length === 0 && (
         <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginBottom: "0.625rem" }}>No addresses yet — add where the family lives, and anywhere else that matters.</div>
       )}
       {addresses.map((a) =>
-        editingId === a.id ? (
-          <AddressForm key={a.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save address" />
-        ) : (
+        (
           /* The label tag, then the address, with Map / Edit / Remove on a line
              of their own under it. They used to share one line with the
              address, which left the address as the only thing able to shrink:
@@ -263,14 +262,15 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         ),
       )}
 
-      {canEdit &&
-        (editingId === "new" ? (
-          <AddressForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save address" />
-        ) : (
-          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
-            + ADD ADDRESS
-          </button>
-        ))}
+      {canEdit && (
+        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
+          + ADD ADDRESS
+        </button>
+      )}
+      {/* Adding or editing an address opens over the list (Jonathan, 26 October). */}
+      <FormSheet open={editingId !== null} onClose={cancelForm} title={editingId === "new" ? "Add an address" : "Edit address"}>
+        <AddressForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save address" />
+      </FormSheet>
     </div>
   );
 }

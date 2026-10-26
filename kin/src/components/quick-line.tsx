@@ -58,7 +58,7 @@ export function QuickLine({ members, meId, today, defaultDate, currency = "PHP" 
         : parsed?.kind === "meal"
           ? "/household/meals/new"
           : parsed
-            ? `/planner/add?${new URLSearchParams({ type: parsed.kind, date: parsed.date, title: parsed.title })}`
+            ? `/planner/new?${new URLSearchParams({ type: parsed.kind, date: parsed.date, title: parsed.title })}`
             : null;
 
   const save = () => {

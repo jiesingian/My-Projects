@@ -4,6 +4,7 @@ import { useActionState, useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { FormSheet } from "@/components/form-sheet";
 import { ErrorText, SubmitButton } from "@/components/form";
 import { markFamilyTreatAction, createGameGoalAction, createStepsGoalAction, gameStepsAction, gameTapAction, gameUntapAction, removeGameGoalAction, setGameGoalActiveAction, startFreshFromGoalsAction, updateGameGoalAction, type GameGoalFormState } from "@/lib/actions/game";
 import { confirm } from "@/components/confirm-sheet";
@@ -125,7 +126,7 @@ function HelpsPicker({ goals, who, defaultValue }: { goals: HelpsGoal[]; who: st
     return (
       <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, margin: "0 0 0.75rem", padding: "0.5rem 0.625rem", borderRadius: 10, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)" }}>
         Every target helps a goal. Set a goal for {who.length > 1 ? "the whole family" : "this person"} first on{" "}
-        <Link href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
+        <Link scroll={false} href="/planner/goals/new" style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
           Goals → Set a goal
         </Link>
         .
@@ -175,89 +176,90 @@ export function GameGoalForm({ people, goals = [], preset }: { people: { id: str
       return next;
     });
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)} style={{ gap: "0.375rem" }}>
         <Icon name="plus" size={17} /> New target
       </button>
-    );
-  }
-
-  return (
-    <form action={formAction} style={{ border: "1px solid color-mix(in srgb, var(--color-text) 12%, transparent)", borderRadius: 14, padding: "0.875rem" }}>
-      <div className="field" style={{ marginBottom: "0.75rem" }}>
-        <label htmlFor={`${uid}-title`}>Name</label>
-        <input id={`${uid}-title`} className="input" name="title" required maxLength={80} placeholder="Brush teeth" />
-      </div>
-      <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
-        <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>Category</legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-          {GAME_CATEGORIES.map((c, i) => (
-            <label key={c} className="chip" style={{ cursor: "pointer" }}>
-              <input type="radio" name="category" value={c} defaultChecked={i === 0} style={{ marginRight: "0.25rem" }} />
-              {GAME_CATEGORY_META[c].emoji} {GAME_CATEGORY_META[c].label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-target`}>Target</label>
-          <input id={`${uid}-target`} className="input" name="target" type="number" inputMode="numeric" min={1} max={1000} defaultValue={1} required />
-        </div>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-unit`}>Counting</label>
-          <input id={`${uid}-unit`} className="input" name="unit" maxLength={24} placeholder="times" />
-        </div>
-        <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-period`}>Every</label>
-          <select id={`${uid}-period`} className="input" name="period" defaultValue="day" style={{ minHeight: "2.75rem" }}>
-            <option value="day">day</option>
-            <option value="week">week</option>
-          </select>
-        </div>
-      </div>
-      {!family && (
-        <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
-          <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-xp`}>XP each time</label>
-            <input id={`${uid}-xp`} className="input" name="xp" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_XP} />
+      {/* Opens over the page (Jonathan, 26 October). */}
+      <FormSheet open={open} onClose={() => setOpen(false)} title="New target">
+        <form action={formAction}>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
+            <label htmlFor={`${uid}-title`}>Name</label>
+            <input id={`${uid}-title`} className="input" name="title" required maxLength={80} placeholder="Brush teeth" />
           </div>
-          <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-points`}>Coins each time</label>
-            <input id={`${uid}-points`} className="input" name="points" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_COINS} />
+          <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
+            <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>Category</legend>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+              {GAME_CATEGORIES.map((c, i) => (
+                <label key={c} className="chip" style={{ cursor: "pointer" }}>
+                  <input type="radio" name="category" value={c} defaultChecked={i === 0} style={{ marginRight: "0.25rem" }} />
+                  {GAME_CATEGORY_META[c].emoji} {GAME_CATEGORY_META[c].label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label htmlFor={`${uid}-target`}>Target</label>
+              <input id={`${uid}-target`} className="input" name="target" type="number" inputMode="numeric" min={1} max={1000} defaultValue={1} required />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label htmlFor={`${uid}-unit`}>Counting</label>
+              <input id={`${uid}-unit`} className="input" name="unit" maxLength={24} placeholder="times" />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label htmlFor={`${uid}-period`}>Every</label>
+              <select id={`${uid}-period`} className="input" name="period" defaultValue="day" style={{ minHeight: "2.75rem" }}>
+                <option value="day">day</option>
+                <option value="week">week</option>
+              </select>
+            </div>
           </div>
-        </div>
-      )}
-      <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
-        <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>For</legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-          {people.map((p) => (
-            <label key={p.id} className="chip" data-active={who.has(p.id)} style={{ cursor: "pointer" }}>
-              <input type="checkbox" name="who" value={p.id} checked={who.has(p.id)} onChange={() => toggle(p.id)} style={{ marginRight: "0.25rem" }} />
-              {p.label}
-            </label>
-          ))}
-          <label className="chip" data-active={family} style={{ cursor: "pointer" }}>
-            <input type="checkbox" name="who" value="family" checked={family} onChange={() => toggle("family")} style={{ marginRight: "0.25rem" }} />
-            Whole family (one shared goal)
-          </label>
-        </div>
-        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0", lineHeight: 1.4 }}>
-          {family ? "Everyone's taps add to one target. A shared goal earns no XP or coins." : "Each person gets their own copy, so you can give a child and a grown-up different targets."}
-        </p>
-      </fieldset>
-      <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
-      <ErrorText message={state.error} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
-          Save
-        </SubmitButton>
-        <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+          {!family && (
+            <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
+              <div className="field" style={{ flex: 1 }}>
+                <label htmlFor={`${uid}-xp`}>XP each time</label>
+                <input id={`${uid}-xp`} className="input" name="xp" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_XP} />
+              </div>
+              <div className="field" style={{ flex: 1 }}>
+                <label htmlFor={`${uid}-points`}>Coins each time</label>
+                <input id={`${uid}-points`} className="input" name="points" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_COINS} />
+              </div>
+            </div>
+          )}
+          <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
+            <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>For</legend>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+              {people.map((p) => (
+                <label key={p.id} className="chip" data-active={who.has(p.id)} style={{ cursor: "pointer" }}>
+                  <input type="checkbox" name="who" value={p.id} checked={who.has(p.id)} onChange={() => toggle(p.id)} style={{ marginRight: "0.25rem" }} />
+                  {p.label}
+                </label>
+              ))}
+              <label className="chip" data-active={family} style={{ cursor: "pointer" }}>
+                <input type="checkbox" name="who" value="family" checked={family} onChange={() => toggle("family")} style={{ marginRight: "0.25rem" }} />
+                Whole family (one shared goal)
+              </label>
+            </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0", lineHeight: 1.4 }}>
+              {family ? "Everyone's taps add to one target. A shared goal earns no XP or coins." : "Each person gets their own copy, so you can give a child and a grown-up different targets."}
+            </p>
+          </fieldset>
+          <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
+          <ErrorText message={state.error} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
+              Save
+            </SubmitButton>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </>
   );
 }
 
@@ -343,77 +345,78 @@ export function StepsGoalForm({ people, goals = [], preset }: { people: { id: st
       return next;
     });
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)} style={{ gap: "0.375rem" }}>
         🏃 New steps target
       </button>
-    );
-  }
-
-  return (
-    <form action={formAction} style={{ border: "1px solid color-mix(in srgb, var(--color-text) 12%, transparent)", borderRadius: 14, padding: "0.875rem" }}>
-      <div className="field" style={{ marginBottom: "0.75rem" }}>
-        <label htmlFor={`${uid}-title`}>Name</label>
-        <input id={`${uid}-title`} className="input" name="title" maxLength={80} defaultValue={family ? "Family steps this week" : "Steps"} key={family ? "f" : "p"} />
-      </div>
-      <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
-        <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>For</legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-          {people.map((p) => (
-            <label key={p.id} className="chip" data-active={who.has(p.id)} style={{ cursor: "pointer" }}>
-              <input type="checkbox" name="who" value={p.id} checked={who.has(p.id)} onChange={() => toggle(p.id)} style={{ marginRight: "0.25rem" }} />
-              {p.label}
-            </label>
-          ))}
-          <label className="chip" data-active={family} style={{ cursor: "pointer" }}>
-            <input type="checkbox" name="who" value="family" checked={family} onChange={() => toggle("family")} style={{ marginRight: "0.25rem" }} />
-            Whole family, each week
-          </label>
-        </div>
-      </fieldset>
-      {family ? (
-        <div className="field" style={{ marginBottom: "0.75rem" }}>
-          <label htmlFor={`${uid}-family`}>Family steps a week</label>
-          <input id={`${uid}-family`} className="input" name="family_target" type="number" inputMode="numeric" min={100} max={5000000} defaultValue={DEFAULT_FAMILY_WEEK_STEPS} required />
-          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0", lineHeight: 1.4 }}>
-            Everyone&rsquo;s daily steps add up. When the week reaches it, everyone playing gets +50 XP and +25 coins.
-          </p>
-        </div>
-      ) : (
-        <>
-          {people
-            .filter((p) => who.has(p.id))
-            .map((p) => (
-              <div key={p.id} className="field" style={{ marginBottom: "0.5rem" }}>
-                <label htmlFor={`${uid}-t-${p.id}`}>{p.label}&rsquo;s steps a day</label>
-                <input id={`${uid}-t-${p.id}`} className="input" name={`target_${p.id}`} type="number" inputMode="numeric" min={100} max={100000} defaultValue={p.child ? DEFAULT_STEP_TARGET.child : DEFAULT_STEP_TARGET.grownUp} required />
-              </div>
-            ))}
-          <div style={{ display: "flex", gap: "0.625rem", margin: "0.25rem 0 0.75rem" }}>
-            <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-xp`}>XP a day</label>
-              <input id={`${uid}-xp`} className="input" name="xp" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_XP} />
-            </div>
-            <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-points`}>Coins a day</label>
-              <input id={`${uid}-points`} className="input" name="points" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_COINS} />
-            </div>
+      {/* Opens over the page (Jonathan, 26 October). */}
+      <FormSheet open={open} onClose={() => setOpen(false)} title="New steps target">
+        <form action={formAction}>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
+            <label htmlFor={`${uid}-title`}>Name</label>
+            <input id={`${uid}-title`} className="input" name="title" maxLength={80} defaultValue={family ? "Family steps this week" : "Steps"} key={family ? "f" : "p"} />
           </div>
-          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.4 }}>Half the XP and coins at 50% of the target, the rest at 100%.</p>
-        </>
-      )}
-      <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
-      <ErrorText message={state.error} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
-          Save
-        </SubmitButton>
-        <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+          <fieldset style={{ border: 0, padding: 0, margin: "0 0 0.75rem" }}>
+            <legend style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.375rem" }}>For</legend>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+              {people.map((p) => (
+                <label key={p.id} className="chip" data-active={who.has(p.id)} style={{ cursor: "pointer" }}>
+                  <input type="checkbox" name="who" value={p.id} checked={who.has(p.id)} onChange={() => toggle(p.id)} style={{ marginRight: "0.25rem" }} />
+                  {p.label}
+                </label>
+              ))}
+              <label className="chip" data-active={family} style={{ cursor: "pointer" }}>
+                <input type="checkbox" name="who" value="family" checked={family} onChange={() => toggle("family")} style={{ marginRight: "0.25rem" }} />
+                Whole family, each week
+              </label>
+            </div>
+          </fieldset>
+          {family ? (
+            <div className="field" style={{ marginBottom: "0.75rem" }}>
+              <label htmlFor={`${uid}-family`}>Family steps a week</label>
+              <input id={`${uid}-family`} className="input" name="family_target" type="number" inputMode="numeric" min={100} max={5000000} defaultValue={DEFAULT_FAMILY_WEEK_STEPS} required />
+              <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0", lineHeight: 1.4 }}>
+                Everyone&rsquo;s daily steps add up. When the week reaches it, everyone playing gets +50 XP and +25 coins.
+              </p>
+            </div>
+          ) : (
+            <>
+              {people
+                .filter((p) => who.has(p.id))
+                .map((p) => (
+                  <div key={p.id} className="field" style={{ marginBottom: "0.5rem" }}>
+                    <label htmlFor={`${uid}-t-${p.id}`}>{p.label}&rsquo;s steps a day</label>
+                    <input id={`${uid}-t-${p.id}`} className="input" name={`target_${p.id}`} type="number" inputMode="numeric" min={100} max={100000} defaultValue={p.child ? DEFAULT_STEP_TARGET.child : DEFAULT_STEP_TARGET.grownUp} required />
+                  </div>
+                ))}
+              <div style={{ display: "flex", gap: "0.625rem", margin: "0.25rem 0 0.75rem" }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label htmlFor={`${uid}-xp`}>XP a day</label>
+                  <input id={`${uid}-xp`} className="input" name="xp" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_XP} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label htmlFor={`${uid}-points`}>Coins a day</label>
+                  <input id={`${uid}-points`} className="input" name="points" type="number" inputMode="numeric" min={0} max={1000} defaultValue={DEFAULT_GOAL_COINS} />
+                </div>
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.4 }}>Half the XP and coins at 50% of the target, the rest at 100%.</p>
+            </>
+          )}
+          <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
+          <ErrorText message={state.error} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
+              Save
+            </SubmitButton>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </>
   );
 }
 

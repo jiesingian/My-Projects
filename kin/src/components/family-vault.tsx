@@ -7,7 +7,7 @@ import { confirm } from "@/components/confirm-sheet";
 import { addVaultItemAction, updateVaultItemAction, removeVaultItemAction, type VaultFields } from "@/lib/actions/vault";
 import type { VaultItem } from "@/lib/queries/vault";
 import { PasswordHealth } from "@/components/password-health";
-import { scrollBehavior } from "@/lib/motion";
+import { FormSheet } from "@/components/form-sheet";
 
 /** The groups most households start with. Any other name works too -- these
  * are suggestions in the picker, not a list the database knows about. */
@@ -260,12 +260,11 @@ export function FamilyVault({ items, canEdit }: { items: VaultItem[]; canEdit: b
             const item = items.find((i) => i.id === id);
             if (!item) return;
             startEdit(item);
-            requestAnimationFrame(() => document.getElementById(`vault-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" }));
           }}
         />
       )}
 
-      {items.length === 0 && editingId !== "new" && (
+      {items.length === 0 && (
         <div className="kin-vault-empty">
           {canEdit
             ? "Keep the Wi-Fi, the door lock code and the streaming logins here, instead of on a card on the fridge."
@@ -289,24 +288,22 @@ export function FamilyVault({ items, canEdit }: { items: VaultItem[]; canEdit: b
           </h4>
           {items
             .filter((i) => i.group === group)
-            .map((i) =>
-              editingId === i.id ? (
-                <div key={i.id} id={`vault-${i.id}`}>{form}</div>
-              ) : (
-                <SecretRow key={i.id} item={i} canEdit={canEdit} onEdit={() => startEdit(i)} onRemove={() => remove(i)} />
-              ),
-            )}
+            .map((i) => (
+              <SecretRow key={i.id} item={i} canEdit={canEdit} onEdit={() => startEdit(i)} onRemove={() => remove(i)} />
+            ))}
         </section>
       ))}
 
-      {canEdit &&
-        (editingId === "new" ? (
-          form
-        ) : (
-          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => startAdd(groupNames[0])}>
-            + ADD A PASSWORD
-          </button>
-        ))}
+      {canEdit && (
+        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => startAdd(groupNames[0])}>
+          + ADD A PASSWORD
+        </button>
+      )}
+      {/* Adding or changing one opens over the Vault, not inside it
+          (Jonathan, 26 October). */}
+      <FormSheet open={editingId !== null} onClose={() => setEditingId(null)} title={editingId === "new" ? "Add a password" : "Edit password"}>
+        {form}
+      </FormSheet>
     </div>
   );
 }

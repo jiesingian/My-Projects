@@ -7,6 +7,7 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { AmountInput } from "@/components/amount-input";
 import { DateInput } from "@/components/date-input";
 import { Icon } from "@/components/icons";
+import { FormSheet } from "@/components/form-sheet";
 import { confirm } from "@/components/confirm-sheet";
 import { ShareMessage } from "@/components/share-message";
 import {
@@ -64,76 +65,76 @@ export function AddUtangForm({ today }: { today: string }) {
     return r;
   }, initialState);
 
-  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Record an IOU" />;
   return (
     <>
-      <Opener open onToggle={() => setOpen(false)} text="" />
-      <Blueprint style={{ padding: "0.875rem", marginBottom: "0.75rem" }}>
-        <form action={formAction}>
-          <ErrorText message={state.error} />
-          <div role="radiogroup" aria-label="Lent or borrowed" style={{ display: "flex", gap: "0.375rem" }}>
-            {(["lent", "borrowed"] as const).map((d) => (
-              <label key={d} className={direction === d ? "btn btn-primary" : "btn btn-secondary"} style={{ ...small, flex: 1 }}>
-                <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} style={{ position: "absolute", opacity: 0, pointerEvents: "none" }} />
-                {d === "lent" ? "We lent" : "We borrowed"}
-              </label>
-            ))}
-          </div>
-          <label htmlFor={`${uid}-who`} style={label}>{direction === "lent" ? "Lent to" : "Borrowed from"}</label>
-          <input id={`${uid}-who`} className="input" name="person_name" required maxLength={120} placeholder="Aunt Baby" style={field} />
-          <div style={two}>
-            <span>
-              <label htmlFor={`${uid}-amount`} style={label}>How much</label>
-              <AmountInput id={`${uid}-amount`} name="amount" required style={field} />
-            </span>
-            <span>
-              <label htmlFor={`${uid}-start`} style={label}>When</label>
-              <DateInput id={`${uid}-start`} name="started_on" defaultValue={today} className="input" style={field} />
-            </span>
-          </div>
-          <label style={{ display: "flex", gap: "0.375rem", alignItems: "center", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
-            <input type="checkbox" name="in_instalments" value="on" checked={inInstalments} onChange={(e) => setInInstalments(e.target.checked)} />
-            <span>Paid back in instalments</span>
-          </label>
-          {inInstalments ? (
-            <>
-              <div style={two}>
-                <span>
-                  <label htmlFor={`${uid}-count`} style={label}>How many</label>
-                  <input id={`${uid}-count`} className="input" type="number" name="instalments" required min={2} max={120} step={1} defaultValue={6} style={field} />
-                </span>
-                <span>
-                  <label htmlFor={`${uid}-freq`} style={label}>How often</label>
-                  <select id={`${uid}-freq`} name="instalment_frequency" className="input" defaultValue="monthly" style={field}>
-                    {(Object.keys(FREQUENCY_LABEL) as PaluwaganFrequency[]).map((f) => (
-                      <option key={f} value={f}>{FREQUENCY_LABEL[f]}</option>
-                    ))}
-                  </select>
-                </span>
-              </div>
-              <label htmlFor={`${uid}-first`} style={label}>First one due</label>
-              <DateInput id={`${uid}-first`} name="first_due_on" required className="input" style={field} />
-            </>
-          ) : (
-            <>
-              <label htmlFor={`${uid}-due`} style={label}>To be paid back by (optional)</label>
-              <DateInput id={`${uid}-due`} name="due_on" className="input" style={field} />
-            </>
-          )}
-          <label htmlFor={`${uid}-note`} style={label}>Note (optional)</label>
-          <input id={`${uid}-note`} className="input" name="note" maxLength={500} placeholder="For the hospital bill" style={field} />
-          <Visibility id={`${uid}-vis`} />
-          {direction === "lent" && (
-            <label style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
-              <input type="checkbox" name="remind" value="on" style={{ marginTop: "0.1875rem" }} />
-              <span>Prepare a gentle reminder I can send myself. Kin never messages anyone.</span>
+      <Opener open={false} onToggle={() => setOpen(true)} text="Record an IOU" />
+      {/* Opens over the page (Jonathan, 26 October). */}
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Record an IOU">
+          <form action={formAction}>
+            <ErrorText message={state.error} />
+            <div role="radiogroup" aria-label="Lent or borrowed" style={{ display: "flex", gap: "0.375rem" }}>
+              {(["lent", "borrowed"] as const).map((d) => (
+                <label key={d} className={direction === d ? "btn btn-primary" : "btn btn-secondary"} style={{ ...small, flex: 1 }}>
+                  <input type="radio" name="direction" value={d} checked={direction === d} onChange={() => setDirection(d)} style={{ position: "absolute", opacity: 0, pointerEvents: "none" }} />
+                  {d === "lent" ? "We lent" : "We borrowed"}
+                </label>
+              ))}
+            </div>
+            <label htmlFor={`${uid}-who`} style={label}>{direction === "lent" ? "Lent to" : "Borrowed from"}</label>
+            <input id={`${uid}-who`} className="input" name="person_name" required maxLength={120} placeholder="Aunt Baby" style={field} />
+            <div style={two}>
+              <span>
+                <label htmlFor={`${uid}-amount`} style={label}>How much</label>
+                <AmountInput id={`${uid}-amount`} name="amount" required style={field} />
+              </span>
+              <span>
+                <label htmlFor={`${uid}-start`} style={label}>When</label>
+                <DateInput id={`${uid}-start`} name="started_on" defaultValue={today} className="input" style={field} />
+              </span>
+            </div>
+            <label style={{ display: "flex", gap: "0.375rem", alignItems: "center", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
+              <input type="checkbox" name="in_instalments" value="on" checked={inInstalments} onChange={(e) => setInInstalments(e.target.checked)} />
+              <span>Paid back in instalments</span>
             </label>
-          )}
-          <div style={{ marginTop: "0.75rem" }}>
-            <SubmitButton style={small}>Save</SubmitButton>
-          </div>
-        </form>
-      </Blueprint>
+            {inInstalments ? (
+              <>
+                <div style={two}>
+                  <span>
+                    <label htmlFor={`${uid}-count`} style={label}>How many</label>
+                    <input id={`${uid}-count`} className="input" type="number" name="instalments" required min={2} max={120} step={1} defaultValue={6} style={field} />
+                  </span>
+                  <span>
+                    <label htmlFor={`${uid}-freq`} style={label}>How often</label>
+                    <select id={`${uid}-freq`} name="instalment_frequency" className="input" defaultValue="monthly" style={field}>
+                      {(Object.keys(FREQUENCY_LABEL) as PaluwaganFrequency[]).map((f) => (
+                        <option key={f} value={f}>{FREQUENCY_LABEL[f]}</option>
+                      ))}
+                    </select>
+                  </span>
+                </div>
+                <label htmlFor={`${uid}-first`} style={label}>First one due</label>
+                <DateInput id={`${uid}-first`} name="first_due_on" required className="input" style={field} />
+              </>
+            ) : (
+              <>
+                <label htmlFor={`${uid}-due`} style={label}>To be paid back by (optional)</label>
+                <DateInput id={`${uid}-due`} name="due_on" className="input" style={field} />
+              </>
+            )}
+            <label htmlFor={`${uid}-note`} style={label}>Note (optional)</label>
+            <input id={`${uid}-note`} className="input" name="note" maxLength={500} placeholder="For the hospital bill" style={field} />
+            <Visibility id={`${uid}-vis`} />
+            {direction === "lent" && (
+              <label style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
+                <input type="checkbox" name="remind" value="on" style={{ marginTop: "0.1875rem" }} />
+                <span>Prepare a gentle reminder I can send myself. Kin never messages anyone.</span>
+              </label>
+            )}
+            <div style={{ marginTop: "0.75rem" }}>
+              <SubmitButton style={small}>Save</SubmitButton>
+            </div>
+          </form>
+      </FormSheet>
     </>
   );
 }
@@ -311,45 +312,45 @@ export function AddPaluwaganForm({ today }: { today: string }) {
     return r;
   }, initialState);
 
-  if (!open) return <Opener open={false} onToggle={() => setOpen(true)} text="Add a savings circle" />;
   return (
     <>
-      <Opener open onToggle={() => setOpen(false)} text="" />
-      <Blueprint style={{ padding: "0.875rem", marginBottom: "0.75rem" }}>
-        <form action={formAction}>
-          <ErrorText message={state.error} />
-          <label htmlFor={`${uid}-name`} style={{ ...label, marginTop: 0 }}>Name</label>
-          <input id={`${uid}-name`} className="input" name="name" required maxLength={80} placeholder="Office savings circle" style={field} />
-          <div style={two}>
-            <span>
-              <label htmlFor={`${uid}-hulog`} style={label}>Contribution per member, each round</label>
-              <AmountInput id={`${uid}-hulog`} name="contribution" required style={field} />
-            </span>
-            <span>
-              <label htmlFor={`${uid}-freq`} style={label}>How often</label>
-              <select id={`${uid}-freq`} name="frequency" className="input" defaultValue="monthly" style={field}>
-                {(Object.keys(FREQUENCY_LABEL) as PaluwaganFrequency[]).map((f) => (
-                  <option key={f} value={f}>{FREQUENCY_LABEL[f]}</option>
-                ))}
-              </select>
-            </span>
-          </div>
-          <label htmlFor={`${uid}-start`} style={label}>First round</label>
-          <DateInput id={`${uid}-start`} name="starts_on" defaultValue={today} className="input" style={field} required />
-          <label htmlFor={`${uid}-members`} style={label}>The other members, one per line, in turn order</label>
-          <textarea id={`${uid}-members`} className="input" name="members" rows={5} required placeholder={"Joy\nBen\nAunt Linda"} style={{ ...field, padding: "0.5rem 0.625rem" }} />
-          <label htmlFor={`${uid}-us`} style={label}>Our turn (0 if we only keep the record)</label>
-          <input id={`${uid}-us`} className="input" name="us_turn" type="number" min="0" max="100" defaultValue={1} style={field} />
-          <Visibility id={`${uid}-vis`} />
-          <label style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
-            <input type="checkbox" name="remind" value="on" style={{ marginTop: "0.1875rem" }} />
-            <span>Prepare a gentle reminder for anyone whose contribution is not in. Kin never messages anyone.</span>
-          </label>
-          <div style={{ marginTop: "0.75rem" }}>
-            <SubmitButton style={small}>Save</SubmitButton>
-          </div>
-        </form>
-      </Blueprint>
+      <Opener open={false} onToggle={() => setOpen(true)} text="Add a savings circle" />
+      {/* Opens over the page (Jonathan, 26 October). */}
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Add a savings circle">
+          <form action={formAction}>
+            <ErrorText message={state.error} />
+            <label htmlFor={`${uid}-name`} style={{ ...label, marginTop: 0 }}>Name</label>
+            <input id={`${uid}-name`} className="input" name="name" required maxLength={80} placeholder="Office savings circle" style={field} />
+            <div style={two}>
+              <span>
+                <label htmlFor={`${uid}-hulog`} style={label}>Contribution per member, each round</label>
+                <AmountInput id={`${uid}-hulog`} name="contribution" required style={field} />
+              </span>
+              <span>
+                <label htmlFor={`${uid}-freq`} style={label}>How often</label>
+                <select id={`${uid}-freq`} name="frequency" className="input" defaultValue="monthly" style={field}>
+                  {(Object.keys(FREQUENCY_LABEL) as PaluwaganFrequency[]).map((f) => (
+                    <option key={f} value={f}>{FREQUENCY_LABEL[f]}</option>
+                  ))}
+                </select>
+              </span>
+            </div>
+            <label htmlFor={`${uid}-start`} style={label}>First round</label>
+            <DateInput id={`${uid}-start`} name="starts_on" defaultValue={today} className="input" style={field} required />
+            <label htmlFor={`${uid}-members`} style={label}>The other members, one per line, in turn order</label>
+            <textarea id={`${uid}-members`} className="input" name="members" rows={5} required placeholder={"Joy\nBen\nAunt Linda"} style={{ ...field, padding: "0.5rem 0.625rem" }} />
+            <label htmlFor={`${uid}-us`} style={label}>Our turn (0 if we only keep the record)</label>
+            <input id={`${uid}-us`} className="input" name="us_turn" type="number" min="0" max="100" defaultValue={1} style={field} />
+            <Visibility id={`${uid}-vis`} />
+            <label style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start", fontSize: "0.8125rem", marginTop: "0.625rem" }}>
+              <input type="checkbox" name="remind" value="on" style={{ marginTop: "0.1875rem" }} />
+              <span>Prepare a gentle reminder for anyone whose contribution is not in. Kin never messages anyone.</span>
+            </label>
+            <div style={{ marginTop: "0.75rem" }}>
+              <SubmitButton style={small}>Save</SubmitButton>
+            </div>
+          </form>
+      </FormSheet>
     </>
   );
 }

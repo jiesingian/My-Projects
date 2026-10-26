@@ -385,6 +385,7 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
             </Link>
           ))}
           <Link
+          scroll={false}
             href="/family/documents/new"
             className="btn btn-primary btn-block"
             style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}

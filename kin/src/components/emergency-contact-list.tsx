@@ -10,6 +10,7 @@ import {
   type EmergencyContactFields,
 } from "@/lib/actions/family";
 import { confirm } from "@/components/confirm-sheet";
+import { FormSheet } from "@/components/form-sheet";
 
 export type EmergencyContact = {
   id: string;
@@ -169,9 +170,7 @@ export function EmergencyContactList({ contacts, parents = [] }: { contacts: Eme
         </div>
       )}
       {contacts.map((c) =>
-        editingId === c.id ? (
-          <ContactForm key={c.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save contact" />
-        ) : (
+        (
           <div key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{c.name}</span>
@@ -193,13 +192,14 @@ export function EmergencyContactList({ contacts, parents = [] }: { contacts: Eme
         ),
       )}
 
-      {editingId === "new" ? (
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
+        + ADD CONTACT
+      </button>
+      {/* Adding or editing a contact opens over the list, not inside it
+          (Jonathan, 26 October). */}
+      <FormSheet open={editingId !== null} onClose={cancelForm} title={editingId === "new" ? "Add a contact" : "Edit contact"}>
         <ContactForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save contact" />
-      ) : (
-        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
-          + ADD CONTACT
-        </button>
-      )}
+      </FormSheet>
     </div>
   );
 }

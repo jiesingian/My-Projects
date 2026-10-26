@@ -99,7 +99,7 @@ export function todayQuick(id: QuickActionId): { label: string; href: string; ti
   const a = quickAction(id);
   switch (id) {
     case "milestone": return { label: "Milestone", href: a.path, tint: "occasion" };
-    case "event": return { label: "Event", href: "/planner/add?type=event", tint: "schedule" };
+    case "event": return { label: "Event", href: "/planner/new?type=event", tint: "schedule" };
     case "expense": return { label: "Expense", href: a.path, tint: "money" };
     case "note": return { label: "Note", href: a.path };
     case "buy": return { label: "To buy", href: a.path, tint: "home" };

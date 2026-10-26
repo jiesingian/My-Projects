@@ -31,7 +31,9 @@ function subscribeDesktop(onChange: () => void) {
 export function AnimatedSheet({
   open,
   onClose,
+  onClosed,
   labelledBy,
+  label,
   describedBy,
   role = "dialog",
   panelClassName = "",
@@ -40,7 +42,12 @@ export function AnimatedSheet({
 }: {
   open: boolean;
   onClose: () => void;
-  labelledBy: string;
+  /** After the close animation has finished: for a sheet that is a route
+   * (route-sheet.tsx), the moment to go back without cutting the slide short. */
+  onClosed?: () => void;
+  /** The caller's title element; or, when there is none to point at, a name. */
+  labelledBy?: string;
+  label?: string;
   describedBy?: string;
   role?: "dialog" | "alertdialog";
   panelClassName?: string;
@@ -59,6 +66,9 @@ export function AnimatedSheet({
     <Drawer.Root
       open={open}
       handleOnly={desktop}
+      onAnimationEnd={(isOpen) => {
+        if (!isOpen) onClosed?.();
+      }}
       onOpenChange={(next) => {
         if (!next) onClose();
       }}
@@ -70,6 +80,7 @@ export function AnimatedSheet({
           // already on the page with ids of their own.
           role={role}
           aria-labelledby={labelledBy}
+          aria-label={labelledBy ? undefined : label}
           aria-describedby={describedBy}
           className={`sheet-panel kin-glass-bar ${panelClassName}`}
           style={panelStyle}

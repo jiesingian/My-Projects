@@ -1344,10 +1344,10 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         <LinesByPerson lines={ownedLines} currency={currency} categoryOrder={[...AL_OWNED_ORDER]} noun="holding" storageKey="kin-al-assets" always />
       )}
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
-        <Link href="/wealth/assets/new?kind=asset" className="btn btn-primary" style={{ ...addButton, flex: 1 }}>
+        <Link scroll={false} href="/wealth/assets/new?kind=asset" className="btn btn-primary" style={{ ...addButton, flex: 1 }}>
           + ASSET
         </Link>
-        <Link href="/wealth/add" className="btn btn-secondary" style={{ ...addButton, flex: 1 }}>
+        <Link scroll={false} href="/wealth/add" className="btn btn-secondary" style={{ ...addButton, flex: 1 }}>
           + GOAL
         </Link>
       </div>
@@ -1397,7 +1397,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       ) : (
         <LinesByPerson lines={owedLines} currency={currency} categoryOrder={LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k])} noun="debt" storageKey="kin-al-liabilities" always />
       )}
-      <Link href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ ...addButton, marginTop: "0.25rem" }}>
+      <Link scroll={false} href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ ...addButton, marginTop: "0.25rem" }}>
         + LIABILITY
       </Link>
       </CollapsibleGroup>

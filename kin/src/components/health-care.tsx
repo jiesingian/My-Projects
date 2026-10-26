@@ -5,6 +5,7 @@ import Link from "next/link";
 import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { FormSheet } from "@/components/form-sheet";
 import { toast } from "@/components/toast";
 import { confirm } from "@/components/confirm-sheet";
 import { visibilityOptions } from "@/lib/visibility";
@@ -202,13 +203,13 @@ export function MedicinesPanel({
         </Link>
       )}
 
-      {adding ? (
+      <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: "0.75rem" }} onClick={() => setAdding(true)}>
+        <Icon name="plus" size="0.9375rem" /> Add a medicine
+      </button>
+      {/* Opens over the page (Jonathan, 26 October). */}
+      <FormSheet open={adding} onClose={() => setAdding(false)} title="Add a medicine">
         <MedicineForm memberId={memberId} role={role} today={today} onDone={() => setAdding(false)} />
-      ) : (
-        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: "0.75rem" }} onClick={() => setAdding(true)}>
-          <Icon name="plus" size="0.9375rem" /> Add a medicine
-        </button>
-      )}
+      </FormSheet>
 
       {finished.length > 0 && (
         <details className="kin-fold" style={{ marginTop: "1rem" }}>
