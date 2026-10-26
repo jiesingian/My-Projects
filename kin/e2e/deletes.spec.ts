@@ -61,7 +61,9 @@ test.describe("removing things", () => {
 
     // Each row is a .blueprint card holding both its title and its controls,
     // which is what makes "the Remove that belongs to this one" expressible.
-    const card = page.locator(".blueprint").filter({ hasText: doomed });
+    // The headline's owner → category breakdown (#917) is a card too, and it
+    // names every goal; the goal's own card is the one with its Delete.
+    const card = page.locator(".blueprint").filter({ hasText: doomed }).filter({ has: page.getByRole("button", { name: /delete|remove/i }) });
     await expect(card, "the routine has no card of its own").toHaveCount(1);
 
     // Removal is two taps: "Remove", then a confirmation in its place.
@@ -95,7 +97,9 @@ test.describe("removing things", () => {
     await expect(page.locator("body")).toContainText(doomed);
     await expect(page.locator("body")).toContainText(keeper);
 
-    const card = page.locator(".blueprint").filter({ hasText: doomed });
+    // The headline's owner → category breakdown (#917) is a card too, and it
+    // names every goal; the goal's own card is the one with its Delete.
+    const card = page.locator(".blueprint").filter({ hasText: doomed }).filter({ has: page.getByRole("button", { name: /delete|remove/i }) });
     await expect(card, "the goal has no card of its own").toHaveCount(1);
     const remove = card.getByRole("button", { name: /delete|remove/i }).first();
     await expect(remove, "no way to delete a goal from the UI").toBeVisible();

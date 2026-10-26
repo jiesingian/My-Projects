@@ -157,7 +157,7 @@ test("statement import: a BPI CSV becomes three transactions, and only once", as
     const importOnce = async () => {
       await page.goto(`/wealth/accounts/${accountId}/import`, { waitUntil: "networkidle" });
       await page.getByLabel("Whose statement").selectOption({ label: "BPI" });
-      await page.getByLabel("The CSV file").setInputFiles({ name: "bpi.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+      await page.getByLabel("The CSV or PDF file").setInputFiles({ name: "bpi.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
       await page.getByRole("button", { name: "Review the lines" }).click();
     };
 

@@ -115,8 +115,9 @@ test.describe("offline Kin", () => {
 
     // Once each, in the real app.
     await page.goto("/household?seg=buy");
-    // Filed under Other by its name, and sections start folded.
-    await page.getByRole("button", { name: /^Other/ }).click();
+    // "All items" groups by kind of store since #906, and a name Kin does
+    // not recognise is bought at the supermarket: Grocery. Groups start folded.
+    await page.getByRole("button", { name: /^Grocery/ }).click();
     await expect(page.getByText(item, { exact: true })).toHaveCount(1);
     await page.goto("/chat/household");
     await expect(page.getByText(message, { exact: true })).toHaveCount(1);
@@ -162,7 +163,7 @@ test.describe("offline Kin", () => {
     await expect(chat.getByText("Sends when you’re back online")).toHaveCount(0, { timeout: 15_000 });
 
     await page.goto("/household?seg=buy");
-    await page.getByRole("button", { name: /^Other/ }).click();
+    await page.getByRole("button", { name: /^Grocery/ }).click();
     await expect(page.getByText(item, { exact: true })).toHaveCount(1);
     await chat.goto("/chat/household");
     await expect(chat.getByText(message, { exact: true })).toHaveCount(1);
