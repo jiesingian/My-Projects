@@ -446,6 +446,12 @@ export function BuyList({
           accounts={accounts}
           currency={currency}
           suggested={whole.actual}
+          market={(() => {
+            // What was ticked at a Market store, filed under Market rather
+            // than Groceries (Janine, 26 October).
+            const fromMarket = allItems.filter((i) => isChecked(i) && storeKindOf(i) === "market");
+            return { count: fromMarket.length, actual: budgetSummary(fromMarket.map(budgetLine)).actual };
+          })()}
           budget={allItems.filter((i) => isChecked(i)).reduce((sum, i) => sum + (lineBudget(budgetLine(i)) ?? 0), 0)}
           onClose={() => setCheckingOut(false)}
         />
@@ -1229,10 +1235,13 @@ function ClearCheckedPanel({
   accounts,
   currency,
   suggested,
+  market,
   budget,
   onClose,
 }: {
   doneCount: number;
+  /** The ticked items from Market stores: how many, and what they came to. */
+  market: { count: number; actual: number };
   accounts: PickableAccount[];
   currency: string;
   /** What the basket was estimated at — the till usually agrees closely
@@ -1242,7 +1251,14 @@ function ClearCheckedPanel({
   budget: number;
   onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(Math.round(suggested * 100) / 100);
+  // By store type: all from the market, all elsewhere, or both -- then two
+  // amounts, each logged under its own category.
+  const allMarket = market.count > 0 && market.count === doneCount;
+  const mixed = market.count > 0 && market.count < doneCount;
+  const [marketAmount, setMarketAmount] = useState(Math.round(market.actual * 100) / 100);
+  const [groceryAmount, setGroceryAmount] = useState(Math.round((suggested - market.actual) * 100) / 100);
+  const [single, setSingle] = useState(Math.round(suggested * 100) / 100);
+  const amount = mixed ? Math.round((marketAmount + groceryAmount) * 100) / 100 : single;
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -1251,14 +1267,22 @@ function ClearCheckedPanel({
   function finish(withSpend: boolean) {
     startTransition(async () => {
       if (withSpend && amount > 0 && accountId) {
-        await postHubExpenseAction({
-          accountId,
-          amount,
-          particulars: `Grocery run · ${doneCount} item${doneCount === 1 ? "" : "s"}`,
-          category: "Groceries",
-          sourceTable: "buy_items",
-          sourceId: null,
-        });
+        const runs = mixed
+          ? [
+              { category: "Groceries", amount: groceryAmount, count: doneCount - market.count, noun: "Grocery run" },
+              { category: "Market", amount: marketAmount, count: market.count, noun: "Market run" },
+            ]
+          : [{ category: allMarket ? "Market" : "Groceries", amount: single, count: doneCount, noun: allMarket ? "Market run" : "Grocery run" }];
+        for (const r of runs.filter((x) => x.amount > 0)) {
+          await postHubExpenseAction({
+            accountId,
+            amount: r.amount,
+            particulars: `${r.noun} · ${r.count} item${r.count === 1 ? "" : "s"}`,
+            category: r.category,
+            sourceTable: "buy_items",
+            sourceId: null,
+          });
+        }
       }
       await clearCheckedAction(withSpend && amount > 0 ? amount : null);
       // The basket is empty now, so the till closes with it.
@@ -1291,9 +1315,23 @@ function ClearCheckedPanel({
               <AccountOptions accounts={accounts} currency={currency} />
             </select>
           </div>
-          <div className="field" style={{ width: 106, margin: 0 }}>
-            <label htmlFor={`${uid}-total`}>Total</label>
-            <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
+          {!mixed && (
+            <div className="field" style={{ width: 106, margin: 0 }}>
+              <label htmlFor={`${uid}-total`}>{allMarket ? "Market" : "Total"}</label>
+              <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={single} onChange={(e) => setSingle(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
+            </div>
+          )}
+        </div>
+      )}
+      {accounts.length > 0 && mixed && (
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.625rem" }}>
+          <div className="field" style={{ flex: 1, margin: 0 }}>
+            <label htmlFor={`${uid}-groceries`}>Groceries · {doneCount - market.count}</label>
+            <input id={`${uid}-groceries`} aria-label="Groceries" className="input" type="number" step="0.01" value={groceryAmount} onChange={(e) => setGroceryAmount(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
+          </div>
+          <div className="field" style={{ flex: 1, margin: 0 }}>
+            <label htmlFor={`${uid}-market`}>Market · {market.count}</label>
+            <input id={`${uid}-market`} aria-label="Market" className="input" type="number" step="0.01" value={marketAmount} onChange={(e) => setMarketAmount(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
           </div>
         </div>
       )}

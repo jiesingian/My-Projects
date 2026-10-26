@@ -140,7 +140,7 @@ insert into budget_allocations (budget_period_id, family_id, category, amount) v
  ('b9000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000000','Groceries',30000),
  ('b9000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-000000000000','Dining',5000),
  ('b9000000-0000-0000-0000-000000000010','a0000000-0000-0000-0000-000000000000','Groceries',32000);
-create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null default 1, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text);
+create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null default 1, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text, category text);
 create table if not exists public.reminder_sends (key text primary key, sent_at timestamptz not null default now());
 -- The shopping list and the meal plan, for buy_item_meals (20261008100000): the household's own rows, nobody else's.
 create table public.events (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), kind text not null default 'event', title text not null default 'Event', event_date date not null default current_date, end_date date, recurs_yearly boolean default false, applies_to_whole_family boolean default true);

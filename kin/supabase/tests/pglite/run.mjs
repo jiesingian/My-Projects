@@ -147,6 +147,7 @@ const MIGRATIONS = [
   "20261026110000_household_budget_to_family.sql",
   "20261026120000_english_push_words.sql",
   "20261026130000_bill_account.sql",
+  "20261026140000_market_category.sql",
 ];
 
 const only = process.argv[2];
