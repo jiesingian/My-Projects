@@ -81,6 +81,11 @@ test("every currency Settings offers has a sign or reads as its code (any family
   expect(formatCurrency(1234.567, "PHP")).toBe("₱1,234.57");
   expect(formatCurrency(1500, "PHP")).toBe("₱1,500");
   expect(formatCurrency(1500.004, "PHP")).toBe("₱1,500");
+  // Below zero: the minus before the sign.
+  expect(formatCurrency(-12500, "PHP")).toBe("−₱12,500");
+  expect(formatCurrency(-0.4, "PHP")).toBe("−₱0.40");
+  expect(formatCurrency(-0.001, "PHP")).toBe("₱0");
+  expect(formatCurrency(-20, "AED")).toBe("−AED 20");
   expect(formatCurrency(20, "GBP")).toBe("£20");
   expect(formatCurrency(20, "AED")).toBe("AED 20");
   for (const c of CURRENCIES) expect(currencySymbol(c.code).length).toBeGreaterThan(0);
