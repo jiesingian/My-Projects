@@ -3934,12 +3934,14 @@ export type Database = {
           created_by: string | null
           current_amount: number
           family_id: string
+          from_account_id: string | null
           id: string
           is_joint: boolean
           linked_account_id: string | null
           owner_member_id: string | null
           owner_person_id: string | null
           repeats_yearly: boolean
+          start_date: string | null
           sub_note: string | null
           target_amount: number | null
           target_date: string | null
@@ -3951,12 +3953,14 @@ export type Database = {
           created_by?: string | null
           current_amount?: number
           family_id: string
+          from_account_id?: string | null
           id?: string
           is_joint?: boolean
           linked_account_id?: string | null
           owner_member_id?: string | null
           owner_person_id?: string | null
           repeats_yearly?: boolean
+          start_date?: string | null
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null
@@ -3968,12 +3972,14 @@ export type Database = {
           created_by?: string | null
           current_amount?: number
           family_id?: string
+          from_account_id?: string | null
           id?: string
           is_joint?: boolean
           linked_account_id?: string | null
           owner_member_id?: string | null
           owner_person_id?: string | null
           repeats_yearly?: boolean
+          start_date?: string | null
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null

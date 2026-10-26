@@ -9,10 +9,12 @@ import type { PickableAccount } from "@/components/money-actions";
 import { AccountOptions } from "@/components/account-options";
 import { DateInput } from "@/components/date-input";
 import { SINKING_FUND_PRESETS } from "@/lib/sinking-fund";
+import { monthlyNeeded } from "@/lib/goal-plan";
+import { formatCurrency } from "@/lib/format";
 
 const initialState: ActionState = { error: null };
 
-export function AddGoalForm({ accounts, currency, kids: children = [] }: { accounts: PickableAccount[]; currency: string; kids?: { id: string; label: string }[] }) {
+export function AddGoalForm({ accounts, currency, today, kids: children = [] }: { accounts: PickableAccount[]; currency: string; today: string; kids?: { id: string; label: string }[] }) {
   const [state, formAction] = useActionState(createGoalAction, initialState);
   // "joint", "me", or a child's member id (26 October).
   const [whose, setWhose] = useState("joint");
@@ -22,6 +24,11 @@ export function AddGoalForm({ accounts, currency, kids: children = [] }: { accou
   const [note, setNote] = useState("");
   // The same goal as a ring on Planner (26 October): on unless unticked.
   const [onPlanner, setOnPlanner] = useState(true);
+  // Start and end, and what that asks of each month (26 October).
+  const [target, setTarget] = useState("");
+  const [start, setStart] = useState(today);
+  const [end, setEnd] = useState("");
+  const plan = monthlyNeeded(Number(target), start || today, end);
 
   return (
     <form action={formAction}>
@@ -85,21 +92,42 @@ export function AddGoalForm({ accounts, currency, kids: children = [] }: { accou
           {children.find((c) => c.id === whose)!.label}&rsquo;s goal: the grown-ups and {children.find((c) => c.id === whose)!.label} see it; any grown-up can change it.
         </p>
       )}
+      <Field label={`Target amount (${currencySymbol(currency)})`}>
+        <input className="input" type="number" step="0.01" min="0" name="target_amount" required value={target} onChange={(e) => setTarget(e.target.value)} style={{ minHeight: "2.75rem" }} />
+      </Field>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label={`Target amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
+        <Field label="Start date" style={{ flex: 1 }}>
+          <DateInput className="input" name="start_date" value={start} onChange={(e) => setStart(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label={yearly ? "Next due" : "Target date"} style={{ flex: 1 }}>
-          <DateInput className="input" name="target_date" required={yearly} style={{ minHeight: "2.75rem" }} />
+        <Field label={yearly ? "Next due" : "Target end date"} style={{ flex: 1 }}>
+          <DateInput className="input" name="target_date" required={yearly} value={end} onChange={(e) => setEnd(e.target.value)} min={start || undefined} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
+      {plan && (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "-0.375rem 0 1rem" }}>
+          Set aside {formatCurrency(plan.perMonth, currency)} a month for {plan.months} month{plan.months === 1 ? "" : "s"} to make it.
+        </p>
+      )}
       {accounts.length > 0 && (
-        <Field label="Saved in (optional)">
-          <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
-            <option value="">No account yet</option>
-            <AccountOptions accounts={accounts} currency={currency} />
-          </select>
-        </Field>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <Field label="From account (optional)" style={{ flex: 1 }}>
+            <select className="input" name="from_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
+              <option value="">Choose each time</option>
+              <AccountOptions accounts={accounts} currency={currency} />
+            </select>
+          </Field>
+          <Field label="To account (optional)" style={{ flex: 1 }}>
+            <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
+              <option value="">No account yet</option>
+              <AccountOptions accounts={accounts} currency={currency} />
+            </select>
+          </Field>
+        </div>
+      )}
+      {accounts.length > 0 && (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "-0.375rem 0 1rem" }}>
+          From is where Put money in starts. With a To account, the money moves From → To, and the To account holds what the goal has saved.
+        </p>
       )}
       <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.8125rem", margin: "0 0 1rem", cursor: "pointer" }}>
         <input type="checkbox" checked={onPlanner} onChange={(e) => setOnPlanner(e.target.checked)} style={{ marginTop: "0.125rem" }} />
