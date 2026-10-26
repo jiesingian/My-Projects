@@ -3,7 +3,9 @@ import { accountPickerGroups, type PickableAccount } from "@/lib/account-picker"
 
 /** The <option>s of an account picker: most used first, grouped once the
  * list is long (lib/account-picker). Drop it inside any <select>; the
- * select keeps its own empty option, value and handler.
+ * select keeps its own empty option, value and handler. An Only-you
+ * account says so after its name (27 October): picking it is how an
+ * entry is kept to yourself, and the list did not show which one that was.
  *
  * `detail` is what follows the name: the balance (money forms), the bank
  * (a task's usual cost, where the balance is beside the point) or "· joint"
@@ -21,13 +23,13 @@ export function AccountOptions({
   disableJoint?: boolean;
 }) {
   const label = (a: PickableAccount) =>
-    detail === "balance" && currency
+    (detail === "balance" && currency
       ? `${a.name} · ${formatCurrency(a.balance, currency)}`
       : detail === "institution"
         ? `${a.name}${a.institution ? ` · ${a.institution}` : ""}`
         : detail === "joint"
           ? `${a.name}${a.is_joint ? " · joint" : ""}`
-          : a.name;
+          : a.name) + (a.onlyMe ? " · only you" : "");
   const option = (a: PickableAccount) => (
     <option key={a.id} value={a.id} disabled={disableJoint && a.is_joint}>
       {label(a)}

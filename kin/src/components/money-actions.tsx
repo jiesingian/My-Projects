@@ -581,6 +581,9 @@ export type LineEntry = {
  * or remove. Tapping "N entries" opens them, each with Edit and Remove. */
 export function LineEntries({ entries, accounts, targets, currency, dateFormat }: { entries: LineEntry[]; accounts: PickableAccount[]; targets: ExpenseTargets; currency: string; dateFormat: string }) {
   const [open, setOpen] = useState(false);
+  // Which entries sit in an Only-you account (27 October): nobody else
+  // sees those, and nothing on Cash Flow said so.
+  const onlyMe = new Set(accounts.filter((a) => a.onlyMe).map((a) => a.id));
   if (entries.length === 0) return null;
   return (
     <div style={{ width: "100%" }}>
@@ -595,6 +598,7 @@ export function LineEntries({ entries, accounts, targets, currency, dateFormat }
                 {e.particulars}
                 <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
                   {formatDate(e.occurredOn, dateFormat)} · {e.accountName}
+                  {onlyMe.has(e.accountId) ? " · only you" : ""}
                 </span>
               </span>
               <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>{formatCurrency(e.amount, currency)}</span>
@@ -702,6 +706,11 @@ export function EditEntryButton({ entry, accounts, targets, currency }: { entry:
               {!onPickable && <option value={entry.accountId}>{entry.accountName}</option>}
               <AccountOptions accounts={accounts} currency={currency} />
             </select>
+            {accounts.some((a) => a.onlyMe) && (
+              <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0", lineHeight: 1.4 }}>
+                Moving it into an account marked “only you” keeps this entry to yourself.
+              </p>
+            )}
           </div>
           {entry.forKey !== null ? (
             <ForSelect
