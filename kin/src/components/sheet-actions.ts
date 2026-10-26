@@ -53,14 +53,27 @@ function findRow(root: HTMLElement): HTMLElement | null {
   if (root.querySelector('[data-sheet-actions="none"]')) return null;
   const named = root.querySelector<HTMLElement>("[data-sheet-actions]");
   if (named) return named;
-  const last = <E extends Element>(list: NodeListOf<E>) => (list.length ? list[list.length - 1] : null);
-  const button =
-    last(root.querySelectorAll<HTMLElement>('button[type="submit"]:not([hidden])')) ??
-    last(root.querySelectorAll<HTMLElement>("button.btn-primary, a.btn-primary"));
+  // A form's submit button, by what the browser makes of it: a <button>
+  // with no type inside a form submits too. Else, for a form saved by a
+  // plain button, the last primary one that is not a choice in a picker.
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>("button")].filter((b) => !b.hidden && b.offsetParent !== null);
+  const submits = buttons.filter((b) => b.type === "submit" && b.form);
+  const primaries = [...root.querySelectorAll<HTMLElement>("button.btn-primary, a.btn-primary")].filter(
+    (b) => b.offsetParent !== null && !b.closest('[role="radiogroup"], [role="group"], [aria-pressed]') && !b.hasAttribute("aria-pressed"),
+  );
+  const button = submits.at(-1) ?? primaries.at(-1);
   if (!button) return null;
   // The row the button shares with Cancel or Done, when it has one; the
-  // button alone when it stands by itself.
+  // button alone when it stands by itself. A row with fields in it is part
+  // of the form, not its buttons.
   const parent = button.parentElement;
-  if (parent && parent !== root && parent.tagName !== "FORM" && parent.querySelectorAll(".btn").length > 1) return parent;
+  if (
+    parent &&
+    parent !== root &&
+    parent.tagName !== "FORM" &&
+    parent.querySelectorAll(".btn").length > 1 &&
+    !parent.querySelector('input:not([type="hidden"]), select, textarea')
+  )
+    return parent;
   return button;
 }

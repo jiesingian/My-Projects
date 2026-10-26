@@ -99,7 +99,9 @@ export function MedicinesPanel({
   role: string;
 }) {
   const { pending, run } = useAct();
-  const [adding, setAdding] = useState(medicines.length === 0);
+  // Closed until asked for. Inline, the form used to stand open when there
+  // were no medicines yet; in a sheet that would pop up on every visit.
+  const [adding, setAdding] = useState(false);
   const due = dosesFor(medicines, doses, today, now);
   // Ticks made with no signal, waiting to send (lib/offline): shown as they
   // will be, with "Waiting to send" in place of Taken/Due.
