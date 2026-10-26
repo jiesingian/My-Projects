@@ -473,7 +473,7 @@ export function AddBillForm({ whose }: { whose: WhoseOption[] }) {
         <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
           <ErrorText message={state.error} />
           <Labelled label="What it's for">
-            <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
+            <input className="input" name="name" required placeholder="Electric bill, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
           </Labelled>
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>

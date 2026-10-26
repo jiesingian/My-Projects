@@ -29,7 +29,7 @@ export type NewDraw = { title: string; cap: string; exchangeDate: string; notOwn
 export async function createGiftDrawAction(input: NewDraw): Promise<ActionState & { id?: string }> {
   const me = await requireCurrentMember();
   if (!isGrownUp(me.role)) return { error: "Ask a grown-up to start a draw." };
-  const title = clamp(input.title, 80) || "Monito-monita";
+  const title = clamp(input.title, 80) || "Gift exchange";
   const day = input.exchangeDate.trim();
   if (!familyMidnight(day)) return { error: "Choose the day of the exchange." };
   if (day < familyDay(new Date(), await householdZone())) return { error: "The exchange day has passed." };

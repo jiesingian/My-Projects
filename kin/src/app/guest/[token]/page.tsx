@@ -54,7 +54,7 @@ export default async function GuestPage({ params }: { params: Promise<{ token: s
         open: e.open,
         coming: e.coming,
         draw: e.draw_id
-          ? { id: e.draw_id, title: e.draw_title ?? "Monito-monita", exchangeDate: e.draw_exchange_date ?? "", priceCap: e.draw_price_cap, currency: e.draw_currency ?? "PHP", drawn: !!e.draw_drawn, open: !!e.draw_open }
+          ? { id: e.draw_id, title: e.draw_title ?? "Gift exchange", exchangeDate: e.draw_exchange_date ?? "", priceCap: e.draw_price_cap, currency: e.draw_currency ?? "PHP", drawn: !!e.draw_drawn, open: !!e.draw_open }
           : null,
       }}
       potluck={(items ?? []).map((i) => ({ id: i.item_id, label: i.label, wanted: i.wanted, taken: i.taken }))}

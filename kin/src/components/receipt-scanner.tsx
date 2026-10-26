@@ -137,7 +137,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 id={`${uid}-h`}>Snap a receipt or screenshot</h3>
-          <p>A store receipt, a GCash / Maya / InstaPay confirmation, or a Meralco or water bill. Kin reads the amount, the date and who was paid; you check it, then record it.</p>
+          <p>A store receipt, an e-wallet or bank transfer confirmation, or an electric or water bill. Kin reads the amount, the date and who was paid; you check it, then record it.</p>
         </div>
       </div>
       <input ref={input} id={`${uid}-file`} type="file" accept="image/*" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} disabled={scanning || saving} />
@@ -146,7 +146,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus, today }: { acc
       </label>
       {!plus ? (
         <p className="kin-scan-off" role="note">
-          Reading receipts is part of Kin Plus. With Plus, a photo of a receipt or a screenshot of a GCash, Maya or InstaPay confirmation becomes an expense or a bill after a quick check, and a GCash PDF statement imports too. Nothing is sent until then.
+          Reading receipts is part of Kin Plus. With Plus, a photo of a receipt or a screenshot of an e-wallet or bank transfer confirmation becomes an expense or a bill after a quick check, and a GCash PDF statement imports too. Nothing is sent until then.
         </p>
       ) : !ready ? (
         <p className="kin-scan-off" role="note">

@@ -38,7 +38,7 @@ export async function createSharedPotAction(_prev: ActionState, formData: FormDa
   const title = clamp(String(formData.get("title") ?? "").trim(), 120);
   const note = clamp(String(formData.get("note") ?? "").trim(), 500) || null;
   const families = formData.getAll("families").map(String).filter(Boolean);
-  if (!title) return { error: "Give the pot a name, like “Lola’s medicines”." };
+  if (!title) return { error: "Give the pot a name, like “Grandma’s medicines”." };
   if (families.length === 0) return { error: "Choose at least one linked household to share with." };
 
   const supabase = await createClient();

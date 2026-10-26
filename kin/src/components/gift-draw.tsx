@@ -35,7 +35,7 @@ function useRun() {
 export function NewDrawForm({ defaultDate }: { defaultDate: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [f, setF] = useState({ title: "Monito-monita", cap: "500", exchangeDate: defaultDate, notOwnHousehold: true, revealOnDay: true });
+  const [f, setF] = useState({ title: "Gift exchange", cap: "500", exchangeDate: defaultDate, notOwnHousehold: true, revealOnDay: true });
   return (
     <form
       onSubmit={(e) => {

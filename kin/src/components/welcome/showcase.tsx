@@ -28,7 +28,7 @@ const SLIDES: Record<Priority, Slide> = {
       { main: "Blood type", side: "O+" },
       { main: "Allergies", side: "Penicillin" },
       { main: "Doctor", side: "Dr. Reyes" },
-      { main: "PhilHealth", side: "•••• 2041" },
+      { main: "Insurance no.", side: "•••• 2041" },
     ],
   },
   documents: {

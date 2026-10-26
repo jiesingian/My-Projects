@@ -25,7 +25,7 @@ test("the form asks for what was sent, what arrived, who and how", async ({ page
   for (const name of ["From", "To", "Currency", "How it came", "Landed in (optional)"]) {
     await expect(page.getByRole("combobox", { name, exact: true })).toBeVisible();
   }
-  for (const name of ["Amount sent", "Pesos that arrived"]) {
+  for (const name of ["Amount sent", "Amount that arrived"]) {
     await expect(page.getByRole("spinbutton", { name, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("textbox", { name: /^Sent on/ })).toBeVisible();

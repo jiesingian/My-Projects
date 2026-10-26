@@ -312,7 +312,7 @@ export function SimpleModeSwitch({ on }: { on: boolean }) {
           <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
             <span style={{ fontSize: "1.0625rem", display: "block" }}>Simple Kin</span>
             <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-              Larger text and bigger buttons, and a Today with only medicines, today&apos;s plans, calling family and SOS. Made for lolo and lola.
+              Larger text and bigger buttons, and a Today with only medicines, today&apos;s plans, calling family and SOS. Made for grandparents.
             </span>
           </span>
           <span className="kin-switch" data-on={value} />
@@ -990,7 +990,7 @@ export function RememberTheDepartedSwitch({ on, canChange }: { on: boolean; canC
         <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
           <span style={{ fontSize: "1.0625rem", display: "block" }}>Remember relatives who have passed</span>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", lineHeight: 1.4, marginTop: "0.125rem" }}>
-            At Undas and on their day (the 40th day, the first year, each anniversary), Today says who is remembered and the grown-ups get a reminder that morning. A candle is lit on their tree tile during Undas. Add a date of passing on the tree.
+            On All Saints&rsquo; Day and on their day (the 40th day, the first year, each anniversary), Today says who is remembered and the grown-ups get a reminder that morning. A candle is lit on their tree tile on All Saints&rsquo; Day. Add a date of passing on the tree.
             {!canChange && " Only the organizer can change this."}
           </span>
         </span>
@@ -1046,7 +1046,7 @@ export function ChristmasOnTodaySwitch({ on, canChange }: { on: boolean; canChan
         <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
           <span style={{ fontSize: "1.0625rem", display: "block" }}>Christmas on Today</span>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", lineHeight: 1.4, marginTop: "0.125rem" }}>
-            From 1 December to 1 January, Today starts with the count of sleeps to Noche Buena, a ready Noche Buena meal plan that fills the To-Buy list, the gift list and the monito-monita.
+            From 1 December to 1 January, Today starts with the count of sleeps to Christmas Eve, a ready Christmas Eve meal plan that fills the To-Buy list, the gift list and the gift exchange.
             {!canChange && " Only the organizer can change this."}
           </span>
         </span>

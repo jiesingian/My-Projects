@@ -25,7 +25,7 @@ export default async function DrawPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div>
-      <DetailHeader backHref="/planner/monito" eyebrow="Monito-monita" />
+      <DetailHeader backHref="/planner/monito" eyebrow="Gift exchange" />
       <div style={{ padding: "0 var(--gutter) 1.5rem" }}>
         <h1 style={{ fontSize: "1.375rem", margin: "0 0 0.25rem" }}>{draw.title}</h1>
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>

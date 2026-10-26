@@ -77,7 +77,7 @@ export async function addGiftIdeaAction(personId: string, text: string): Promise
   const me = await requireCurrentMember();
   if (!UUID.test(personId)) return { error: "That person could not be found." };
   const parsed = parseGiftIdea(text);
-  if (!parsed) return { error: "Write an idea, like “Lego set 1,200” or “Aguinaldo 500”." };
+  if (!parsed) return { error: "Write an idea, like “Lego set 1,200” or “Cash gift 500”." };
   const supabase = await createClient();
   const { error } = await supabase
     .from("gift_list_items")

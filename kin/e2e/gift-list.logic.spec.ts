@@ -41,5 +41,5 @@ test("one box: the idea, its cost, and whether it is cash", () => {
 
 test("the Wealth entry never names who it is for", () => {
   expect(spendParticulars({ isCash: false })).toBe("Christmas gift");
-  expect(spendParticulars({ isCash: true })).toBe("Aguinaldo");
+  expect(spendParticulars({ isCash: true })).toBe("Cash gift");
 });

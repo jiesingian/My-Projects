@@ -64,7 +64,7 @@ export function AlkansyaControls({
   return (
     <div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.625rem" }}>
-        {button("plan", isNew ? "Set up" : "Baon and split")}
+        {button("plan", isNew ? "Set up" : "Allowance and split")}
         {!isNew && plan.pesoPerPoint > 0 && button("points", "Change points")}
         {!isNew && button("add", "Add money")}
         {!isNew && button("take", "Spend or give")}
@@ -75,7 +75,7 @@ export function AlkansyaControls({
             disabled={pending || !(interestNow > 0)}
             style={small}
             onClick={async () => {
-              if (!(await confirm({ title: `Add ${formatCurrency(interestNow, currency)} interest to ipon?`, description: `${plan.interestPct}% of what ipon holds now.`, confirmLabel: "Add it" }))) return;
+              if (!(await confirm({ title: `Add ${formatCurrency(interestNow, currency)} interest to Save?`, description: `${plan.interestPct}% of what the Save jar holds now.`, confirmLabel: "Add it" }))) return;
               setError(null);
               startTransition(async () => {
                 const r = await addInterestAction(memberId);
@@ -118,7 +118,7 @@ function PlanForm({ memberId, plan, onDone }: { memberId: string; plan: Alkansya
         <ErrorText message={state.error} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.5rem" }}>
           <span>
-            <label htmlFor={`${uid}-weekly`} style={label}>Weekly baon</label>
+            <label htmlFor={`${uid}-weekly`} style={label}>Weekly allowance</label>
             <AmountInput id={`${uid}-weekly`} name="weekly_amount" defaultValue={plan.weeklyAmount} style={field} />
           </span>
           <span>
@@ -147,17 +147,17 @@ function PlanForm({ memberId, plan, onDone }: { memberId: string; plan: Alkansya
             <AmountInput id={`${uid}-rate`} name="peso_per_point" defaultValue={plan.pesoPerPoint} style={field} />
           </span>
           <span>
-            <label htmlFor={`${uid}-interest`} style={label}>Interest on ipon, %</label>
+            <label htmlFor={`${uid}-interest`} style={label}>Interest on Save, %</label>
             <input id={`${uid}-interest`} className="input" name="interest_pct" type="number" min="0" max="100" step="0.01" defaultValue={plan.interestPct} style={field} />
           </span>
         </div>
         <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0.625rem", lineHeight: 1.4 }}>
           Leave a point at 0 to keep points for rewards only. Interest is added when you press Add interest — monthly is usual.
         </p>
-        <label htmlFor={`${uid}-active`} style={label}>Weekly baon</label>
+        <label htmlFor={`${uid}-active`} style={label}>Weekly allowance</label>
         <select id={`${uid}-active`} name="active" className="input" defaultValue={plan.active ? "on" : "off"} style={{ ...field, marginBottom: "0.625rem" }}>
           <option value="on">Given every week</option>
-          <option value="off">Paused — no baon until switched back on</option>
+          <option value="off">Paused — no allowance until switched back on</option>
         </select>
         <SubmitButton style={small}>Save</SubmitButton>
       </form>
@@ -181,12 +181,12 @@ function PointsForm({ memberId, rate, spendable, currency, onDone }: { memberId:
           <span style={{ fontSize: "0.84375rem" }}>= {formatCurrency(pointsToPesos(points || 0, rate), currency)}</span>
         </div>
         <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0.625rem" }}>
-          Split across the jars the way the baon is. The points are spent, the same as asking for a reward.
+          Split across the jars the way the allowance is. The points are spent, the same as asking for a reward.
         </p>
         {spendable < 1 ? (
           <p style={{ fontSize: "0.8125rem", margin: 0 }}>No points to change yet.</p>
         ) : (
-          <SubmitButton style={small}>Change into pesos</SubmitButton>
+          <SubmitButton style={small}>Change into cash</SubmitButton>
         )}
       </form>
     </Blueprint>
@@ -220,9 +220,9 @@ function MoneyForm({ memberId, mode, balances, currency, onDone }: { memberId: s
           </span>
         </div>
         <label htmlFor={`${uid}-note`} style={{ ...label, marginTop: "0.5rem" }}>{mode === "add" ? "From (optional)" : "What for (optional)"}</label>
-        <input id={`${uid}-note`} className="input" name="note" maxLength={200} placeholder={mode === "add" ? "Pamasko from Ninang" : "Snacks at school · Church"} style={field} />
+        <input id={`${uid}-note`} className="input" name="note" maxLength={200} placeholder={mode === "add" ? "Christmas money from Grandma" : "Snacks at school · Church"} style={field} />
         {mode === "take" && (
-          <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0" }}>Out of bigay is giving; out of gastos or ipon is spending.</p>
+          <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0" }}>Out of Give is giving; out of Spend or Save is spending.</p>
         )}
         <div style={{ marginTop: "0.625rem" }}>
           <SubmitButton style={small}>{mode === "add" ? "Add" : "Take out"}</SubmitButton>

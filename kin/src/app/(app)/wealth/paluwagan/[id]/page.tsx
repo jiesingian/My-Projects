@@ -29,7 +29,7 @@ export default async function PaluwaganPage({ params }: { params: Promise<{ id: 
 
   return (
     <div>
-      <DetailHeader backHref="/wealth/utang" eyebrow="Paluwagan" />
+      <DetailHeader backHref="/wealth/utang" eyebrow="Savings circle" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 0.25rem" }}>{g.name}</h3>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginBottom: "0.75rem" }}>

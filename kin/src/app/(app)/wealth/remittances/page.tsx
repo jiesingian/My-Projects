@@ -63,7 +63,7 @@ export default async function RemittancesPage() {
           <Empty
             icon={<Icon name="wallet" size={26} />}
             title="No remittances yet"
-            line="When someone abroad sends money home, log it here: what was sent, what arrived in pesos, and what it went to."
+            line="When someone abroad sends money home, log it here: what was sent, what arrived here, and what it went to."
           />
         )}
 
@@ -81,7 +81,7 @@ export default async function RemittancesPage() {
 
         <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", lineHeight: 1.45, marginTop: "0.875rem" }}>
           The reference value uses the European Central Bank&rsquo;s rate for that day, from Frankfurter. Remittance centres and wallets pay out at their own
-          rate, so the pesos that arrived are what the totals count. A remittance marked Just me is seen only by whoever logged it.
+          rate, so the amount that arrived is what the totals count. A remittance marked Just me is seen only by whoever logged it.
         </p>
       </div>
     </div>

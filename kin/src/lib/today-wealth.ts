@@ -105,10 +105,10 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
     if (now >= 1) {
       const date = roundDate(g.startsOn, g.frequency, now);
       if (ours.turn === now && date === today) {
-        todayRows.push({ id: `paluwagan-turn-${g.id}`, icon: "wallet", tint: "money", title: `Paluwagan · ${g.name}`, meta: `Our turn · the pot is ${fmt(pot(g.contribution, rounds))}`, href });
+        todayRows.push({ id: `paluwagan-turn-${g.id}`, icon: "wallet", tint: "money", title: `Savings circle · ${g.name}`, meta: `Our turn · the pot is ${fmt(pot(g.contribution, rounds))}`, href });
       }
       if (!g.paid.has(`${ours.id}:${now}`)) {
-        todayRows.push({ id: `paluwagan-${g.id}`, action: "pay", urgent: true, icon: "wallet", tint: "money", title: `Hulog · ${g.name}`, meta: `${fmt(g.contribution)} · round ${now} of ${rounds} · ${date < today ? "overdue" : "due today"}`, href });
+        todayRows.push({ id: `paluwagan-${g.id}`, action: "pay", urgent: true, icon: "wallet", tint: "money", title: `Contribution · ${g.name}`, meta: `${fmt(g.contribution)} · round ${now} of ${rounds} · ${date < today ? "overdue" : "due today"}`, href });
       }
     }
     if (now < rounds) {
@@ -117,7 +117,7 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
       const n = inWeek(date);
       if (n) {
         const turn = ours.turn === nextRound;
-        soon.push(soonItem({ id: `soon-paluwagan-${g.id}`, icon: "wallet", tint: "money", title: turn ? `Paluwagan · ${g.name}` : `Hulog · ${g.name}`, meta: turn ? `Our turn ${onDay(today, date)} · the pot is ${fmt(pot(g.contribution, rounds))}` : `${fmt(g.contribution)} ${onDay(today, date)} · round ${nextRound} of ${rounds}`, href, at: n }));
+        soon.push(soonItem({ id: `soon-paluwagan-${g.id}`, icon: "wallet", tint: "money", title: turn ? `Savings circle · ${g.name}` : `Contribution · ${g.name}`, meta: turn ? `Our turn ${onDay(today, date)} · the pot is ${fmt(pot(g.contribution, rounds))}` : `${fmt(g.contribution)} ${onDay(today, date)} · round ${nextRound} of ${rounds}`, href, at: n }));
       }
     }
   }

@@ -25,13 +25,13 @@ test("Noche Buena is 24 December of the season's year, also on 1 January", () =>
 
 test("the countdown, day by day", () => {
   expect(christmasCountdown("2026-11-30")).toBeNull();
-  expect(christmasCountdown("2026-12-01")?.title).toBe("23 sleeps to Noche Buena");
-  expect(christmasCountdown("2026-12-23")?.title).toBe("1 sleep to Noche Buena");
-  expect(christmasCountdown("2026-12-24")?.title).toBe("Noche Buena tonight!");
-  expect(christmasCountdown("2026-12-25")?.title).toBe("Maligayang Pasko!");
-  expect(christmasCountdown("2026-12-26")?.title).toBe("5 sleeps to Media Noche");
-  expect(christmasCountdown("2026-12-31")?.title).toBe("Media Noche tonight!");
-  expect(christmasCountdown("2027-01-01")?.title).toBe("Manigong Bagong Taon!");
+  expect(christmasCountdown("2026-12-01")?.title).toBe("23 sleeps to Christmas Eve");
+  expect(christmasCountdown("2026-12-23")?.title).toBe("1 sleep to Christmas Eve");
+  expect(christmasCountdown("2026-12-24")?.title).toBe("Christmas Eve dinner tonight!");
+  expect(christmasCountdown("2026-12-25")?.title).toBe("Merry Christmas!");
+  expect(christmasCountdown("2026-12-26")?.title).toBe("5 sleeps to New Year's Eve");
+  expect(christmasCountdown("2026-12-31")?.title).toBe("New Year's Eve dinner tonight!");
+  expect(christmasCountdown("2027-01-01")?.title).toBe("Happy New Year!");
   expect(christmasCountdown("2027-01-02")).toBeNull();
 });
 
@@ -60,7 +60,7 @@ test("the lines on the cards", () => {
   expect(dishesLine(["Hamon", "Queso de bola"])).toBe("Hamon, Queso de bola");
   expect(dishesLine(["Hamon", "Queso de bola", "Spaghetti", "Fruit salad", "Lumpia"])).toBe("Hamon, Queso de bola and 3 more");
   const money = (n: number) => `₱${n}`;
-  expect(giftListLine({ people: 0, done: 0, bought: 0, budget: 0 }, money)).toBe("A budget for each person and inaanak, ticked when bought");
+  expect(giftListLine({ people: 0, done: 0, bought: 0, budget: 0 }, money)).toBe("A budget for each person and godchild, ticked when bought");
   expect(giftListLine({ people: 5, done: 3, bought: 4500, budget: 6000 }, money)).toBe("3 of 5 done · ₱4500 of ₱6000");
   expect(giftListLine({ people: 2, done: 0, bought: 500, budget: 0 }, money)).toBe("0 of 2 done · ₱500 bought");
 });

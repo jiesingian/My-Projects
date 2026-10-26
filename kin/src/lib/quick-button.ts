@@ -26,7 +26,7 @@ export const QUICK_ACTIONS: { id: QuickActionId; name: string; path: string; kid
   { id: "talk", name: "Talk to Kin", path: "/today?kin=voice", kid: false },
   { id: "family-chat", name: "Family chat", path: "/chat", kid: true },
   // One press tells the household where you are (lib/arrived.ts).
-  { id: "arrived", name: "Nakarating na ako", path: "/today?arrived=1", kid: true },
+  { id: "arrived", name: "I've arrived", path: "/today?arrived=1", kid: true },
   { id: "buy", name: "Shopping list", path: "/household?seg=buy", kid: false },
   { id: "expense", name: "Add an expense", path: "/wealth/transact?mode=out", kid: false },
   { id: "event", name: "Add to the calendar", path: "/planner/add", kid: false },

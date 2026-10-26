@@ -91,7 +91,7 @@ function Card({ h }: { h: NamedByView }) {
                 className="input"
                 rows={2}
                 maxLength={REASON_MAX}
-                placeholder="Ate is in hospital and we need her PhilHealth card"
+                placeholder="My sister is in hospital and we need her insurance card"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 disabled={pending}

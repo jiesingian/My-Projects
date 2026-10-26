@@ -341,7 +341,7 @@ function Places({ places, canManage }: { places: SavedPlace[]; canManage: boolea
             <option value="Other">Other…</option>
           </select>
           {name === "Other" && (
-            <input className="input" aria-label="Name of the place" maxLength={40} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Lola's house" style={{ minHeight: "2.25rem", flex: "1 1 8rem" }} />
+            <input className="input" aria-label="Name of the place" maxLength={40} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Grandma's house" style={{ minHeight: "2.25rem", flex: "1 1 8rem" }} />
           )}
           <button type="button" className="btn btn-secondary" disabled={pending} onClick={saveHere} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }}>
             Save where I am now

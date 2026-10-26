@@ -130,7 +130,7 @@ export function RemittanceForm({
       </div>
       {sender === SOMEONE_ELSE && (
         <Field label="Their name">
-          <input className="input" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Kuya Ben" maxLength={120} autoComplete="off" />
+          <input className="input" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Ben" maxLength={120} autoComplete="off" />
         </Field>
       )}
 
@@ -155,7 +155,7 @@ export function RemittanceForm({
 
       <RateLine rate={rate} currency={currency} estimate={estimate} />
 
-      <Field label="Pesos that arrived">
+      <Field label="Amount that arrived">
         <input className="input" type="number" inputMode="decimal" step="0.01" min="0" value={received} onChange={(e) => setReceived(e.target.value)} placeholder={estimate ? String(Math.floor(estimate)) : "28000"} />
       </Field>
       {estimate !== null && !received && (
@@ -202,7 +202,7 @@ export function RemittanceForm({
       </Field>
       {selectedAccount && (
         <p style={NOTE}>
-          {arrived > 0 ? formatCurrency(arrived) : "The pesos that arrived"} will show as money in on {selectedAccount.name}, so its balance stays right.
+          {arrived > 0 ? formatCurrency(arrived) : "The amount that arrived"} will show as money in on {selectedAccount.name}, so its balance stays right.
         </p>
       )}
 
@@ -214,7 +214,7 @@ export function RemittanceForm({
               className="input"
               value={a.purpose}
               onChange={(e) => setAllocations(allocations.map((x, j) => (j === i ? { ...x, purpose: e.target.value } : x)))}
-              placeholder={["Tuition", "Lola's medicine", "House repairs"][i % 3]}
+              placeholder={["Tuition", "Grandma's medicine", "House repairs"][i % 3]}
               maxLength={80}
             />
           </Field>
@@ -289,8 +289,8 @@ function RateLine({ rate, currency, estimate }: { rate: PesoRate | null | "loadi
   let text: string;
   if (rate === "loading") text = "Looking up the rate for that day…";
   else if (!rate) text = currency === "KWD"
-    ? "The Kuwaiti dinar has no published reference rate. Type the pesos that arrived."
-    : "No reference rate for that day. Type the pesos that arrived.";
+    ? "The Kuwaiti dinar has no published reference rate. Type the amount that arrived."
+    : "No reference rate for that day. Type the amount that arrived.";
   else {
     const day = new Date(`${rate.rateDate}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
     const per = `1 ${currency} = ${formatCurrency(Math.round(rate.rate * 10000) / 10000)}`;

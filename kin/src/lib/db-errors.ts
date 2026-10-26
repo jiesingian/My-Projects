@@ -48,7 +48,7 @@ const RULES: Rule[] = [
     // P0001 -- raised by utang_payments_not_over (20261019110000) when
     // payments would add up to more than was lent or borrowed.
     match: /utang_overpaid/i,
-    text: "That is more than is left on this utang.",
+    text: "That is more than is left on this IOU.",
   },
   {
     // P0001 / 42501 / 22023 -- raised by import_wealth_transactions

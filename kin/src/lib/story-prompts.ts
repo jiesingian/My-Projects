@@ -7,7 +7,7 @@ export const STORY_PROMPTS = [
   "What was your first job, and what did it pay?",
   "Where did you live when you were ten?",
   "How did you meet your spouse?",
-  "What did Noche Buena look like when you were a child?",
+  "What did Christmas Eve look like when you were a child?",
   "What is a dish only our family makes?",
   "What was the hardest year you remember, and how did you get through it?",
   "Who was your favourite teacher, and why?",

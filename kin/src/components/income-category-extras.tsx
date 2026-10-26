@@ -92,7 +92,7 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
     >
       <ErrorText message={error} />
       <Field name="Source (who sent it)">
-        <input className="input" name="sender" required placeholder="Tita Nena, Dubai" style={field} />
+        <input className="input" name="sender" required placeholder="Aunt Nena, Dubai" style={field} />
       </Field>
       <div style={box}>
         <Row>
@@ -124,7 +124,7 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
           </Field>
         </Row>
       </div>
-      <Field name="Pesos that arrived">
+      <Field name="Amount that arrived">
         <input className="input" type="number" step="0.01" min="0" name="php_received" required style={field} />
       </Field>
       <Field name="Deposited to account">
@@ -158,7 +158,7 @@ export function UtangFields({ openLent, currency, onDone }: { openLent: OpenLent
   const choices = [
     ["borrowed", "Borrowed from someone"],
     ["repaid", "Paid back to me"],
-    ["paluwagan", "Paluwagan payout"],
+    ["paluwagan", "Savings circle payout"],
   ] as const;
   return (
     <form
@@ -186,7 +186,7 @@ export function UtangFields({ openLent, currency, onDone }: { openLent: OpenLent
         <>
           <input type="hidden" name="direction" value="borrowed" />
           <Field name="Source (who lent it)">
-            <input className="input" name="person_name" required placeholder="Tito Ben" style={field} />
+            <input className="input" name="person_name" required placeholder="Uncle Ben" style={field} />
           </Field>
           <div style={box}>
             <Row>
@@ -202,7 +202,7 @@ export function UtangFields({ openLent, currency, onDone }: { openLent: OpenLent
             </Field>
           </div>
           <p style={note}>
-            Paying it back in instalments, or keeping it to yourself, is set on the <Link href="/wealth/utang">Utang &amp; paluwagan</Link> page.
+            Paying it back in instalments, or keeping it to yourself, is set on the <Link href="/wealth/utang">Lending &amp; savings circles</Link> page.
           </p>
           <Buttons pending={pending} onCancel={onDone} />
         </>
@@ -210,7 +210,7 @@ export function UtangFields({ openLent, currency, onDone }: { openLent: OpenLent
       {kind === "repaid" &&
         (openLent.length === 0 ? (
           <p style={note}>
-            Nobody owes the household anything on record. Money lent is added on the <Link href="/wealth/utang">Utang &amp; paluwagan</Link> page.
+            Nobody owes the household anything on record. Money lent is added on the <Link href="/wealth/utang">Lending &amp; savings circles</Link> page.
           </p>
         ) : (
           <>
@@ -238,7 +238,7 @@ export function UtangFields({ openLent, currency, onDone }: { openLent: OpenLent
         ))}
       {kind === "paluwagan" && (
         <p style={note}>
-          A paluwagan&rsquo;s payout follows its rounds and members — mark it on the <Link href="/wealth/utang">Utang &amp; paluwagan</Link> page, where your group is.
+          A savings circle&rsquo;s payout follows its rounds and members — mark it on the <Link href="/wealth/utang">Lending &amp; savings circles</Link> page, where your group is.
         </p>
       )}
     </form>

@@ -485,7 +485,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
           className="btn btn-secondary"
           style={{ minHeight: 44, fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem", marginTop: "0.25rem" }}
         >
-          <Icon name="wallet" size={15} /> Alkansya · baon, gastos, ipon, bigay
+          <Icon name="wallet" size={15} /> Piggy bank · allowance, spend, save, give
         </Link>
       )}
     </>

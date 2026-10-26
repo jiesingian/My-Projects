@@ -11,17 +11,17 @@ export const JARS = ["gastos", "ipon", "bigay"] as const;
 export type Jar = (typeof JARS)[number];
 
 export const JAR_LABEL: Record<Jar, { name: string; line: string }> = {
-  gastos: { name: "Gastos", line: "to spend" },
-  ipon: { name: "Ipon", line: "to save" },
-  bigay: { name: "Bigay", line: "to give" },
+  gastos: { name: "Spend", line: "day to day" },
+  ipon: { name: "Save", line: "kept for later" },
+  bigay: { name: "Give", line: "for others" },
 };
 
 export type AlkansyaKind = "allowance" | "points" | "interest" | "deposit" | "spend" | "give";
 
 export const KIND_LABEL: Record<AlkansyaKind, string> = {
-  allowance: "Weekly baon",
-  points: "Points changed into pesos",
-  interest: "Interest on ipon",
+  allowance: "Weekly allowance",
+  points: "Points changed into cash",
+  interest: "Interest on savings",
   deposit: "Added",
   spend: "Spent",
   give: "Given",
@@ -106,9 +106,9 @@ export function paydaysDue(paidThroughISO: string, todayISO: string, weekday: nu
 
 /** Why money cannot come out of a jar, or null when it can. */
 export function withdrawalProblem(kind: "spend" | "give", jar: Jar, amount: number, balance: number): string | null {
-  if (kind === "give" && jar !== "bigay") return "Giving comes out of bigay.";
-  if (kind === "spend" && jar === "bigay") return "Bigay is for giving; spending comes out of gastos or ipon.";
+  if (kind === "give" && jar !== "bigay") return "Giving comes out of the Give jar.";
+  if (kind === "spend" && jar === "bigay") return "The Give jar is for giving; spending comes out of Spend or Save.";
   if (!(amount > 0)) return "Enter how much.";
-  if (amount > balance) return `${JAR_LABEL[jar].name} only has ${balance.toFixed(2)}.`;
+  if (amount > balance) return `The ${JAR_LABEL[jar].name} jar only has ${balance.toFixed(2)}.`;
   return null;
 }

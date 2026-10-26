@@ -15,7 +15,7 @@ import type { ActionState } from "@/lib/actions/auth";
  * are so the person reads a sentence instead of a refusal. */
 async function grownUp() {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { me, error: "Utang and paluwagan are kept by the grown-ups." };
+  if (!isGrownUp(me.role)) return { me, error: "Lending and savings circles are kept by the grown-ups." };
   return { me, error: null };
 }
 
@@ -91,7 +91,7 @@ export async function addUtangPaymentAction(_prev: ActionState, formData: FormDa
   const amount = amountOf(formData, "amount");
   const supabase = await createClient();
   const { data: u } = await supabase.from("utang_entries").select("amount, utang_payments(amount)").eq("id", utangId).maybeSingle();
-  if (!u) return { error: "That utang is no longer here." };
+  if (!u) return { error: "That IOU is no longer here." };
   const problem = paymentProblem(amount, utangLeft(Number(u.amount), u.utang_payments ?? []).left);
   if (problem) return { error: problem };
 
@@ -161,14 +161,14 @@ export async function addPaluwaganAction(_prev: ActionState, formData: FormData)
     .map((s) => clamp(s, 80))
     .filter(Boolean);
   const usTurn = Math.round(Number(String(formData.get("us_turn") ?? "0")));
-  if (!name) return { error: "Give the paluwagan a name." };
-  if (!(contribution > 0)) return { error: "Enter each member's hulog." };
+  if (!name) return { error: "Give the savings circle a name." };
+  if (!(contribution > 0)) return { error: "Enter each member's contribution." };
   if (!["weekly", "semi_monthly", "monthly"].includes(frequency)) return { error: "Choose how often it runs." };
   if (!startsOn) return { error: "Choose the first round's date." };
 
   const names = [...others];
   if (usTurn > 0) names.splice(Math.min(usTurn, names.length + 1) - 1, 0, "Us");
-  if (names.length < 2) return { error: "A paluwagan needs at least two members." };
+  if (names.length < 2) return { error: "A savings circle needs at least two members." };
   if (names.length > 100) return { error: "Up to 100 members." };
 
   const supabase = await createClient();

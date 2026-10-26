@@ -85,7 +85,7 @@ export async function SimpleToday({ me, arrivedNow = false }: { arrivedNow?: boo
           <Icon name="message" size="1.5rem" /> Message the family
         </Link>
         <CallFamily />
-        {/* "Nakarating na ako", which the Action Button opens (/today?arrived=1). */}
+        {/* "I've arrived", which the Action Button opens (/today?arrived=1). */}
         <ArrivedButton auto={arrivedNow} big />
       </section>
 

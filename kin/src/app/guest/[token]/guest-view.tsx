@@ -165,7 +165,7 @@ export function GuestView({ token, event, potluck }: { token: string; event: Gue
               onChange={(e) => setDraft(e.target.value)}
               maxLength={GUEST_NAME_MAX}
               autoComplete="name"
-              placeholder="Tita Baby"
+              placeholder="Aunt Baby"
               style={{ flex: "1 1 12rem", minHeight: "2.75rem", minWidth: 0 }}
             />
             <button type="submit" className="btn btn-primary" style={{ minHeight: "2.75rem" }} disabled={pending}>

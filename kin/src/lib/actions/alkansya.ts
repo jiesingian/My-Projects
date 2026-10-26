@@ -17,7 +17,7 @@ import type { ActionState } from "@/lib/actions/auth";
  * file says; these checks are so a grown-up reads a sentence, not a policy. */
 async function grownUp() {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { me, error: "Only a parent or another adult keeps the alkansya." };
+  if (!isGrownUp(me.role)) return { me, error: "Only a parent or another adult keeps the piggy bank." };
   return { me, error: null };
 }
 
@@ -47,8 +47,8 @@ export async function saveAlkansyaPlanAction(_prev: ActionState, formData: FormD
   const interest = num(formData, "interest_pct");
   const active = formData.get("active") !== "off";
 
-  if (!(weekly >= 0 && weekly <= 100000)) return { error: "The weekly baon is from 0 to 100,000." };
-  if (!(Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)) return { error: "Choose the day the baon is given." };
+  if (!(weekly >= 0 && weekly <= 100000)) return { error: "The weekly allowance is from 0 to 100,000." };
+  if (!(Number.isInteger(weekday) && weekday >= 0 && weekday <= 6)) return { error: "Choose the day the allowance is given." };
   const bad = splitProblem(split);
   if (bad) return { error: bad };
   if (!(rate >= 0 && rate <= 1000)) return { error: "A point is worth from 0 to 1,000." };
@@ -98,7 +98,7 @@ export async function convertPointsAction(_prev: ActionState, formData: FormData
   const pesos = pointsToPesos(points, alkansya.plan.pesoPerPoint);
   const parts = splitPesos(pesos, alkansya.plan.split);
   const rows = JARS.filter((j) => parts[j] > 0);
-  if (rows.length === 0) return { error: "That many points is worth less than a centavo." };
+  if (rows.length === 0) return { error: "That many points is worth less than a cent." };
 
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("alkansya_entries").insert(
@@ -188,9 +188,9 @@ export async function addInterestAction(memberId: string): Promise<ActionState> 
   if (error) return { error };
 
   const alkansya = await getAlkansya(me.family_id, memberId);
-  if (!alkansya?.plan) return { error: "Set up the alkansya first." };
+  if (!alkansya?.plan) return { error: "Set up the piggy bank first." };
   const amount = interestOn(alkansya.balances.ipon, alkansya.plan.interestPct);
-  if (!(amount > 0)) return { error: alkansya.plan.interestPct > 0 ? "Ipon is empty, so there is nothing to add interest to." : "Set an interest rate first." };
+  if (!(amount > 0)) return { error: alkansya.plan.interestPct > 0 ? "The Save jar is empty, so there is nothing to add interest to." : "Set an interest rate first." };
 
   const supabase = await createClient();
   const { error: dbError } = await supabase.from("alkansya_entries").insert({

@@ -147,6 +147,20 @@ all Jonathan's on 23 October, each the recommended option:
   what the dose rows say. In its place "This week" counts what Coming up
   holds ("7 things · coming up this week") and opens it. Goals, To buy and
   Money stay as they were.
+- **Done (26 October, "all English"):** Kin is an international app, so
+  every default piece of text a person reads is English, feature names
+  included (Jonathan: "all default contents should be english… all english
+  on the app for now", scope "everything, feature names too"). Lending
+  (utang), Savings circle (paluwagan) and its contribution (hulog), Piggy
+  bank (alkansya) with the Allowance / Spend / Save / Give jars, Gift
+  exchange (monito-monita), Christmas Eve dinner (Noche Buena), All
+  Saints' Day (Undas), "I've arrived" (Nakarating na ako), Grandma / Aunt /
+  godchild / household helper, "twice a month" (kinsenas), snack
+  (merienda); the Help guide, the feature pages, the pushes the database
+  writes (20261026120000), the reminder letters, placeholders and
+  examples. Keys, routes, columns and the words a parser accepts when typed
+  are unchanged, so Filipino still works as input. The five feature-page
+  screenshots still show the old labels and need re-shooting.
 - **Not changed (26 October):** the Google default stays on for the whole
   household. Sharing an event with the relatives or the family tree it
   involves is a possible later feature, not decided. Reading a typed

@@ -129,6 +129,6 @@ export function giftDrawSoon(draws: GiftDrawLike[], today: string): BriefItem[] 
   return draws.flatMap((d) => {
     const n = daysUntil(today, d.exchange_date);
     if (n < 1 || n > 7) return [];
-    return [{ id: `soon-draw-${d.id}`, icon: "gift" as const, tint: "occasion" as const, title: `Monito-monita · ${d.title}`, meta: `Exchange ${onDay(today, d.exchange_date)} · got your gift?`, href: `/planner/monito/${d.id}`, at: n, whose: "family" as const, memberIds: [] }];
+    return [{ id: `soon-draw-${d.id}`, icon: "gift" as const, tint: "occasion" as const, title: `Gift exchange · ${d.title}`, meta: `Exchange ${onDay(today, d.exchange_date)} · got your gift?`, href: `/planner/monito/${d.id}`, at: n, whose: "family" as const, memberIds: [] }];
   });
 }

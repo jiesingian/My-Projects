@@ -1880,7 +1880,7 @@ export async function logRemittanceAction(input: {
   if (!(input.amount > 0)) return { error: "Enter how much was sent." };
   if (!/^[A-Z]{3}$/.test(currency)) return { error: "Choose the currency it was sent in." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.sentOn)) return { error: "Choose the day it was sent." };
-  if (!(input.phpReceived > 0)) return { error: "Enter the pesos that actually arrived." };
+  if (!(input.phpReceived > 0)) return { error: "Enter the amount that actually arrived." };
   if (!REMITTANCE_CHANNELS.includes(input.channel as RemittanceChannel)) return { error: "Choose how it was sent." };
 
   const allocations = input.allocations

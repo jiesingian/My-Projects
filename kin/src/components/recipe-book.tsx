@@ -294,7 +294,7 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
       <div style={{ display: "flex", gap: "0.375rem" }}>
         <input
           className="input"
-          placeholder="Another kind of food — Grilled, Baon, Handa…"
+          placeholder="Another kind of food — Grilled, Packed lunch, Party food…"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
@@ -717,7 +717,7 @@ function RecipeEditor({
             ))}
           </select>
           <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0" }}>
-            Lola&rsquo;s adobo: it shows with them on the tree, even if they have passed.
+            Grandma&rsquo;s adobo: it shows with them on the tree, even if they have passed.
           </p>
         </div>
       )}

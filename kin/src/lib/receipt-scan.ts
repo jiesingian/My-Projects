@@ -74,7 +74,7 @@ Read it and fill the fields:
 - date: when it was paid or issued, YYYY-MM-DD. A date without a year is this year or last, whichever is on or before today. Empty if not shown.
 - due_date: a bill's due date, YYYY-MM-DD; empty otherwise.
 - payee: the store, biller or person paid, as printed ("Puregold", "Meralco", "Juan D.").
-- category: the closest of ${EXPENSE_CATEGORIES.join(", ")}. Groceries for supermarkets and palengke; Utilities for Meralco, water, internet, phone; Dining for restaurants and food delivery; Transport for fuel, Grab, tolls.
+- category: the closest of ${EXPENSE_CATEGORIES.join(", ")}. Groceries for supermarkets, wet markets and palengke; Utilities for electricity (Meralco), water, internet, phone; Dining for restaurants and food delivery; Transport for fuel, Grab, tolls.
 - account_hint: which household account the money came from, by its name from this list, if the picture makes it clear (a GCash screenshot came from a GCash account; a card receipt's last four digits may match): ${names}. Empty if unclear.
 - reference: the reference or transaction number, or empty.
 - notes: items bought or any detail worth keeping, one line, or empty.

@@ -72,7 +72,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Member page: Moments and About",
             "tags": [],
-            "what": "One page per person. Moments gathers every journal entry they were in; About holds school, work, sizes (shoe, shirt, pants), contact details and Philippine IDs (SSS, PhilHealth, Pag-IBIG, TIN).",
+            "what": "One page per person. Moments gathers every journal entry they were in; About holds school, work, sizes (shoe, shirt, pants), contact details and ID numbers (SSS, PhilHealth, Pag-IBIG, TIN).",
             "how": "Tap a person anywhere in the app. Fill About once; tag them in journal entries to fill Moments.",
             "pros": [
               "The sizes make gift-buying easy.",
@@ -87,7 +87,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "name": "Stories about a person",
             "tags": [],
             "what": "Photos, scanned papers and recorded stories about someone, with a transcript made on the phone.",
-            "how": "Open a member page or a person on the tree → Stories. Press record and let Lola talk.",
+            "how": "Open a member page or a person on the tree → Stories. Press record and let Grandma talk.",
             "pros": [
               "Keeps the family's history in the voices of the people who lived it.",
               "The transcript makes a story searchable."
@@ -100,7 +100,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Connections",
             "tags": [],
-            "what": "Your own code and share link for people outside the household: friends, ninongs, relatives. A connection lets you message them and see what they mark Public.",
+            "what": "Your own code and share link for people outside the household: friends, godparents, relatives. A connection lets you message them and see what they mark Public.",
             "how": "Family → Profile → Connections. Share your code, or type theirs. Grown-ups in the same household are connected from the start.",
             "pros": [
               "No need to merge households just to message someone.",
@@ -158,7 +158,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "how": "Family → Health → a person → Medicines → add. Enter the times and how many pills are left.",
             "pros": [
               "The refill lands on the shopping list before the bottle runs out.",
-              "A grown-up hears about a missed dose for Lolo's maintenance medicine."
+              "A grown-up hears about a missed dose for Grandpa's maintenance medicine."
             ],
             "cons": [
               "Reminders need notifications allowed on the phone."
@@ -191,7 +191,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "name": "Emergency card",
             "tags": [],
             "what": "Blood type, allergies, current medicines, conditions, doctor and insurance on one card you can share or print, dated the day it was made. It shows how many of the six lines are filled, and each blank links to where to fill it.",
-            "how": "Family → Health → Emergency card. Fill the blanks, then Share or Print for the yaya, the school or your wallet.",
+            "how": "Family → Health → Emergency card. Fill the blanks, then Share or Print for the nanny, the school or your wallet.",
             "pros": [
               "The card a hospital nurse needs, ready before the emergency.",
               "It stays current because it reads from the profiles."
@@ -331,7 +331,7 @@ export const HELP_GUIDE: HelpTab[] = [
               "Relatives' pages, the Family Feed and the Family chat come with the link."
             ],
             "cons": [
-              "Needs a second household on Kin. Tip: share your invite code with Lola's household first."
+              "Needs a second household on Kin. Tip: share your invite code with Grandma's household first."
             ],
             "tips": []
           }
@@ -345,7 +345,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "link"
             ],
-            "what": "A shared pot with another household for a cost you split, like Lola's care or a parent's medicine, in parts (1 and 1 is half each; 2 and 1 is two thirds and one third).",
+            "what": "A shared pot with another household for a cost you split, like Grandma's care or a parent's medicine, in parts (1 and 1 is half each; 2 and 1 is two thirds and one third).",
             "how": "Family → Shared costs → start one with a household you are linked to.",
             "pros": [
               "Siblings see who has paid their share without awkward messages."
@@ -358,14 +358,14 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Emergency contacts",
             "tags": [],
-            "what": "The numbers that matter: the grown-ups from their profiles, plus the barangay, the hospital, the pedia.",
+            "what": "The numbers that matter: the grown-ups from their profiles, plus the district office, the hospital, the pediatrician.",
             "how": "Family → Links → add a contact.",
             "pros": [
               "SOS and the emergency card read from this list."
             ],
             "cons": [],
             "tips": [
-              "add the barangay, the nearest hospital and the pedia; SOS reads from this list."
+              "add the district office, the nearest hospital and the pediatrician; SOS reads from this list."
             ]
           },
           {
@@ -389,7 +389,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "Each person chooses whether to share where they are. Save Home, School and Work; Kin can tell the family when someone arrives. No trail is kept.",
             "how": "Family → Links. Switch on your own sharing, save places, then turn on Arrivals in Settings → Notifications.",
             "pros": [
-              "\"Nakarating na\" without anyone typing it.",
+              "\"I've arrived\" without anyone typing it.",
               "Nobody is shown until they switch it on themselves."
             ],
             "cons": [
@@ -427,7 +427,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "name": "Make it: a message becomes a task, event, expense or to-buy",
             "tags": [],
             "what": "Any message can be turned into a Planner task, an event, an expense in Wealth or a line on To-Buy, so a plan agreed in chat is not lost.",
-            "how": "Long-press a message → Make it → choose what it becomes. \"Pabili ng gatas at itlog\" becomes two To-Buy items.",
+            "how": "Long-press a message → Make it → choose what it becomes. \"Buy milk and eggs\" becomes two To-Buy items.",
             "pros": [
               "Nothing agreed in chat gets forgotten.",
               "No copying between apps."
@@ -472,7 +472,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "Named groups with chosen members. An announcements-only group lets only admins post.",
             "how": "Chat → New group. Name it, pick members or Everyone, and choose Announcements only if needed.",
             "pros": [
-              "A batch or barkada chat without leaving Kin.",
+              "A chat with friends or batchmates without leaving Kin.",
               "Announcements keep family notices from getting buried."
             ],
             "cons": [],
@@ -630,7 +630,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "Entries shared with linked households, with six reactions and comments.",
             "how": "Journal → Family Feed. Link a household with its code from the same screen.",
             "pros": [
-              "Lola sees the grandchildren's week without a group chat.",
+              "Grandma sees the grandchildren's week without a group chat.",
               "Reactions and comments stay with the memory."
             ],
             "cons": [
@@ -644,7 +644,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "Moments marked Public by the people you are connected with, and yours. Only grown-ups you are connected with, or linked to on your family tree, see what you share here.",
             "how": "Mark an entry Public in Mine; read others' in Journal → Public.",
             "pros": [
-              "A way to share with friends and ninongs who are not family.",
+              "A way to share with friends and godparents who are not family.",
               "Children never see Public entries."
             ],
             "cons": [],
@@ -783,10 +783,10 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Add buttons",
             "tags": [],
-            "what": "Milestone, Event, To buy, Expense, Note, and Nakarating na ako (tells the household you have arrived, in one tap).",
+            "what": "Milestone, Event, To buy, Expense, Note, and I've arrived (tells the household you have arrived, in one tap).",
             "how": "Tap a button; each opens the right form.",
             "pros": [
-              "Nakarating replaces the \"nasa bahay na ako\" text.",
+              "I've arrived replaces the \"I'm home now\" text.",
               "The fastest way to log an expense or a to-buy."
             ],
             "cons": [
@@ -810,11 +810,11 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Christmas on Today",
             "tags": [],
-            "what": "From 1 December to 1 January: the sleeps to Noche Buena, a ready Noche Buena plan, the gift list and the monito-monita at the top of Today.",
+            "what": "From 1 December to 1 January: the sleeps to Christmas Eve, a ready Christmas Eve plan, the gift list and the gift exchange at the top of Today.",
             "how": "Appears by itself in December; a grown-up can turn it off in the household's settings.",
             "pros": [
-              "The Noche Buena plan fills To-Buy in one tap.",
-              "Gifts, monito and the menu in one place."
+              "The Christmas Eve plan fills To-Buy in one tap.",
+              "Gifts, the exchange and the menu in one place."
             ],
             "cons": [
               "Only from 1 December to 1 January."
@@ -824,7 +824,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Your family's week",
             "tags": [],
-            "what": "This week's posts and photos and next week's plans, with Philippine holidays.",
+            "what": "This week's posts and photos and next week's plans, with your country's holidays.",
             "how": "Open it on Sunday evening with the week-ahead notification.",
             "pros": [
               "The week in one screen."
@@ -844,7 +844,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "ai"
             ],
-            "what": "The floating button on every screen. Ask in English or Taglish to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan.",
+            "what": "The floating button on every screen. Ask in English or your own language to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan.",
             "how": "Tap the button and type or speak.",
             "pros": [
               "Adding something takes one sentence.",
@@ -875,7 +875,7 @@ export const HELP_GUIDE: HelpTab[] = [
   {
     "id": "planner",
     "name": "Planner",
-    "intro": "The family calendar, tasks and chores, events with gifts and monito-monita, and goals with targets, coins, badges and a shop.",
+    "intro": "The family calendar, tasks and chores, events with gifts and the gift exchange, and goals with targets, coins, badges and a shop.",
     "groups": [
       {
         "title": "Calendar",
@@ -883,7 +883,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Week and month views, Who filter, layers",
             "tags": [],
-            "what": "The family calendar with layers you can switch off: tasks, chores, events and travel, bills, meals, goals and Philippine holidays.",
+            "what": "The family calendar with layers you can switch off: tasks, chores, events and travel, bills, meals, goals and your country's holidays.",
             "how": "Planner → Calendar. Tap the Who chip for Family; hold it for everyone.",
             "pros": [
               "Everything with a date, from every tab, in one calendar.",
@@ -979,10 +979,10 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": []
           },
           {
-            "name": "Christmas gifts and aguinaldo",
+            "name": "Christmas gifts and cash gifts",
             "tags": [],
-            "what": "A budget for each person and inaanak, ticked when bought.",
-            "how": "Planner → Events → Christmas gifts and aguinaldo.",
+            "what": "A budget for each person and godchild, ticked when bought.",
+            "how": "Planner → Events → Christmas gifts and cash gifts.",
             "pros": [
               "The whole Christmas list and its total in one place."
             ],
@@ -992,10 +992,10 @@ export const HELP_GUIDE: HelpTab[] = [
             ]
           },
           {
-            "name": "Monito-monita",
+            "name": "Gift exchange",
             "tags": [],
             "what": "Draw names for the gift exchange.",
-            "how": "Planner → Events → Monito-monita. Start a draw: your whole household is in; take out anyone not playing, ask linked households in, then draw.",
+            "how": "Planner → Events → Gift exchange. Start a draw: your whole household is in; take out anyone not playing, ask linked households in, then draw.",
             "pros": [
               "A fair draw without paper slips."
             ],
@@ -1064,13 +1064,13 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": []
           },
           {
-            "name": "Alkansya",
+            "name": "Piggy bank",
             "tags": [],
-            "what": "Each child's weekly baon and the coins they change into pesos, split into gastos, ipon and bigay. A record of cash kept at home; Kin moves no real money.",
-            "how": "Planner → Goals → 🪙 Shop → Alkansya. Set the baon, the split and a peso value per coin.",
+            "what": "Each child's weekly allowance and the coins they change into money, split into Spend, Save and Give. A record of cash kept at home; Kin moves no real money.",
+            "how": "Planner → Goals → 🪙 Shop → Piggy bank. Set the allowance, the split and a value per coin.",
             "pros": [
               "Teaches saving and giving, not just spending.",
-              "Chores and baon become one system."
+              "Chores and allowance become one system."
             ],
             "cons": [
               "Kin keeps the record; a parent hands over the cash."
@@ -1119,7 +1119,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Add an item",
             "tags": [],
-            "what": "Quantity, unit, market section, and \"for an event\" (like a birthday). Common Filipino groceries are filed in the right section by their name.",
+            "what": "Quantity, unit, market section, and \"for an event\" (like a birthday). Common groceries are filed in the right section by their name.",
             "how": "Household → To-Buy → +.",
             "pros": [
               "Items for a party stay grouped under that event."
@@ -1151,7 +1151,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "\"Hey Siri, Add to Kin\" (up to 20 items), a chat message turned into to-buy, or the helper's own link.",
             "how": "Set up Siri in Settings → Action Button & widget; make the helper link in Settings → Household.",
             "pros": [
-              "The yaya sees and ticks the list without an account.",
+              "The helper sees and ticks the list without an account.",
               "Medicine refills appear without the medicine's name."
             ],
             "cons": [
@@ -1198,7 +1198,7 @@ export const HELP_GUIDE: HelpTab[] = [
   {
     "id": "wealth",
     "name": "Wealth",
-    "intro": "Money in and out, accounts, bills, budgets, net worth, utang, paluwagan and remittances. Private accounts stay private, even from the rest of the household. Wealth is part of Kin Plus.",
+    "intro": "Money in and out, accounts, bills, budgets, net worth, lending, savings circles and remittances. Private accounts stay private, even from the rest of the household. Wealth is part of Kin Plus.",
     "groups": [
       {
         "title": "Cash Flow",
@@ -1224,8 +1224,8 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "A chart of where money comes from, regular income grouped by source, and utang coming back to you.",
-            "how": "Wealth → Cash Flow → Income. Add income with + ; remittances and utang are added from the same sheet.",
+            "what": "A chart of where money comes from, regular income grouped by source, and loans coming back to you.",
+            "how": "Wealth → Cash Flow → Income. Add income with + ; remittances and lending are added from the same sheet.",
             "pros": [
               "Shows which income the household depends on.",
               "Instalments owed to you appear when due."
@@ -1283,7 +1283,7 @@ export const HELP_GUIDE: HelpTab[] = [
               "Private accounts never leave your own view."
             ],
             "cons": [
-              "No bank sync: balances move with what is logged in Kin. Tip: use the pending step for GCash."
+              "No bank sync: balances move with what is logged in Kin. Tip: use the pending step for e-wallets."
             ],
             "tips": []
           },
@@ -1313,7 +1313,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Log money in, out or between accounts, with the source and particulars. For GCash and bank apps, \"Open app & log it\" holds it as pending until you confirm it went through. A receipt or screenshot can fill the form.",
+            "what": "Log money in, out or between accounts, with the source and particulars. For e-wallet and bank apps, \"Open app & log it\" holds it as pending until you confirm it went through. A receipt or screenshot can fill the form.",
             "how": "Wealth → + , or Today → Expense.",
             "pros": [
               "The pending step keeps balances honest without bank sync."
@@ -1324,13 +1324,13 @@ export const HELP_GUIDE: HelpTab[] = [
             ]
           },
           {
-            "name": "Snap a receipt or GCash screenshot",
+            "name": "Snap a receipt or e-wallet screenshot",
             "tags": [
               "plus",
               "ai"
             ],
-            "what": "Take a photo of a receipt or a GCash screenshot and Kin fills in the amount, date and particulars.",
-            "how": "Wealth → Snap a receipt or GCash screenshot, check the details, then save.",
+            "what": "Take a photo of a receipt or an e-wallet screenshot and Kin fills in the amount, date and particulars.",
+            "how": "Wealth → Snap a receipt or e-wallet screenshot, check the details, then save.",
             "pros": [
               "No typing at the till."
             ],
@@ -1355,14 +1355,14 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": []
           },
           {
-            "name": "Utang and paluwagan",
+            "name": "Lending and savings circles",
             "tags": [
               "plus"
             ],
-            "what": "Who owes whom, paid back at once or in 2 to 120 instalments (weekly, kinsenas or monthly), each marked overdue on its own. A paluwagan with its turns and who has paid each round.",
-            "how": "Wealth → Cash Flow → Add income → Utang. Kin writes a polite reminder for you to send yourself.",
+            "what": "Who owes whom, paid back at once or in 2 to 120 instalments (weekly, twice a month or monthly), each marked overdue on its own. A savings circle with its turns and who has paid each round.",
+            "how": "Wealth → Lending & savings circles (also under Add income → Lent money paid back). Kin writes a polite reminder for you to send yourself.",
             "pros": [
-              "Replaces the sheet of paper for the office paluwagan.",
+              "Replaces the sheet of paper for the office savings circle.",
               "Children never see it; Just me hides an entry from the household."
             ],
             "cons": [
@@ -1375,14 +1375,14 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Money sent home: from whom, in which of 20 currencies, the pesos that arrived, how it came, and what it went to.",
-            "how": "Wealth → Cash Flow → Add income → Remittance. Log the pesos that actually arrived.",
+            "what": "Money sent home: from whom, in which of 20 currencies, the amount that arrived, how it came, and what it went to.",
+            "how": "Wealth → Cash Flow → Add income → Remittance. Log the amount that actually arrived.",
             "pros": [
               "The family abroad sees what came home and where it went."
             ],
             "cons": [],
             "tips": [
-              "log the pesos that actually arrived; the rate shown is a reference only."
+              "log the amount that actually arrived; the rate shown is a reference only."
             ]
           },
           {
@@ -1390,7 +1390,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Bring in a month of transactions from a bank or GCash CSV or PDF export.",
+            "what": "Bring in a month of transactions from a bank or e-wallet CSV or PDF export.",
             "how": "Wealth → Accounts → an account → Import.",
             "pros": [
               "Fills months of history in one go."
@@ -1463,7 +1463,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "what": "Light, dark or system, 16 colour themes including High contrast, and text size.",
             "how": "Settings → Appearance.",
             "pros": [
-              "High contrast with large text suits Lolo and Lola."
+              "High contrast with large text suits grandparents."
             ],
             "cons": [],
             "tips": [
@@ -1479,7 +1479,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "name": "Household settings",
             "tags": [],
             "what": "Name, invite code and QR, organizer handover, sharing with relatives, currency, date format, week start, country and time zone, special days, helpers, moving and deleting the household.",
-            "how": "Settings → Household. Set Country to Philippines; add the town fiesta under Special days.",
+            "how": "Settings → Household. Set your country; add the town festival under Special days.",
             "pros": [
               "Country sets the holidays, currency and vaccine schedule together."
             ],
@@ -1491,7 +1491,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Helper access",
             "tags": [],
-            "what": "A link for the kasambahay or driver, with switches for To-Buy, Meals and Family plans. No account needed.",
+            "what": "A link for the household helper or driver, with switches for To-Buy, Meals and Family plans. No account needed.",
             "how": "Settings → Household → Helpers → make a link; print the QR for the kitchen.",
             "pros": [
               "The helper sees only what you switch on.",
@@ -1520,7 +1520,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Your plan: Kin Free and Kin Plus",
             "tags": [],
-            "what": "Free: calendar, chores, baon, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus (₱149 a month or ₱1,490 a year): Wealth, utang and paluwagan, the vault, medicines and vitals, unlimited Kin AI, 50 GB.",
+            "what": "Free: calendar, chores, allowance, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus (₱149 a month or ₱1,490 a year): Wealth, lending and savings circles, the vault, medicines and vitals, unlimited Kin AI, 50 GB.",
             "how": "Settings → Your plan.",
             "pros": [
               "Everything a family needs every day is free."
