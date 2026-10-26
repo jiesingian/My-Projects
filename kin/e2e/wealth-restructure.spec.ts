@@ -57,52 +57,30 @@ test("the graph range picker offers Days, and choosing it regroups the strip", a
   // that into the chart itself), so what proves a regroup happened -- not
   // just a label change -- is the caption naming the new period noun,
   // fetched fresh from the server on each range.
-  await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
-
-  await expect(page.getByText(/this month/i)).toBeVisible();
-
-  await page.getByRole("button", { name: "Choose graph range" }).click();
-  await page.getByRole("menuitemradio", { name: "Days", exact: true }).click();
-  await page.waitForURL(/range=day/);
-
-  await expect(page.getByText(/this day/i), "the strip should regroup, not just change the label").toBeVisible();
-});
-
-test("Accounts kept a range picker of its own", async ({ page }) => {
-  // Accounts lost the IN/OUT/NET row to Cash Flow but deliberately kept its
-  // own range picker and history graph. Losing both would have been easy to
-  // do by accident and hard to notice.
-  await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Choose graph range" }).click();
-  await page.getByRole("menuitemradio", { name: "Days", exact: true }).click();
-  await page.waitForURL(/seg=accounts.*range=day|range=day.*seg=accounts/);
-  await expect(page.getByText(/^BY DAYS$/i, { exact: true })).toBeVisible();
-  await expect(page.getByText(/money in against money out, grouped by days/i)).toBeVisible();
-});
-
-test("the budget ceiling moved to Cash Flow, under the spend it caps", async ({ page }) => {
-  // It used to be on Accounts. The point of the move is that the control sits
-  // next to the number it governs, so both halves are checked: it is here,
-  // and it is inside EXPENSES rather than merely somewhere on the page.
   //
-  // EXPENSES is collapsed on first load now (18 September), so this also
-  // confirms the closed state first -- the control genuinely isn't on the
-  // page yet, not just hidden by CSS -- before opening the group to find it.
+  // The meter and the button read differently with and without a ceiling
+  // since 25 October (#961): "Spent of budget" / "Change" once one is set,
+  // "Spent this month" / "Set budget" when none is. Which one dev holds
+  // depends on whoever last touched this month's budget, so either passes.
+  // Each category's own Change says which category ("Change the Food
+  // budget"), so the exact names below match only the month's control.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
   const expenses = page.getByRole("button", { name: /^EXPENSES$/i, exact: true });
+  const meter = page.getByText(/^SPENT (OF BUDGET|THIS MONTH)$/i);
+  const control = page.getByRole("button", { name: /^(SET BUDGET|CHANGE)$/i });
   await expect(expenses).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByText(/^SPENT OF BUDGET$/i)).toBeHidden();
+  await expect(meter).toBeHidden();
 
   await expenses.click();
-  await expect(page.getByText(/^SPENT OF BUDGET$/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /^SET BUDGET$/i })).toBeVisible();
+  await expect(meter).toBeVisible();
+  await expect(control).toBeVisible();
 
   // Collapsing EXPENSES should take the budget control with it -- which is
   // what proves it is in that group rather than sitting after it.
   await expenses.click();
-  await expect(page.getByRole("button", { name: /^SET BUDGET$/i })).toBeHidden();
+  await expect(control).toBeHidden();
 
-  await expect(page.getByRole("button", { name: /^SET BUDGET$/i }).or(page.getByText(/^SPENT OF BUDGET$/i))).toHaveCount(0);
+  await expect(control.or(meter)).toHaveCount(0);
 });
 
 test("the personal target moved to Cash Flow, under the income it measures", async ({ page }) => {

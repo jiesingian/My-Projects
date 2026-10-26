@@ -134,11 +134,17 @@ test.describe("adding things", () => {
    * touch) are exactly what would make a body-text check here a false
    * pass: the name legitimately stays in Recent Activity afterwards.
    *
+   * Since #888 there is no Archive button on the row: Delete Account, on the
+   * account's own page, is the one way in, and "Archive instead" is among its
+   * choices only once something has moved through the account (one with no
+   * entries is simply deleted, which account-archive-delete.spec.ts covers).
+   * So the account gets one entry before it is archived.
+   *
    * accounts isn't one of the tables tidyUpAfter sweeps -- archiving only
    * flips is_archived, it never deletes -- so this test removes its own row
-   * for real afterwards, the same "delete it, then look again" discipline
-   * tidyUpAfter uses, rather than leaving an archived-but-permanent row
-   * behind for every future run to wade through. */
+   * and its entry for real afterwards, the same "delete it, then look again"
+   * discipline tidyUpAfter uses, rather than leaving an archived-but-permanent
+   * row behind for every future run to wade through. */
   test("an account can be added, then archived", async ({ page }) => {
     const name = `${RUN} test wallet`;
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
@@ -154,26 +160,40 @@ test.describe("adding things", () => {
     const row = accountLinks().filter({ hasText: name });
     await expect(row).toHaveCount(1);
     const href = await row.getAttribute("href");
-    const accountId = href?.split("/").pop();
-
-    await row.getByRole("button", { name: /^ARCHIVE$/i }).click();
-    // Confirmation is the shared ConfirmSheet now, not a native dialog.
-    await page.getByRole("alertdialog").getByRole("button", { name: /archive/i }).click();
-    await page.waitForTimeout(1000);
-
-    await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
-    await expandAllCollapsedGroups(page);
-    // Gone from the live list (its rows carry id="account-…"), and waiting
-    // under ARCHIVED instead, where it can be restored.
-    await expect(page.locator('a[id^="account-"]').filter({ hasText: name })).toHaveCount(0);
-    await expect(accountLinks().filter({ hasText: name }), "an archived account is listed under ARCHIVED").toHaveCount(1);
+    const accountId = href?.split("/").pop()?.split("?")[0];
+    expect(accountId, "the new account has no page of its own").toBeTruthy();
 
     const rest = await restAsQa();
-    if (rest && accountId) {
-      await rest.ctx.delete(`${rest.url}/rest/v1/accounts?id=eq.${accountId}`, { headers: rest.headers });
-      const left = await rest.ctx.get(`${rest.url}/rest/v1/accounts?id=eq.${accountId}&select=id`, { headers: rest.headers });
-      expect(await left.json(), "the archived test account is still in the throwaway household").toEqual([]);
-      await rest.ctx.dispose();
+    test.skip(!rest, "No Supabase details -- see kin/e2e/README.md.");
+    try {
+      const user = await rest!.ctx.get(`${rest!.url}/auth/v1/user`, { headers: rest!.headers });
+      const members = await rest!.ctx.get(`${rest!.url}/rest/v1/members?select=id,family_id&auth_user_id=eq.${(await user.json()).id}`, { headers: rest!.headers });
+      const [me] = (await members.json()) as { id: string; family_id: string }[];
+      const tx = await rest!.ctx.post(`${rest!.url}/rest/v1/wealth_transactions`, {
+        headers: { ...rest!.headers, "Content-Type": "application/json" },
+        data: { family_id: me.family_id, account_id: accountId, direction: "in", amount: 50, particulars: `${RUN} deposit`, status: "confirmed", recorded_by: me.id },
+      });
+      expect(tx.ok(), `could not record a movement: ${tx.status()} ${await tx.text()}`).toBeTruthy();
+
+      await page.goto(`/wealth/accounts/${accountId}`, { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Delete Account", exact: true }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /^Archive instead/ }).click();
+      await page.waitForURL(/\/wealth\?seg=accounts/);
+
+      await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+      await expandAllCollapsedGroups(page);
+      // Gone from the live list (its rows carry id="account-…"), and waiting
+      // under ARCHIVED instead, where it can be restored.
+      await expect(page.locator('a[id^="account-"]').filter({ hasText: name })).toHaveCount(0);
+      await expect(accountLinks().filter({ hasText: name }), "an archived account is listed under ARCHIVED").toHaveCount(1);
+    } finally {
+      if (rest && accountId) {
+        await rest.ctx.delete(`${rest.url}/rest/v1/wealth_transactions?account_id=eq.${accountId}`, { headers: rest.headers });
+        await rest.ctx.delete(`${rest.url}/rest/v1/accounts?id=eq.${accountId}`, { headers: rest.headers });
+        const left = await rest.ctx.get(`${rest.url}/rest/v1/accounts?id=eq.${accountId}&select=id`, { headers: rest.headers });
+        expect(await left.json(), "the archived test account is still in the throwaway household").toEqual([]);
+        await rest.ctx.dispose();
+      }
     }
   });
 
