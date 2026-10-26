@@ -6,7 +6,7 @@ import { familyDay } from "@/lib/time";
 import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
 import { budgetsFor, budgetsInForce, budgetTotal, budgetWhose, FAMILY_BUDGET, type SpendingBudgetRow } from "@/lib/budgets";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope, type NetWorthParts } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -762,7 +762,7 @@ export async function getBudgetHistory(familyId: string, scope: WealthScope, key
   );
 }
 
-export type NetWorthPoint = { month: string; netWorth: number };
+export type NetWorthPoint = { month: string; netWorth: number; parts?: NetWorthParts };
 
 /** How old this month's household-wide ("all") point may get before a visit
  * to Cash Flow or Accounts brings it up to date. */
@@ -839,12 +839,16 @@ export async function recordAndGetNetWorthHistory(
   );
   const { data } = await supabase
     .from("net_worth_snapshots")
-    .select("month, net_worth")
+    .select("month, net_worth, cash, goals, assets, liabilities")
     .eq("viewer_member_id", viewerMemberId)
     .eq("scope", scopeKey)
     .order("month", { ascending: false })
     .limit(24);
-  return (data ?? []).reverse().map((r) => ({ month: r.month.slice(0, 7), netWorth: Number(r.net_worth) }));
+  return (data ?? []).reverse().map((r) => ({
+    month: r.month.slice(0, 7),
+    netWorth: Number(r.net_worth),
+    parts: { cash: Number(r.cash ?? 0), goals: Number(r.goals ?? 0), assets: Number(r.assets ?? 0), liabilities: Number(r.liabilities ?? 0) },
+  }));
 }
 
 /** Who each account is shared with, by account id. Read as the viewer, so it

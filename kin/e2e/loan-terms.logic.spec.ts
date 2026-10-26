@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, assetGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, loanOriginStatus, loanKindFor, paymentsLeftForBalance } from "@/lib/wealth";
+import { accountGroup, assetGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, loanOriginStatus, loanKindFor, paymentsLeftForBalance, netWorthMoves } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -110,4 +110,19 @@ test("paymentsLeftForBalance reads the schedule off the balance: the other way t
   expect(paymentsLeftForBalance(loan, 2_000_000)).toBe(240);
   expect(paymentsLeftForBalance(loan, 0)).toBe(0);
   expect(paymentsLeftForBalance({ ...loan, term_months: null }, 1_800_000)).toBeNull();
+});
+
+test("netWorthMoves: each part as it moved net worth, more owed a fall, largest first, adding up", () => {
+  const sep = { cash: 300_000, goals: 50_000, assets: 2_000_000, liabilities: 1_500_000 };
+  const oct = { cash: 290_000, goals: 60_000, assets: 2_100_000, liabilities: 1_490_000 };
+  const moves = netWorthMoves(sep, oct);
+  expect(moves).toEqual([
+    { label: "what you own", delta: 100_000 },
+    { label: "accounts", delta: -10_000 },
+    { label: "set aside for goals", delta: 10_000 },
+    { label: "what you owe", delta: 10_000 },
+  ]);
+  const worth = (p: typeof sep) => p.cash + p.goals + p.assets - p.liabilities;
+  expect(moves.reduce((t, m) => t + m.delta, 0)).toBe(worth(oct) - worth(sep));
+  expect(netWorthMoves(sep, { ...sep, cash: sep.cash + 0.4 })).toEqual([]);
 });
