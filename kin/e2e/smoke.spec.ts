@@ -178,3 +178,29 @@ test.describe(`new screens · phone`, () => {
     });
   });
 });
+
+/** The money forms put today's date in their date box. Both used to work it
+ * out from the browser's clock while rendering, so whenever the browser and
+ * the household were on different days the server's HTML and the browser's
+ * first render disagreed and React threw the form away (minified error #418:
+ * 7 times on /wealth/remittances/new and 3 on /wealth/transact on dev in the
+ * weeks to 26 October). That only happened for part of each day, so the
+ * browser's clock is moved three days on here: no pair of zones can then
+ * land on the same date, and a form that reads its own clock fails every
+ * run instead of by the hour. Only Date moves -- timers keep running. */
+test.describe(`today's date hydrates · phone`, () => {
+  test.use({ viewport: { width: WIDTHS[0].width, height: WIDTHS[0].height } });
+
+  for (const path of ["/wealth/remittances/new", "/wealth/transact"]) {
+    test(`${path} renders the same day on both sides`, async ({ page }) => {
+      await page.clock.setFixedTime(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
+      const seen = watch(page);
+      const response = await page.goto(path, { waitUntil: "networkidle" });
+      expect(response?.status(), `${path} should serve 200`).toBe(200);
+      expect(new URL(page.url()).pathname, `${path} should not redirect`).toBe(path);
+      await page.waitForTimeout(1000);
+      const hydration = [...seen.pageErrors, ...seen.consoleErrors].filter((e) => /hydrat|#418|did not match/i.test(e));
+      expect(hydration, `${path} hydration mismatch`).toEqual([]);
+    });
+  }
+});

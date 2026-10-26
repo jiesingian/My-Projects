@@ -14,11 +14,6 @@ import { AccountOptions } from "@/components/account-options";
 const SOMEONE_ELSE = "__other";
 const NOTE: React.CSSProperties = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", lineHeight: 1.45, margin: "0 0 0.875rem" };
 
-function todayLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 type Allocation = { purpose: string; amount: string; category: string };
 
 /** One padala: what was sent and in what, what the ECB said it was worth that
@@ -32,12 +27,17 @@ export function RemittanceForm({
   accounts,
   currencies,
   meId,
+  today,
 }: {
   members: { id: string; label: string }[];
   /** Accounts this grown-up may pay into: joint ones, and their own. */
   accounts: PickableAccount[];
   currencies: readonly string[];
   meId: string;
+  /** Today in the household's zone, from the server. Worked out here from
+   * the browser's clock it disagreed with the server's render whenever the
+   * two zones were on different days, and React threw the form away (#418). */
+  today: string;
 }) {
   const router = useRouter();
   const [sender, setSender] = useState(members.find((m) => m.id !== meId)?.id ?? SOMEONE_ELSE);
@@ -45,7 +45,7 @@ export function RemittanceForm({
   const [receiver, setReceiver] = useState(meId);
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<string>(currencies[0]);
-  const [sentOn, setSentOn] = useState(todayLocal());
+  const [sentOn, setSentOn] = useState(today);
   const [received, setReceived] = useState("");
   const [channel, setChannel] = useState<RemittanceChannel>("gcash");
   const [channelName, setChannelName] = useState("");
@@ -150,7 +150,7 @@ export function RemittanceForm({
       </div>
 
       <Field label="Sent on">
-        <DateInput className="input" value={sentOn} max={todayLocal()} onChange={(e) => setSentOn(e.target.value)} />
+        <DateInput className="input" value={sentOn} max={today} onChange={(e) => setSentOn(e.target.value)} />
       </Field>
 
       <RateLine rate={rate} currency={currency} estimate={estimate} />
