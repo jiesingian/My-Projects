@@ -3279,7 +3279,7 @@ export type Database = {
           family_id: string
           goals: number
           liabilities: number
-          month: string
+          day: string
           net_worth: number
           scope: string
           updated_at: string
@@ -3291,7 +3291,7 @@ export type Database = {
           family_id: string
           goals?: number
           liabilities?: number
-          month: string
+          day: string
           net_worth: number
           scope: string
           updated_at?: string
@@ -3303,7 +3303,7 @@ export type Database = {
           family_id?: string
           goals?: number
           liabilities?: number
-          month?: string
+          day?: string
           net_worth?: number
           scope?: string
           updated_at?: string

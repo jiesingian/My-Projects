@@ -117,7 +117,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
-        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} includePrivate={me.wealth_include_private} />}
+        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} />}
         {seg !== "assets" && (
           <Suspense fallback={null}>
             <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
@@ -1163,11 +1163,11 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 /* -------------------------------------------------------------------- A&L */
 
-async function AssetsPane({ familyId, memberId, currency, scope, includePrivate }: { familyId: string; memberId: string; currency: string; scope: WealthScope; includePrivate: boolean }) {
+async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [nw, who, allAccounts, loanBills, onPlanner] = await Promise.all([
     getNetWorth(familyId, scope, today),
-    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
+    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&range=${range}&who=${w}`),
     getAccounts(familyId),
     getLoanBillIds(familyId),
     getGoalsOnPlanner(familyId),
@@ -1341,13 +1341,21 @@ async function AssetsPane({ familyId, memberId, currency, scope, includePrivate 
     })),
   ];
 
-  const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
-    cash: cashTotal + investmentTotal,
-    goals: goalTotal,
-    assets: assetTotal + receivables,
-    liabilities: liabilityTotal + payables + creditOwed,
-    netWorth,
-  });
+  const netWorthHistory = await recordAndGetNetWorthHistory(
+    familyId,
+    memberId,
+    scope,
+    {
+      cash: cashTotal + investmentTotal,
+      goals: goalTotal,
+      assets: assetTotal + receivables,
+      liabilities: liabilityTotal + payables + creditOwed,
+      netWorth,
+    },
+    today,
+    range,
+  );
+  const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const captionParts = [
     `${formatCurrency(cashTotal + goalTotal, currency)} cash${goalTotal > 0 ? ` (${formatCurrency(goalTotal, currency)} of it set aside)` : ""}`,
     ...(investmentTotal !== 0 ? [`${formatCurrency(investmentTotal, currency)} invested`] : []),
@@ -1368,7 +1376,11 @@ async function AssetsPane({ familyId, memberId, currency, scope, includePrivate 
         breakdown={{ items: owned, storageKey: "kin-al-owned", categoryOrder: [...AL_OWNED_ORDER, UTANG_GROUP] }}
       />
 
-      <NetWorthLine points={netWorthHistory} currency={currency} />
+      {/* The same Days / Weeks / Months / Years as Cash Flow and Accounts
+          (Jonathan, 27 October): one net-worth figure a day is kept from
+          every visit, and the line reads it at whichever step is picked. */}
+      <RangeRow range={range} hrefFor={(r) => `/wealth?seg=assets&range=${r}&who=${scope}`} />
+      <NetWorthLine points={netWorthHistory} currency={currency} periodNoun={periodNoun} />
       <NetWorthMoves points={netWorthHistory} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>

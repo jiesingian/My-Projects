@@ -18,7 +18,7 @@ import { useId, useState, useTransition } from "react";
 import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
-import { categoryLabel, expenseCategoryColor, incomeSourceColor, netWorthMoves, type NetWorthParts } from "@/lib/wealth";
+import { categoryLabel, expenseCategoryColor, incomeSourceColor, netWorthMoves, type NetWorthPoint } from "@/lib/wealth";
 import { FoldableSection } from "@/components/collapsible-group";
 import { Icon } from "@/components/icons";
 
@@ -420,22 +420,18 @@ export function CategoryDonut({
 
 /* ------------------------------------------------------------ net worth */
 
-export type NetWorthPoint = { month: string; netWorth: number; parts?: NetWorthParts };
+export type { NetWorthPoint };
 
-function monthName(key: string, long = false) {
-  const [yy, mm] = key.split("-").map(Number);
-  return new Date(yy, mm - 1, 1).toLocaleDateString("en-PH", long ? { month: "long", year: "numeric" } : { month: "short" });
-}
 
 /** Net worth month by month, from the snapshots this viewer's own visits
  * have kept (the line starts the month it shipped). Drag a finger along it,
  * or use the arrow keys, and the figure above follows. */
-export function NetWorthLine({ points, currency }: { points: NetWorthPoint[]; currency: string }) {
+export function NetWorthLine({ points, currency, periodNoun = "month" }: { points: NetWorthPoint[]; currency: string; periodNoun?: string }) {
   const [at, setAt] = useState<number | null>(null);
   if (points.length < 2) {
     return (
       <p style={{ ...muted, margin: "-0.25rem 0 0.875rem", lineHeight: 1.45 }}>
-        Kin keeps your net worth each month from now on. The line draws once there are two months to join.
+        Kin keeps your net worth each day you open Wealth. The line draws once there are two {periodNoun}s to join.
       </p>
     );
   }
@@ -468,7 +464,7 @@ export function NetWorthLine({ points, currency }: { points: NetWorthPoint[]; cu
   return (
     <div style={{ marginBottom: "0.875rem" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }} aria-live="polite">
-        <span style={eyebrow}>{at === null ? "OVER TIME" : monthName(points[i].month, true).toUpperCase()}</span>
+        <span style={eyebrow}>{at === null ? "OVER TIME" : points[i].longLabel.toUpperCase()}</span>
         <span style={{ ...tabular, marginLeft: "auto", fontSize: "0.8125rem" }}>{formatCurrency(shown, currency)}</span>
         {diff !== 0 && (
           <span
@@ -481,7 +477,7 @@ export function NetWorthLine({ points, currency }: { points: NetWorthPoint[]; cu
               background: diff > 0 ? "var(--color-accent-100)" : "var(--color-neutral-200)",
             }}
           >
-            <span aria-hidden="true">{diff > 0 ? "▲" : "▼"}</span> {formatCurrency(Math.abs(diff), currency)} since {monthName(points[0].month)}
+            <span aria-hidden="true">{diff > 0 ? "▲" : "▼"}</span> {formatCurrency(Math.abs(diff), currency)} since {points[0].label}
           </span>
         )}
       </div>
@@ -490,7 +486,7 @@ export function NetWorthLine({ points, currency }: { points: NetWorthPoint[]; cu
         style={{ width: "100%", height: "auto", display: "block", marginTop: "0.375rem", touchAction: "pan-y", outline: "none" }}
         role="img"
         tabIndex={0}
-        aria-label={`Net worth over ${points.length} months, from ${formatCurrency(first, currency)} in ${monthName(points[0].month, true)} to ${formatCurrency(values[values.length - 1], currency)}. Arrow keys step through the months.`}
+        aria-label={`Net worth over ${points.length} ${periodNoun}s, from ${formatCurrency(first, currency)} in ${points[0].longLabel} to ${formatCurrency(values[values.length - 1], currency)}. Arrow keys step through the ${periodNoun}s.`}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           setAt(indexFrom(e));
@@ -520,8 +516,8 @@ export function NetWorthLine({ points, currency }: { points: NetWorthPoint[]; cu
         <path d={line} fill="none" stroke="var(--color-accent)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, k) =>
           labelled.has(k) ? (
-            <text key={p.month} x={x(k)} y={H - 4} textAnchor={k === 0 ? "start" : k === points.length - 1 ? "end" : "middle"} fontSize={9.5} fill="var(--color-neutral-600)">
-              {monthName(p.month).toUpperCase()}
+            <text key={p.key} x={x(k)} y={H - 4} textAnchor={k === 0 ? "start" : k === points.length - 1 ? "end" : "middle"} fontSize={9.5} fill="var(--color-neutral-600)">
+              {p.label}
             </text>
           ) : null,
         )}
@@ -910,7 +906,7 @@ export function NetWorthMoves({ points, currency }: { points: NetWorthPoint[]; c
   const signed = (n: number) => `${n > 0 ? "+" : "−"}${formatCurrency(Math.abs(n), currency)}`;
   return (
     <p style={{ ...muted, margin: "-0.25rem 0 0.875rem", lineHeight: 1.5 }}>
-      Since {monthName(prev.month, true)}:{" "}
+      Since {prev.longLabel}:{" "}
       {moves.map((m, i) => (
         <span key={m.label}>
           {i > 0 ? " · " : ""}

@@ -45,7 +45,8 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
       .lt("due_date", nextMonth)
       .or(paidFromVisibleFilter(accounts.map((a) => a.id))),
     supabase.from("goals").select("id, title, target_amount, current_amount").eq("family_id", me.family_id),
-    supabase.from("net_worth_snapshots").select("month, net_worth").eq("viewer_member_id", me.id).eq("scope", "all").in("month", [`${month}-01`, `${prev}-01`]),
+    // One row a day since 20261027120000: a month's figure is its last day's.
+    supabase.from("net_worth_snapshots").select("day, net_worth").eq("viewer_member_id", me.id).eq("scope", "all").gte("day", `${prev}-01`).lt("day", nextMonth).order("day", { ascending: false }),
   ]);
 
   const rows = txns.filter((t) => counted.has(t.account_id));
@@ -57,7 +58,7 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     goalId: t.goal_id,
   }));
   const snap = (mo: string) => {
-    const s = (snapshots ?? []).find((r) => r.month.slice(0, 7) === mo);
+    const s = (snapshots ?? []).find((r) => r.day.slice(0, 7) === mo);
     return s ? Number(s.net_worth) : null;
   };
 
