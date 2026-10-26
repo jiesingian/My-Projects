@@ -12,7 +12,7 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   const supabase = await createClient();
   const tz = await householdZone();
   const today = familyDay(new Date(), tz);
-  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }] = await Promise.all([
+  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }, { data: assets }] = await Promise.all([
     getUtang(me.family_id, me.id),
     getPaluwagans(me.family_id, me.id),
     // With a schedule, or a fixed rate that ends (20261026170000).
@@ -20,9 +20,11 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
     supabase.from("goals").select("id, title, target_amount, current_amount, target_date, repeats_yearly, created_at").eq("family_id", me.family_id).not("target_date", "is", null),
     supabase.from("income_schedules").select("id, name, amount, next_date, status").eq("family_id", me.family_id).eq("status", "expected").not("next_date", "is", null),
     supabase.from("today_marks").select("item_key, state").eq("family_id", me.family_id).eq("day", today),
+    // When each asset's value was last set, for the yearly check.
+    supabase.from("assets").select("id, name, valued_on, annual_change_pct").eq("family_id", me.family_id),
   ]);
   const rows = wealthRows(
-    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })) },
+    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [] },
     today,
     me.families.currency,
   );
