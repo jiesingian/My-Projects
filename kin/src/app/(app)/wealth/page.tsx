@@ -1168,7 +1168,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
     getLoanBillIds(familyId),
     getGoalsOnPlanner(familyId),
   ]);
-  const { assets, liabilities, goals, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
+  const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
   // Who picker is showing, but the account a contribution actually leaves
   // from has to be one the viewer themself can pay out of, regardless of
@@ -1215,17 +1215,22 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // with the ledger -- and opens on the Accounts tab.
   const ownedLines: BreakdownItem[] = [
     ...cashAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_CASH, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
-    ...goals.map((g) => ({
+    ...goals.map((g) => {
+      // Saved into its To account (26 October): that money is already in
+      // the account's line above, so the goal's line counts only the rest.
+      const inTo = Math.min(Number(g.current_amount), Math.max(0, goalHeld.get(g.id) ?? 0));
+      const toName = inTo > 0 ? allAccounts.find((a) => a.id === g.linked_account_id)?.name : undefined;
+      return {
       id: `goal-${g.id}`,
       name: g.title,
-      amount: Number(g.current_amount),
+      amount: Number(g.current_amount) - inTo,
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
-      sub: `${AL_SET_ASIDE}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
+      sub: `${AL_SET_ASIDE}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
       detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
       actions: (
         <>
-          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
+          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}
@@ -1238,7 +1243,8 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
           <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
         </>
       ),
-    })),
+      };
+    }),
     ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
     ...assets.map((a) => ({
       id: `asset-${a.id}`,

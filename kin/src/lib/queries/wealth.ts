@@ -369,7 +369,22 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
 
   const assetTotal = scopedAssets.reduce((sum, a) => sum + a.worth.total, 0);
   const liabilityTotal = scopedLiabilities.reduce((sum, l) => sum + Number(l.balance), 0);
-  const goalTotal = scopedGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
+  // What a goal has saved that already sits in its To account (26 October):
+  // moved there by transfer, so the account's balance counts it and the
+  // goal must not count it again. The goal-tagged legs of transfers, out as
+  // money in, in as money taken back.
+  const { data: heldLegs } = scopedGoals.length
+    ? await supabase
+        .from("wealth_transactions")
+        .select("goal_id, direction, amount")
+        .eq("family_id", familyId)
+        .eq("status", "confirmed")
+        .in("goal_id", scopedGoals.map((g) => g.id))
+        .not("transfer_group_id", "is", null)
+    : { data: [] as { goal_id: string | null; direction: string; amount: number }[] };
+  const held = new Map<string, number>();
+  for (const l of heldLegs ?? []) if (l.goal_id) held.set(l.goal_id, (held.get(l.goal_id) ?? 0) + (l.direction === "out" ? 1 : -1) * Number(l.amount));
+  const goalTotal = scopedGoals.reduce((sum, g) => sum + Math.max(0, Number(g.current_amount) - Math.max(0, held.get(g.id) ?? 0)), 0);
   const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);
   const investmentTotal = investmentAccounts.reduce((sum, a) => sum + a.balance, 0);
   const creditOwed = creditAccounts.reduce((sum, a) => sum + a.owed, 0);
@@ -405,6 +420,8 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all", 
     assets: scopedAssets,
     liabilities: scopedLiabilities,
     goals: scopedGoals,
+    /** Per goal, what of its savings sits in its To account (26 October). */
+    goalHeld: held,
     cashAccounts,
     investmentAccounts,
     /** Credit cards with something owed on them, each with `owed` (the

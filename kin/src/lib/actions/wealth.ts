@@ -773,6 +773,12 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
 
   const settled = await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
   if (settled) return { error: settled };
+  // A transfer into a goal's To account carries goal_id on its other leg
+  // (26 October): confirming either leg moves the goal.
+  if (entry.transfer_group_id) {
+    const { data: legs } = await supabase.from("wealth_transactions").select("goal_id").eq("transfer_group_id", entry.transfer_group_id).not("goal_id", "is", null);
+    for (const goalId of new Set((legs ?? []).map((l) => l.goal_id!).filter((g) => g !== entry.goal_id))) await recalcGoalTotal(supabase, goalId);
+  }
   revalidateWealth();
   return { error: null };
 }
@@ -1615,17 +1621,23 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
   const targetDate = String(formData.get("target_date") ?? "") || null;
   const requestedAccountId = String(formData.get("linked_account_id") ?? "") || null;
+  // Where Put money in starts, and when saving starts (26 October).
+  const requestedFromId = String(formData.get("from_account_id") ?? "") || null;
+  const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(formData.get("start_date") ?? "")) ? String(formData.get("start_date")) : null;
   const repeatsYearly = formData.get("repeats_yearly") === "on";
   if (!title) return { error: "Give the goal a title." };
   if (!targetAmount || targetAmount <= 0) return { error: "Set the amount you're saving towards." };
   if (repeatsYearly && !targetDate) return { error: "A yearly cost needs the date it is due." };
+  if (startDate && targetDate && startDate > targetDate) return { error: "The start date comes after the end date." };
+  if (requestedFromId && requestedFromId === requestedAccountId) return { error: "Pick two different accounts for From and To, or leave one empty." };
 
-  let linkedAccountId: string | null = null;
-  if (requestedAccountId) {
-    const { data: account } = await supabase.from("accounts").select("id").eq("id", requestedAccountId).eq("family_id", me.family_id).maybeSingle();
-    if (!account) return { error: "Choose an account this household actually has." };
-    linkedAccountId = account.id;
-  }
+  const requestedIds = [requestedAccountId, requestedFromId].filter((id): id is string => !!id);
+  const { data: named } = requestedIds.length
+    ? await supabase.from("accounts").select("id").eq("family_id", me.family_id).in("id", requestedIds)
+    : { data: [] as { id: string }[] };
+  if (requestedIds.some((id) => !(named ?? []).some((a) => a.id === id))) return { error: "Choose an account this household actually has." };
+  const linkedAccountId = requestedAccountId;
+  const fromAccountId = requestedFromId;
 
   const { data: goal, error } = await supabase
     .from("goals")
@@ -1638,6 +1650,8 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
       target_amount: targetAmount,
       target_date: targetDate,
       linked_account_id: linkedAccountId,
+      from_account_id: fromAccountId,
+      start_date: startDate,
       repeats_yearly: repeatsYearly,
       created_by: me.id,
     })
@@ -1750,14 +1764,55 @@ export async function contributeToGoalAction(input: {
   const supabase = await createClient();
 
   const [{ data: goal }, { data: account }] = await Promise.all([
-    supabase.from("goals").select("title").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
-    supabase.from("accounts").select("linked_app_url").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("goals").select("title, linked_account_id, to:linked_account_id(name)").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("accounts").select("name, linked_app_url").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
   ]);
   if (!goal) return { error: "Goal not found." };
   if (!account) return { error: "Choose an account." };
   if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
 
   const status = input.viaApp ? "pending" : "confirmed";
+
+  // A goal with a To account (Janine, 26 October): the money moves From ->
+  // To, both legs in one statement as Move money does, so the To account
+  // holds what the goal has saved. The From leg carries goal_id, which is
+  // what recalc_goal_total counts; net worth then leaves out of the goal what
+  // already sits in an account (getNetWorth), so it is not counted twice.
+  // Putting money in from the To account itself is no move at all, and is
+  // recorded as before.
+  if (goal.linked_account_id && goal.linked_account_id !== input.accountId) {
+    const toName = (goal.to as { name: string } | null)?.name ?? "the goal's account";
+    const transferGroupId = crypto.randomUUID();
+    const { error: moveError } = await supabase.from("wealth_transactions").insert([
+      ledgerRow(me.family_id, me.id, {
+        accountId: input.accountId,
+        direction: "out",
+        amount: input.amount,
+        particulars: `Towards ${goal.title} · to ${toName}`,
+        category: TRANSFER_CATEGORY,
+        status,
+        transferGroupId,
+        goalId: input.goalId,
+      }),
+      ledgerRow(me.family_id, me.id, {
+        accountId: goal.linked_account_id,
+        direction: "in",
+        amount: input.amount,
+        particulars: `Towards ${goal.title} · from ${account.name}`,
+        category: TRANSFER_CATEGORY,
+        status,
+        transferGroupId,
+      }),
+    ]);
+    if (moveError) return { error: explainLedgerRefusal(refusalMessage(moveError, RLS_EXPLAINED)) };
+    if (status === "confirmed") {
+      const goalError = await recalcGoalTotal(supabase, input.goalId);
+      if (goalError) return { error: `The money moved, but the goal's total did not update. ${refusalMessage(goalError)}` };
+    }
+    revalidateWealth();
+    return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
+  }
+
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
     accountId: input.accountId,
     direction: "out",
@@ -1790,14 +1845,42 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
   const supabase = await createClient();
 
   const [{ data: goal }, { data: account }] = await Promise.all([
-    supabase.from("goals").select("title, current_amount, target_date, repeats_yearly, is_joint, owner_member_id").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("goals").select("title, current_amount, target_date, repeats_yearly, is_joint, owner_member_id, linked_account_id").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
     supabase.from("accounts").select("id").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
   ]);
   if (!goal) return { error: "Goal not found." };
   if (!account) return { error: "Choose the account it was paid from." };
   if (!(input.amount > 0)) return { error: "Enter what was paid." };
   const category = clamp(input.category, 40) || "Other";
-  const fromFund = Math.min(input.amount, Math.max(0, Number(goal.current_amount)));
+  let fromFund = Math.min(input.amount, Math.max(0, Number(goal.current_amount)));
+
+  // What of it sits in the goal's To account (moved there by transfer, 26
+  // October) comes back by transfer too: out of the To account, into the one
+  // that paid, the goal's leg on the way in -- so the goal, what it holds in
+  // the account, and both balances all end where they should. Paid from the
+  // To account itself, the two legs cancel and only the goal moves.
+  if (fromFund > 0 && goal.linked_account_id) {
+    const { data: legs } = await supabase
+      .from("wealth_transactions")
+      .select("direction, amount")
+      .eq("family_id", me.family_id)
+      .eq("goal_id", input.goalId)
+      .eq("status", "confirmed")
+      .not("transfer_group_id", "is", null);
+    const held = Math.max(0, (legs ?? []).reduce((sum, l) => sum + (l.direction === "out" ? 1 : -1) * Number(l.amount), 0));
+    const heldPart = Math.min(fromFund, held);
+    if (heldPart > 0) {
+      const transferGroupId = crypto.randomUUID();
+      const { error } = await supabase.from("wealth_transactions").insert([
+        ledgerRow(me.family_id, me.id, { accountId: goal.linked_account_id, direction: "out", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId }),
+        ledgerRow(me.family_id, me.id, { accountId: input.accountId, direction: "in", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId, goalId: input.goalId }),
+      ]);
+      if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+      const goalError = await recalcGoalTotal(supabase, input.goalId);
+      if (goalError) return { error: `The money came out of the goal, but its total did not update. ${refusalMessage(goalError)}` };
+      fromFund -= heldPart;
+    }
+  }
 
   if (fromFund > 0) {
     const { data: back, error } = await insertEntry(supabase, me.family_id, me.id, {
