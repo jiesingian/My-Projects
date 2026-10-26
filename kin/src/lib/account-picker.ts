@@ -26,6 +26,9 @@ export type PickableAccount = {
   account_type?: string | null;
   /** Every movement ever recorded on it, pending included. */
   movementCount?: number;
+  /** An Only-you account: the viewer's own, private, shared with nobody.
+   * An entry moved into one is seen by nobody else (27 October). */
+  onlyMe?: boolean;
 };
 
 /** What `loadAccounts` returns, as far as a picker needs. */
@@ -39,6 +42,9 @@ export type PickableSource = {
   account_type: string;
   owner_member_id: string | null;
   movementCount: number;
+  is_private?: boolean | null;
+  /** Named on account_viewers: private, but opened to someone. */
+  shared?: boolean;
 };
 
 /** Joint accounts and the viewer's own, the way every money form offers
@@ -57,6 +63,7 @@ export function toPickable(accounts: readonly PickableSource[], memberId: string
       is_joint: a.is_joint,
       account_type: a.account_type,
       movementCount: a.movementCount,
+      onlyMe: !a.is_joint && !!a.is_private && !a.shared && a.owner_member_id === memberId,
     }));
 }
 

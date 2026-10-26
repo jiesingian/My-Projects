@@ -157,7 +157,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   // absent, the number is left as it is.
   const numbered = formData.has("account_number") ? cleanAccountNumber(String(formData.get("account_number"))) : null;
   if (numbered && "error" in numbered) return { error: numbered.error };
-  // A credit card's due day and minimum (20261026230405); cleared for any
+  // A credit card's due day and minimum (20261027120001); cleared for any
   // other type, so a card turned into a bank account stops being reminded.
   let card: { card_due_day: number | null; card_min_payment: number | null } = { card_due_day: null, card_min_payment: null };
   if (accountType === "credit") {

@@ -6,7 +6,7 @@ import { familyDay } from "@/lib/time";
 import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
 import { budgetsFor, budgetsInForce, budgetTotal, budgetWhose, FAMILY_BUDGET, type SpendingBudgetRow } from "@/lib/budgets";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope, type NetWorthParts } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, dayKey, netWorthSeries, type CashFlowRange, type WealthScope, type NetWorthPoint } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -779,7 +779,7 @@ export async function getBudgetHistory(familyId: string, scope: WealthScope, key
   );
 }
 
-export type NetWorthPoint = { month: string; netWorth: number; parts?: NetWorthParts };
+export type { NetWorthPoint };
 
 /** How old this month's household-wide ("all") point may get before a visit
  * to Cash Flow or Accounts brings it up to date. */
@@ -792,13 +792,12 @@ const NET_WORTH_FRESH_MS = 6 * 60 * 60 * 1000;
  * every six hours. Best effort, like the line itself. */
 export async function keepNetWorthCurrent(familyId: string, viewerMemberId: string, today: string): Promise<void> {
   const supabase = await createClient();
-  const month = `${monthKey(new Date())}-01`;
   const { data: row } = await supabase
     .from("net_worth_snapshots")
     .select("updated_at")
     .eq("viewer_member_id", viewerMemberId)
     .eq("scope", "all")
-    .eq("month", month)
+    .eq("day", today)
     .maybeSingle();
   if (row && Date.now() - new Date(row.updated_at).getTime() < NET_WORTH_FRESH_MS) return;
   const { cashTotal, investmentTotal, creditOwed, goalTotal, assetTotal, liabilityTotal, receivables, payables, netWorth } = await getNetWorth(familyId, "all", today);
@@ -807,7 +806,7 @@ export async function keepNetWorthCurrent(familyId: string, viewerMemberId: stri
       viewer_member_id: viewerMemberId,
       family_id: familyId,
       scope: "all",
-      month,
+      day: today,
       // Every account's money under cash, a credit card's debt with what
       // is owed (26 October): the columns predate the split.
       cash: cashTotal + investmentTotal,
@@ -819,7 +818,7 @@ export async function keepNetWorthCurrent(familyId: string, viewerMemberId: stri
       net_worth: netWorth,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "viewer_member_id,scope,month" },
+    { onConflict: "viewer_member_id,scope,day" },
   );
 }
 
@@ -834,38 +833,42 @@ export async function recordAndGetNetWorthHistory(
   viewerMemberId: string,
   scope: WealthScope,
   current: { cash: number; goals: number; assets: number; liabilities: number; netWorth: number },
+  /** The household's today, YYYY-MM-DD: the day the row is written as. */
+  today: string,
+  range: CashFlowRange = "month",
 ): Promise<NetWorthPoint[]> {
   const supabase = await createClient();
   const scopeKey: string = scope;
-  const now = new Date();
-  const month = `${monthKey(now)}-01`;
   await supabase.from("net_worth_snapshots").upsert(
     {
       viewer_member_id: viewerMemberId,
       family_id: familyId,
       scope: scopeKey,
-      month,
+      day: today,
       cash: current.cash,
       goals: current.goals,
       assets: current.assets,
       liabilities: current.liabilities,
       net_worth: current.netWorth,
-      updated_at: now.toISOString(),
+      updated_at: new Date().toISOString(),
     },
-    { onConflict: "viewer_member_id,scope,month" },
+    { onConflict: "viewer_member_id,scope,day" },
   );
-  const { data } = await supabase
-    .from("net_worth_snapshots")
-    .select("month, net_worth, cash, goals, assets, liabilities")
-    .eq("viewer_member_id", viewerMemberId)
-    .eq("scope", scopeKey)
-    .order("month", { ascending: false })
-    .limit(24);
-  return (data ?? []).reverse().map((r) => ({
-    month: r.month.slice(0, 7),
+  // The window the picker asks for, and the last day recorded before it,
+  // which the first periods carry when nothing was recorded in them.
+  const periods = recentPeriods(range, cashFlowRangeCount(range));
+  const from = dayKey(periods[0].start);
+  const cols = "day, net_worth, cash, goals, assets, liabilities";
+  const [{ data: inWindow }, { data: earlier }] = await Promise.all([
+    supabase.from("net_worth_snapshots").select(cols).eq("viewer_member_id", viewerMemberId).eq("scope", scopeKey).gte("day", from).order("day", { ascending: true }),
+    supabase.from("net_worth_snapshots").select(cols).eq("viewer_member_id", viewerMemberId).eq("scope", scopeKey).lt("day", from).order("day", { ascending: false }).limit(1),
+  ]);
+  const point = (r: { day: string; net_worth: number; cash: number | null; goals: number | null; assets: number | null; liabilities: number | null }) => ({
+    day: r.day.slice(0, 10),
     netWorth: Number(r.net_worth),
     parts: { cash: Number(r.cash ?? 0), goals: Number(r.goals ?? 0), assets: Number(r.assets ?? 0), liabilities: Number(r.liabilities ?? 0) },
-  }));
+  });
+  return netWorthSeries((inWindow ?? []).map(point), range, periods, earlier?.[0] ? point(earlier[0]) : null);
 }
 
 /** Who each account is shared with, by account id. Read as the viewer, so it

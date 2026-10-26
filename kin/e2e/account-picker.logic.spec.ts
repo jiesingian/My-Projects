@@ -28,6 +28,19 @@ const acc = (name: string, over: { balance?: number; is_joint?: boolean; movemen
   ...over,
 });
 
+test("toPickable says which accounts are the viewer's Only-you ones", () => {
+  const picked = toPickable(
+    [
+      src("mine-private", { owner_member_id: "me", is_joint: false, is_private: true }),
+      src("mine-shared", { owner_member_id: "me", is_joint: false, is_private: true, shared: true }),
+      src("mine-open", { owner_member_id: "me", is_joint: false, is_private: false }),
+      src("joint", { is_joint: true, is_private: false }),
+    ],
+    "me",
+  );
+  expect(Object.fromEntries(picked.map((a) => [a.id, a.onlyMe]))).toEqual({ "mine-private": true, "mine-shared": false, "mine-open": false, joint: false });
+});
+
 test("toPickable keeps joint accounts and the viewer's own, and carries how often each was used", () => {
   const out = toPickable([src("joint"), src("mine", { is_joint: false, owner_member_id: ME, movementCount: 7 }), src("theirs", { is_joint: false, owner_member_id: "member-pat" })], ME);
   expect(out.map((a) => a.id)).toEqual(["joint", "mine"]);
