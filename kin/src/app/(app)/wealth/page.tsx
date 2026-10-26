@@ -77,7 +77,7 @@ import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
-import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
+import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, NetWorthMoves, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { kinAiReady } from "@/lib/kin-ai";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
@@ -1363,6 +1363,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       />
 
       <NetWorthLine points={netWorthHistory} currency={currency} />
+      <NetWorthMoves points={netWorthHistory} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       {ownedLines.length === 0 ? (

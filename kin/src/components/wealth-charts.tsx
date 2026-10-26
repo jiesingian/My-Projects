@@ -18,7 +18,7 @@ import { useId, useState, useTransition } from "react";
 import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
-import { categoryLabel, expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
+import { categoryLabel, expenseCategoryColor, incomeSourceColor, netWorthMoves, type NetWorthParts } from "@/lib/wealth";
 import { FoldableSection } from "@/components/collapsible-group";
 import { Icon } from "@/components/icons";
 
@@ -420,7 +420,7 @@ export function CategoryDonut({
 
 /* ------------------------------------------------------------ net worth */
 
-export type NetWorthPoint = { month: string; netWorth: number };
+export type NetWorthPoint = { month: string; netWorth: number; parts?: NetWorthParts };
 
 function monthName(key: string, long = false) {
   const [yy, mm] = key.split("-").map(Number);
@@ -890,5 +890,31 @@ export function GroupedBreakdown({
         </div>
       )}
     </div>
+  );
+}
+
+/** Under the net worth line: what moved it since last month, part by part
+ * (Jonathan, 26 October) -- whether it rose from saving, from a value
+ * going up, or from paying a loan down. Nothing until two months with
+ * their parts have been kept. */
+export function NetWorthMoves({ points, currency }: { points: NetWorthPoint[]; currency: string }) {
+  const withParts = points.filter((p) => p.parts);
+  if (withParts.length < 2) return null;
+  const prev = withParts[withParts.length - 2];
+  const cur = withParts[withParts.length - 1];
+  const moves = netWorthMoves(prev.parts!, cur.parts!);
+  if (moves.length === 0) return null;
+  const signed = (n: number) => `${n > 0 ? "+" : "−"}${formatCurrency(Math.abs(n), currency)}`;
+  return (
+    <p style={{ ...muted, margin: "-0.25rem 0 0.875rem", lineHeight: 1.5 }}>
+      Since {monthName(prev.month, true)}:{" "}
+      {moves.map((m, i) => (
+        <span key={m.label}>
+          {i > 0 ? " · " : ""}
+          {m.label}{" "}
+          <span style={{ ...tabular, color: m.delta > 0 ? "var(--color-accent-700)" : "var(--color-text)", fontWeight: 600 }}>{signed(m.delta)}</span>
+        </span>
+      ))}
+    </p>
   );
 }

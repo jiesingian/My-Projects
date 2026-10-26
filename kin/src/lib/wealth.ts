@@ -1198,3 +1198,24 @@ export function paymentsLeftForBalance(loan: LoanTerms, balance: number): number
   }
   return 0;
 }
+
+/* ------------------------------------------------- what moved net worth */
+
+/** A month's net worth in its parts, as net_worth_snapshots keeps them:
+ * every account's money (cash), what is set aside for goals, what is
+ * owned (assets, with money owed to us), and what is owed. */
+export type NetWorthParts = { cash: number; goals: number; assets: number; liabilities: number };
+
+/** What moved net worth from one month to the next, part by part (Jonathan,
+ * 26 October): each part's change as it moved net worth -- more owed is a
+ * fall -- largest first, the ones under a peso left out. They add up to the
+ * change in net worth. */
+export function netWorthMoves(from: NetWorthParts, to: NetWorthParts): { label: string; delta: number }[] {
+  const moves = [
+    { label: "accounts", delta: to.cash - from.cash },
+    { label: "set aside for goals", delta: to.goals - from.goals },
+    { label: "what you own", delta: to.assets - from.assets },
+    { label: "what you owe", delta: -(to.liabilities - from.liabilities) },
+  ];
+  return moves.map((m) => ({ ...m, delta: cents(m.delta) })).filter((m) => Math.abs(m.delta) >= 1).sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
+}
