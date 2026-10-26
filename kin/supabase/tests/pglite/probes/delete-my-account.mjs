@@ -157,7 +157,7 @@ export default async function ({ db, as, check, refused }) {
     list_add_tokens: { token_hash: token },
     member_budgets: { period_year: 2026, period_month: 10 },
     member_locations: { sharing: "on" },
-    net_worth_snapshots: { month: "2026-10-01", scope: "all" },
+    net_worth_snapshots: { day: "2026-10-01", scope: "all" },
     remittances: { currency: "USD", php_received: 560, channel: "bank" },
     send_to_kin_tokens: { token_hash: token },
     sent_screenshots: { data: new Uint8Array([0]), mime: "image/png" },

@@ -1210,6 +1210,48 @@ export function paymentsLeftForBalance(loan: LoanTerms, balance: number): number
  * owned (assets, with money owed to us), and what is owed. */
 export type NetWorthParts = { cash: number; goals: number; assets: number; liabilities: number };
 
+/** One point of the net-worth line: a period, and the figure recorded
+ * last in it. `longLabel` names the period in full when it is pointed at. */
+export type NetWorthPoint = { key: string; label: string; longLabel: string; netWorth: number; parts?: NetWorthParts };
+
+/** What a period is called in full: "27 October 2026", "Week of 19
+ * October 2026", "October 2026", "2026". */
+export function periodLongLabel(start: Date, range: CashFlowRange): string {
+  if (range === "year") return String(start.getFullYear());
+  if (range === "month") return start.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const day = start.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  return range === "week" ? `Week of ${day}` : day;
+}
+
+/** One net-worth figure per period from the days a viewer's visits
+ * recorded (net_worth_snapshots, one row a day since 20261027120000): the
+ * last day recorded in the period, or, for a period nobody opened Wealth
+ * in, the figure before it carried forward -- what the household was worth
+ * on a day nothing was recorded is what it was worth the day before, not
+ * zero. `before` is the last day recorded ahead of the window, so the
+ * first periods shown can carry too. Periods ahead of any record are left
+ * out: the line starts where the record does. `snapshots` need not be
+ * sorted. */
+export function netWorthSeries(
+  snapshots: { day: string; netWorth: number; parts?: NetWorthParts }[],
+  range: CashFlowRange,
+  periods: { key: string; label: string; start: Date }[],
+  before: { netWorth: number; parts?: NetWorthParts } | null = null,
+): NetWorthPoint[] {
+  const sorted = [...snapshots].sort((a, b) => a.day.localeCompare(b.day));
+  const lastIn = new Map<string, { netWorth: number; parts?: NetWorthParts }>();
+  for (const s of sorted) lastIn.set(periodKey(s.day, range), { netWorth: s.netWorth, parts: s.parts });
+  let carried = before;
+  const out: NetWorthPoint[] = [];
+  for (const p of periods) {
+    const hit = lastIn.get(p.key);
+    if (hit) carried = hit;
+    if (!carried) continue;
+    out.push({ key: p.key, label: p.label, longLabel: periodLongLabel(p.start, range), netWorth: carried.netWorth, parts: carried.parts });
+  }
+  return out;
+}
+
 /** What moved net worth from one month to the next, part by part (Jonathan,
  * 26 October): each part's change as it moved net worth -- more owed is a
  * fall -- largest first, the ones under a peso left out. They add up to the
