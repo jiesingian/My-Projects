@@ -60,10 +60,16 @@ export function FoldableSection({
   swatch,
   right,
   level = 1,
+  remember = true,
+  defaultOpen = true,
   children,
 }: {
   label: string;
   storageKey: string;
+  /** false: start as `defaultOpen` on every visit instead of as the viewer
+   * last left it -- a breakdown opens folded each time (Janine, 26 October). */
+  remember?: boolean;
+  defaultOpen?: boolean;
   swatch?: string;
   /** Figures for the group, right-aligned in the same columns as its rows
    * (a breakdown's amount and share). */
@@ -72,17 +78,19 @@ export function FoldableSection({
   level?: 1 | 2;
   children: React.ReactNode;
 }) {
-  const open = useSyncExternalStore(
+  const remembered = useSyncExternalStore(
     subscribeFold,
     () => readFold(storageKey),
     () => true,
   );
+  const [local, setLocal] = useState(defaultOpen);
+  const open = remember ? remembered : local;
   return (
     <div>
       <button
         type="button"
         className="kin-eyebrow"
-        onClick={() => writeFold(storageKey, !open)}
+        onClick={() => (remember ? writeFold(storageKey, !open) : setLocal(!open))}
         aria-expanded={open}
         style={{
           all: "unset",
