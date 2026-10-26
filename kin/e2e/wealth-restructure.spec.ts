@@ -58,16 +58,15 @@ test("the graph range picker offers Days, and choosing it regroups the strip", a
   // just a label change -- is the caption naming the new period noun,
   // fetched fresh from the server on each range.
   //
-  // The meter and the button read differently with and without a ceiling
-  // since 25 October (#961): "Spent of budget" / "Change" once one is set,
-  // "Spent this month" / "Set budget" when none is. Which one dev holds
-  // depends on whoever last touched this month's budget, so either passes.
-  // Each category's own Change says which category ("Change the Food
-  // budget"), so the exact names below match only the month's control.
+  // The meter reads "Spent of budget" once any category budget is set,
+  // "Spent this month" when none is; which one dev holds depends on whoever
+  // last touched a budget, so either passes. All is the sum of Family's and
+  // everyone's budgets (26 October), set by picking one of them under Who,
+  // which the line under the categories says.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
   const expenses = page.getByRole("button", { name: /^EXPENSES$/i, exact: true });
   const meter = page.getByText(/^SPENT (OF BUDGET|THIS MONTH)$/i);
-  const control = page.getByRole("button", { name: /^(SET BUDGET|CHANGE)$/i });
+  const control = page.getByText("To set a budget, pick Family or a person under Who.");
   await expect(expenses).toHaveAttribute("aria-expanded", "false");
   await expect(meter).toBeHidden();
 

@@ -1287,11 +1287,14 @@ export function AudienceChoices({
   chosen,
   people,
   onChange,
+  seen = "its balance and movements",
 }: {
   mode: AudienceMode;
   chosen: string[];
   people: AccountAudienceMember[];
   onChange: (mode: AudienceMode, chosen: string[]) => void;
+  /** What the people chosen get to see (an account's balance, a budget). */
+  seen?: string;
 }) {
   // Custom stays open while it is the choice, even with nobody ticked yet.
   const [custom, setCustom] = useState(mode === "chosen");
@@ -1341,9 +1344,9 @@ export function AudienceChoices({
         {isCustom
           ? ticked.length === 0
             ? "Tick at least one person, or choose Only me."
-            : "Only you and the people ticked see its balance and movements. Nobody else knows it is there."
+            : `Only you and the people ticked see ${seen}. Nobody else knows it is there.`
           : mode === "everyone"
-            ? "Every grown-up in the household sees its balance and movements. Children do not — choose Custom to add one."
+            ? `Every grown-up in the household sees ${seen}. Children do not — choose Custom to add one.`
             : "Only you see it."}
       </p>
     </div>

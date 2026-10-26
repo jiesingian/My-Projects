@@ -5,6 +5,7 @@ import { catchUpOffers, type NextBillOffer } from "@/lib/bill-roll";
 import { familyDay } from "@/lib/time";
 import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
+import { budgetsFor, budgetsInForce, budgetTotal, budgetWhose, FAMILY_BUDGET, type SpendingBudgetRow } from "@/lib/budgets";
 import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
@@ -140,16 +141,10 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
   const months = recentMonths(6);
   const historyStart = new Date(year, month - 6, 1);
 
-  const [allAccounts, archivedAccounts, { data: period }, { data: target }, { data: transactions }] = await Promise.all([
+  const [allAccounts, archivedAccounts, budgetRows, { data: target }, { data: transactions }] = await Promise.all([
     loadAccounts(familyId),
     getArchivedAccountsForFlow(familyId),
-    supabase
-      .from("budget_periods")
-      .select("*, budget_allocations(*)")
-      .eq("family_id", familyId)
-      .eq("period_month", month)
-      .eq("period_year", year)
-      .maybeSingle(),
+    getSpendingBudgetRows(familyId),
     supabase
       .from("wealth_targets")
       .select("*")
@@ -186,13 +181,15 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     };
   });
 
-  // A category budget removed is saved as 0 (25 October): it is no budget,
-  // and its spending, if any, shows with the unbudgeted ones.
-  const allocations = (period?.budget_allocations ?? []).filter((a) => Number(a.amount) > 0).map((a) => ({
-    id: a.id,
-    category: a.category,
-    amount: Number(a.amount),
-    spent: spentByCategory.get(a.category) ?? 0,
+  // The budgets of whoever Who names (26 October): Family's, one person's,
+  // or under All every one the viewer can see, added up. A removed one (0)
+  // is no budget, and its spending, if any, shows with the unbudgeted ones.
+  const budgets = budgetsFor(budgetsInForce(budgetRows, `${year}-${String(month).padStart(2, "0")}`), scopeWhose(scope));
+  const allocations = [...budgets.entries()].map(([category, amount]) => ({
+    id: `budget-${category}`,
+    category,
+    amount,
+    spent: spentByCategory.get(category) ?? 0,
   }));
   const unbudgeted = [...spentByCategory.entries()]
     .filter(([category]) => !allocations.some((a) => a.category === category))
@@ -207,9 +204,10 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     total: accounts.reduce((sum, a) => sum + a.balance, 0),
     monthIncome: thisMonth.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0),
     monthExpense: thisMonth.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
-    // All is measured against the household's budget; one person against
-    // the target they set for themselves.
-    budgetAmount: isHouseholdScope(scope) ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
+    // Spending is measured against the categories' budgets added up.
+    spendBudget: budgetTotal(budgets),
+    // One person's income against the target they set for themselves.
+    budgetAmount: isHouseholdScope(scope) ? 0 : Number(target?.target_amount ?? 0),
     allocations,
     unbudgeted,
     history,
@@ -741,13 +739,48 @@ export async function getRemittances(familyId: string, since?: string): Promise<
 
 /* ------------------------------------------------------------ chart data */
 
-/** Each person's spending budget for one month, as a grown-up set it
- * (member_budgets). The whole household may read these, so this is the same
- * map for every viewer. A person with no budget that month is absent. */
-export async function getMemberBudgets(familyId: string, year: number, month: number): Promise<Map<string, number>> {
+/** Every category budget of Family's and each person's that the viewer may
+ * see (spending_budgets; row-level security decides), all months. Small: a
+ * row per change of a category's budget. */
+export async function getSpendingBudgetRows(familyId: string): Promise<SpendingBudgetRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("member_budgets").select("member_id, amount").eq("family_id", familyId).eq("period_year", year).eq("period_month", month);
-  return new Map((data ?? []).map((b) => [b.member_id, Number(b.amount)]));
+  const { data } = await supabase.from("spending_budgets").select("member_id, category, amount, from_month").eq("family_id", familyId);
+  return data ?? [];
+}
+
+/** Which budgets a Who choice reads: Family's, one person's, or all. */
+export function scopeWhose(scope: WealthScope): string {
+  return scope === "all" ? "all" : scope === WEALTH_FAMILY ? FAMILY_BUDGET : scope;
+}
+
+/** Each person's spending budget for one month -- their category budgets
+ * added up -- and Family's under "family". Only budgets the viewer may see;
+ * a person with none that month is absent. */
+export async function getMemberBudgets(familyId: string, year: number, month: number): Promise<Map<string, number>> {
+  const inForce = budgetsInForce(await getSpendingBudgetRows(familyId), `${year}-${String(month).padStart(2, "0")}`);
+  return new Map([...inForce.entries()].map(([whose, cats]) => [whose, budgetTotal(cats)]));
+}
+
+/** Grown-ups whose budgets are private and not shared with the viewer: All
+ * leaves theirs out, and says so. */
+export async function getPrivateBudgetCount(familyId: string, viewerId: string): Promise<number> {
+  const supabase = await createClient();
+  const [{ data: sharing }, { data: named }] = await Promise.all([
+    supabase.from("budget_sharing").select("member_id").eq("family_id", familyId).eq("is_private", true),
+    supabase.from("budget_viewers").select("owner_member_id").eq("family_id", familyId).eq("viewer_member_id", viewerId),
+  ]);
+  const shared = new Set((named ?? []).map((r) => r.owner_member_id));
+  return (sharing ?? []).filter((r) => r.member_id !== viewerId && !shared.has(r.member_id)).length;
+}
+
+/** A grown-up's own choice of who sees their budgets. */
+export async function getBudgetSharing(familyId: string, memberId: string): Promise<{ isPrivate: boolean; viewers: string[] }> {
+  const supabase = await createClient();
+  const [{ data: sharing }, { data: viewers }] = await Promise.all([
+    supabase.from("budget_sharing").select("is_private").eq("member_id", memberId).maybeSingle(),
+    supabase.from("budget_viewers").select("viewer_member_id").eq("family_id", familyId).eq("owner_member_id", memberId),
+  ]);
+  return { isPrivate: sharing?.is_private ?? false, viewers: (viewers ?? []).map((v) => v.viewer_member_id) };
 }
 
 export type MemberSpending = {
@@ -794,30 +827,25 @@ export async function getSpendingByMember(familyId: string, year: number, month:
     spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
   }
   const owners = new Set<string | null>(accounts.map((a) => (a.is_joint ? null : a.owner_member_id)));
-  for (const id of budgets.keys()) owners.add(id);
+  for (const id of budgets.keys()) owners.add(id === FAMILY_BUDGET ? null : id);
   return [...owners].map((memberId) => ({
     memberId,
     spent: spent.get(memberId) ?? 0,
     hasVisibleAccounts: accounts.some((a) => (a.is_joint ? null : a.owner_member_id) === memberId),
-    budget: memberId ? (budgets.get(memberId) ?? null) : null,
+    budget: budgets.get(budgetWhose(memberId)) ?? null,
   }));
 }
 
 /** The budget each month in `keys` (YYYY-MM) was measured against: the
- * household's (budget_periods) for All and Family, the person's own
- * (member_budgets) for one person. Months with none are absent. */
+ * category budgets in force that month for the Who choice, added up. Months
+ * with none are absent. */
 export async function getBudgetHistory(familyId: string, scope: WealthScope, keys: string[]): Promise<Map<string, number>> {
   if (keys.length === 0) return new Map();
-  const supabase = await createClient();
-  const years = [...new Set(keys.map((k) => Number(k.slice(0, 4))))];
-  const wanted = new Set(keys);
-  const key = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
-  if (isHouseholdScope(scope)) {
-    const { data } = await supabase.from("budget_periods").select("period_year, period_month, budget_amount").eq("family_id", familyId).in("period_year", years);
-    return new Map((data ?? []).filter((b) => wanted.has(key(b.period_year, b.period_month)) && Number(b.budget_amount) > 0).map((b) => [key(b.period_year, b.period_month), Number(b.budget_amount)]));
-  }
-  const { data } = await supabase.from("member_budgets").select("period_year, period_month, amount").eq("family_id", familyId).eq("member_id", scope).in("period_year", years);
-  return new Map((data ?? []).filter((b) => wanted.has(key(b.period_year, b.period_month)) && Number(b.amount) > 0).map((b) => [key(b.period_year, b.period_month), Number(b.amount)]));
+  const rows = await getSpendingBudgetRows(familyId);
+  const whose = scopeWhose(scope);
+  return new Map(
+    keys.map((k) => [k, budgetTotal(budgetsFor(budgetsInForce(rows, k), whose))] as const).filter(([, total]) => total > 0),
+  );
 }
 
 export type NetWorthPoint = { month: string; netWorth: number };

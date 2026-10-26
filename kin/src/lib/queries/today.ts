@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
+import { getSpendingBudgetRows } from "@/lib/queries/wealth";
+import { budgetsFor, budgetsInForce, budgetTotal } from "@/lib/budgets";
 import { formatAccounting, formatCurrency } from "@/lib/format";
 import { getPricedBuyList } from "@/lib/queries/household-money";
 import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight } from "@/lib/time";
@@ -100,14 +102,10 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
   const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`, tz) ?? now).toISOString();
 
   const today = localDay(now, tz);
-  const [budgetPeriod, monthSpend, shop, { data: low }, { data: weekBills }, { data: todayMeals }] = await Promise.all([
-    supabase
-      .from("budget_periods")
-      .select("budget_amount")
-      .eq("family_id", familyId)
-      .eq("period_month", month)
-      .eq("period_year", year)
-      .maybeSingle(),
+  const [budgetRows, monthSpend, shop, { data: low }, { data: weekBills }, { data: todayMeals }] = await Promise.all([
+    // The month's budget is every category budget the viewer can see,
+    // Family's and each person's, added up (26 October), as All shows it.
+    getSpendingBudgetRows(familyId),
     supabase
       .from("wealth_transactions")
       .select("amount")
@@ -127,7 +125,7 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
   ]);
 
   const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
-  const target = budgetPeriod.data ? Number(budgetPeriod.data.budget_amount) : 0;
+  const target = budgetTotal(budgetsFor(budgetsInForce(budgetRows, `${year}-${String(month).padStart(2, "0")}`), "all"));
   const bills = weekBills ?? [];
   const billsLine =
     bills.length > 0

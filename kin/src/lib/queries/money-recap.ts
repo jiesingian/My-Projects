@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAccounts, getArchivedAccountsForFlow } from "@/lib/queries/wealth";
+import { getAccounts, getArchivedAccountsForFlow, getSpendingBudgetRows } from "@/lib/queries/wealth";
+import { budgetsFor, budgetsInForce } from "@/lib/budgets";
 import { familyDay, familyMidnight } from "@/lib/time";
 import { inTotalsScope, paidFromVisibleFilter } from "@/lib/wealth";
 import { buildRecap, monthBefore, type Recap, type RecapTxn } from "@/lib/money-recap";
@@ -22,7 +23,7 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
   // Archived and deleted accounts' movements count too: they happened in the month.
   const counted = new Set([...accounts, ...archived].filter((a) => inTotalsScope(a, "all", leaveOut)).map((a) => a.id));
 
-  const [txns, { data: period }, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
+  const [txns, budgetRows, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
     // Two months of movements: one imported statement can pass 1000 rows.
     allRows((a, b) =>
       supabase
@@ -35,7 +36,7 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
         .order("id")
         .range(a, b),
     ),
-    supabase.from("budget_periods").select("budget_allocations(category, amount)").eq("family_id", me.family_id).eq("period_year", y).eq("period_month", m).maybeSingle(),
+    getSpendingBudgetRows(me.family_id),
     supabase
       .from("bills")
       .select("name, amount, due_date, status, paid_at")
@@ -64,8 +65,9 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     month,
     today,
     txns: recapTxns,
-    // A removed category budget is saved as 0: not a budget.
-    allocations: (period?.budget_allocations ?? []).filter((a) => Number(a.amount) > 0).map((a) => ({ category: a.category, amount: Number(a.amount) })),
+    // All's budgets that month, as Wealth shows them: every category budget
+    // the viewer can see, added up (26 October). A removed one is none.
+    allocations: [...budgetsFor(budgetsInForce(budgetRows, month), "all").entries()].map(([category, amount]) => ({ category, amount })),
     bills: (bills ?? [])
       .filter((b): b is typeof b & { due_date: string } => !!b.due_date)
       .map((b) => ({ name: b.name, amount: Number(b.amount), dueDate: b.due_date, status: b.status, paidDay: b.paid_at ? familyDay(new Date(b.paid_at), tz) : null })),

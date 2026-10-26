@@ -73,6 +73,7 @@ const SECTIONS: [file: string, table: string][] = [
   ["bills.csv", "bills"],
   ["budgets.csv", "budget_periods"],
   ["budget-lines.csv", "budget_allocations"],
+  ["category-budgets.csv", "spending_budgets"],
   ["income.csv", "income_schedules"],
   ["savings-goals.csv", "goals"],
   ["assets.csv", "assets"],

@@ -9,9 +9,9 @@ import { cloneElement, isValidElement, useActionState, useId, useState, useSyncE
 import { useRouter } from "next/navigation";
 import {
   addAccountAction,
-  setJointBudgetAction,
   setWealthTargetAction,
-  setAllocationAction,
+  setSpendingBudgetAction,
+  setBudgetVisibilityAction,
   addBillAction,
   addIncomeScheduleAction,
   addIncomeGroupAction,
@@ -761,58 +761,6 @@ function IncomeGroupForm({ accounts, whose, onCancel }: { accounts: { id: string
   );
 }
 
-export function SetBudgetControl({ month, year, current }: { month: number; year: number; current: number }) {
-  const [value, setValue] = useState(current);
-  const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState<string | null>(null);
-  return (
-    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-      <AmountInput key={current} ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem" }} />
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={pending}
-        style={{ minHeight: "2.5rem", fontSize: "0.84375rem", whiteSpace: "nowrap" }}
-        onClick={() =>
-          startTransition(async () => {
-            const { error } = await setJointBudgetAction(month, year, value);
-            setFailed(error);
-          })
-        }
-      >
-        {pending ? "…" : current > 0 ? "Change" : "Set budget"}
-      </button>
-      {/* Removing is saving no ceiling (25 October): the meter goes back to
-          what was spent, with nothing to measure it against. */}
-      {current > 0 && (
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={pending}
-          style={{ minHeight: "2.5rem", fontSize: "0.84375rem", whiteSpace: "nowrap" }}
-          onClick={async () => {
-            if (!(await confirm({ title: "Remove this month's budget?", description: "What was spent stays; there is just no ceiling to measure it against.", confirmLabel: "Remove", danger: true }))) return;
-            startTransition(async () => {
-              const { error } = await setJointBudgetAction(month, year, 0);
-              setFailed(error);
-              if (!error) setValue(0);
-            });
-          }}
-        >
-          Remove
-        </button>
-      )}
-      {/* This used to fail by going quiet, which is exactly what it did when
-          it succeeded. */}
-      {failed && (
-        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", alignSelf: "center" }}>
-          {failed}
-        </p>
-      )}
-    </div>
-  );
-}
-
 export function SetTargetControl({ month, year, current }: { month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
@@ -847,8 +795,9 @@ export function SetTargetControl({ month, year, current }: { month: number; year
 
 /** A category budget's own Change and Remove, on its row under BUDGET VS
  * SPEND BY CATEGORY (25 October). Change opens on what is set now; Remove
- * saves it as 0, which reads as no budget. */
-export function CategoryBudgetActions({ category, amount }: { category: string; amount: number }) {
+ * saves it as 0 from this month on, which reads as no budget. `whose` is
+ * Family ("family") or a member id (26 October). */
+export function CategoryBudgetActions({ whose, category, amount }: { whose: string; category: string; amount: number }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(amount);
   const [failed, setFailed] = useState<string | null>(null);
@@ -856,7 +805,7 @@ export function CategoryBudgetActions({ category, amount }: { category: string; 
   const router = useRouter();
   const save = (next: number) =>
     startTransition(async () => {
-      const { error } = await setAllocationAction({ category, amount: next });
+      const { error } = await setSpendingBudgetAction({ whose, category, amount: next });
       setFailed(error);
       if (!error) {
         setOpen(false);
@@ -893,12 +842,14 @@ export function CategoryBudgetActions({ category, amount }: { category: string; 
   );
 }
 
-/** Sets what the household intends to spend per category this month — the
- * bars above it fill with what was actually spent. */
-export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
+/** Sets what Family or one person intends to spend per category, from this
+ * month on until changed — the bars above it fill with what was actually
+ * spent. */
+export function AllocationEditor({ whose, budgeted }: { whose: string; budgeted: string[] }) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES.find((c) => !budgeted.includes(c)) ?? EXPENSE_CATEGORIES[0]);
   const [amount, setAmount] = useState(0);
+  const [failed, setFailed] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -921,11 +872,13 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
           <button
             type="button"
             className="btn btn-primary"
-            disabled={pending}
+            disabled={pending || !(amount > 0)}
             style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
             onClick={() =>
               startTransition(async () => {
-                await setAllocationAction({ category, amount });
+                const { error } = await setSpendingBudgetAction({ whose, category, amount });
+                setFailed(error);
+                if (error) return;
                 setOpen(false);
                 router.refresh();
               })
@@ -934,6 +887,67 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
             {pending ? "…" : "SET"}
           </button>
         </div>
+        {failed && <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "-0.5rem 0 1rem" }}>{failed}</p>}
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>It repeats every month until you change or remove it.</p>
+      </FormSheet>
+    </>
+  );
+}
+
+/** Who sees a grown-up's own budgets (26 October), chosen as for an
+ * account: every grown-up (the default), only them, or people picked. */
+export function BudgetVisibility({ isPrivate, viewers, people }: { isPrivate: boolean; viewers: string[]; people: AccountAudienceMember[] }) {
+  const startMode: AudienceMode = !isPrivate ? "everyone" : viewers.length ? "chosen" : "only_me";
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<AudienceMode>(startMode);
+  const [chosen, setChosen] = useState<string[]>(viewers);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const label = startMode === "everyone" ? "All grown-ups" : startMode === "only_me" ? "Only you" : `${viewers.length} ${viewers.length === 1 ? "person" : "people"}`;
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", minHeight: "2rem", fontSize: "0.75rem", padding: "0 0.5rem", margin: "-0.25rem 0 0.75rem" }}
+        onClick={() => {
+          setMode(startMode);
+          setChosen(viewers);
+          setOpen(true);
+        }}
+      >
+        Who sees your budget: {label} ›
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Who can see your budget">
+        <AudienceChoices
+          mode={mode}
+          chosen={chosen}
+          people={people}
+          seen="your category budgets"
+          onChange={(m, c) => {
+            setMode(m);
+            setChosen(c);
+          }}
+        />
+        {failed && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>{failed}</p>}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() =>
+            startTransition(async () => {
+              const { error } = await setBudgetVisibilityAction({ mode, memberIds: chosen });
+              setFailed(error);
+              if (error) return;
+              setOpen(false);
+              router.refresh();
+            })
+          }
+        >
+          {pending ? "…" : "Save"}
+        </button>
       </FormSheet>
     </>
   );

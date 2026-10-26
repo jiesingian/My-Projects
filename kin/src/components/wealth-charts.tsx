@@ -19,7 +19,7 @@ import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
 import { formatCurrency, currencySymbol } from "@/lib/format";
 import { categoryLabel, expenseCategoryColor, incomeSourceColor } from "@/lib/wealth";
-import { setMemberBudgetAction } from "@/lib/actions/wealth";
+import Link from "next/link";
 import { FoldableSection } from "@/components/collapsible-group";
 
 const OUT_COLOR = "color-mix(in srgb, var(--color-text) 40%, transparent)";
@@ -594,84 +594,19 @@ export function SpendingByPerson({ people, currency, canSetBudgets }: { people: 
                       ? `Over by ${formatCurrency(p.spent - p.budget, currency)}`
                       : `${formatCurrency(p.budget - p.spent, currency)} left`}
               </span>
-              {canSetBudgets && p.memberId && <BudgetEditor memberId={p.memberId} current={p.budget} label={p.label} />}
+              {/* A budget is its categories added up (26 October): set them on
+                  that person's (or Family's) own Expenses. */}
+              <Link href={`/wealth?seg=cashflow&who=${p.memberId ?? "family"}&open=expenses`} style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--color-switch-on)", textDecoration: "none" }}>
+                {p.budget !== null ? "Budgets" : canSetBudgets ? "Set budgets" : "Budgets"} ›<span className="sr-only"> for {p.label}</span>
+              </Link>
             </div>
           </div>
         );
       })}
       <p style={{ ...muted, marginTop: "0.75rem", lineHeight: 1.45 }}>
-        The dark tick is each person&rsquo;s budget for the month. {canSetBudgets ? "Any grown-up can set one; the whole household sees it." : "A grown-up sets them."}
+        The dark tick is each one&rsquo;s budget for the month: their category budgets added up. Budgets set as private are not shown.
       </p>
     </div>
-  );
-}
-
-function BudgetEditor({ memberId, current, label }: { memberId: string; current: number | null; label: string }) {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(current ? String(current) : "");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  if (!open) {
-    return (
-      <button type="button" className="btn btn-ghost" style={{ marginLeft: "auto", minHeight: "2rem", fontSize: "0.75rem", padding: "0 0.5rem" }} onClick={() => setOpen(true)}>
-        {current ? "Change budget" : "Set budget"}
-        <span className="sr-only"> for {label}</span>
-      </button>
-    );
-  }
-  return (
-    <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
-      <input
-        className="input"
-        type="number"
-        inputMode="decimal"
-        min="0"
-        step="100"
-        aria-label={`Monthly budget for ${label}`}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        style={{ width: "7rem", minHeight: "2rem", fontSize: "0.8125rem" }}
-      />
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={pending}
-        style={{ minHeight: "2rem", fontSize: "0.75rem", padding: "0 0.625rem" }}
-        onClick={() =>
-          start(async () => {
-            const res = await setMemberBudgetAction(memberId, Number(value) || 0);
-            if (res.error) setError(res.error);
-            else setOpen(false);
-          })
-        }
-      >
-        {pending ? "…" : "Save"}
-      </button>
-      {/* Saving no budget deletes it (setMemberBudgetAction); said here as
-          what it is (25 October). */}
-      {current ? (
-        <button
-          type="button"
-          className="btn btn-ghost"
-          disabled={pending}
-          style={{ minHeight: "2rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
-          onClick={() =>
-            start(async () => {
-              const res = await setMemberBudgetAction(memberId, 0);
-              if (res.error) setError(res.error);
-              else setOpen(false);
-            })
-          }
-        >
-          Remove budget
-        </button>
-      ) : null}
-      {error && (
-        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>
-          {error}
-        </span>
-      )}
-    </span>
   );
 }
 

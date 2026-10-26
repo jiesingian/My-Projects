@@ -6,11 +6,11 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, scopeWhose, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetBudgetControl, SetTargetControl, AllocationEditor, CategoryBudgetActions } from "@/components/wealth-controls";
+import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetActions, BudgetVisibility } from "@/components/wealth-controls";
 import {
   PayBillControl,
   ReceiveIncomeControl,
@@ -503,9 +503,22 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const toPayBack = instalmentsDue.filter((u) => u.direction === "borrowed");
   // The band behind the cash-flow bars: each month's budget, household or
   // personal to match the Who picker. Monthly only -- a budget is a month's.
-  const [budgetHistory, byPerson] = await Promise.all([
+  // Whose budgets these are, and whether the viewer may set them (26
+  // October): Family's and a child's, any grown-up; a grown-up's, only
+  // themselves; a child with a login, their own too. All is the sum, set
+  // through its parts.
+  const myRole = who.active.find((m) => m.id === memberId)?.role;
+  const scopeRole = who.active.find((m) => m.id === scope)?.role;
+  const canSetBudgets =
+    scope === WEALTH_FAMILY ? grownUp
+    : scope === memberId ? myRole !== "child_managed"
+    : scope !== "all" && grownUp && !!scopeRole && !isGrownUp(scopeRole);
+  const shareOwnBudget = scope === memberId && grownUp;
+  const [budgetHistory, byPerson, privateBudgets, sharing] = await Promise.all([
     range === "month" ? getBudgetHistory(familyId, scope, cf.history.map((h) => h.key)) : Promise.resolve(new Map<string, number>()),
     scope === "all" ? getSpendingByMember(familyId, budget.year, budget.month) : Promise.resolve([]),
+    scope === "all" ? getPrivateBudgetCount(familyId, memberId) : Promise.resolve(0),
+    shareOwnBudget ? getBudgetSharing(familyId, memberId) : Promise.resolve(null),
   ]);
   const people = byPerson
     .map((p) => {
@@ -713,21 +726,26 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
-      {isJoint && (
-        <>
-          {/* No ceiling set, or one removed (0): what was spent, against nothing. */}
-          <Meter
-            label={budget.budgetAmount > 0 ? "Spent of budget" : "Spent this month"}
-            value={budget.monthExpense}
-            cap={budget.budgetAmount > 0 ? budget.budgetAmount : null}
-            currency={currency}
-            note={budget.budgetAmount > 0 ? "Change or remove the month's ceiling below." : "Set the month's ceiling below."}
-          />
-          <SetBudgetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />
-        </>
-      )}
+      {/* The month's budget is its categories added up (26 October): no
+          budget set, what was spent, against nothing. */}
+      <Meter
+        label={budget.spendBudget > 0 ? "Spent of budget" : "Spent this month"}
+        value={budget.monthExpense}
+        cap={budget.spendBudget > 0 ? budget.spendBudget : null}
+        currency={currency}
+        note={
+          scope === "all"
+            ? `Family's and everyone's category budgets, added up.${privateBudgets > 0 ? ` ${privateBudgets === 1 ? "1 person's budget is" : `${privateBudgets} people's budgets are`} private and not counted.` : ""}`
+            : budget.spendBudget > 0
+              ? "The category budgets below, added up."
+              : canSetBudgets
+                ? "Set a budget for a category below."
+                : "No budget set."
+        }
+      />
+      {sharing && <BudgetVisibility isPrivate={sharing.isPrivate} viewers={sharing.viewers} people={who.active.flatMap((m, i) => (m.id === memberId ? [] : [{ id: m.id, label: who.labels[i], grownUp: isGrownUp(m.role), hasLogin: m.role !== "child_managed" }]))} />}
 
-      <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
+      <SectionLabel>BUDGET VS SPEND BY CATEGORY</SectionLabel>
       {categories.length === 0 && (
         <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
@@ -744,7 +762,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
               />
               <span>{categoryLabel(c.category)}</span>
               {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
-              {isJoint && c.amount > 0 && <CategoryBudgetActions category={c.category} amount={c.amount} />}
+              {canSetBudgets && c.amount > 0 && <CategoryBudgetActions whose={scopeWhose(scope)} category={c.category} amount={c.amount} />}
               <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                 {formatCurrency(c.spent, currency)}
                 {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
@@ -756,7 +774,12 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           </div>
         );
       })}
-      {isJoint && <div style={{ marginTop: "0.75rem" }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
+      {canSetBudgets && <div style={{ marginTop: "0.75rem" }}><AllocationEditor whose={scopeWhose(scope)} budgeted={budget.allocations.map((a) => a.category)} /></div>}
+      {scope === "all" && (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 1rem" }}>
+          To set a budget, pick Family or a person under Who.
+        </p>
+      )}
 
       {people.length > 0 && (
         <>
@@ -826,7 +849,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           currency={currency}
           storageKey="kin-expenses"
           categoryOrder={EXPENSE_CATEGORIES.map(categoryLabel)}
-          center={{ label: "spent", note: isJoint && budget.budgetAmount > 0 && range === "month" ? `of ${formatCurrency(budget.budgetAmount, currency)}` : `this ${periodNoun}` }}
+          center={{ label: "spent", note: budget.spendBudget > 0 && range === "month" ? `of ${formatCurrency(budget.spendBudget, currency)}` : `this ${periodNoun}` }}
         />
       )}
       <AddBillForm whose={whose} />

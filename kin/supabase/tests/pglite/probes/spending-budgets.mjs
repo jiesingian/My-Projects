@@ -14,14 +14,14 @@ export default async function ({ db, as, check, refused }) {
   const set = (who, by, member, category = "Groceries", family = A) =>
     as(
       who,
-      "insert into spending_budgets (family_id, member_id, category, amount, from_month, set_by) values ($1, $2, $3, 5000, '2026-10-01', $4) returning id",
+      "insert into spending_budgets (family_id, member_id, category, amount, from_month, set_by) values ($1, $2, $3, 5000, '2026-12-01', $4) returning id",
       [family, member, category, by],
     );
   const sees = async (who, member) =>
     (await as(who, member === null ? "select 1 from spending_budgets where member_id is null" : "select 1 from spending_budgets where member_id = $1", member === null ? [] : [member])).length;
 
   await check("A grown-up sets Family's; the whole household sees it", async () =>
-    (await set(abe, abeM, null)).length === 1 && (await sees(ann, null)) === 1 && (await sees(kid, null)) === 1);
+    (await set(abe, abeM, null)).length === 1 && (await sees(ann, null)) >= 1 && (await sees(kid, null)) === (await sees(ann, null)));
   await check("One budget per whose, category and month (Family's too)", async () => refused(() => set(ann, annM, null)));
   await check("A child cannot set Family's", async () => refused(() => set(kid, kidM, null, "Snacks")));
 
