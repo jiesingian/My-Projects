@@ -29,6 +29,13 @@ export function AddGoalForm({ accounts, currency, today, kids: children = [] }: 
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState("");
   const plan = monthlyNeeded(Number(target), start || today, end);
+  // Up to two sources, each with what it gives a month (26 October).
+  const [from1, setFrom1] = useState("");
+  const [from2, setFrom2] = useState("");
+  const [amount1, setAmount1] = useState("");
+  const [amount2, setAmount2] = useState("");
+  const [secondSource, setSecondSource] = useState(false);
+  const sourcesGive = (from1 ? Number(amount1) || 0 : 0) + (secondSource && from2 ? Number(amount2) || 0 : 0);
 
   return (
     <form action={formAction}>
@@ -109,25 +116,56 @@ export function AddGoalForm({ accounts, currency, today, kids: children = [] }: 
         </p>
       )}
       {accounts.length > 0 && (
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          <Field label="From account (optional)" style={{ flex: 1 }}>
-            <select className="input" name="from_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
-              <option value="">Choose each time</option>
-              <AccountOptions accounts={accounts} currency={currency} />
-            </select>
-          </Field>
-          <Field label="To account (optional)" style={{ flex: 1 }}>
+        <>
+          <SourceRow
+            label="From account (optional)"
+            name="from_account_id"
+            amountName="from_amount"
+            account={from1}
+            onAccount={setFrom1}
+            amount={amount1}
+            onAmount={setAmount1}
+            accounts={accounts}
+            currency={currency}
+            emptyLabel="Choose each time"
+          />
+          {secondSource ? (
+            <SourceRow
+              label="Second From account"
+              name="from_account_2_id"
+              amountName="from_2_amount"
+              account={from2}
+              onAccount={setFrom2}
+              amount={amount2}
+              onAmount={setAmount2}
+              accounts={accounts.filter((a) => a.id !== from1)}
+              currency={currency}
+              emptyLabel="None"
+            />
+          ) : (
+            from1 && (
+              <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.25rem", margin: "-0.25rem 0 0.75rem", color: "var(--color-switch-on)" }} onClick={() => setSecondSource(true)}>
+                + Add another From account
+              </button>
+            )
+          )}
+          {plan && sourcesGive > 0 && (
+            <p style={{ fontSize: "0.8125rem", margin: "-0.25rem 0 0.875rem", color: sourcesGive >= plan.perMonth ? "var(--color-neutral-700)" : "var(--color-accent-700)" }}>
+              {sourcesGive >= plan.perMonth
+                ? `Your sources give ${formatCurrency(sourcesGive, currency)} a month: enough.`
+                : `Your sources give ${formatCurrency(sourcesGive, currency)} a month: ${formatCurrency(plan.perMonth - sourcesGive, currency)} short.`}
+            </p>
+          )}
+          <Field label="To account (optional)">
             <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
               <option value="">No account yet</option>
               <AccountOptions accounts={accounts} currency={currency} />
             </select>
           </Field>
-        </div>
-      )}
-      {accounts.length > 0 && (
-        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "-0.375rem 0 1rem" }}>
-          From is where Put money in starts. With a To account, the money moves From → To, and the To account holds what the goal has saved.
-        </p>
+          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "-0.375rem 0 1rem" }}>
+            From is where Put money in starts. With a To account, the money moves From → To, and the To account holds what the goal has saved.
+          </p>
+        </>
       )}
       <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.8125rem", margin: "0 0 1rem", cursor: "pointer" }}>
         <input type="checkbox" checked={onPlanner} onChange={(e) => setOnPlanner(e.target.checked)} style={{ marginTop: "0.125rem" }} />
@@ -151,6 +189,45 @@ function Field({ label, children, style }: { label: string; children: React.Reac
         {label}
         {children}
       </label>
+    </div>
+  );
+}
+
+/** One source of a goal's money: the account, and what it gives a month. */
+function SourceRow({
+  label,
+  name,
+  amountName,
+  account,
+  onAccount,
+  amount,
+  onAmount,
+  accounts,
+  currency,
+  emptyLabel,
+}: {
+  label: string;
+  name: string;
+  amountName: string;
+  account: string;
+  onAccount: (v: string) => void;
+  amount: string;
+  onAmount: (v: string) => void;
+  accounts: PickableAccount[];
+  currency: string;
+  emptyLabel: string;
+}) {
+  return (
+    <div style={{ display: "flex", gap: "0.75rem" }}>
+      <Field label={label} style={{ flex: 2 }}>
+        <select className="input" name={name} value={account} onChange={(e) => onAccount(e.target.value)} style={{ minHeight: "2.75rem" }}>
+          <option value="">{emptyLabel}</option>
+          <AccountOptions accounts={accounts} currency={currency} />
+        </select>
+      </Field>
+      <Field label={`A month (${currencySymbol(currency)}, optional)`} style={{ flex: 1 }}>
+        <input className="input" type="number" step="0.01" min="0" name={amountName} value={amount} disabled={!account} onChange={(e) => onAmount(e.target.value)} style={{ minHeight: "2.75rem" }} />
+      </Field>
     </div>
   );
 }
