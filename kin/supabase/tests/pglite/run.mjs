@@ -143,6 +143,7 @@ const MIGRATIONS = [
   "20261023232000_asset_purchases.sql",
   "20261023235000_pushes_skip_scheduled_bills_allday_plans.sql",
   "20261023237000_dose_alarm_link.sql",
+  "20261026100000_spending_budgets.sql",
 ];
 
 const only = process.argv[2];
