@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { familyDay } from "@/lib/time";
 import { getCurrentMember } from "@/lib/session";
 import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
@@ -28,6 +29,7 @@ export default async function ScanReceiptPage() {
           currency={me.families.currency}
           ready={kinAiReady()}
           plus={readAccess(me.families).plus}
+          today={familyDay(new Date(), me.families.time_zone || undefined)}
         />
       </div>
     </div>
