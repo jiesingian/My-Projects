@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel, isTransferWords } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -752,7 +752,18 @@ export async function transferAction(input: {
   return { error: null, appUrl: input.viaApp ? from.linked_app_url : null };
 }
 
-export async function confirmTransactionAction(transactionId: string): Promise<ActionState> {
+/** Marks a pending entry as gone through -- both legs of a transfer at
+ * once. `edits` is what actually went through when it differs from what
+ * was logged ahead of time (Jonathan, 27 October): the reminder is usually
+ * the moment the transfer is made, and the amount, the day or the account
+ * is then often not quite what was planned. Edits are written while the
+ * legs are still pending, one leg at a time, and only then is the group
+ * confirmed in one statement: a leg that fails to take its edit leaves
+ * the group pending and uncounted, never half-confirmed. */
+export async function confirmTransactionAction(
+  transactionId: string,
+  edits?: { amount: number; occurredOn: string; accountId?: string; fromAccountId?: string; toAccountId?: string },
+): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -764,9 +775,46 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
     .maybeSingle();
   if (!entry) return { error: "Not found." };
 
-  const ids = entry.transfer_group_id
-    ? ((await supabase.from("wealth_transactions").select("id").eq("transfer_group_id", entry.transfer_group_id)).data ?? []).map((r) => r.id)
-    : [entry.id];
+  const legs = entry.transfer_group_id
+    ? ((await supabase.from("wealth_transactions").select("*").eq("transfer_group_id", entry.transfer_group_id)).data ?? [])
+    : [entry];
+  const ids = legs.map((r) => r.id);
+
+  if (edits) {
+    const amount = Math.round(Number(edits.amount) * 100) / 100;
+    if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(edits.occurredOn)) return { error: "Choose the day it happened." };
+    // Keep the time of day it was recorded; only the date moves.
+    const occurredAt = `${edits.occurredOn}${entry.occurred_at.slice(10)}`;
+    const wanted = [edits.accountId, edits.fromAccountId, edits.toAccountId].filter((id): id is string => !!id);
+    const { data: named } = wanted.length ? await supabase.from("accounts").select("id, name").eq("family_id", me.family_id).in("id", wanted) : { data: [] as { id: string; name: string }[] };
+    const nameOf = new Map((named ?? []).map((a) => [a.id, a.name]));
+    for (const id of wanted) if (!nameOf.has(id)) return { error: "Choose an account you can see." };
+
+    if (entry.transfer_group_id) {
+      const out = legs.find((l) => l.direction === "out");
+      const into = legs.find((l) => l.direction === "in");
+      const fromId = edits.fromAccountId ?? out?.account_id ?? null;
+      const toId = edits.toAccountId ?? into?.account_id ?? null;
+      if (fromId && toId && fromId === toId) return { error: "Pick two different accounts." };
+      for (const leg of legs) {
+        const accountId = leg.direction === "out" ? fromId ?? leg.account_id : toId ?? leg.account_id;
+        // Kin's own words name the other side; they follow it when it
+        // changes. A person's own note is left alone.
+        const other = leg.direction === "out" ? toId : fromId;
+        const otherName = other ? nameOf.get(other) : undefined;
+        const particulars = isTransferWords(leg.particulars) && otherName ? `Transfer ${leg.direction === "out" ? "to" : "from"} ${otherName}` : leg.particulars;
+        const { error } = await supabase.from("wealth_transactions").update({ amount, occurred_at: occurredAt, account_id: accountId, particulars }).eq("id", leg.id).eq("family_id", me.family_id);
+        if (error) return { error: databaseError(error) };
+      }
+    } else {
+      const accountId = edits.accountId ?? entry.account_id;
+      const { error } = await supabase.from("wealth_transactions").update({ amount, occurred_at: occurredAt, account_id: accountId }).eq("id", entry.id).eq("family_id", me.family_id);
+      if (error) return { error: databaseError(error) };
+      // What settles a bill below reads the entry as it now is.
+      Object.assign(entry, { amount, occurred_at: occurredAt, account_id: accountId });
+    }
+  }
 
   const { error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids);
   if (error) return { error: databaseError(error) };

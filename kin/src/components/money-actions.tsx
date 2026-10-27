@@ -46,7 +46,8 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember } from "@/lib/wealth";
+import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
@@ -579,31 +580,122 @@ export function LogSpendControl({
   );
 }
 
-export function PendingEntryActions({ transactionId }: { transactionId: string }) {
-  const { error, pending, run } = useMoneyAction();
+/** Accounts' "Waiting on you" (Jonathan, 27 October): one row per thing
+ * to decide, a transfer as one row rather than its two legs, with Today's
+ * small buttons on the right instead of two full-width ones in a card of
+ * their own. "Went through" opens a sheet that shows what each balance
+ * becomes and lets the amount, the day and the account(s) be put right
+ * first: the reminder is usually the moment the transfer is actually made,
+ * so what was logged ahead of time is often not quite what went through.
+ * `openId` opens one row's sheet on arrival (Today's Confirm). */
+export function PendingRows({ rows, accounts, appUrls, currency, dateFormat, openId = null }: { rows: PendingRow[]; accounts: PickableAccount[]; appUrls: Record<string, string | null>; currency: string; dateFormat: string; openId?: string | null }) {
   return (
-    <div style={{ marginTop: "0.5rem" }}>
-      <Err message={error} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.25rem", fontSize: "0.8125rem" }}
-          onClick={() => run(() => confirmTransactionAction(transactionId))}
-        >
-          {pending ? "…" : "It went through"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.25rem", fontSize: "0.8125rem" }}
-          onClick={() => run(() => deleteTransactionAction(transactionId))}
-        >
-          Discard
-        </button>
-      </div>
+    <div>
+      {rows.map((r) => (
+        <PendingRowItem key={r.id} row={r} accounts={accounts} appUrl={appUrls[r.id] ?? null} currency={currency} dateFormat={dateFormat} openAtStart={r.id === openId} />
+      ))}
+    </div>
+  );
+}
+
+function PendingRowItem({ row, accounts, appUrl, currency, dateFormat, openAtStart }: { row: PendingRow; accounts: PickableAccount[]; appUrl: string | null; currency: string; dateFormat: string; openAtStart: boolean }) {
+  const [open, setOpen] = useState(openAtStart);
+  const [amount, setAmount] = useState(row.amount);
+  const [occurredOn, setOccurredOn] = useState(row.occurredOn);
+  const [fromId, setFromId] = useState(row.from?.id ?? "");
+  const [toId, setToId] = useState(row.to?.id ?? "");
+  const [accountId, setAccountId] = useState(row.account?.id ?? "");
+  const { error, pending, run } = useMoneyAction();
+  const uid = useId();
+  const transfer = row.kind === "transfer";
+  const fmt = (n: number) => formatCurrency(n, currency);
+  const title = transfer ? `${row.from?.name ?? "Another account"} → ${row.to?.name ?? "another account"}` : row.particulars;
+  const meta = [transfer ? (row.defaultWords ? null : row.particulars) : row.account?.name, `started ${formatDate(row.occurredOn, dateFormat)}`, "not counted yet"].filter(Boolean).join(" · ");
+  const sign = row.kind === "in" ? "+" : row.kind === "out" ? "−" : "";
+  const nameOf = (id: string, fallback: string) => accounts.find((a) => a.id === id)?.name ?? fallback;
+  // What each balance becomes, for the accounts the viewer can see.
+  const effects = (transfer ? [[fromId, -amount, row.from?.name ?? ""], [toId, amount, row.to?.name ?? ""]] : [[accountId, row.kind === "in" ? amount : -amount, row.account?.name ?? ""]])
+    .flatMap(([id, delta, fallback]) => {
+      const a = accounts.find((x) => x.id === id);
+      return a ? [`${nameOf(a.id, fallback as string)}: ${fmt(a.balance)} → ${fmt(a.balance + (delta as number))}`] : [];
+    });
+  const changed = amount !== row.amount || occurredOn !== row.occurredOn || (transfer ? fromId !== (row.from?.id ?? "") || toId !== (row.to?.id ?? "") : accountId !== (row.account?.id ?? ""));
+  const edits = changed ? { amount, occurredOn, ...(transfer ? { fromAccountId: fromId || undefined, toAccountId: toId || undefined } : { accountId: accountId || undefined }) } : undefined;
+  const sideSelect = (id: string, label: string, side: { id: string | null; name: string } | null, value: string, set: (v: string) => void) => (
+    <div className="field" style={{ flex: 1, margin: 0 }}>
+      <label htmlFor={id}>{label}</label>
+      <select id={id} className="input" value={value} disabled={!side?.id} onChange={(e) => set(e.target.value)} style={{ minHeight: "2.625rem" }}>
+        {!side?.id && <option value="">{side?.name ?? "Another account"}</option>}
+        {side?.id && !accounts.some((a) => a.id === side.id) && <option value={side.id}>{side.name}</option>}
+        <AccountOptions accounts={accounts} currency={currency} />
+      </select>
+    </div>
+  );
+  const discard = async () => {
+    if (!(await confirm({ title: "Discard this?", description: transfer ? "Both sides of the transfer are removed. Nothing was counted yet." : "It was never counted, so no balance changes.", confirmLabel: "Discard", danger: true }))) return;
+    run(() => deleteTransactionAction(row.entryId));
+  };
+  return (
+    <div id={`pending-${row.id}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+      <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
+        <span style={{ fontSize: "0.875rem", display: "block" }}>{title}</span>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{meta}</span>
+      </span>
+      <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: row.kind === "in" ? "var(--color-accent-700)" : "inherit" }}>
+        {sign}
+        {fmt(row.amount)}
+      </span>
+      <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>
+        <RowButton kind="primary" icon="check" label="Went through" disabled={pending} onClick={() => setOpen(true)} />
+        <RowButton kind="ghost" label="Discard" disabled={pending} onClick={discard} />
+      </span>
+      <Err message={open ? null : error} />
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Did it go through?">
+        <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+          <Err message={error} />
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem", lineHeight: 1.45 }}>
+            {transfer ? "Check what actually moved, then confirm. Both sides are counted together." : "Check what actually went through, then confirm."}
+          </p>
+          {transfer ? (
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              {sideSelect(`${uid}-from`, "From", row.from, fromId, setFromId)}
+              {sideSelect(`${uid}-to`, "To", row.to, toId, setToId)}
+            </div>
+          ) : (
+            <div style={{ marginBottom: "0.5rem", display: "flex" }}>{sideSelect(`${uid}-account`, row.kind === "in" ? "Paid into" : "Paid from", row.account, accountId, setAccountId)}</div>
+          )}
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <div className="field" style={{ flex: 1, margin: 0 }}>
+              <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+              <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+            </div>
+            <div className="field" style={{ flex: 1, margin: 0 }}>
+              <label htmlFor={`${uid}-on`}>Day</label>
+              <DateInput id={`${uid}-on`} className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.625rem" }} />
+            </div>
+          </div>
+          {effects.length > 0 && (
+            <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.5 }}>
+              {effects.map((e) => (
+                <span key={e} style={{ display: "block" }}>{e}</span>
+              ))}
+            </p>
+          )}
+          {appUrl && (
+            <a href={appUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-block" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>
+              Open the app to make it now
+            </a>
+          )}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button type="button" className="btn btn-primary" disabled={pending} style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => run(() => confirmTransactionAction(row.entryId, edits), () => setOpen(false))}>
+              {pending ? "…" : changed ? "Confirm as corrected" : "Confirm"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </FormSheet>
     </div>
   );
 }
