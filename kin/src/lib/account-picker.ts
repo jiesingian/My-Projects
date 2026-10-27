@@ -29,6 +29,9 @@ export type PickableAccount = {
   /** An Only-you account: the viewer's own, private, shared with nobody.
    * An entry moved into one is seen by nobody else (27 October). */
   onlyMe?: boolean;
+  /** Whose it is, when it is someone else's own account: the list files it
+   * under their name (Janine, 27 October: a goal funded from Jonathan's). */
+  ownerName?: string;
 };
 
 /** What `loadAccounts` returns, as far as a picker needs. */
@@ -51,7 +54,11 @@ export type PickableSource = {
  * them; `everyone` keeps every account the viewer can see (Move money and
  * the receipt scanner, where a transfer into a shared-with-you account is
  * allowed and the database decides the rest). */
-export function toPickable(accounts: readonly PickableSource[], memberId: string, opts: { everyone?: boolean } = {}): PickableAccount[] {
+export function toPickable(
+  accounts: readonly PickableSource[],
+  memberId: string,
+  opts: { everyone?: boolean; owners?: ReadonlyMap<string, string> } = {},
+): PickableAccount[] {
   return accounts
     .filter((a) => opts.everyone || a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({
@@ -64,6 +71,7 @@ export function toPickable(accounts: readonly PickableSource[], memberId: string
       account_type: a.account_type,
       movementCount: a.movementCount,
       onlyMe: !a.is_joint && !!a.is_private && !a.shared && a.owner_member_id === memberId,
+      ...(opts.owners && !a.is_joint && a.owner_member_id && a.owner_member_id !== memberId ? { ownerName: opts.owners.get(a.owner_member_id) ?? "Someone else" } : {}),
     }));
 }
 
@@ -85,21 +93,30 @@ export function isUnused<T extends Pick<PickableAccount, "balance" | "movementCo
   return a.balance === 0 && (a.movementCount ?? 0) === 0;
 }
 
-export function accountPickerGroups<T extends Pick<PickableAccount, "name" | "balance" | "is_joint" | "movementCount">>(accounts: readonly T[]): AccountGroup<T>[] {
+export function accountPickerGroups<T extends Pick<PickableAccount, "name" | "balance" | "is_joint" | "movementCount" | "ownerName">>(accounts: readonly T[]): AccountGroup<T>[] {
   const sorted = sortByUse(accounts);
-  if (sorted.length <= FLAT_UP_TO) return sorted.length ? [{ label: null, accounts: sorted }] : [];
-  const unused = sorted.filter(isUnused);
-  const live = sorted.filter((a) => !isUnused(a));
+  // Someone else's accounts always sit under their name, however short the
+  // list: without it, Jonathan's BPI and yours read the same.
+  const others = sorted.filter((a) => a.ownerName);
+  if (sorted.length <= FLAT_UP_TO && !others.length) return sorted.length ? [{ label: null, accounts: sorted }] : [];
+  const own = sorted.filter((a) => !a.ownerName);
+  const unused = own.filter(isUnused);
+  const live = own.filter((a) => !isUnused(a));
   const joint = live.filter((a) => a.is_joint);
   const mine = live.filter((a) => !a.is_joint);
+  const byOwner = new Map<string, T[]>();
+  for (const a of others) byOwner.set(a.ownerName!, [...(byOwner.get(a.ownerName!) ?? []), a]);
   const groups: AccountGroup<T>[] = [];
   // Joint and Mine are headings only when both exist; one of them alone is
-  // just "the accounts", and a heading over all of them says nothing.
-  if (joint.length && mine.length) {
-    groups.push({ label: "Joint", accounts: joint }, { label: "Mine", accounts: mine });
+  // just "the accounts", and a heading over all of them says nothing --
+  // unless someone else's follow, when it needs a name of its own.
+  if ((joint.length && mine.length) || others.length) {
+    if (joint.length) groups.push({ label: "Joint", accounts: joint });
+    if (mine.length) groups.push({ label: "Mine", accounts: mine });
   } else if (live.length) {
     groups.push({ label: unused.length ? "In use" : null, accounts: live });
   }
+  for (const [name, list] of byOwner) groups.push({ label: `${name}\u2019s`, accounts: list });
   if (unused.length) groups.push({ label: "Not used yet", accounts: unused });
   return groups;
 }
