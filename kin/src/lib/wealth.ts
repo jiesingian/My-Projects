@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/lib/format";
 import { addMonths } from "@/lib/subscriptions";
 
 /** Which slice of the household's money is on screen: everything the
@@ -1259,6 +1260,18 @@ export function pendingRows(
     rows.set(e.transfer_group_id, row);
   }
   return [...rows.values()].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+}
+
+/** The same rows on Today (27 October): a transfer or an entry logged
+ * ahead of time and still waiting on "it went through" was seen only by
+ * whoever opened Accounts. Confirm opens that row's sheet there. */
+export function pendingBriefItems(rows: PendingRow[], currency: string): { id: string; title: string; meta: string; href: string }[] {
+  return rows.map((r) => ({
+    id: `pending-${r.id}`,
+    title: r.kind === "transfer" ? `${r.from?.name ?? "Another account"} → ${r.to?.name ?? "another account"}` : r.particulars,
+    meta: [formatCurrency(r.amount, currency), r.kind === "transfer" ? "transfer" : r.kind === "in" ? `into ${r.account?.name ?? "an account"}` : `from ${r.account?.name ?? "an account"}`, "waiting on confirmation"].join(" · "),
+    href: `/wealth?seg=accounts&pending=${r.id}`,
+  }));
 }
 
 /** One point of the net-worth line: a period, and the figure recorded
