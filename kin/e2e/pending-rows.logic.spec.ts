@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { pendingRows, isTransferWords } from "@/lib/wealth";
+import { pendingRows, pendingBriefItems, isTransferWords } from "@/lib/wealth";
 
 /** Accounts' "Waiting on you" (27 October): a transfer is one row, not
  * its two legs; a single pending entry is its own row; newest first. */
@@ -39,6 +39,18 @@ test("single entries are their own rows, newest first", () => {
   expect(rows.map((r) => [r.id, r.kind, r.amount, r.account?.name])).toEqual([
     ["y", "in", 44500, "Payroll"],
     ["x", "out", 5000, "GCash"],
+  ]);
+});
+
+test("Today's rows: one per transfer or entry, Confirm opening its sheet under Accounts", () => {
+  const rows = pendingRows([
+    leg({ id: "a", transfer_group_id: "g1", direction: "out", account_id: "payroll", accountName: "Payroll" }),
+    leg({ id: "b", transfer_group_id: "g1", direction: "in", account_id: "travel", accountName: "Travel Fund", particulars: "Transfer from Payroll" }),
+    leg({ id: "x", direction: "out", occurred_at: "2026-10-29T02:00:00.000Z", particulars: "Meralco", account_id: "gcash", accountName: "GCash", amount: 2367 }),
+  ]);
+  expect(pendingBriefItems(rows, "PHP")).toEqual([
+    { id: "pending-g1", title: "Payroll → Travel Fund", meta: "₱5,000 · transfer · waiting on confirmation", href: "/wealth?seg=accounts&pending=g1" },
+    { id: "pending-x", title: "Meralco", meta: "₱2,367 · from GCash · waiting on confirmation", href: "/wealth?seg=accounts&pending=x" },
   ]);
 });
 

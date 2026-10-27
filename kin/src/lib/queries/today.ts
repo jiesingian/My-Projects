@@ -9,7 +9,7 @@ import { familyDay as localDay, familyTime as localTime, familyClock, familyMidn
 import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
 import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
-import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
+import { DEFAULT_BILL_REMIND_DAYS, pendingBriefItems, pendingRows } from "@/lib/wealth";
 import { occurrenceStarts } from "@/lib/activity-repeat";
 import { remembranceItems, type Departed } from "@/lib/remembrance";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
@@ -256,6 +256,13 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   // What the household has already done or skipped today. A table that is not
   // there yet (before its migration runs) reads as "nothing marked".
   const marked = new Map<string, "done" | "skipped">((marks.data ?? []).map((m) => [m.item_key, m.state as "done" | "skipped"]));
+  // Money logged ahead of time and still waiting on "it went through"
+  // (27 October): a transfer, or an entry made in another app. Until now
+  // only whoever opened Accounts saw these. Grown-ups', as money is; the
+  // database returns only the accounts the reader may see.
+  const pendingTx = isGrownUp(me.role)
+    ? await supabase.from("wealth_transactions").select("id, transfer_group_id, direction, amount, occurred_at, particulars, account_id, accounts(name)").eq("family_id", familyId).eq("status", "pending").order("occurred_at", { ascending: false })
+    : { data: [] };
 
   const items: BriefItem[] = [];
 
@@ -332,6 +339,12 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   // like a birthday.
   for (const r of remembranceItems(departed, today, 0)) {
     items.push({ id: r.id, icon: "candle", tint: "occasion", title: r.title, meta: r.meta, href: "/family?seg=tree" });
+  }
+
+  // One row per pending transfer (both legs are confirmed together) or
+  // entry; Confirm opens its sheet under Accounts, "Waiting on you".
+  for (const p of pendingBriefItems(pendingRows((pendingTx.data ?? []).map((t) => ({ ...t, accountName: (t.accounts as { name: string } | null)?.name ?? "" }))), currency)) {
+    items.push({ ...p, action: "confirm", mark: marked.get(p.id), icon: "wallet", tint: "money" });
   }
 
   for (const b of bills.data ?? []) {
