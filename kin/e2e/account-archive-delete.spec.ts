@@ -80,7 +80,7 @@ async function myPrivateBalance(rest: Rest, who: Me): Promise<number> {
 async function allHeroTotal(page: Page): Promise<number> {
   const amount = page.locator(".kin-eyebrow", { hasText: /^ALL ACCOUNTS · COMBINED$/ }).locator("xpath=following-sibling::div[1]/span[1]");
   const text = (await amount.textContent()) ?? "";
-  const value = Number(text.replace(/[^0-9.-]/g, ""));
+  const value = Number(text.replace(/−/g, "-").replace(/[^0-9.-]/g, ""));
   expect(Number.isFinite(value), `the All hero reads "${text}"`).toBeTruthy();
   return value;
 }

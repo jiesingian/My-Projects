@@ -1090,12 +1090,7 @@ export function CategoryBudgetRow({
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
           {formatCurrency(spent, currency)} spent this month.{budgeted ? "" : " Set how much to spend on it each month."}
         </p>
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
-          <AmountInput key={String(open)} ariaLabel="Amount" defaultValue={amount || undefined} onValueChange={setValue} style={{ minHeight: "2.5rem", flex: 1 }} />
-          <button type="button" className="btn btn-primary" disabled={pending || !(value > 0)} style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => save(value)}>
-            {pending ? "…" : "Save"}
-          </button>
-        </div>
+        <AmountInput key={String(open)} ariaLabel="Amount" defaultValue={amount || undefined} onValueChange={setValue} style={{ height: "2.75rem", width: "100%", marginBottom: "0.75rem" }} />
         {failed && <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "0 0 0.75rem" }}>{failed}</p>}
         {budgeted && (
           <button
@@ -1112,6 +1107,9 @@ export function CategoryBudgetRow({
           </button>
         )}
         <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>It repeats every month until you change or remove it.</p>
+        <button type="button" className="btn btn-primary btn-block" disabled={pending || !(value > 0)} style={{ minHeight: "2.75rem", fontSize: "0.875rem" }} onClick={() => save(value)}>
+          {pending ? "…" : "Save"}
+        </button>
       </FormSheet>
     </>
   );
@@ -1135,35 +1133,39 @@ export function AllocationEditor({ whose, budgeted }: { whose: string; budgeted:
         Set a category budget
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Category budget">
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-          <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
+        {/* The fields in a row, the button on its own: the sheet pins its
+            primary button to the bottom and lays out the row holding it as
+            a column, which stretched the category box to fill the sheet
+            (Janine, 27 October). */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+          <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ height: "2.75rem", flex: 1, minWidth: 0 }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {categoryLabel(c)}
               </option>
             ))}
           </select>
-          <AmountInput ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.5rem", width: 96 }} />
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={pending || !(amount > 0)}
-            style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
-            onClick={() =>
-              startTransition(async () => {
-                const { error } = await setSpendingBudgetAction({ whose, category, amount });
-                setFailed(error);
-                if (error) return;
-                setOpen(false);
-                router.refresh();
-              })
-            }
-          >
-            {pending ? "…" : "SET"}
-          </button>
+          <AmountInput ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ height: "2.75rem", width: 120, flex: "none" }} />
         </div>
-        {failed && <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "-0.5rem 0 1rem" }}>{failed}</p>}
+        {failed && <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "0 0 0.75rem" }}>{failed}</p>}
         <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>It repeats every month until you change or remove it.</p>
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          disabled={pending || !(amount > 0)}
+          style={{ minHeight: "2.75rem", fontSize: "0.875rem" }}
+          onClick={() =>
+            startTransition(async () => {
+              const { error } = await setSpendingBudgetAction({ whose, category, amount });
+              setFailed(error);
+              if (error) return;
+              setOpen(false);
+              router.refresh();
+            })
+          }
+        >
+          {pending ? "…" : "Set budget"}
+        </button>
       </FormSheet>
     </>
   );

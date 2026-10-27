@@ -157,6 +157,18 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   // absent, the number is left as it is.
   const numbered = formData.has("account_number") ? cleanAccountNumber(String(formData.get("account_number"))) : null;
   if (numbered && "error" in numbered) return { error: numbered.error };
+  // A credit card's due day and minimum (20261027140000); cleared for any
+  // other type, so a card turned into a bank account stops being reminded.
+  let card: { card_due_day: number | null; card_min_payment: number | null } = { card_due_day: null, card_min_payment: null };
+  if (accountType === "credit") {
+    const dayText = String(formData.get("card_due_day") ?? "").trim();
+    const minText = String(formData.get("card_min_payment") ?? "").trim();
+    const day = dayText ? Number(dayText) : null;
+    if (day !== null && !(Number.isInteger(day) && day >= 1 && day <= 31)) return { error: "The due day is a day of the month, from 1 to 31." };
+    const min = minText ? moneyFromForm(minText) : null;
+    if (minText && min === null) return { error: "The minimum payment has to be a number, and cannot be less than zero." };
+    card = { card_due_day: day, card_min_payment: min };
+  }
 
   const { error, count } = await supabase
     .from("accounts")
@@ -168,6 +180,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
       app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
       play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,
       account_type: accountType,
+      ...card,
     }, { count: "exact" })
     .eq("id", accountId)
     .eq("family_id", me.family_id);

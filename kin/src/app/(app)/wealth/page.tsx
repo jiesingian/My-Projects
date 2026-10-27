@@ -66,6 +66,7 @@ import {
   loanPaymentSplit,
   loanOriginStatus,
   paymentsLeftForBalance,
+  cardDueDate,
   assetGroup,
   AL_CASH,
   AL_INVESTMENTS,
@@ -127,6 +128,13 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       </div>
     </div>
   );
+}
+
+/** Each active member's short name, for the account pickers' headings. */
+async function ownerNames(familyId: string, memberId: string) {
+  const active = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== memberId);
+  const names = shortNames(active.map((m) => m.full_name));
+  return new Map(active.map((m, i) => [m.id, names[i]]));
 }
 
 /** Everything the Who picker needs, built once and shared by every tab that
@@ -986,10 +994,23 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     storageKey: "kin-accounts-breakdown",
     categoryOrder: ACCOUNT_TYPES.map((t) => ACCOUNT_TYPE_LABELS[t]),
   };
-  const accountGroups = ACCOUNT_TYPES.map((t) => ({
-    type: t,
-    accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
-  })).filter((g) => g.accounts.length > 0);
+  // The list as Cash Flow and A&L have it (Jonathan, 26 October): whose
+  // first, then each type of account under them. Owners in household
+  // order (Family first), as the donut above; one owner on screen (a Who
+  // of one person, or Family) is simply open.
+  const byPerson = [...new Set(pane.accounts.map((a) => who.sliceOwner(a.owner_member_id, a.is_joint).ownerKey))]
+    .map((key) => {
+      const mine = pane.accounts.filter((a) => who.sliceOwner(a.owner_member_id, a.is_joint).ownerKey === key);
+      const owner = who.sliceOwner(mine[0].owner_member_id, mine[0].is_joint);
+      return {
+        key,
+        label: owner.ownerLabel,
+        slot: owner.ownerSlot,
+        total: mine.reduce((t, a) => t + a.balance, 0),
+        types: ACCOUNT_TYPES.map((t) => ({ type: t, accounts: mine.filter((a) => (a.account_type as AccountType) === t) })).filter((g) => g.accounts.length > 0),
+      };
+    })
+    .sort((x, y) => x.slot - y.slot);
 
   return (
     <>
@@ -1019,11 +1040,27 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {/* Just saved from the form below: its group opens (the key makes it
           remount, so defaultOpen applies even if it was already on screen
           closed), the row is tinted and marked NEW, and the page scrolls to it. */}
-      {accountGroups.map((group) => {
-        const holdsNew = !!newAccountId && group.accounts.some((a) => a.id === newAccountId);
+      {byPerson.map((o) => {
+        const holdsNew = !!newAccountId && o.types.some((g) => g.accounts.some((a) => a.id === newAccountId));
         return (
-          <CollapsibleGroup key={holdsNew ? `${group.type}-${newAccountId}` : group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={holdsNew}>
-            {group.accounts.map((a) => (
+          <FoldableSection
+            key={holdsNew ? `${o.key}-${newAccountId}` : o.key}
+            remember={false}
+            defaultOpen={byPerson.length === 1 || holdsNew}
+            label={o.label.toUpperCase()}
+            storageKey={`kin-accounts-person-${o.key}`}
+            right={<span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", fontWeight: 600, letterSpacing: 0, textTransform: "none", color: "var(--color-text)" }}>{formatCurrency(o.total, currency)}</span>}
+          >
+            {o.types.map((group) => (
+              <div key={group.type} style={{ paddingLeft: "0.75rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, margin: "0.5rem 0 0" }}>
+                  <span style={{ minWidth: 0 }}>{ACCOUNT_TYPE_LABELS[group.type]}</span>
+                  <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>
+                    <span style={{ color: "var(--color-neutral-600)", fontWeight: 400, marginRight: "0.5rem" }}>{group.accounts.length}</span>
+                    {formatCurrency(group.accounts.reduce((t, a) => t + a.balance, 0), currency)}
+                  </span>
+                </div>
+                {group.accounts.map((a) => (
               <Link
                 key={a.id}
                 id={`account-${a.id}`}
@@ -1080,7 +1117,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                 </span>
               </Link>
             ))}
-          </CollapsibleGroup>
+              </div>
+            ))}
+          </FoldableSection>
         );
       })}
       {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
@@ -1177,6 +1216,10 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
   // from has to be one the viewer themself can pay out of, regardless of
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
+  // A goal may be funded from someone else's account (Janine, 27 October:
+  // Jonathan's), so Put money in offers every account the viewer can see,
+  // theirs under their name.
+  const goalPickable = toPickable(allAccounts, memberId, { everyone: true, owners: await ownerNames(familyId, memberId) });
   // What is still owed on each asset, from the loans linked to it
   // (20261023231000): its value less this is the household's equity in it.
   const owedOn = new Map<string, number>();
@@ -1233,10 +1276,10 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
       sub: `${AL_SET_ASIDE}${route ? ` · ${route}` : ""}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
-      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
+      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={goalPickable} />,
       actions: (
         <>
-          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
+          <GoalContributeControl goalId={g.id} accounts={goalPickable} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}
@@ -1339,7 +1382,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       amount: a.owed,
       category: LIABILITY_KIND_LABELS.credit_card,
       ...who.sliceOwner(a.owner_member_id, a.is_joint),
-      sub: `${accountSub(a)} · what its balance is below zero; paying the card brings it back up`,
+      sub: `${accountSub(a)}${a.card_due_day ? ` · due ${fmtDate(cardDueDate(a.card_due_day, today))}` : ""}${a.card_min_payment ? ` · minimum ${formatCurrency(Number(a.card_min_payment), currency)}` : ""}${a.card_due_day ? "" : " · set its due day on the card's page to be reminded"}`,
       href: openAccount(a.id),
     })),
   ];

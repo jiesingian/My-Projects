@@ -20,7 +20,7 @@ const src = (id: string, over: Partial<Parameters<typeof toPickable>[0][number]>
   ...over,
 });
 
-const acc = (name: string, over: { balance?: number; is_joint?: boolean; movementCount?: number } = {}) => ({
+const acc = (name: string, over: { balance?: number; is_joint?: boolean; movementCount?: number; ownerName?: string } = {}) => ({
   name,
   balance: 100,
   is_joint: true,
@@ -96,4 +96,18 @@ test("all joint and all in use on a long list means no headings at all", () => {
 
 test("nothing in, nothing out", () => {
   expect(accountPickerGroups([])).toEqual([]);
+});
+
+test("someone else's accounts sit under their name, even on a short list (Janine, 27 October)", () => {
+  const groups = accountPickerGroups([acc("Joint checking", { movementCount: 5 }), acc("BPI", { is_joint: false, movementCount: 2, ownerName: "Jonathan" })]);
+  expect(groups.map((g) => g.label)).toEqual(["Joint", "Jonathan’s"]);
+  const unused = accountPickerGroups([acc("Mine", { is_joint: false, movementCount: 1 }), acc("Maya", { is_joint: false, balance: 0, ownerName: "Jonathan" })]);
+  expect(unused.map((g) => g.label)).toEqual(["Mine", "Jonathan’s"]);
+});
+
+test("toPickable names the owner only when asked for everyone's, never for one's own or joint", () => {
+  const list = [src("joint"), src("mine", { is_joint: false, owner_member_id: ME }), src("his", { is_joint: false, owner_member_id: "member-jon" })];
+  expect(toPickable(list, ME).map((a) => a.id)).toEqual(["joint", "mine"]);
+  const all = toPickable(list, ME, { everyone: true, owners: new Map([["member-jon", "Jonathan"]]) });
+  expect(all.map((a) => a.ownerName ?? null)).toEqual([null, null, "Jonathan"]);
 });
