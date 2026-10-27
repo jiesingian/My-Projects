@@ -871,6 +871,20 @@ export async function recordAndGetNetWorthHistory(
   return netWorthSeries((inWindow ?? []).map(point), range, periods, earlier?.[0] ? point(earlier[0]) : null);
 }
 
+/** Every leg of the given transfer groups the viewer can see, so a
+ * transfer on one account's page can name its other side (27 October).
+ * Row-level security decides which legs come back. */
+export async function getTransferLegs(familyId: string, groupIds: string[]): Promise<LedgerEntry[]> {
+  if (groupIds.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("wealth_transactions")
+    .select("*, accounts(name, owner_member_id, is_joint, is_archived, deleted_at), members:recorded_by(full_name)")
+    .eq("family_id", familyId)
+    .in("transfer_group_id", groupIds);
+  return (data ?? []).map(toLedgerEntry);
+}
+
 /** Who each account is shared with, by account id. Read as the viewer, so it
  * holds the full list for their own accounts and only themselves on anyone
  * else's (account_viewers RLS). */

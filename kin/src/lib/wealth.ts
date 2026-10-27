@@ -1210,6 +1210,57 @@ export function paymentsLeftForBalance(loan: LoanTerms, balance: number): number
  * owned (assets, with money owed to us), and what is owed. */
 export type NetWorthParts = { cash: number; goals: number; assets: number; liabilities: number };
 
+/** One thing waiting on a person under Accounts' "Waiting on you"
+ * (Jonathan, 27 October): a pending transfer is one row, not its two
+ * legs, since confirming either leg confirms both
+ * (confirmTransactionAction), and the list showed seven cards for four
+ * decisions. */
+export type PendingRow = {
+  /** The transfer group's id, or the single entry's. */
+  id: string;
+  /** An entry to confirm or discard by; the whole group follows. */
+  entryId: string;
+  kind: "transfer" | "in" | "out";
+  amount: number;
+  occurredOn: string;
+  particulars: string;
+  /** A transfer's two sides. A side the viewer cannot see, or only knows
+   * the name of, has no id and cannot be changed. */
+  from: { id: string | null; name: string } | null;
+  to: { id: string | null; name: string } | null;
+  /** The account a single entry sits in; null for a transfer. */
+  account: { id: string; name: string } | null;
+  /** Whether the particulars are the words Kin wrote ("Transfer to X"),
+   * not something the person typed, so they need not be repeated. */
+  defaultWords: boolean;
+};
+
+/** The words transferAction writes when the person typed none. */
+export function isTransferWords(particulars: string): boolean {
+  return /^Transfer (to|from) /.test(particulars);
+}
+
+/** Pending entries as the rows a person decides on, newest first. A
+ * transfer's two legs fold into one row; a leg on an account the viewer
+ * cannot see is simply absent, and the row says "another account". */
+export function pendingRows(
+  entries: { id: string; transfer_group_id: string | null; direction: string; amount: number | string; occurred_at: string; particulars: string; account_id: string; accountName: string }[],
+): PendingRow[] {
+  const rows = new Map<string, PendingRow>();
+  for (const e of entries) {
+    const side = { id: e.account_id, name: e.accountName };
+    if (!e.transfer_group_id) {
+      rows.set(e.id, { id: e.id, entryId: e.id, kind: e.direction === "in" ? "in" : "out", amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), particulars: e.particulars, from: null, to: null, account: side, defaultWords: false });
+      continue;
+    }
+    const row = rows.get(e.transfer_group_id) ?? { id: e.transfer_group_id, entryId: e.id, kind: "transfer" as const, amount: Number(e.amount), occurredOn: e.occurred_at.slice(0, 10), particulars: e.particulars, from: null, to: null, account: null, defaultWords: isTransferWords(e.particulars) };
+    if (e.direction === "out") row.from = side;
+    else row.to = side;
+    rows.set(e.transfer_group_id, row);
+  }
+  return [...rows.values()].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+}
+
 /** One point of the net-worth line: a period, and the figure recorded
  * last in it. `longLabel` names the period in full when it is pointed at. */
 export type NetWorthPoint = { key: string; label: string; longLabel: string; netWorth: number; parts?: NetWorthParts };

@@ -15,7 +15,7 @@ import {
   ReceiveIncomeControl,
   GoalContributeControl,
   FundPaidControl,
-  PendingEntryActions,
+  PendingRows,
   LineEntries,
   type LineEntry,
   ValueUpdateControl,
@@ -73,6 +73,7 @@ import {
   AL_SET_ASIDE,
   AL_OWNED_ORDER,
   type LoanTerms,
+  pendingRows,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -96,7 +97,7 @@ const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
 
-export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string; open?: string; bill?: string }> }) {
+export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string; open?: string; bill?: string; pending?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
@@ -117,7 +118,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
-        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} openPending={sp.pending?.trim() || null} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} />}
         {seg !== "assets" && (
           <Suspense fallback={null}>
@@ -403,26 +404,21 @@ function EntryRow({ entry, currency, dateFormat, showAccount, owner }: { entry: 
   );
 }
 
-function PendingBlock({ pending, currency, dateFormat }: { pending: LedgerEntry[]; currency: string; dateFormat: string }) {
-  if (pending.length === 0) return null;
+function PendingBlock({ pending, accounts, memberId, currency, dateFormat, openId }: { pending: LedgerEntry[]; accounts: Awaited<ReturnType<typeof getAccounts>>; memberId: string; currency: string; dateFormat: string; openId: string | null }) {
+  const rows = pendingRows(pending);
+  if (rows.length === 0) return null;
+  // The app to open for each row: the account the money leaves, or sits in.
+  const appUrls = Object.fromEntries(
+    rows.map((r) => {
+      const id = r.from?.id ?? r.account?.id ?? r.to?.id;
+      return [r.id, (id && accounts.find((a) => a.id === id)?.linked_app_url) || null];
+    }),
+  );
   return (
     <>
       <SectionLabel>WAITING ON YOU</SectionLabel>
-      {pending.map((p) => (
-        <Blueprint key={p.id} style={{ padding: "0.75rem", marginBottom: "0.625rem" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-            <span style={{ fontSize: "0.875rem" }}>{p.particulars}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
-              {p.direction === "in" ? "+" : "−"}
-              {formatCurrency(Number(p.amount), currency)}
-            </span>
-          </div>
-          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
-            {p.accountName} · started {formatDate(p.occurred_at, dateFormat)} · not counted yet
-          </div>
-          <PendingEntryActions transactionId={p.id} />
-        </Blueprint>
-      ))}
+      <PendingRows rows={rows} accounts={toPickable(accounts, memberId)} appUrls={appUrls} currency={currency} dateFormat={dateFormat} openId={openId} />
+      {openId && rows.some((r) => r.id === openId) && <ScrollIntoView targetId={`pending-${openId}`} />}
     </>
   );
 }
@@ -950,8 +946,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
 /* ------------------------------------------------------------- accounts */
 
-async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
-  const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
+async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, openPending = null, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; openPending?: string | null; includePrivate: boolean; grownUp: boolean }) {
+  const [dateFormat, pane, cf, who, allArchived, viewers, allAccounts] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -961,6 +957,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),
+    // Every account the viewer can see, whatever Who shows: where a pending
+    // entry can be moved to, and whose app opens to make it.
+    getAccounts(familyId),
   ]);
   const archived = allArchived.filter((a) => inScope(a, scope));
   // Whom an account of yours can be shown to: everyone else in the
@@ -1025,7 +1024,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       <CashTrendLine trend={cashTrend} currency={currency} periodNoun={periodNoun} />
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
-      <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
+      <PendingBlock pending={pane.pending} accounts={allAccounts} memberId={memberId} currency={currency} dateFormat={dateFormat} openId={openPending} />
 
       <SectionLabel>{scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS" : isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (

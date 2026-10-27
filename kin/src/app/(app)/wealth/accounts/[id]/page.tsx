@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts, getAttributableTargets, getTransferLegs } from "@/lib/queries/wealth";
 import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { isGone } from "@/lib/member-status";
@@ -12,12 +12,12 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingEntryActions, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
+import { PendingRows, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
 import { entryFor } from "@/lib/entry-for";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency, shortNames } from "@/lib/format";
-import { ACCOUNT_TYPE_LABELS, categoryLabel, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
+import { ACCOUNT_TYPE_LABELS, categoryLabel, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, pendingRows, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 
 export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
@@ -53,6 +53,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const currency = me.families.currency;
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
   const pending = entries.filter((e) => e.status === "pending");
+  // A pending transfer's other side, so the row can name it (27 October).
+  const otherLegs = await getTransferLegs(me.family_id, [...new Set(pending.map((p) => p.transfer_group_id).filter((g): g is string => !!g))]);
+  const pendingList = pendingRows([...pending, ...otherLegs.filter((l) => l.account_id !== account.id)]);
+  const appUrls = Object.fromEntries(pendingList.map((r) => [r.id, allAccounts.find((a) => a.id === (r.from?.id ?? r.account?.id ?? r.to?.id))?.linked_app_url ?? null]));
   const confirmed = entries.filter((e) => e.status === "confirmed");
 
   return (
@@ -140,24 +144,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           </Link>
         )}
 
-        {pending.length > 0 && (
+        {pendingList.length > 0 && (
           <>
             <SectionLabel>WAITING ON CONFIRMATION</SectionLabel>
-            {pending.map((p) => (
-              <Blueprint key={p.id} style={{ padding: "0.75rem", marginBottom: "0.625rem" }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                  <span style={{ fontSize: "0.875rem" }}>{p.particulars}</span>
-                  <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
-                    {p.direction === "in" ? "+" : "−"}
-                    {formatCurrency(Number(p.amount), currency)}
-                  </span>
-                </div>
-                <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
-                  Started {fmtDate(p.occurred_at)} · not counted in the balance yet
-                </div>
-                <PendingEntryActions transactionId={p.id} />
-              </Blueprint>
-            ))}
+            <PendingRows rows={pendingList} accounts={pickable} appUrls={appUrls} currency={currency} dateFormat={dateFormat} />
           </>
         )}
 
