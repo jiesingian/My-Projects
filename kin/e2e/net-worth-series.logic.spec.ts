@@ -41,6 +41,25 @@ test("nothing is drawn ahead of the first record", () => {
   expect(points[0].longLabel).toMatch(/^Week of \d+ October 2026$/);
 });
 
+test("leading periods at nothing are left out; a later zero stays", () => {
+  const periods = recentPeriods("month", 4, anchor); // JUL..OCT
+  const points = netWorthSeries(
+    [
+      { day: "2026-07-10", netWorth: 0 },
+      { day: "2026-09-02", netWorth: 2_004_318 },
+      { day: "2026-10-05", netWorth: 0 },
+    ],
+    "month",
+    periods,
+  );
+  expect(points.map((p) => [p.key, p.netWorth])).toEqual([
+    ["2026-09", 2_004_318],
+    ["2026-10", 0],
+  ]);
+  // Carried in from before the window at nothing: the same.
+  expect(netWorthSeries([], "month", periods, { netWorth: 0 })).toEqual([]);
+});
+
 test("periodLongLabel names each step in full", () => {
   expect(periodLongLabel(new Date(2026, 0, 1), "year")).toBe("2026");
   expect(periodLongLabel(new Date(2026, 9, 1), "month")).toBe("October 2026");
