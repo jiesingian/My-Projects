@@ -9314,6 +9314,7 @@ export type Database = {
       finalize_account_deletion: { Args: { p_user: string }; Returns: Json }
       delete_household_for_account_deletion: { Args: { p_family: string }; Returns: string[] }
       sweep_sent_screenshots: { Args: never; Returns: undefined }
+      delete_empty_doc_folder: { Args: { p_folder: string }; Returns: string }
       log_app_error: { Args: { p_fingerprint: string; p_kind: string; p_route: string; p_message: string; p_version: string }; Returns: undefined }
       app_error_digest: {
         Args: { p_days?: number }
