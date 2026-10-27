@@ -12,6 +12,7 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  *   - saving from that sheet closes it and shows what was saved
  *   - typed work is not thrown away by Escape without asking
  *   - Add a medicine waits to be asked for
+ *   - a pinned Save never stretches the fields beside it (#1052)
  *
  * The save writes a goal named with RUN, removed afterwards, so this runs
  * where writing is fine: on every pull request in smoke-private-db, and in
@@ -153,4 +154,32 @@ test("Add a medicine waits to be asked for", async ({ page }) => {
   await expect(sheet).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(sheet).toBeHidden();
+});
+
+/** No field in an open sheet stretched past an ordinary input's height. */
+async function expectNoStretchedFields(sheet: ReturnType<Page["getByRole"]>) {
+  const heights = await sheet
+    .locator('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]), select')
+    .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(heights.length, "the sheet has no fields to measure").toBeGreaterThan(0);
+  for (const h of heights) expect(h, "a field stretched to fill the sheet").toBeLessThan(80);
+}
+
+test("pinned buttons never stretch the fields beside them", async ({ page }) => {
+  // The category budget sheet (#1052): its button once shared a row with
+  // the category box and the amount, and pinning it stretched them.
+  const { memberId } = await api();
+  await page.goto(`/wealth?seg=cashflow&open=expenses&who=${memberId}`);
+  await page.getByRole("button", { name: /set a category budget/i }).first().click();
+  const sheet = page.getByRole("dialog", { name: "Category budget" });
+  await expect(sheet).toBeVisible();
+  await expectNoStretchedFields(sheet);
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(sheet).toBeHidden();
+
+  await page.goto("/family?seg=quicklinks");
+  await page.getByRole("button", { name: /add contact/i }).click();
+  const contact = page.getByRole("dialog", { name: "Add a contact" });
+  await expect(contact).toBeVisible();
+  await expectNoStretchedFields(contact);
 });
