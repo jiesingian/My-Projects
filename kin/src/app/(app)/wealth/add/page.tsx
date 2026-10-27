@@ -19,6 +19,9 @@ export default async function AddGoalPage() {
   // 26 October): between Joint and Mine.
   const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const names = shortNames(active.map((m) => m.full_name));
+  // Every account the viewer can see, someone else's under their name
+  // (Janine, 27 October: a goal funded from Jonathan's account).
+  const owners = new Map(active.map((m, i) => [m.id, names[i]]));
   const children = isGrownUp(me.role) ? active.flatMap((m, i) => (isGrownUp(m.role) ? [] : [{ id: m.id, label: names[i] }])) : [];
 
   return (
@@ -27,7 +30,7 @@ export default async function AddGoalPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Add Goal</h3>
         <AddGoalForm
-          accounts={toPickable(accounts, me.id)}
+          accounts={toPickable(accounts, me.id, { everyone: true, owners })}
           currency={me.families.currency}
           kids={children}
           today={familyDay(new Date(), await householdZone())}

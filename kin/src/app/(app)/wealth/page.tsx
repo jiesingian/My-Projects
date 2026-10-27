@@ -130,6 +130,13 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
   );
 }
 
+/** Each active member's short name, for the account pickers' headings. */
+async function ownerNames(familyId: string, memberId: string) {
+  const active = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== memberId);
+  const names = shortNames(active.map((m) => m.full_name));
+  return new Map(active.map((m, i) => [m.id, names[i]]));
+}
+
 /** Everything the Who picker needs, built once and shared by every tab that
  * offers one -- Everyone plus each active member, "Me" in place of the
  * viewer's own name. `hrefFor` lets each tab keep its own other query
@@ -1209,6 +1216,10 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
   // from has to be one the viewer themself can pay out of, regardless of
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
+  // A goal may be funded from someone else's account (Janine, 27 October:
+  // Jonathan's), so Put money in offers every account the viewer can see,
+  // theirs under their name.
+  const goalPickable = toPickable(allAccounts, memberId, { everyone: true, owners: await ownerNames(familyId, memberId) });
   // What is still owed on each asset, from the loans linked to it
   // (20261023231000): its value less this is the household's equity in it.
   const owedOn = new Map<string, number>();
@@ -1265,10 +1276,10 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
       sub: `${AL_SET_ASIDE}${route ? ` · ${route}` : ""}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
-      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={pickableCash} />,
+      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={goalPickable} />,
       actions: (
         <>
-          <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
+          <GoalContributeControl goalId={g.id} accounts={goalPickable} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}
