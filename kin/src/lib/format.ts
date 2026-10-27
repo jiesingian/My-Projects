@@ -38,7 +38,11 @@ export function formatCurrency(amount: number, currency = "PHP"): string {
   // A whole amount stays whole ("₱1,500"); one with centavos shows both
   // places ("₱337,539.50", never "₱337,539.5" -- Jonathan, 26 October).
   const whole = Math.abs(amount - Math.round(amount)) < 0.005;
-  return moneyPrefix(currency) + amount.toLocaleString("en-PH", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+  // Below zero the minus comes first, "−₱12,500" as a statement prints it,
+  // not "₱-12,500" (a credit card's balance, 26 October). A real minus sign,
+  // as the rest of Wealth writes one; -0 and a rounding to zero have none.
+  const digits = Math.abs(amount).toLocaleString("en-PH", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+  return (amount <= -0.005 ? "−" : "") + moneyPrefix(currency) + digits;
 }
 
 /** The sign for each currency Settings offers (household-prefs CURRENCIES).

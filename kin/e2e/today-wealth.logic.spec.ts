@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { wealthRows, valuesToCheck, type AssetLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
+import { wealthRows, valuesToCheck, type AssetLike, type CardLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
 
 /** Wealth on Today (23 October): the rows and the week's Coming up lines,
  * from the same sums the Wealth tab shows. Friday 23 October 2026. */
@@ -101,4 +101,15 @@ test("values last set a year or more ago: one row in the first three days of a m
   expect(row("2026-11-04")).toBeUndefined();
   expect(wealthRows({ ...none, assets: [assets[2]] }, "2026-11-01", "PHP").today.find((r) => r.id.startsWith("values-"))?.title).toBe("Check what it's worth now");
   expect(wealthRows({ ...none, assets: [assets[3]] }, "2026-11-01", "PHP").today.find((r) => r.id.startsWith("values-"))).toBeUndefined();
+});
+
+test("a credit card on its due day while something is owed; the week before in Coming up", () => {
+  const card = (over: Partial<CardLike>): CardLike => ({ id: "c1", name: "BPI card", owed: 12_500, card_due_day: 23, card_min_payment: 850, ...over });
+  const rows = (c: CardLike, day = today) => wealthRows({ ...none, cards: [c] }, day, "PHP");
+  expect(rows(card({})).today.map((r) => [r.id, r.title, r.meta, r.action, r.href])).toEqual([["card-c1-2026-10-23", "BPI card due", "₱12,500 owed · minimum ₱850 · due today", "pay", "/wealth/accounts/c1"]]);
+  expect(rows(card({ card_due_day: 27 })).soon.map((r) => [r.id, r.meta, r.at])).toEqual([["soon-card-c1", "₱12,500 owed · minimum ₱850 · due on Tuesday", 4]]);
+  // Nothing owed, no due day, or more than a week off: nothing.
+  expect(rows(card({ owed: 0 })).today).toEqual([]);
+  expect(rows(card({ card_due_day: null })).today).toEqual([]);
+  expect(rows(card({ card_due_day: 10 })).soon).toEqual([]);
 });

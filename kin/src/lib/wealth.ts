@@ -1269,3 +1269,18 @@ export function netWorthMoves(from: NetWorthParts, to: NetWorthParts): { label: 
   ];
   return moves.map((m) => ({ ...m, delta: cents(m.delta) })).filter((m) => Math.abs(m.delta) >= 1).sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
 }
+
+/** The next day a credit card's statement is due, on or after `today`, from
+ * the day of the month it falls on (accounts.card_due_day,
+ * 20261027140000). A 31st falls on the month's last day in a shorter
+ * month. */
+export function cardDueDate(dueDay: number, today: string): string {
+  const y = Number(today.slice(0, 4));
+  const m = Number(today.slice(5, 7));
+  const onMonth = (year: number, month: number) => {
+    const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return `${year}-${String(month).padStart(2, "0")}-${String(Math.min(dueDay, last)).padStart(2, "0")}`;
+  };
+  const thisMonth = onMonth(y, m);
+  return thisMonth >= today ? thisMonth : m === 12 ? onMonth(y + 1, 1) : onMonth(y, m + 1);
+}

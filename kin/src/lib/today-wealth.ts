@@ -1,7 +1,7 @@
 import type { BriefItem } from "@/lib/queries/today";
 import { formatCurrency } from "@/lib/format";
 import { currentRound, instalmentPlan, pot, roundDate, type PaluwaganFrequency, type UtangDirection } from "@/lib/utang";
-import { loanPaymentDates } from "@/lib/wealth";
+import { cardDueDate, loanPaymentDates } from "@/lib/wealth";
 import { cycleStart, fundPlan } from "@/lib/sinking-fund";
 import { monthLabel, recapMonthFor } from "@/lib/money-recap";
 
@@ -40,6 +40,7 @@ export type PaluwaganLike = {
 };
 export type LoanLike = { id: string; name: string; monthly_payment: number | null; next_payment_date: string | null; payments_remaining: number | null; rate_fixed_until?: string | null };
 export type FundLike = { id: string; title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean; created_at: string };
+export type CardLike = { id: string; name: string; owed: number; card_due_day: number | null; card_min_payment: number | null };
 export type AssetLike = { id: string; name: string; valued_on: string | null; annual_change_pct: number | string | null };
 export type IncomeLike = { id: string; name: string; amount: number; next_date: string | null; status: string };
 
@@ -58,7 +59,7 @@ function soonItem(partial: Omit<BriefItem, "whose" | "memberIds"> & { at: number
   return { ...partial, whose: "family", memberIds: [] };
 }
 
-export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[] }, today: string, currency: string): WealthRows {
+export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[] }, today: string, currency: string): WealthRows {
   const fmt = (n: number) => formatCurrency(n, currency);
   const todayRows: BriefItem[] = [];
   const soon: BriefItem[] = [];
@@ -143,6 +144,21 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
     }
     const ahead = dates.find((d) => inWeek(d));
     if (ahead) soon.push(soonItem({ id: `soon-loan-${l.id}`, icon: "wallet", tint: "money", title: `${l.name} payment`, meta: [amount, `due ${onDay(today, ahead)}`].filter(Boolean).join(" · "), href: "/wealth?seg=assets", at: inWeek(ahead)! }));
+  }
+
+  // A credit card on its due day, and the week before (26 October): only
+  // while something is owed on it. Pay opens the card, where a transfer
+  // from the bank pays it.
+  for (const c of input.cards ?? []) {
+    if (!c.card_due_day || !(c.owed > 0)) continue;
+    const due = cardDueDate(c.card_due_day, today);
+    const what = [`${fmt(c.owed)} owed`, c.card_min_payment ? `minimum ${fmt(Number(c.card_min_payment))}` : null].filter(Boolean).join(" · ");
+    const href = `/wealth/accounts/${c.id}`;
+    if (due === today) todayRows.push({ id: `card-${c.id}-${due}`, action: "pay", urgent: true, icon: "wallet", tint: "money", title: `${c.name} due`, meta: `${what} · due today`, href });
+    else {
+      const n = inWeek(due);
+      if (n) soon.push(soonItem({ id: `soon-card-${c.id}`, icon: "wallet", tint: "money", title: `${c.name} due`, meta: `${what} · due ${onDay(today, due)}`, href, at: n }));
+    }
   }
 
   // A sinking fund on its date, until "Paid it" records the payment.

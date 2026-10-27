@@ -57,6 +57,18 @@ export function AccountEditForm({ account, number, canNumber }: { account: Table
             />
           </div>
           {canNumber && <AccountNumberField defaultValue={number ?? ""} />}
+          {/* A card's due day and minimum (26 October): Today reminds on
+              the day, and the week before in Coming up. */}
+          {accountType === "credit" && (
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <Field label="Statement due on day" style={{ flex: 1 }}>
+                <input className="input" type="number" step="1" min="1" max="31" inputMode="numeric" name="card_due_day" placeholder="e.g. 15" defaultValue={account.card_due_day ?? ""} style={{ minHeight: "2.625rem" }} />
+              </Field>
+              <Field label="Minimum payment" style={{ flex: 1 }}>
+                <input className="input" type="number" step="0.01" min="0" inputMode="decimal" name="card_min_payment" defaultValue={account.card_min_payment ?? ""} style={{ minHeight: "2.625rem" }} />
+              </Field>
+            </div>
+          )}
           <Field label="Note">
             <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: "2.625rem" }} />
           </Field>
