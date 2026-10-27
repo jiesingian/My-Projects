@@ -987,10 +987,23 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     storageKey: "kin-accounts-breakdown",
     categoryOrder: ACCOUNT_TYPES.map((t) => ACCOUNT_TYPE_LABELS[t]),
   };
-  const accountGroups = ACCOUNT_TYPES.map((t) => ({
-    type: t,
-    accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
-  })).filter((g) => g.accounts.length > 0);
+  // The list as Cash Flow and A&L have it (Jonathan, 26 October): whose
+  // first, then each type of account under them. Owners in household
+  // order (Family first), as the donut above; one owner on screen (a Who
+  // of one person, or Family) is simply open.
+  const byPerson = [...new Set(pane.accounts.map((a) => who.sliceOwner(a.owner_member_id, a.is_joint).ownerKey))]
+    .map((key) => {
+      const mine = pane.accounts.filter((a) => who.sliceOwner(a.owner_member_id, a.is_joint).ownerKey === key);
+      const owner = who.sliceOwner(mine[0].owner_member_id, mine[0].is_joint);
+      return {
+        key,
+        label: owner.ownerLabel,
+        slot: owner.ownerSlot,
+        total: mine.reduce((t, a) => t + a.balance, 0),
+        types: ACCOUNT_TYPES.map((t) => ({ type: t, accounts: mine.filter((a) => (a.account_type as AccountType) === t) })).filter((g) => g.accounts.length > 0),
+      };
+    })
+    .sort((x, y) => x.slot - y.slot);
 
   return (
     <>
@@ -1020,11 +1033,27 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {/* Just saved from the form below: its group opens (the key makes it
           remount, so defaultOpen applies even if it was already on screen
           closed), the row is tinted and marked NEW, and the page scrolls to it. */}
-      {accountGroups.map((group) => {
-        const holdsNew = !!newAccountId && group.accounts.some((a) => a.id === newAccountId);
+      {byPerson.map((o) => {
+        const holdsNew = !!newAccountId && o.types.some((g) => g.accounts.some((a) => a.id === newAccountId));
         return (
-          <CollapsibleGroup key={holdsNew ? `${group.type}-${newAccountId}` : group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={holdsNew}>
-            {group.accounts.map((a) => (
+          <FoldableSection
+            key={holdsNew ? `${o.key}-${newAccountId}` : o.key}
+            remember={false}
+            defaultOpen={byPerson.length === 1 || holdsNew}
+            label={o.label.toUpperCase()}
+            storageKey={`kin-accounts-person-${o.key}`}
+            right={<span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", fontWeight: 600, letterSpacing: 0, textTransform: "none", color: "var(--color-text)" }}>{formatCurrency(o.total, currency)}</span>}
+          >
+            {o.types.map((group) => (
+              <div key={group.type} style={{ paddingLeft: "0.75rem" }}>
+                <div style={{ display: "flex", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, margin: "0.5rem 0 0" }}>
+                  <span style={{ minWidth: 0 }}>{ACCOUNT_TYPE_LABELS[group.type]}</span>
+                  <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>
+                    <span style={{ color: "var(--color-neutral-600)", fontWeight: 400, marginRight: "0.5rem" }}>{group.accounts.length}</span>
+                    {formatCurrency(group.accounts.reduce((t, a) => t + a.balance, 0), currency)}
+                  </span>
+                </div>
+                {group.accounts.map((a) => (
               <Link
                 key={a.id}
                 id={`account-${a.id}`}
@@ -1081,7 +1110,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                 </span>
               </Link>
             ))}
-          </CollapsibleGroup>
+              </div>
+            ))}
+          </FoldableSection>
         );
       })}
       {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
