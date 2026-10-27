@@ -31,11 +31,10 @@ export function usePinnedActions<T extends HTMLElement>() {
     let frame = 0;
     const tag = () => {
       frame = 0;
-      const row = findRow(root);
-      root.querySelectorAll(`.${PINNED}`).forEach((el) => {
-        if (el !== row) el.classList.remove(PINNED);
-      });
-      row?.classList.add(PINNED);
+      // Off first, so the form's own layout is what findRow reads; on again
+      // before anything is painted.
+      root.querySelectorAll(`.${PINNED}`).forEach((el) => el.classList.remove(PINNED));
+      findRow(root)?.classList.add(PINNED);
     };
     tag();
     const observer = new MutationObserver(() => {
@@ -64,16 +63,25 @@ function findRow(root: HTMLElement): HTMLElement | null {
   const button = submits.at(-1) ?? primaries.at(-1);
   if (!button) return null;
   // The row the button shares with Cancel or Done, when it has one; the
-  // button alone when it stands by itself. A row with fields in it is part
-  // of the form, not its buttons.
+  // button alone when it stands by itself.
   const parent = button.parentElement;
-  if (
-    parent &&
-    parent !== root &&
-    parent.tagName !== "FORM" &&
-    parent.querySelectorAll(".btn").length > 1 &&
-    !parent.querySelector('input:not([type="hidden"]), select, textarea')
-  )
-    return parent;
+  if (!parent || parent === root || parent.tagName === "FORM") return button;
+  const fields = !!parent.querySelector('input:not([type="hidden"]), select, textarea');
+  // A side-by-side row of fields ending in the button -- an amount and Set
+  // budget -- is left as it is. Pinned, every box above the button turns
+  // into a full-height column, that row with it, and its fields stretch to
+  // fill the sheet (Janine, 27 October, #1052).
+  if (fields && sideBySide(parent)) return null;
+  if (!fields && parent.querySelectorAll(".btn").length > 1) return parent;
   return button;
+}
+
+/** Laid out across rather than down: a flex row, or a grid of more than
+ * one column. Read with the pin taken off (tag(), above), so the column the
+ * pin itself makes is not mistaken for the form's own layout. */
+function sideBySide(el: HTMLElement) {
+  const style = getComputedStyle(el);
+  if (style.display.includes("flex")) return !style.flexDirection.startsWith("column");
+  if (style.display.includes("grid")) return style.gridTemplateColumns.trim().split(/\s+/).length > 1;
+  return false;
 }
