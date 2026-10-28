@@ -11,6 +11,7 @@ import { GONE_STATUSES, isGone } from "@/lib/member-status";
 import { inKidView } from "@/lib/kid-view";
 import { isGrownUp } from "@/lib/roles";
 import { healthAnswer, mayAskHealth } from "@/lib/assistant/health-answer";
+import { budgetsFor, budgetsInForce, budgetTotal } from "@/lib/budgets";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -370,13 +371,17 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
-      const [accountsRes, movementsRes, billsRes, goalsRes, assetsRes, liabilitiesRes] = await Promise.all([
+      const [accountsRes, movementsRes, billsRes, goalsRes, assetsRes, liabilitiesRes, budgetRes, memberRes] = await Promise.all([
         supabase.from("accounts").select("id, name, institution, opening_balance, is_joint, owner_member_id").eq("family_id", familyId).eq("is_archived", false),
-        supabase.from("wealth_transactions").select("account_id, direction, amount, status, occurred_at, particulars, category").eq("family_id", familyId),
+        supabase.from("wealth_transactions").select("account_id, direction, amount, status, occurred_at, particulars, category, owner_member_id").eq("family_id", familyId),
         supabase.from("bills").select("name, amount, due_date, status").eq("family_id", familyId).or(await billsTheyMaySee()).neq("status", "paid"),
         supabase.from("goals").select("title, target_amount, current_amount, target_date").eq("family_id", familyId),
         supabase.from("assets").select("name, value, annual_change_pct, valued_on, asset_items(kind, cost, acquired_on, value_now)").eq("family_id", familyId),
         supabase.from("liabilities").select("name, balance").eq("family_id", familyId),
+        // The budgets the asker may see (row-level security decides), for the
+        // rule layer's "what's left in the budget" (rules.ts, 28 October).
+        supabase.from("spending_budgets").select("member_id, category, amount, from_month").eq("family_id", familyId),
+        supabase.from("members").select("id, full_name").eq("family_id", familyId),
       ]);
 
       const movements = movementsRes.data ?? [];
@@ -395,12 +400,36 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const liabilityTotal = (liabilitiesRes.data ?? []).reduce((s, l) => s + Number(l.balance), 0);
       const cash = accounts.reduce((s, a) => s + a.balance, 0);
 
+      // Added 28 October for the rule layer (rules.ts): this month's money
+      // out by category and by the member it is filed under (the row's
+      // owner, else the account's; a joint row is "Family"), and the budgets
+      // in force this month, every one the asker may see added up, as
+      // Wealth's All view does. Same rows, read once more; nothing new is
+      // reachable through them.
+      const byCategory: Record<string, number> = {};
+      const byMember: Record<string, number> = {};
+      const nameOf = new Map((memberRes.data ?? []).map((m) => [m.id, m.full_name]));
+      const accountOwner = new Map((accountsRes.data ?? []).map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
+      for (const m of thisMonth) {
+        if (m.direction !== "out") continue;
+        const cat = m.category ?? "Other";
+        byCategory[cat] = (byCategory[cat] ?? 0) + Number(m.amount);
+        const ownerId = m.owner_member_id ?? accountOwner.get(m.account_id) ?? null;
+        const who = ownerId ? (nameOf.get(ownerId) ?? "Family") : "Family";
+        byMember[who] = (byMember[who] ?? 0) + Number(m.amount);
+      }
+      const monthKey = familyDay(new Date(), me.families.time_zone || undefined).slice(0, 7);
+      const budgetCats = budgetsFor(budgetsInForce(budgetRes.data ?? [], monthKey), "all");
+
       return done({
         currency: me.families.currency,
         accounts,
         combined_balance: cash,
         this_month_in: thisMonth.filter((m) => m.direction === "in").reduce((s, m) => s + Number(m.amount), 0),
         this_month_out: thisMonth.filter((m) => m.direction === "out").reduce((s, m) => s + Number(m.amount), 0),
+        this_month_out_by_category: byCategory,
+        this_month_out_by_member: byMember,
+        budgets_this_month: { total: budgetTotal(budgetCats), by_category: Object.fromEntries(budgetCats) },
         unpaid_bills: billsRes.data ?? [],
         goals: goalsRes.data ?? [],
         assets_total: assetTotal,

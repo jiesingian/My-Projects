@@ -6,6 +6,7 @@ import { HouseholdZoneProvider } from "@/components/household-zone";
 import { HouseholdCurrencyProvider } from "@/components/household-currency";
 import { TabBar } from "@/components/tab-bar";
 import { inKidView } from "@/lib/kid-view";
+import { kinAiReady } from "@/lib/kin-ai";
 import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
@@ -95,7 +96,7 @@ export default async function AppLayout({ children, modal }: { children: React.R
         {/* An add page opened from inside the app, as a sheet over the page
             it was opened from (@modal, route-sheet.tsx). Empty otherwise. */}
         {modal}
-        {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
+        {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} aiReady={kinAiReady()} />}
         <TabBar chatUnread={chatUnread} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
         <ConfirmSheetHost />
         <Toaster />

@@ -3,6 +3,63 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 28 October: Ask Kin answers the household's own questions itself (Jonathan)
+
+Built the same day. A **rule layer** (`src/lib/assistant/rules.ts`, pure;
+spec `e2e/assistant-rules.logic.spec.ts`) sits in `api/assistant` before
+the key check and before the allowance: a structured question is matched
+to one of the assistant's existing tools (`tools.ts`, the same executors
+the model calls, so the same scoping to the household, kid view, roles and
+`mayAskHealth` applies; there is no second path to the data), the route
+runs the tool, and the answer is phrased from its result in the member's
+language (English in, English out; Taglish in, Taglish out). No model
+call, no key, no allowance use; the reply carries `source: "rules"` and
+the console says once, under the first such answer, that nothing was
+sent anywhere. The privacy line shows only while a key is on the server.
+With no key and no rule, Kin says what it can answer by itself (three
+examples) instead of the bare *Kin AI isn't switched on yet*. With a key,
+everything a rule does not match goes to Claude exactly as before.
+`get_money` grew three fields for it: this month's money out by category
+and by member, and the budgets in force this month (every one the asker
+may see, added up, as Wealth's All view does).
+
+- **Covered:** bills (when is X due, how much is the X bill, what's due
+  today / tomorrow / this week / this month / on a day, any bills due,
+  overdue, how much do we owe); spending and budget (how much did we
+  spend [on a category] this month, what did a member spend, what's left
+  in the budget [for a category], how much is left this month); balances
+  (how much is in an account, total cash, net worth); schedule (what's on
+  today / tomorrow / a weekday / next week / a date / a month, for one
+  person; when is an event; who has a check-up, when is someone's
+  check-up); shopping and meals (what's on the list, what's for dinner /
+  lunch / tomorrow / this week); family (who is in the family, a birthday,
+  how old); health for a grown-up through `get_health` (allergy, blood
+  type, medicines, HMO, PhilHealth, doctor, conditions, who to call,
+  vaccines); plain adds with every detail present (add X [and Y] to the
+  list, pa-add ng X, pakibili ng X; add <bill> <amount> due <date>, with
+  the category from the bill's name and "every 10th" as monthly).
+  Relative dates resolve in the matcher: today, bukas, the day after,
+  this/next week, the weekend, this/next month, a weekday (coming; "next"
+  is next week's), "the 15th", "Nov 15", "15 ng Nobyembre", a bare month,
+  ISO, m/d. Names resolve by first name against the household, case-
+  insensitively.
+- **Deliberately the model's:** anything with advice, a why, a how-to, a
+  plan or a comparison; two things in one message; an edit, delete or
+  "mark paid"; recording money (`record_money` changes a balance, so it
+  stays behind the model's judgement); last month or any month but this
+  one (the Monthly recap has it); one person's spending in one category;
+  an add with a detail missing (a bill with no amount or date, an English
+  add with no list named, an activity, event, goal, trip, meal or journal
+  entry); a name not in the household; a health question from anyone who
+  may not ask (returns null, and the tool refuses the model too); "where
+  is" and free-text search. A bill is found among the *unpaid* bills by
+  the words a family uses ("kuryente" finds Meralco); a paid one is not
+  "due".
+- **Not checked:** the console against the real route in a browser (no
+  key here either way; the spec holds the matcher and the phrasing, the
+  route's wiring is read-only). Taglish wording is a session's best
+  effort; a line that reads wrong is one string in rules.ts.
+
 ## Decided 28 October: the watched-change record, weekly (Jonathan)
 
 Done the same day. `watched-change.yml` opened an issue on every push to

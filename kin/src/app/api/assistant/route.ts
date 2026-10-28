@@ -5,7 +5,10 @@ import { inKidView } from "@/lib/kid-view";
 import { createClient } from "@/lib/supabase/server";
 import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
-import { KIN_AI_OFF, kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
+import { kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
+import { matchRule, rulesOnlyLine } from "@/lib/assistant/rules";
+import { mayAskHealth } from "@/lib/assistant/health-answer";
+import { familyDay } from "@/lib/time";
 import { GONE_STATUSES } from "@/lib/member-status";
 import { reportError } from "@/lib/report-error";
 
@@ -45,8 +48,6 @@ export async function POST(request: Request) {
   // there, and it is not answered.
   if (inKidView(me)) return NextResponse.json({ error: "Kin AI isn't part of kid view." }, { status: 403 });
 
-  if (!kinAiReady()) return NextResponse.json({ error: KIN_AI_OFF }, { status: 503 });
-
   let body: { messages?: unknown; timeZone?: unknown };
   try {
     body = await request.json();
@@ -76,6 +77,46 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+  const { data: memberRows } = await supabase.from("members").select("full_name").eq("family_id", me.family_id).not("status", "in", GONE_STATUSES);
+  const memberNames = (memberRows ?? []).map((m) => m.full_name);
+
+  // The rule layer (Jonathan, 28 October; lib/assistant/rules.ts): a
+  // structured question the household's records answer outright -- when a
+  // bill is due, what was spent on groceries, what's on tomorrow, "pa-add ng
+  // gatas" -- is answered here, with no model call, no key and no allowance
+  // use. The rule names one of the model's own tools and its input; the tool
+  // keeps its scoping (household, kid view, roles, health privacy) because it
+  // is the same executor. Anything a rule cannot read goes on to the model.
+  const lastMessage = history[history.length - 1].content;
+  const rule = matchRule(typeof lastMessage === "string" ? lastMessage : "", {
+    today: familyDay(new Date(), me.families.time_zone || undefined),
+    members: memberNames,
+    currency: me.families.currency,
+    canAskHealth: mayAskHealth({ role: me.role, kidView: inKidView(me) }),
+    timeZone: me.families.time_zone || undefined,
+  });
+  if (rule) {
+    let output: string;
+    try {
+      output = await runAssistantTool(rule.tool, rule.input, me);
+    } catch (err) {
+      reportError("Assistant rule tool threw", err, rule.tool);
+      return NextResponse.json({ reply: "That didn't go through. Nothing was saved.", actions: [], source: "rules" });
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(output);
+    } catch {
+      parsed = { error: "That didn't go through." };
+    }
+    const acted = rule.tool.startsWith("add_") && !(parsed && typeof parsed === "object" && "error" in parsed);
+    return NextResponse.json({ reply: rule.say(parsed), actions: acted ? [rule.tool] : [], source: "rules" });
+  }
+
+  // No rule, no key: say what Kin can answer by itself rather than the bare
+  // KIN_AI_OFF. Nothing was sent anywhere.
+  if (!kinAiReady()) return NextResponse.json({ reply: rulesOnlyLine(typeof lastMessage === "string" ? lastMessage : ""), actions: [], source: "off" });
+
   // One question, one use -- however many tool turns it takes to answer.
   const allowance = await takeKinAiUse(supabase);
   if (!allowance.ok) return NextResponse.json({ error: allowance.error }, { status: 402 });
@@ -83,14 +124,12 @@ export async function POST(request: Request) {
   const client = new Anthropic();
   const messages: Anthropic.Beta.BetaMessageParam[] = [...history];
 
-  const { data: memberRows } = await supabase.from("members").select("full_name").eq("family_id", me.family_id).not("status", "in", GONE_STATUSES);
-
   const system = systemPrompt({
     memberName: me.full_name.split(" ")[0],
     familyName: me.families.name,
     today,
     currency: me.families.currency,
-    members: (memberRows ?? []).map((m) => m.full_name).join(", ") || me.full_name,
+    members: memberNames.join(", ") || me.full_name,
   });
 
   const actions: string[] = [];
@@ -112,7 +151,7 @@ export async function POST(request: Request) {
       const toolUses = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
 
       if (toolUses.length === 0) {
-        return NextResponse.json({ reply: textOf(response.content) || "Done.", actions });
+        return NextResponse.json({ reply: textOf(response.content) || "Done.", actions, source: "model" });
       }
 
       messages.push({ role: "assistant", content: response.content });
