@@ -102,9 +102,27 @@ may see, added up, as Wealth's All view does).
   we have X" / "may bigas pa ba" (the pantry and the list). Where a person
   is stays the model's (Where everyone is). The model gets the same eight
   tools.
+- **Fourth PR, same day (the marks):** three rule-only tools in
+  `lib/assistant/marks.ts`, never offered to the model, each through the
+  screen's own action: `mark_bill_paid` (payBillAction from a named
+  account the asker may move money from, or settleBillOutsideKinAction
+  for "paid outside Kin"), `tick_list_item` (toggleBuyItemAction, tick or
+  untick), `log_chore` (logRoutineAction, done or skipped, for the asker
+  or, a grown-up only, for a child; a child's tick still waits for
+  approval). "Paid Meralco" with no account named reads the bills, then
+  asks which account, with "Paid outside Kin" as a chip; "paid Meralco
+  from GCash", "paid Meralco 3200 from BPI", "paid Meralco in cash" go
+  straight through. "Bought milk", "nabili ko na ang gatas", "tick milk
+  off the list", "untick milk"; "Lia did the dishes", "ginawa na ni Lia
+  ang dishes", "done with the trash", "skip the dishes today". A name that
+  fits two records ("Milk", "Milk tea") is asked about, never guessed; a
+  name that fits none is refused with where to look. Nothing deletes:
+  "delete", "cancel", "remove" stay the model's, and "mark paid" of a bill
+  the asker may not see is refused by the same filter the screens use.
 - **Not checked:** the console against the real route in a browser (no
   key here either way; the spec holds the matcher and the phrasing, the
-  route's wiring is read-only). Taglish wording is a session's best
+  route's wiring is read-only). The three marks were typechecked and
+  built, not run against a database. Taglish wording is a session's best
   effort; a line that reads wrong is one string in rules.ts.
 
 ## Decided 28 October: the watched-change record, weekly (Jonathan)
