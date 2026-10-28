@@ -332,9 +332,11 @@ export const HELP_GUIDE: HelpTab[] = [
               "Relatives' pages, the Family Feed and the Family chat come with the link."
             ],
             "cons": [
-              "Needs a second household on Kin. Tip: share your invite code with Grandma's household first."
+              "Needs a second household on Kin."
             ],
-            "tips": []
+            "tips": [
+              "share your invite code with Grandma's household first."
+            ]
           }
         ]
       },
