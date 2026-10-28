@@ -141,10 +141,15 @@ test.describe("offline Kin", () => {
     await context.setOffline(true);
     await expect(page.getByRole("status").filter({ hasText: "wait here and send when you’re back" })).toBeVisible();
 
-    // Added on the live list, not the saved copy.
+    // Added on the live list, not the saved copy. Adding opens over the
+    // list since 26 October and stays open for the next item; Done closes it.
     await page.getByRole("button", { name: "Add an item" }).click();
-    await page.getByPlaceholder("Add an item").fill(item);
-    await page.getByRole("button", { name: "ADD", exact: true }).click();
+    const adding = page.getByRole("dialog", { name: "Add to the list" });
+    await adding.getByLabel("Item to buy").fill(item);
+    await adding.getByRole("button", { name: "ADD", exact: true }).click();
+    await expect(adding.getByLabel("Item to buy")).toHaveValue("");
+    await adding.getByRole("button", { name: "Done", exact: true }).click();
+    await expect(adding).toBeHidden();
     await expect(page.getByText("Waiting to add")).toBeVisible();
     await expect(page.getByText(item)).toBeVisible();
     await expect(page).toHaveURL(/\/household/);

@@ -10,9 +10,9 @@ test("Cash Flow's Add income sheet links to the remittance log", async ({ page }
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^INCOME/ }).click();
   await page.getByRole("button", { name: /ADD INCOME/ }).click();
-  // Category first (23 October): Remittance from abroad opens its own
-  // fields, with the full log a link away.
-  await page.getByRole("combobox", { name: "Category" }).first().selectOption("Remittance");
+  // Type of income first (23 October; "Type of income" since #1005):
+  // Remittance from abroad opens its own fields, with the full log a link away.
+  await page.getByRole("combobox", { name: "Type of income" }).selectOption("Remittance");
   await page.getByRole("link", { name: /Remittances from abroad/ }).click();
   await expect(page).toHaveURL(/\/wealth\/remittances$/);
   await expect(page.getByRole("heading", { name: "Remittances" })).toBeVisible();
