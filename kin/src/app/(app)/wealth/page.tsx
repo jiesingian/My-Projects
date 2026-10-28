@@ -1811,7 +1811,16 @@ function CategoryLines({ lines, currency, noun = "expense", open, always = false
       </div>
       {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
       {l.detail}
-      {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
+      {l.actions &&
+        (always ? (
+          // A&L: the buttons fold behind one "Options" chip (28 October).
+          <details className="kin-row-actions">
+            <summary>Options</summary>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
+          </details>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
+        ))}
     </div>
   ));
   if (always) return <div style={{ margin: "-0.25rem 0 0.75rem" }}>{rows}</div>;
