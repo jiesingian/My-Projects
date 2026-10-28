@@ -14,14 +14,14 @@ import { formatCurrency } from "@/lib/format";
 
 const initialState: ActionState = { error: null };
 
-export function AddGoalForm({ accounts, currency, today, kids: children = [] }: { accounts: PickableAccount[]; currency: string; today: string; kids?: { id: string; label: string }[] }) {
+export function AddGoalForm({ accounts, currency, today, kids: children = [], preset }: { accounts: PickableAccount[]; currency: string; today: string; kids?: { id: string; label: string }[]; preset?: { yearly: boolean; title: string; note: string; whose: "joint" | "me" } }) {
   const [state, formAction] = useActionState(createGoalAction, initialState);
   // "joint", "me", or a child's member id (26 October).
-  const [whose, setWhose] = useState("joint");
+  const [whose, setWhose] = useState<string>(preset?.whose ?? "joint");
   const isJoint = whose === "joint";
-  const [yearly, setYearly] = useState(false);
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
+  const [yearly, setYearly] = useState(preset?.yearly ?? false);
+  const [title, setTitle] = useState(preset?.title ?? "");
+  const [note, setNote] = useState(preset?.note ?? "");
   // The same goal as a ring on Planner (26 October): on unless unticked.
   const [onPlanner, setOnPlanner] = useState(true);
   // Start and end, and what that asks of each month (26 October).
