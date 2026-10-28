@@ -1136,7 +1136,7 @@ export async function addPaidExpenseAction(_prev: ActionState, formData: FormDat
   // Paying a loan: the part that pays it down, when the person changed
   // Kin's split (LoanSplitBox); recordMovementAction checks it.
   const principalRaw = String(formData.get("principal") ?? "");
-  if (!particulars) return { error: "Say what it was for." };
+  if (!particulars) return { error: "Say what it's for." };
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return { error: "Choose the day it was paid." };
   if (!accountId) return { error: "Choose the account it was paid from." };

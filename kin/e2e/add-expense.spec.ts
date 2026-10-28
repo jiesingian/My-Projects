@@ -17,6 +17,7 @@ import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 const RUN = `E2E-EXPENSE-${Date.now().toString(36)}`;
 const LUNCH = 123;
 const TUITION = 456;
+const TUITION_PAID = 460;
 
 type Entry = { id: string; particulars: string; amount: string; status: string; account_id: string; occurred_at: string; source_table: string | null; source_id: string | null };
 type Bill = { id: string; name: string; amount: string; due_date: string | null; status: string; account_id: string | null; transaction_id: string | null; recurrence: string | null };
@@ -154,6 +155,16 @@ async function addPaid(page: Page, name: string, amount: number, against: string
   await addSheet(page).getByLabel("For (optional)").selectOption(against);
 }
 
+/** The wallet's balance as Add expense's Paid from shows it ("… · ₱4,877"):
+ * what the Accounts tab shows, added up from the ledger. */
+async function walletShows(page: Page, amount: number) {
+  await openSheet(page);
+  const shown = `₱${amount.toLocaleString("en-US")}`;
+  await expect(addSheet(page).getByLabel("Paid from").locator(`option[value="${accountId}"]`)).toHaveText(new RegExp(`· ${shown.replace(/[.₱]/g, "\\$&")}(?![\\d,])`));
+  await addSheet(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(addSheet(page)).toBeHidden();
+}
+
 const goalTotal = async () => Number((await rows<{ current_amount: string }>("goals", `select=current_amount&id=eq.${goalId}`))[0].current_amount);
 const loanOwed = async () => Number((await rows<{ balance: string }>("liabilities", `select=balance&id=eq.${loanId}`))[0].balance);
 const entryNamed = async (name: string) =>
@@ -164,6 +175,9 @@ test("Already paid lands in the ledger, confirmed, on the day, out of the accoun
   // The sheet opens on "Already paid", with today in Paid on.
   await expect(page.getByRole("button", { name: "Already paid" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator('input[name="occurred_on"]')).toHaveValue(today());
+  // Nothing about repeating or reminding on an expense already paid.
+  await expect(addSheet(page).getByLabel("Remind me")).toHaveCount(0);
+  await expect(addSheet(page).getByLabel("Repeats")).toHaveCount(0);
   await addSheet(page).getByLabel("What it's for").fill(`${RUN} lunch`);
   await addSheet(page).getByLabel(/^Amount/).fill(String(LUNCH));
   await addSheet(page).getByLabel("Paid from").selectOption(accountId);
@@ -183,6 +197,10 @@ test("Already paid lands in the ledger, confirmed, on the day, out of the accoun
   await page.goto("/wealth?seg=cashflow&open=expenses");
   await expandAllCollapsedGroups(page);
   await expect(page.getByText(new RegExp(`^Groceries - ${RUN} lunch`)).first()).toBeVisible();
+  // One entry is counted as "1 expense", the word the category uses too.
+  await expect(page.getByText(/^1 expense\b/).first()).toBeVisible();
+  // The account is 123 lower, with no second tap.
+  await walletShows(page, 5000 - LUNCH);
 });
 
 test("Due later makes a bill dated today out of the account, asking on its day; Settle marks it paid", async ({ page }) => {
@@ -215,10 +233,25 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   // Pay), Settle is already open on that question with the bill's own
   // account, and Mark paid settles it. The sheet is checked before any
   // fold is touched: a modal sheet would block the clicks that open them.
-  await page.goto(`/wealth?seg=cashflow&open=expenses&bill=${bill.id}`);
+  // The account has not moved.
+  await walletShows(page, 5000 - LUNCH);
+  // Its line asks, and Next 30 days counts it.
+  await page.goto("/wealth?seg=cashflow&open=expenses");
+  await expandAllCollapsedGroups(page);
+  await expect(page.getByText(new RegExp(`Due today · ₱456\\.00 · from ${RUN} wallet · did it go through\\?`)).first()).toBeVisible();
+  const next30 = page.getByText("NEXT 30 DAYS", { exact: true }).locator("xpath=../..");
+  await expect(next30).toContainText(`${RUN} tuition`);
+  // Today asks too, and its Pay lands on the question.
+  await page.goto("/today");
+  const row = page.locator(".kin-today-row").filter({ hasText: `${RUN} tuition` });
+  await expect(row).toContainText("due today · did it go through?");
+  await row.getByRole("link", { name: "Pay" }).click();
+  await expect(page).toHaveURL(new RegExp(`bill=${bill.id}`));
   const sheet = page.getByRole("dialog", { name: "Did it go through?" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByLabel("Pay from")).toHaveValue(accountId);
+  // It cost a little more than billed: the amount is there to change.
+  await sheet.getByLabel(/^Amount/).fill(String(TUITION_PAID));
   await sheet.getByRole("button", { name: "Mark paid" }).click();
   await expect(sheet).toBeHidden();
   // It repeats, so Kin offers next month's (next-bill-offer.tsx). Not now
@@ -239,11 +272,20 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   expect(paid.transaction_id).not.toBeNull();
   const payments = await rows<Entry>("wealth_transactions", `select=id,particulars,amount,status,account_id,occurred_at,source_table,source_id&id=eq.${paid.transaction_id}`);
   expect(payments).toHaveLength(1);
-  expect(Number(payments[0].amount)).toBe(TUITION);
+  expect(Number(payments[0].amount), "what was paid, not what was billed").toBe(TUITION_PAID);
   expect(payments[0].status).toBe("confirmed");
   expect(payments[0].account_id).toBe(accountId);
   expect(payments[0].source_table).toBe("bills");
   expect(payments[0].source_id).toBe(bill.id);
+  // Settled, it leaves Next 30 days; the account lost what was paid.
+  await expect(page.getByText("NEXT 30 DAYS", { exact: true }).locator("xpath=../..").filter({ hasText: `${RUN} tuition` })).toHaveCount(0);
+  await walletShows(page, 5000 - LUNCH - TUITION_PAID);
+
+  // A bill's payment stays the bill's: Edit entry offers no For.
+  const edit = await editEntry(page, `${RUN} tuition bill`);
+  await expect(edit.getByLabel("For (optional)")).toHaveCount(0);
+  await expect(edit).toContainText("Settled a bill, so it stays the bill's.");
+  await edit.getByRole("button", { name: "Cancel" }).click();
 });
 
 test("Edit entry moves an expense to another account and off its goal; the goal is recounted", async ({ page }) => {
@@ -283,9 +325,15 @@ test("Edit entry moves an expense to another account and off its goal; the goal 
 test("A loan payment pays the loan down by the split given; Edit moves it, then off the loan, and the loan follows", async ({ page }) => {
   const name = `${RUN} loan payment`;
   await addPaid(page, name, 1000, `liabilities:${loanId}`);
-  // Kin's split is there to change: the bank's statement says 900.
+  // A loan payment is Debt, and Kin splits it from the rate: 12% a year on
+  // 10,000 owed is 100 interest this month, so 900 pays the loan down.
+  await expect(addSheet(page).getByLabel("Spent on")).toHaveValue("Debt");
   const principal = addSheet(page).getByLabel("Pays the loan down");
-  await expect(principal).toBeVisible();
+  await expect(principal).toHaveValue(/^900(\.00)?$/);
+  await expect(addSheet(page)).toContainText("₱100.00");
+  // The bank's statement says otherwise: 850, and it is 850 that counts.
+  await principal.fill("850");
+  await expect(addSheet(page)).toContainText("₱150.00");
   await principal.fill("900");
   await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   await expect(addSheet(page)).toBeHidden();
@@ -317,4 +365,73 @@ test("A loan payment pays the loan down by the split given; Edit moves it, then 
   expect(off.source_table).toBeNull();
   expect(off.principal_amount).toBeNull();
   expect(await loanOwed()).toBe(LOAN);
+});
+
+test("A bill for a loan: Settle shows the same split, and the loan drops by it", async ({ page }) => {
+  const name = `${RUN} loan bill`;
+  await openSheet(page);
+  await addSheet(page).getByRole("button", { name: "Due later" }).click();
+  await addSheet(page).getByLabel("What it's for").fill(name);
+  await addSheet(page).getByLabel(/^Amount/).fill("1000");
+  await addSheet(page).getByLabel("Paid from").selectOption(accountId);
+  await addSheet(page).getByLabel("For (optional)").selectOption(`liabilities:${loanId}`);
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
+  await expect(addSheet(page)).toBeHidden();
+  const [bill] = await rows<Bill & { against_table: string | null; against_id: string | null }>("bills", `select=id,name,amount,due_date,status,account_id,transaction_id,recurrence,against_table,against_id&name=eq.${encodeURIComponent(name)}`);
+  expect(bill.against_table).toBe("liabilities");
+  expect(bill.against_id).toBe(loanId);
+  expect(await loanOwed(), "a bill moves nothing until it is settled").toBe(LOAN);
+
+  // Its line says what it is for.
+  await page.goto("/wealth?seg=cashflow&open=expenses");
+  await expandAllCollapsedGroups(page);
+  await expect(page.getByText(new RegExp(`· for ${RUN} loan`)).first()).toBeVisible();
+
+  await page.goto(`/wealth?seg=cashflow&open=expenses&bill=${bill.id}`);
+  const sheet = page.getByRole("dialog", { name: "Did it go through?" });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel("Pays the loan down")).toHaveValue(/^900(\.00)?$/);
+  await sheet.getByRole("button", { name: "Mark paid" }).click();
+  await expect(sheet).toBeHidden();
+  const offer = page.getByRole("dialog", { name: /^Add next month's/ });
+  await expect(offer).toBeVisible();
+  await offer.getByRole("button", { name: "Not now" }).click();
+  await expect(offer).toBeHidden();
+
+  const [paid] = await rows<Bill>("bills", `select=id,name,amount,due_date,status,account_id,transaction_id,recurrence&id=eq.${bill.id}`);
+  expect(paid.status).toBe("paid");
+  const [payment] = await rows<Entry & { principal_amount: string | null }>("wealth_transactions", `select=id,particulars,amount,status,account_id,occurred_at,source_table,source_id,principal_amount&id=eq.${paid.transaction_id}`);
+  expect(payment.source_table).toBe("liabilities");
+  expect(payment.source_id).toBe(loanId);
+  expect(Number(payment.principal_amount)).toBe(900);
+  expect(await loanOwed()).toBe(LOAN - 900);
+});
+
+test("The small things: Who's caption, Add income's words, and a name left blank", async ({ page }) => {
+  // Who set to yourself: Cash Flow is your income and expenses, not your accounts.
+  await page.goto(`/wealth?seg=cashflow&who=${session!.memberId}`);
+  await expect(page.getByText("Your own income and expenses")).toBeVisible();
+
+  // Add income asks as money in does.
+  await page.goto("/wealth?seg=cashflow");
+  await expandAllCollapsedGroups(page);
+  await page.getByRole("button", { name: /ADD INCOME/ }).click();
+  const income = page.getByRole("dialog", { name: "Add income" });
+  await expect(income).toBeVisible();
+  await expect(income.getByLabel("Type of income")).toBeVisible();
+  await expect(income.getByLabel("What it's for")).toBeVisible();
+  await expect(income.getByLabel("Expected on")).toHaveValue(today());
+  await expect(income.getByLabel("Paid into").locator("option").first()).toHaveText("Decide when receiving");
+  await income.getByRole("button", { name: "Cancel" }).click();
+  await expect(income).toBeHidden();
+
+  // A name of spaces gets past the browser and is refused in Kin's words;
+  // nothing is saved.
+  await openSheet(page);
+  await addSheet(page).getByLabel("What it's for").fill("   ");
+  await addSheet(page).getByLabel(/^Amount/).fill("5");
+  await addSheet(page).getByLabel("Paid from").selectOption(accountId);
+  await addSheet(page).getByRole("button", { name: "Save expense" }).click();
+  await expect(addSheet(page)).toContainText("Say what it's for.");
+  expect(await rows<Entry>("wealth_transactions", `select=id&account_id=eq.${accountId}&amount=eq.5`)).toHaveLength(0);
 });
