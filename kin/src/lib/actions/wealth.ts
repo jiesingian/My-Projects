@@ -1122,7 +1122,7 @@ export async function postHubExpenseAction(input: {
 /** An expense already paid (Jonathan, 26 October): the money has left, so
  * it lands in the ledger confirmed, on the day it was paid, out of the
  * account it was paid from -- no Settle, no reminder, no repeat. The same
- * entry Move money and the receipt scanner record; this is the Add expense
+ * entry Move money records; this is the Add expense
  * sheet's half for it. "For" ties it to a loan (which it pays down), an
  * asset (upkeep, an addition, or buying it) or a goal, as Move money does. */
 export async function addPaidExpenseAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

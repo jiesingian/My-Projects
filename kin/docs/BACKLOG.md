@@ -835,7 +835,8 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   with nothing Haiku rejects (no `effort`, no `fallbacks`). Not checked
   against the real model (no key): the answers' wording, and whether Haiku
   picks `get_health` over `search` for "allergy ni Lia".
-- **Done:** Snap a receipt or e-wallet screenshot (Wealth → Cash Flow →
+- **Removed 28 October (Jonathan: copying the total is quicker; never
+  switched on):** Snap a receipt or e-wallet screenshot (Wealth → Cash Flow →
   "Snap a receipt or GCash screenshot", and a line on Move money; Kin
   Plus): a photo of a store receipt, a screenshot of a GCash / Maya /
   InstaPay / bank confirmation, or a Meralco or water bill → Kin AI reads

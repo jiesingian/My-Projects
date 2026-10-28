@@ -2,7 +2,6 @@
 
 import { WhoseSelect } from "@/components/whose-select";
 import { RemittanceFields, UtangFields, type OpenLent } from "@/components/income-category-extras";
-import Link from "next/link";
 import { FormSheet } from "@/components/form-sheet";
 import { AccountOptions } from "@/components/account-options";
 import { LoanSplitBox } from "@/components/loan-split";
@@ -466,10 +465,7 @@ export function AddAccountForm({
  * `bills` through addBillAction, as every due-dated expense always was;
  * only the sheet changed. Opens on "Already paid": the everyday case. */
 
-/** `scan` puts "Snap it" in the sheet: a receipt or a payment screenshot
- * read by Kin AI (/wealth/scan), offered only once the key is on the
- * server. */
-export function AddExpenseForm({ whose, accounts, currency, today, targets, scan = false }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets; scan?: boolean }) {
+export function AddExpenseForm({ whose, accounts, currency, today, targets }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"paid" | "due">("paid");
 
@@ -498,11 +494,6 @@ export function AddExpenseForm({ whose, accounts, currency, today, targets, scan
             </button>
           ))}
         </div>
-        {scan && (
-          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0" }}>
-            Got a receipt or a payment screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
-          </p>
-        )}
         {mode === "paid" ? (
           <PaidExpenseForm whose={whose} accounts={accounts} currency={currency} today={today} targets={targets} onDone={() => setOpen(false)} onCancel={() => setOpen(false)} />
         ) : (
