@@ -14,12 +14,15 @@ import { usePinnedActions } from "@/components/sheet-actions";
  * so a tall sheet's top -- where its first field is -- sat above the visible
  * page (Janine, 12 October: "Add breakfast", the search box out of sight).
  * And nothing inside one focuses itself on open: the keyboard rising while
- * the sheet is still sliding in pushes the sheet off the top of the screen. */
-export function FormSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
+ * the sheet is still sliding in pushes the sheet off the top of the screen.
+ *
+ * `guardUnsaved={false}` for a sheet with nothing to save, a calculator: a
+ * "Discard what you've entered?" on closing one reads as if it saved. */
+export function FormSheet({ open, onClose, title, children, guardUnsaved = true }: { open: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode; guardUnsaved?: boolean }) {
   const titleId = useId();
   const body = usePinnedActions<HTMLDivElement>();
   return (
-    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxHeight: "92dvh" }} guardUnsaved>
+    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxHeight: "92dvh" }} guardUnsaved={guardUnsaved}>
       <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
         <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

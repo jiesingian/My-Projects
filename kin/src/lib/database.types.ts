@@ -1005,6 +1005,7 @@ export type Database = {
           is_joint: boolean
           is_private: boolean
           linked_app_url: string | null
+          matures_on: string | null
           name: string
           opening_balance: number
           owner_member_id: string | null
@@ -1026,6 +1027,7 @@ export type Database = {
           is_joint?: boolean
           is_private?: boolean
           linked_app_url?: string | null
+          matures_on?: string | null
           name: string
           opening_balance?: number
           owner_member_id?: string | null
@@ -1047,6 +1049,7 @@ export type Database = {
           is_joint?: boolean
           is_private?: boolean
           linked_app_url?: string | null
+          matures_on?: string | null
           name?: string
           opening_balance?: number
           owner_member_id?: string | null
@@ -6241,6 +6244,9 @@ export type Database = {
           original_amount: number | null
           payments_remaining: number | null
           rate_fixed_until: string | null
+          repriced_balance: number | null
+          repriced_on: string | null
+          repriced_payments_left: number | null
           term_months: number | null
           updated_at: string
         }
@@ -6264,6 +6270,9 @@ export type Database = {
           original_amount?: number | null
           payments_remaining?: number | null
           rate_fixed_until?: string | null
+          repriced_balance?: number | null
+          repriced_on?: string | null
+          repriced_payments_left?: number | null
           term_months?: number | null
           updated_at?: string
         }
@@ -6287,6 +6296,9 @@ export type Database = {
           original_amount?: number | null
           payments_remaining?: number | null
           rate_fixed_until?: string | null
+          repriced_balance?: number | null
+          repriced_on?: string | null
+          repriced_payments_left?: number | null
           term_months?: number | null
           updated_at?: string
         }
