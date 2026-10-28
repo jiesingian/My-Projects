@@ -13,7 +13,7 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingRows, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
+import { PendingRows, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle, PayCardControl } from "@/components/money-actions";
 import { entryFor } from "@/lib/entry-for";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
@@ -21,7 +21,7 @@ import { formatCurrency, shortNames } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, categoryLabel, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, pendingRows, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 
-export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
+export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string; pay?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
@@ -114,6 +114,19 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Balance at the end of each {CASH_FLOW_RANGE_LABELS[range].toLowerCase().replace(/s$/, "")}</span>
         </div>
 
+        {/* A credit card with something owed: one tap to pay it (28 October);
+            Today's Pay row lands here with ?pay=1 and opens the sheet. */}
+        {account.account_type === "credit" && account.balance < 0 && (
+          <PayCardControl
+            cardId={account.id}
+            cardName={account.name}
+            owed={Math.round(-account.balance * 100) / 100}
+            minimum={account.card_min_payment == null ? null : Number(account.card_min_payment)}
+            accounts={pickable}
+            currency={currency}
+            autoOpen={sp.pay === "1"}
+          />
+        )}
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
           <Link href={`/wealth/transact?mode=in&account=${account.id}`} className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             Money in
