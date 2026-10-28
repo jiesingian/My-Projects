@@ -7,13 +7,13 @@ import { Icon } from "@/components/icons";
 import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type Listener } from "@/lib/speech";
 import { scrollBehavior } from "@/lib/motion";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
-import { RULES_NOTE } from "@/lib/assistant/rules";
+import { RULES_NOTE, type Pending } from "@/lib/assistant/rules";
 
 /** `source` is where an answer came from (api/assistant): "rules" read the
  * household's own records and sent nothing anywhere; "model" went to Claude;
  * "off" is the line that says what Kin answers by itself while there is no
  * key. */
-type Turn = { role: "user" | "assistant"; content: string; source?: "rules" | "model" | "off" };
+type Turn = { role: "user" | "assistant"; content: string; source?: "rules" | "model" | "off"; choices?: string[] };
 
 /** Nothing to subscribe to -- the answer is fixed for the life of the page. */
 function neverChanges() {
@@ -34,6 +34,10 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A question a rule asked ("Which one: Globe Fiber or Globe Postpaid?"):
+  // what it remembers rides back with the next message so the rule can
+  // finish (rules.ts, resumeRule). One turn only.
+  const [pending, setPending] = useState<Pending | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -80,9 +84,10 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
         body: JSON.stringify({
           messages: next,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...(pending ? { pending } : {}),
         }),
       });
-      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string; source?: "rules" | "model" | "off" };
+      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string; source?: "rules" | "model" | "off"; choices?: string[]; pending?: Pending };
 
       if (!res.ok || data.error) {
         setError(data.error ?? "The assistant couldn't answer that.");
@@ -90,7 +95,8 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
       }
 
       const reply = data.reply ?? "Done.";
-      setTurns((prev) => [...prev, { role: "assistant", content: reply, source: data.source }]);
+      setPending(data.pending ?? null);
+      setTurns((prev) => [...prev, { role: "assistant", content: reply, source: data.source, choices: data.choices }]);
       // Only read back what was asked by voice. A typed question answered
       // out loud in a quiet room is a fright, not a feature.
       if (readAloud && canSpeak) speak(reply);
@@ -176,6 +182,7 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
             onClick={() => {
               setTurns([]);
               setError(null);
+              setPending(null);
             }}
             style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 0.75rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}
           >
@@ -207,6 +214,17 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
                   anywhere, and that is worth one line the first time. */}
               {turn.source === "rules" && i === firstRulesTurn && (
                 <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: 4 }}>{RULES_NOTE}</span>
+              )}
+              {/* A rule's choices, as chips, on the question that is still
+                  open: tapping one answers it. */}
+              {turn.choices && turn.choices.length > 0 && i === turns.length - 1 && !thinking && (
+                <span style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginTop: 6 }}>
+                  {turn.choices.map((c) => (
+                    <button key={c} type="button" className="chip" onClick={() => send(c)}>
+                      {c}
+                    </button>
+                  ))}
+                </span>
               )}
             </div>
           ))}

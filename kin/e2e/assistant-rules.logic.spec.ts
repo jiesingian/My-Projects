@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { matchRule, resolveRange, resolveMember, rulesOnlyLine, RULES_NOTE, type RuleContext } from "@/lib/assistant/rules";
+import { matchRule, resumeRule, resolveRange, resolveMember, rulesOnlyLine, isAsk, isPending, RULES_NOTE, type RuleContext, type RuleMatch, type Ask } from "@/lib/assistant/rules";
 
 /** Ask Kin's rule layer (lib/assistant/rules.ts, Jonathan, 28 October):
  * every question shape it answers without the model, the tool and input
@@ -17,7 +17,36 @@ const ctx: RuleContext = {
   currency: "PHP",
   canAskHealth: true,
   timeZone: "Asia/Manila",
+  me: "Ana Santos",
 };
+
+/** The match for a question, or a failure naming it. */
+function m(ask: string, c: RuleContext = ctx): RuleMatch {
+  const r = matchRule(ask, c);
+  if (!r) throw new Error(`"${ask}" matched nothing`);
+  if (isAsk(r)) throw new Error(`"${ask}" asked back: ${r.ask}`);
+  return r;
+}
+
+/** What a question's rule says from a tool result, which must be a line. */
+function said(ask: string, result: unknown, c: RuleContext = ctx): string {
+  const out = m(ask, c).say(result);
+  if (typeof out !== "string") throw new Error(`"${ask}" asked back: ${out.ask}`);
+  return out;
+}
+
+/** A say() result that must be a line, not a question. */
+function line(out: string | Ask): string {
+  if (typeof out !== "string") throw new Error(`asked back: ${out.ask}`);
+  return out;
+}
+
+/** The question a rule asks back, or a failure. */
+function asked(ask: string, c: RuleContext = ctx): Ask {
+  const r = matchRule(ask, c);
+  if (!r || !isAsk(r)) throw new Error(`"${ask}" did not ask back`);
+  return r;
+}
 
 /* ------------------------------------------------------- the question table */
 
@@ -111,16 +140,31 @@ const TABLE: Row[] = [
   { ask: "pa-add ng bill: Globe 1,299 due sa 20", tool: "add_bill", input: { name: "Globe", amount: 1299, due_date: "2026-11-20", category: "Utilities" }, rule: "add.bill", lang: "tl" },
   { ask: "add tuition 15,000 due next Friday", tool: "add_bill", input: { name: "Tuition", amount: 15000, due_date: "2026-11-06", category: "Education" }, rule: "add.bill" },
   { ask: "Add Netflix 549 due every 10th", tool: "add_bill", input: { name: "Netflix", amount: 549, due_date: "2026-11-10", category: "Subscriptions", recurrence: "monthly" }, rule: "add.bill" },
+  // plain adds through the one-line parser: an activity with a day and a time, an event, a meal
+  { ask: "Add dentist on Friday at 3pm", tool: "add_activity", input: { title: "Dentist", date: "2026-10-30", start_time: "15:00", whole_family: false, member_names: ["Ana"] }, rule: "add.activity" },
+  { ask: "add Lia dentist tomorrow 9am", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "09:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity" },
+  { ask: "schedule family dinner at Lola's Saturday 6pm for everyone", tool: "add_activity", input: { title: "Family dinner at Lola's", date: "2026-10-31", start_time: "18:00", whole_family: true }, rule: "add.activity" },
+  { ask: "pa-schedule ng dentist ni Lia bukas alas-3 ng hapon", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "15:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity", lang: "tl" },
+  { ask: "add Lola Nena's birthday Dec 3", tool: "add_event", input: { title: "Lola Nena's birthday", date: "2026-12-03", kind: "birthday" }, rule: "add.event" },
+  { ask: "add birthday party for Lia Nov 20", tool: "add_event", input: { title: "Birthday party for Lia", date: "2026-11-20", kind: "birthday" }, rule: "add.event" },
+  { ask: "Add swimming for Lia and Ben Saturday 8am", tool: "add_activity", input: { title: "Swimming", date: "2026-10-31", start_time: "08:00", whole_family: false, member_names: ["Ben", "Lia"] }, rule: "add.activity" },
+  { ask: "add to the list: milk, eggs, bread", tool: "add_buy_items", input: { items: [{ name: "milk" }, { name: "eggs" }, { name: "bread" }] }, rule: "add.list" },
+  { ask: "add dinner adobo tomorrow", tool: "add_meal_plan", input: { date: "2026-10-29", dish: "Adobo" }, rule: "add.meal" },
+  { ask: "pa-add ng ulam na sinigang bukas", tool: "add_meal_plan", input: { date: "2026-10-29", dish: "Sinigang" }, rule: "add.meal", lang: "tl" },
+  { ask: "add goal Baguio trip 20000 by December", tool: "add_goal", input: { title: "Baguio trip", target_amount: 20000, target_date: "2026-12-31" }, rule: "add.goal" },
+  { ask: "set a savings goal: emergency fund 100,000", tool: "add_goal", input: { title: "Emergency fund", target_amount: 100000 }, rule: "add.goal" },
+  { ask: "journal: Lia lost her first tooth today", tool: "add_journal_entry", input: { title: "Lia lost her first tooth today", date: "2026-10-28" }, rule: "add.journal" },
+  { ask: "add trip Baguio Dec 20 to Dec 23", tool: "add_trip", input: { title: "Baguio", start_date: "2026-12-20", end_date: "2026-12-23" }, rule: "add.trip" },
+  { ask: "plan a trip to Boracay next Friday", tool: "add_trip", input: { title: "Boracay", start_date: "2026-11-06" }, rule: "add.trip" },
 ];
 
 for (const row of TABLE) {
   test(`"${row.ask}" → ${row.tool}${row.input ? " " + JSON.stringify(row.input) : ""}`, () => {
-    const m = matchRule(row.ask, ctx);
-    expect(m, "matched").not.toBeNull();
-    expect(m!.tool).toBe(row.tool);
-    if (row.input) expect(m!.input).toEqual(row.input);
-    if (row.rule) expect(m!.rule).toBe(row.rule);
-    if (row.lang) expect(m!.lang).toBe(row.lang);
+    const r = m(row.ask);
+    expect(r.tool).toBe(row.tool);
+    if (row.input) expect(r.input).toEqual(row.input);
+    if (row.rule) expect(r.rule).toBe(row.rule);
+    if (row.lang) expect(r.lang).toBe(row.lang);
   });
 }
 
@@ -131,8 +175,6 @@ const FOR_THE_MODEL = [
   "Should we buy a car this year?",
   "Add milk to the list and then tell me what's for dinner",
   "Why is our electric bill so high?",
-  "add bill meralco",
-  "add Meralco bill due Nov 15",
   "Record 500 from GCash for lunch",
   "Delete the water bill",
   "How much did we spend last month?",
@@ -146,12 +188,18 @@ const FOR_THE_MODEL = [
   "how much did Ana spend on groceries",
   // An add with no list named, in English, could be anything.
   "add bananas",
-  "Add dentist on Friday at 3pm",
-  "add water bill 900",
   // A price, not a balance.
   "How much is 3 kilos of rice?",
   "Did we pay Meralco?",
   "Thanks!",
+  // An add with the day or the time missing, or something that repeats (a routine).
+  "add dentist",
+  "add dentist tomorrow",
+  "add Ben's soccer practice every Tuesday 4pm",
+  "plan a trip to Boracay",
+  "schedule a call with the dentist",
+  "add a chore: dishes for Lia daily",
+  "add 500 to GCash",
 ];
 
 for (const ask of FOR_THE_MODEL) {
@@ -160,11 +208,69 @@ for (const ask of FOR_THE_MODEL) {
   });
 }
 
+/* ------------------------------------------------- questions asked back */
+
+test("a bill with a detail missing is asked for, not guessed and not handed on", () => {
+  const both = asked("add bill meralco");
+  expect(both.ask).toBe("How much is the Meralco bill, and when is it due?");
+  expect(both.pending).toMatchObject({ rule: "add.bill", slots: { name: "meralco", category: "Utilities" }, lang: "en", asked: 1 });
+  expect(asked("add Meralco bill due Nov 15").ask).toBe("How much is the Meralco bill?");
+  expect(asked("add water bill 900").ask).toBe("When is Water due?");
+  expect(asked("add Netflix subscription 549").ask).toBe("When is Netflix due?");
+  expect(asked("pa-add ng bill na Globe").ask).toBe("Magkano ang Globe, at kailan ang due?");
+  expect(isPending(both.pending)).toBe(true);
+  expect(isPending({ rule: "x" })).toBe(false);
+});
+
+test("the answer finishes the add; a half answer is asked for once more; a third miss gives up", () => {
+  const first = asked("add bill meralco");
+  const done = resumeRule(first.pending, "3200 due Nov 15", ctx);
+  expect(done && !isAsk(done) ? done.input : null).toEqual({ name: "Meralco", amount: 3200, due_date: "2026-11-15", category: "Utilities" });
+  // Only the amount: the day is asked for next, the amount kept.
+  const half = resumeRule(first.pending, "₱3,200", ctx);
+  expect(half && isAsk(half) ? half.ask : null).toBe("When is Meralco due?");
+  expect(half && isAsk(half) ? half.pending.slots : null).toMatchObject({ name: "meralco", amount: 3200 });
+  const finished = resumeRule((half as Ask).pending, "the 15th", ctx);
+  expect(finished && !isAsk(finished) ? finished.input : null).toEqual({ name: "Meralco", amount: 3200, due_date: "2026-11-15", category: "Utilities" });
+  // Twice asked and still nothing: the message is read afresh.
+  const second = resumeRule(first.pending, "hmm", ctx);
+  expect(second && isAsk(second) ? second.pending.asked : null).toBe(2);
+  expect(resumeRule((second as Ask).pending, "hmm", ctx)).toBeNull();
+  // Never mind drops it.
+  const dropped = resumeRule(first.pending, "never mind", ctx);
+  expect(dropped && isAsk(dropped) ? dropped.ask : null).toBe("Okay, not added.");
+  // "every month" on the answer makes it monthly.
+  const monthly = resumeRule(first.pending, "1500 every 20th", ctx);
+  expect(monthly && !isAsk(monthly) ? monthly.input : null).toMatchObject({ amount: 1500, due_date: "2026-11-20", recurrence: "monthly" });
+});
+
+test("two bills answering to one word: which one is asked, and the chip's answer picks it", () => {
+  const two = { ...moneyResult, unpaid_bills: [...unpaid, { name: "Globe Postpaid", amount: 999, due_date: "2026-11-03", status: "unpaid" }] };
+  const out = m("when is globe due").say(two);
+  expect(isAsk(out) ? out.ask : out).toBe("Which one: Globe Fiber or Globe Postpaid?");
+  expect(isAsk(out) ? out.choices : null).toEqual(["Globe Fiber", "Globe Postpaid"]);
+  const picked = resumeRule((out as Ask).pending, "Globe Postpaid", ctx);
+  expect(picked && !isAsk(picked) ? line(picked.say(two)) : null).toBe("Globe Postpaid (₱999) is due Tue 3 Nov (in 6 days).");
+  // One bill by that word: no question.
+  expect(said("when is globe due", moneyResult)).toContain("Globe Fiber (₱1,299)");
+});
+
+test("plain adds confirm in a few words", () => {
+  expect(said("Add dentist on Friday at 3pm", { added: "activity" })).toBe("Added Dentist, Fri 30 Oct 15:00 (Ana).");
+  expect(said("add dinner adobo tomorrow", { added: "meal plan" })).toBe("Planned Adobo for Thu 29 Oct.");
+  expect(said("add Lola Nena's birthday Dec 3", { added: "event" })).toBe("Added Lola Nena's birthday on Thu 3 Dec.");
+  expect(said("add goal Baguio trip 20000 by December", { added: "goal" })).toBe("Goal set: Baguio trip, ₱20,000 by Thu 31 Dec.");
+  expect(said("journal: Lia lost her first tooth today", { added: "journal entry" })).toBe("Written in the journal for Wed 28 Oct.");
+  expect(said("add trip Baguio Dec 20 to Dec 23", { added: "trip" })).toBe("Trip planned: Baguio, Sun 20 Dec to Wed 23 Dec.");
+  // Without the asker's name, an activity with nobody named is the whole family's.
+  expect(m("Add dentist on Friday at 3pm", { ...ctx, me: undefined }).input).toMatchObject({ whole_family: true });
+});
+
 test("a health question from someone who may not ask is never a rule's", () => {
   expect(matchRule("What is Lia's allergy?", { ...ctx, canAskHealth: false })).toBeNull();
   expect(matchRule("Anong gamot ni Lolo?", { ...ctx, canAskHealth: false })).toBeNull();
   // The same question from a grown-up still is.
-  expect(matchRule("What is Lia's allergy?", ctx)?.tool).toBe("get_health");
+  expect(m("What is Lia's allergy?").tool).toBe("get_health");
 });
 
 test("a name nobody in the household has leaves the question to the model", () => {
@@ -259,62 +365,62 @@ const moneyResult = {
 };
 
 test("when a bill is due: the bill found by its everyday name, with the amount and how far off", () => {
-  const en = matchRule("When is the electric bill due?", ctx)!;
+  const en = m("When is the electric bill due?");
   expect(en.say(moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
-  const tl = matchRule("kailan due ang kuryente?", ctx)!;
+  const tl = m("kailan due ang kuryente?");
   expect(tl.say(moneyResult)).toBe("Due ang Meralco (₱3,200) sa Sun 15 Nov (18 days pa).");
   // One already past says so.
-  expect(matchRule("when is the water bill due", ctx)!.say(moneyResult)).toBe("Maynilad (₱850) was due Tue 20 Oct (8 days ago).");
+  expect(said("when is the water bill due", moneyResult)).toBe("Maynilad (₱850) was due Tue 20 Oct (8 days ago).");
   // "How much" is the same answer: the amount and the day.
-  expect(matchRule("How much is the Meralco bill?", ctx)!.say(moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
+  expect(said("How much is the Meralco bill?", moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
   // Internet by the name on the bill itself.
-  expect(matchRule("when is globe due", ctx)!.say(moneyResult)).toContain("Globe Fiber (₱1,299) is due Fri 30 Oct");
+  expect(said("when is globe due", moneyResult)).toContain("Globe Fiber (₱1,299) is due Fri 30 Oct");
   // Nothing by that name.
-  expect(matchRule("when is the netflix bill due", ctx)!.say(moneyResult)).toContain('No unpaid bill called "netflix"');
+  expect(said("when is the netflix bill due", moneyResult)).toContain('No unpaid bill called "netflix"');
 });
 
 test("overdue, owed, and every unpaid bill", () => {
-  expect(matchRule("any overdue bills?", ctx)!.say(moneyResult)).toBe("Overdue (1): Maynilad ₱850, due Tue 20 Oct (8 days ago). Total ₱850.");
-  expect(matchRule("may overdue ba tayo na bill?", ctx)!.say({ ...moneyResult, unpaid_bills: [] })).toBe("Walang overdue na bill.");
-  expect(matchRule("How much do we owe?", ctx)!.say(moneyResult)).toBe("Unpaid bills: ₱5,349 (3). Loans and other debts: ₱150,000.");
-  expect(matchRule("Any bills due?", ctx)!.say(moneyResult)).toBe("Unpaid (3): Maynilad ₱850 Tue 20 Oct; Globe Fiber ₱1,299 Fri 30 Oct; Meralco ₱3,200 Sun 15 Nov. Total ₱5,349.");
+  expect(said("any overdue bills?", moneyResult)).toBe("Overdue (1): Maynilad ₱850, due Tue 20 Oct (8 days ago). Total ₱850.");
+  expect(said("may overdue ba tayo na bill?", { ...moneyResult, unpaid_bills: [] })).toBe("Walang overdue na bill.");
+  expect(said("How much do we owe?", moneyResult)).toBe("Unpaid bills: ₱5,349 (3). Loans and other debts: ₱150,000.");
+  expect(said("Any bills due?", moneyResult)).toBe("Unpaid (3): Maynilad ₱850 Tue 20 Oct; Globe Fiber ₱1,299 Fri 30 Oct; Meralco ₱3,200 Sun 15 Nov. Total ₱5,349.");
 });
 
 test("bills in a range come from get_schedule, paid ones left out", () => {
-  const m = matchRule("What's due this week?", ctx)!;
+  const r = m("What's due this week?");
   const result = { activities: [], events: [], bills_due: [{ name: "Globe Fiber", amount: 1299, due_date: "2026-10-30", status: "unpaid" }, { name: "Rent", amount: 15000, due_date: "2026-10-31", status: "paid" }], meals: [], goal_deadlines: [] };
-  expect(m.say(result)).toBe("Due this week: Globe Fiber ₱1,299 Fri 30 Oct. Total ₱1,299.");
-  expect(m.say({ ...result, bills_due: [] })).toBe("Nothing due this week.");
-  expect(matchRule("how much is due this week", ctx)!.say(result)).toBe("Due this week: ₱1,299 (Globe Fiber ₱1,299 Fri 30 Oct).");
-  expect(matchRule("may due ba bukas", ctx)!.say({ ...result, bills_due: [] })).toBe("Walang due bukas (Thu 29 Oct).");
+  expect(line(r.say(result))).toBe("Due this week: Globe Fiber ₱1,299 Fri 30 Oct. Total ₱1,299.");
+  expect(line(r.say({ ...result, bills_due: [] }))).toBe("Nothing due this week.");
+  expect(said("how much is due this week", result)).toBe("Due this week: ₱1,299 (Globe Fiber ₱1,299 Fri 30 Oct).");
+  expect(said("may due ba bukas", { ...result, bills_due: [] })).toBe("Walang due bukas (Thu 29 Oct).");
 });
 
 test("spending this month: by category, in total with the top three, and by member; transfers and goals are not spending", () => {
-  expect(matchRule("How much did we spend on groceries this month?", ctx)!.say(moneyResult)).toBe("Groceries in October so far: ₱8,200.");
-  expect(matchRule("magkano nagastos natin sa kuryente this month?", ctx)!.say(moneyResult)).toBe("Utilities ngayong October: ₱4,300.");
-  expect(matchRule("How much have we spent this month?", ctx)!.say(moneyResult)).toBe("Spent in October so far: ₱15,000. Top: Groceries ₱8,200, Utilities ₱4,300, Dining ₱2,500.");
-  expect(matchRule("What did Ana spend this month?", ctx)!.say(moneyResult)).toBe("Ana's spending in October so far: ₱9,000 (from accounts you can see).");
-  expect(matchRule("magkano nagastos ni ben?", ctx)!.say(moneyResult)).toBe("Nagastos ni Ben ngayong October: ₱6,000 (sa mga account na nakikita mo).");
+  expect(said("How much did we spend on groceries this month?", moneyResult)).toBe("Groceries in October so far: ₱8,200.");
+  expect(said("magkano nagastos natin sa kuryente this month?", moneyResult)).toBe("Utilities ngayong October: ₱4,300.");
+  expect(said("How much have we spent this month?", moneyResult)).toBe("Spent in October so far: ₱15,000. Top: Groceries ₱8,200, Utilities ₱4,300, Dining ₱2,500.");
+  expect(said("What did Ana spend this month?", moneyResult)).toBe("Ana's spending in October so far: ₱9,000 (from accounts you can see).");
+  expect(said("magkano nagastos ni ben?", moneyResult)).toBe("Nagastos ni Ben ngayong October: ₱6,000 (sa mga account na nakikita mo).");
   // A category with nothing spent is zero, not a guess.
-  expect(matchRule("how much did we spend on travel this month", ctx)!.say(moneyResult)).toBe("Travel in October so far: ₱0.");
+  expect(said("how much did we spend on travel this month", moneyResult)).toBe("Travel in October so far: ₱0.");
 });
 
 test("what's left in the budget, overall and per category, over or not, or no budget at all", () => {
-  expect(matchRule("What's left in the budget?", ctx)!.say(moneyResult)).toBe("₱15,000 left of October's ₱30,000 budget (₱15,000 spent).");
-  expect(matchRule("Magkano natitira sa groceries budget?", ctx)!.say(moneyResult)).toBe("₱1,800 pa ang natitira sa ₱10,000 Groceries budget (₱8,200 nagastos).");
+  expect(said("What's left in the budget?", moneyResult)).toBe("₱15,000 left of October's ₱30,000 budget (₱15,000 spent).");
+  expect(said("Magkano natitira sa groceries budget?", moneyResult)).toBe("₱1,800 pa ang natitira sa ₱10,000 Groceries budget (₱8,200 nagastos).");
   const over = { ...moneyResult, this_month_out_by_category: { Groceries: 12000 } };
-  expect(matchRule("what's left in the groceries budget", ctx)!.say(over)).toBe("Groceries is over by ₱2,000: ₱12,000 spent of ₱10,000.");
+  expect(said("what's left in the groceries budget", over)).toBe("Groceries is over by ₱2,000: ₱12,000 spent of ₱10,000.");
   const none = { ...moneyResult, budgets_this_month: { total: 0, by_category: {} } };
-  expect(matchRule("How much is left this month?", ctx)!.say(none)).toBe("No budget set for October. In so far: ₱60,000, out: ₱23,500, so ₱36,500 of this month's money in is left.");
-  expect(matchRule("how much is left in the dining budget", ctx)!.say(none)).toBe("No Dining budget set for October. Spent so far: ₱2,500.");
+  expect(said("How much is left this month?", none)).toBe("No budget set for October. In so far: ₱60,000, out: ₱23,500, so ₱36,500 of this month's money in is left.");
+  expect(said("how much is left in the dining budget", none)).toBe("No Dining budget set for October. Spent so far: ₱2,500.");
 });
 
 test("balances: one account by name, every account, net worth", () => {
-  expect(matchRule("How much is in GCash?", ctx)!.say(moneyResult)).toBe("GCash: ₱4,250.50.");
-  expect(matchRule("magkano laman ng bpi?", ctx)!.say(moneyResult)).toBe("BPI Savings: ₱120,000.");
-  expect(matchRule("Maya balance", ctx)!.say(moneyResult)).toBe('No account called "maya" that you can see. Accounts: GCash, BPI Savings.');
-  expect(matchRule("How much cash do we have?", ctx)!.say(moneyResult)).toBe("Cash across 2 accounts: ₱124,250.50 (GCash ₱4,250.50, BPI Savings ₱120,000).");
-  expect(matchRule("What's our net worth?", ctx)!.say(moneyResult)).toBe("Net worth: ₱474,250.50 (cash ₱124,250.50, assets ₱500,000, debts ₱150,000).");
+  expect(said("How much is in GCash?", moneyResult)).toBe("GCash: ₱4,250.50.");
+  expect(said("magkano laman ng bpi?", moneyResult)).toBe("BPI Savings: ₱120,000.");
+  expect(said("Maya balance", moneyResult)).toBe('No account called "maya" that you can see. Accounts: GCash, BPI Savings.');
+  expect(said("How much cash do we have?", moneyResult)).toBe("Cash across 2 accounts: ₱124,250.50 (GCash ₱4,250.50, BPI Savings ₱120,000).");
+  expect(said("What's our net worth?", moneyResult)).toBe("Net worth: ₱474,250.50 (cash ₱124,250.50, assets ₱500,000, debts ₱150,000).");
 });
 
 const scheduleResult = {
@@ -329,37 +435,37 @@ const scheduleResult = {
 };
 
 test("what's on a day: activities at the household's clock, events, bills, the meal; a person's view keeps their own and the whole family's", () => {
-  expect(matchRule("What's on tomorrow?", ctx)!.say(scheduleResult)).toBe(
+  expect(said("What's on tomorrow?", scheduleResult)).toBe(
     "Tomorrow (Thu 29 Oct): 09:00 Dentist (Lia), Makati Med; 17:00 Grocery run; Globe Fiber due ₱1,299; Lolo Pepe's birthday (birthday); meal: Adobo.",
   );
-  expect(matchRule("anong meron bukas?", ctx)!.say({ activities: [], events: [], bills_due: [], meals: [], goal_deadlines: [] })).toBe("Walang nakaschedule bukas (Thu 29 Oct).");
-  expect(matchRule("what's on for Lia tomorrow", ctx)!.say(scheduleResult)).toBe("Tomorrow (Thu 29 Oct) for Lia: 09:00 Dentist (Lia), Makati Med; 17:00 Grocery run.");
+  expect(said("anong meron bukas?", { activities: [], events: [], bills_due: [], meals: [], goal_deadlines: [] })).toBe("Walang nakaschedule bukas (Thu 29 Oct).");
+  expect(said("what's on for Lia tomorrow", scheduleResult)).toBe("Tomorrow (Thu 29 Oct) for Lia: 09:00 Dentist (Lia), Makati Med; 17:00 Grocery run.");
   // A range names the day on each line.
-  expect(matchRule("what's on this week", ctx)!.say({ ...scheduleResult, events: [], bills_due: [], meals: [] })).toBe("This week: Thu 29 Oct: 09:00 Dentist (Lia), Makati Med; Thu 29 Oct: 17:00 Grocery run.");
+  expect(said("what's on this week", { ...scheduleResult, events: [], bills_due: [], meals: [] })).toBe("This week: Thu 29 Oct: 09:00 Dentist (Lia), Makati Med; Thu 29 Oct: 17:00 Grocery run.");
 });
 
 test("when is something: the next activity, event or meal by that name", () => {
-  const m = matchRule("When is the dentist?", ctx)!;
-  expect(m.say({ activities: [{ id: "1", title: "Dentist", start_at: "2026-10-29T01:00:00.000Z", location: "Makati Med" }] })).toBe("Dentist: Thu 29 Oct 09:00, Makati Med (tomorrow).");
-  expect(m.say({ events: [{ id: "2", title: "Dentist follow-up", event_date: "2026-11-12", kind: "health" }] })).toBe("Dentist follow-up: Thu 12 Nov (in 15 days).");
-  expect(m.say({ matches: "nothing found" })).toBe('Nothing coming up called "dentist" in Kin\'s plans.');
+  const r = m("When is the dentist?");
+  expect(line(r.say({ activities: [{ id: "1", title: "Dentist", start_at: "2026-10-29T01:00:00.000Z", location: "Makati Med" }] }))).toBe("Dentist: Thu 29 Oct 09:00, Makati Med (tomorrow).");
+  expect(line(r.say({ events: [{ id: "2", title: "Dentist follow-up", event_date: "2026-11-12", kind: "health" }] }))).toBe("Dentist follow-up: Thu 12 Nov (in 15 days).");
+  expect(line(r.say({ matches: "nothing found" }))).toBe('Nothing coming up called "dentist" in Kin\'s plans.');
   // A past activity is not "when is".
-  expect(m.say({ activities: [{ id: "1", title: "Dentist", start_at: "2026-10-01T01:00:00.000Z", location: null }] })).toContain("Nothing coming up");
+  expect(line(r.say({ activities: [{ id: "1", title: "Dentist", start_at: "2026-10-01T01:00:00.000Z", location: null }] }))).toContain("Nothing coming up");
 });
 
 test("meals: tonight, tomorrow, the week", () => {
   const day = { activities: [], events: [], bills_due: [], meals: [{ dish: "Sinigang", plan_date: "2026-10-28" }], goal_deadlines: [] };
-  expect(matchRule("What's for dinner?", ctx)!.say(day)).toBe("Tonight (Wed 28 Oct): Sinigang.");
-  expect(matchRule("anong ulam ngayon?", ctx)!.say(day)).toBe("Ulam ngayon (Wed 28 Oct): Sinigang.");
-  expect(matchRule("anong ulam bukas?", ctx)!.say({ ...day, meals: [] })).toBe("Walang nakaplanong ulam bukas (Thu 29 Oct).");
-  expect(matchRule("what are the meals this week", ctx)!.say({ ...day, meals: [{ dish: "Sinigang", plan_date: "2026-10-28" }, { dish: "Adobo", plan_date: "2026-10-29" }] })).toBe("Meals this week: Wed 28 Oct Sinigang; Thu 29 Oct Adobo.");
+  expect(said("What's for dinner?", day)).toBe("Tonight (Wed 28 Oct): Sinigang.");
+  expect(said("anong ulam ngayon?", day)).toBe("Ulam ngayon (Wed 28 Oct): Sinigang.");
+  expect(said("anong ulam bukas?", { ...day, meals: [] })).toBe("Walang nakaplanong ulam bukas (Thu 29 Oct).");
+  expect(said("what are the meals this week", { ...day, meals: [{ dish: "Sinigang", plan_date: "2026-10-28" }, { dish: "Adobo", plan_date: "2026-10-29" }] })).toBe("Meals this week: Wed 28 Oct Sinigang; Thu 29 Oct Adobo.");
 });
 
 test("the shopping list: what is still to buy, with quantities", () => {
-  const m = matchRule("What's on the list?", ctx)!;
+  const r = m("What's on the list?");
   const result = { shopping_list: [{ name: "milk", quantity: null, unit: null, section: "Dairy", checked: false }, { name: "chicken", quantity: 2, unit: "kg", section: "Meat", checked: false }, { name: "rice", quantity: 1, unit: "sack", section: "Pantry", checked: true }], still_to_buy: 2, meals_this_week: [] };
-  expect(m.say(result)).toBe("To buy (2): milk, 2 kg chicken.");
-  expect(matchRule("anong nasa listahan?", ctx)!.say({ shopping_list: [], still_to_buy: 0, meals_this_week: [] })).toBe("Walang laman ang list.");
+  expect(line(r.say(result))).toBe("To buy (2): milk, 2 kg chicken.");
+  expect(said("anong nasa listahan?", { shopping_list: [], still_to_buy: 0, meals_this_week: [] })).toBe("Walang laman ang list.");
 });
 
 const familyResult = {
@@ -372,15 +478,15 @@ const familyResult = {
 };
 
 test("who is in the family, a birthday, an age, a missing date of birth, and the checks due", () => {
-  expect(matchRule("Who is in the family?", ctx)!.say(familyResult)).toBe("3 in the household: Ana (mother), Ben (father), Lia (daughter).");
-  expect(matchRule("When is Lia's birthday?", ctx)!.say(familyResult)).toBe("Lia's birthday is 4 March: turning 11 on Thu 4 Mar (in 127 days).");
-  expect(matchRule("kailan birthday ni ana?", ctx)!.say(familyResult)).toBe("Birthday ni Ana: 2 May, magi-39 sa Sun 2 May (186 days pa).");
-  expect(matchRule("How old is Lia?", ctx)!.say(familyResult)).toBe("Lia is 10, turning 11 on Thu 4 Mar (in 127 days).");
-  expect(matchRule("when is Ben's birthday", ctx)!.say(familyResult)).toBe("Ben's date of birth isn't recorded in Kin. Family → Ben → Edit adds it.");
-  expect(matchRule("Who has a checkup?", ctx)!.say(familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
-  expect(matchRule("When is Lia's checkup?", ctx)!.say(familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
-  expect(matchRule("kailan check-up ni Ana?", ctx)!.say(familyResult)).toBe("Walang due na health check si Ana.");
-  expect(matchRule("sino may check-up?", ctx)!.say({ ...familyResult, health_due: [] })).toBe("Walang due na health check.");
+  expect(said("Who is in the family?", familyResult)).toBe("3 in the household: Ana (mother), Ben (father), Lia (daughter).");
+  expect(said("When is Lia's birthday?", familyResult)).toBe("Lia's birthday is 4 March: turning 11 on Thu 4 Mar (in 127 days).");
+  expect(said("kailan birthday ni ana?", familyResult)).toBe("Birthday ni Ana: 2 May, magi-39 sa Sun 2 May (186 days pa).");
+  expect(said("How old is Lia?", familyResult)).toBe("Lia is 10, turning 11 on Thu 4 Mar (in 127 days).");
+  expect(said("when is Ben's birthday", familyResult)).toBe("Ben's date of birth isn't recorded in Kin. Family → Ben → Edit adds it.");
+  expect(said("Who has a checkup?", familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
+  expect(said("When is Lia's checkup?", familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
+  expect(said("kailan check-up ni Ana?", familyResult)).toBe("Walang due na health check si Ana.");
+  expect(said("sino may check-up?", { ...familyResult, health_due: [] })).toBe("Walang due na health check.");
 });
 
 test("a health fact, read from the get_health answer as healthAnswer shapes it; a tool refusal is relayed as it is", () => {
@@ -393,37 +499,42 @@ test("a health fact, read from the get_health answer as healthAnswer shapes it; 
     hmo_or_insurance: "not recorded",
     who_to_call: [{ name: "Ana Santos", relationship: "mother", phone: "0917 000 0000" }],
   };
-  expect(matchRule("What is Lia's allergy?", ctx)!.say(healthResult)).toBe("Lia's allergies: Peanuts, amoxicillin.");
-  expect(matchRule("Ano ang blood type ni Lia?", ctx)!.say(healthResult)).toBe("Blood type ni Lia: O+.");
-  expect(matchRule("What medicines does Lia take?", ctx)!.say(healthResult)).toBe("Lia's medicines now: Cetirizine 5 mg at 20:00; Salbutamol as needed (when wheezing).");
-  expect(matchRule("Who is Lia's doctor?", ctx)!.say(healthResult)).toBe("Lia's usual doctor: Dr. Reyes.");
-  expect(matchRule("Lia's HMO?", ctx)!.say(healthResult)).toBe("Lia's HMO or insurance: not recorded.");
-  expect(matchRule("who to call for Lia in an emergency", ctx)!.say(healthResult)).toBe("Lia's who to call: Ana Santos (mother) 0917 000 0000.");
-  expect(matchRule("What is Lia's allergy?", ctx)!.say({ error: "Health details are for the household's grown-ups." })).toBe("Health details are for the household's grown-ups.");
+  expect(said("What is Lia's allergy?", healthResult)).toBe("Lia's allergies: Peanuts, amoxicillin.");
+  expect(said("Ano ang blood type ni Lia?", healthResult)).toBe("Blood type ni Lia: O+.");
+  expect(said("What medicines does Lia take?", healthResult)).toBe("Lia's medicines now: Cetirizine 5 mg at 20:00; Salbutamol as needed (when wheezing).");
+  expect(said("Who is Lia's doctor?", healthResult)).toBe("Lia's usual doctor: Dr. Reyes.");
+  expect(said("Lia's HMO?", healthResult)).toBe("Lia's HMO or insurance: not recorded.");
+  expect(said("who to call for Lia in an emergency", healthResult)).toBe("Lia's who to call: Ana Santos (mother) 0917 000 0000.");
+  expect(said("What is Lia's allergy?", { error: "Health details are for the household's grown-ups." })).toBe("Health details are for the household's grown-ups.");
 });
 
 test("adds confirm in a few words, and a tool's refusal comes back as it is", () => {
-  expect(matchRule("Add milk and eggs to the list", ctx)!.say({ added: "shopping items", items: [{ name: "milk", section: "Dairy" }, { name: "eggs", section: "Dairy" }] })).toBe("Added to the list: milk, eggs.");
-  expect(matchRule("pa-add ng 2 kilo manok", ctx)!.say({ added: "shopping items", items: [{ name: "manok", quantity: "2 kg", section: "Meat" }] })).toBe("Na-add sa list: 2 kg manok.");
-  expect(matchRule("Add Meralco bill 3200 due Nov 15", ctx)!.say({ added: "bill", name: "Meralco", amount: 3200, due_date: "2026-11-15" })).toBe("Added Meralco, ₱3,200 due Sun 15 Nov.");
-  expect(matchRule("pa-add ng bill: Globe 1,299 due sa 20", ctx)!.say({ added: "bill" })).toBe("Na-add ang Globe, ₱1,299, due sa Fri 20 Nov.");
-  expect(matchRule("Add milk to the list", ctx)!.say({ error: "No items to add." })).toBe("No items to add.");
+  expect(said("Add milk and eggs to the list", { added: "shopping items", items: [{ name: "milk", section: "Dairy" }, { name: "eggs", section: "Dairy" }] })).toBe("Added to the list: milk, eggs.");
+  expect(said("pa-add ng 2 kilo manok", { added: "shopping items", items: [{ name: "manok", quantity: "2 kg", section: "Meat" }] })).toBe("Na-add sa list: 2 kg manok.");
+  expect(said("Add Meralco bill 3200 due Nov 15", { added: "bill", name: "Meralco", amount: 3200, due_date: "2026-11-15" })).toBe("Added Meralco, ₱3,200 due Sun 15 Nov.");
+  expect(said("pa-add ng bill: Globe 1,299 due sa 20", { added: "bill" })).toBe("Na-add ang Globe, ₱1,299, due sa Fri 20 Nov.");
+  expect(said("Add milk to the list", { error: "No items to add." })).toBe("No items to add.");
 });
 
 test("the language of the answer follows the question", () => {
-  expect(matchRule("When is the electric bill due?", ctx)!.lang).toBe("en");
-  expect(matchRule("Kailan due ang Meralco?", ctx)!.lang).toBe("tl");
-  expect(matchRule("Magkano nagastos natin sa groceries this month?", ctx)!.lang).toBe("tl");
+  expect(m("When is the electric bill due?").lang).toBe("en");
+  expect(m("Kailan due ang Meralco?").lang).toBe("tl");
+  expect(m("Magkano nagastos natin sa groceries this month?").lang).toBe("tl");
 });
 
-test("without a key and without a rule, Kin says what it can answer by itself, three examples, in the member's language", () => {
+test("without a key and without a rule, Kin says what it can answer by itself: three examples, picked by the words in the question", () => {
   const en = rulesOnlyLine("Help me plan the week");
   expect(en).toContain("nothing was sent anywhere");
   expect(en).toContain("When is the electric bill due?");
-  expect(en).toContain("How much did we spend on groceries this month?");
   expect(en).toContain("What's on tomorrow?");
+  expect(en).toContain("Add milk to the list");
+  // Money words hear money examples; food words the list and meals; people words the family.
+  expect(rulesOnlyLine("Should we move money to savings?")).toContain("How much did we spend on groceries this month?");
+  expect(rulesOnlyLine("What should we cook this week?")).toContain("What's for dinner tomorrow?");
+  expect(rulesOnlyLine("Is Lia's medicine working?")).toContain("What is Lia's allergy?");
   const tl = rulesOnlyLine("Tulungan mo ako magplano ng linggo");
   expect(tl).toContain("Kailan due ang Meralco?");
   expect(tl).toContain("walang ipinadala");
+  expect(rulesOnlyLine("Magkano dapat ang ipon namin?")).toContain("Magkano ang laman ng GCash?");
   expect(RULES_NOTE).toContain("Nothing was sent anywhere");
 });

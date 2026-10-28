@@ -55,6 +55,26 @@ may see, added up, as Wealth's All view does).
   is" and free-text search. A bill is found among the *unpaid* bills by
   the words a family uses ("kuryente" finds Meralco); a paid one is not
   "due".
+- **Second PR, same day (asks and the rest of the adds):** a rule that
+  has the intent but not every detail now asks for it instead of handing
+  the question on: "add bill Meralco" → "How much is the Meralco bill,
+  and when is it due?"; the answer finishes the add (`resumeRule`, with
+  the slots it already had carried in `pending`, sent back by the console
+  with the next message; asked twice at most, "never mind" drops it).
+  Two records answering to one word ("Globe Fiber", "Globe Postpaid")
+  are offered as chips. The plain adds now cover an activity with a day
+  and a time ("add Lia dentist tomorrow 9am", "pa-schedule ng dentist ni
+  Lia bukas alas-3 ng hapon"; nobody named is the asker's, "for
+  everyone" the family's), an event ("add Lola Nena's birthday Dec 3"), a
+  meal for a day ("add dinner adobo tomorrow"), a goal with an amount
+  ("add goal Baguio trip 20000 by December"), a journal line ("journal:
+  Lia lost her first tooth today") and a trip ("add trip Baguio Dec 20 to
+  Dec 23"), through the one-line parser Today's Quick add already uses
+  (`lib/quick-line.ts`), Filipino day and time words put into English
+  first. Still the model's: an activity with no day or no time, anything
+  that repeats (a routine), a chore, a reminder, a budget, money moving.
+  The no-key line now picks its three examples by the words in the
+  question (money, food, people).
 - **Not checked:** the console against the real route in a browser (no
   key here either way; the spec holds the matcher and the phrasing, the
   route's wiring is read-only). Taglish wording is a session's best

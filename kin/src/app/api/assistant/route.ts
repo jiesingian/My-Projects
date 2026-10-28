@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 import { kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
-import { matchRule, rulesOnlyLine } from "@/lib/assistant/rules";
+import { isAsk, isPending, matchRule, resumeRule, rulesOnlyLine, type Ask } from "@/lib/assistant/rules";
 import { mayAskHealth } from "@/lib/assistant/health-answer";
 import { familyDay } from "@/lib/time";
 import { GONE_STATUSES } from "@/lib/member-status";
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   // there, and it is not answered.
   if (inKidView(me)) return NextResponse.json({ error: "Kin AI isn't part of kid view." }, { status: 403 });
 
-  let body: { messages?: unknown; timeZone?: unknown };
+  let body: { messages?: unknown; timeZone?: unknown; pending?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -88,14 +88,21 @@ export async function POST(request: Request) {
   // keeps its scoping (household, kid view, roles, health privacy) because it
   // is the same executor. Anything a rule cannot read goes on to the model.
   const lastMessage = history[history.length - 1].content;
-  const rule = matchRule(typeof lastMessage === "string" ? lastMessage : "", {
+  const text = typeof lastMessage === "string" ? lastMessage : "";
+  const ruleCtx = {
     today: familyDay(new Date(), me.families.time_zone || undefined),
     members: memberNames,
     currency: me.families.currency,
     canAskHealth: mayAskHealth({ role: me.role, kidView: inKidView(me) }),
     timeZone: me.families.time_zone || undefined,
-  });
+    me: me.full_name,
+  };
+  // A question a rule asked last turn ("How much is Meralco, and when is it
+  // due?") is answered first; an answer that is not one is read afresh.
+  const rule = (isPending(body.pending) ? resumeRule(body.pending, text, ruleCtx) : null) ?? matchRule(text, ruleCtx);
+  const askBack = (ask: Ask) => NextResponse.json({ reply: ask.ask, choices: ask.choices ?? [], pending: ask.pending, actions: [], source: "rules" });
   if (rule) {
+    if (isAsk(rule)) return askBack(rule);
     let output: string;
     try {
       output = await runAssistantTool(rule.tool, rule.input, me);
@@ -109,13 +116,15 @@ export async function POST(request: Request) {
     } catch {
       parsed = { error: "That didn't go through." };
     }
+    const said = rule.say(parsed);
+    if (isAsk(said)) return askBack(said);
     const acted = rule.tool.startsWith("add_") && !(parsed && typeof parsed === "object" && "error" in parsed);
-    return NextResponse.json({ reply: rule.say(parsed), actions: acted ? [rule.tool] : [], source: "rules" });
+    return NextResponse.json({ reply: said, actions: acted ? [rule.tool] : [], source: "rules" });
   }
 
   // No rule, no key: say what Kin can answer by itself rather than the bare
   // KIN_AI_OFF. Nothing was sent anywhere.
-  if (!kinAiReady()) return NextResponse.json({ reply: rulesOnlyLine(typeof lastMessage === "string" ? lastMessage : ""), actions: [], source: "off" });
+  if (!kinAiReady()) return NextResponse.json({ reply: rulesOnlyLine(text), actions: [], source: "off" });
 
   // One question, one use -- however many tool turns it takes to answer.
   const allowance = await takeKinAiUse(supabase);
