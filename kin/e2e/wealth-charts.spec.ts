@@ -28,5 +28,7 @@ test("expenses: the category donut and spending by person sit where they were ap
 
 test("A&L: net worth over time, or a plain line saying it starts now", async ({ page }) => {
   await page.goto("/wealth?seg=assets&who=all", { waitUntil: "networkidle" });
-  await expect(page.getByRole("img", { name: /^Net worth over \d+ months/ }).or(page.getByText(/keeps your net worth each month from now on/))).toBeVisible();
+  // Days / Weeks / Months / Years since #1041, so the line names the step
+  // picked, and one figure is kept a day.
+  await expect(page.getByRole("img", { name: /^Net worth over \d+ (day|week|month|year)s/ }).or(page.getByText(/Kin keeps your net worth each day you open Wealth/))).toBeVisible();
 });

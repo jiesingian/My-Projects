@@ -143,6 +143,11 @@ test.describe("bugs that already got out once", () => {
    * different times. */
   test("Today's hub card agrees with the briefing above it", async ({ page }) => {
     await page.goto("/today", { waitUntil: "networkidle" });
+    // Today shows its first five open rows, urgent first, and the rest wait
+    // behind "Show N more" (#985). An overdue bill or a due check-up in the
+    // sample household comes before these two, so open the rest first.
+    const more = page.getByRole("button", { name: /^Show \d+ more/ });
+    if (await more.count()) await more.first().click();
     // Lower-cased: Today prints times the way its task rows do ("7:37 am")
     // since it became one list (#292). The case was never what this tested.
     const text = (await page.locator("body").innerText()).replace(/\s+/g, " ").toLowerCase();
