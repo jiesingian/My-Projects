@@ -1647,7 +1647,7 @@ function LoanLines({
           Borrowed {formatCurrency(origin.original, currency)} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
         </div>
       )}
-      {origin && Math.abs(origin.gap) >= 1 && (
+      {origin && !origin.matches && (
         <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
           <span>
             By its terms about {formatCurrency(origin.expectedBalance, currency)} should be owed now; {formatCurrency(balance, currency)} is on record, {formatCurrency(Math.abs(origin.gap), currency)} {origin.gap > 0 ? "more" : "less"} — extra payments, a rate that changed, or a balance from an older statement.
@@ -1655,12 +1655,12 @@ function LoanLines({
           <SetBalanceButton id={loan.id} value={origin.expectedBalance} currency={currency} paymentsLeft={paymentsLeftForBalance(loan, balance)} />
         </div>
       )}
-      {origin && Math.abs(origin.gap) < 1 && origin.made > 0 && <div style={muted}>The balance on record matches its terms.</div>}
+      {origin && origin.matches && origin.made > 0 && <div style={muted}>The balance on record matches its terms{Math.abs(origin.gap) >= 1 ? ", within one payment" : ""}.</div>}
       {loan.rate_fixed_until && (
         <div style={muted}>
           {fixed != null && fixed < 0
             ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank what the rate is now and update it under Payments.`
-            : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed != null ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+            : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed == null ? "" : fixed >= 1 ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : origin?.fixedDaysLeft != null ? ` · ${origin.fixedDaysLeft === 0 ? "ends today" : `${origin.fixedDaysLeft} day${origin.fixedDaysLeft === 1 ? "" : "s"} more`}` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
         </div>
       )}
     </>

@@ -135,3 +135,18 @@ test("cardDueDate: this month's day if still ahead, else next month's; a 31st on
   expect(cardDueDate(31, "2027-02-01")).toBe("2027-02-28");
   expect(cardDueDate(5, "2026-12-20")).toBe("2027-01-05");
 });
+
+test("loanOriginStatus: a balance within one payment of the table matches; a repricing under a month counts days (28 October test)", () => {
+  const today = "2026-10-26";
+  const s = loanOriginStatus(loan, today)!;
+  // Off by a whole ₱95k: not a match.
+  expect(s.matches).toBe(false);
+  // On the table, or a couple of thousand off after "keep the balance": a match.
+  expect(loanOriginStatus({ ...loan, balance: s.expectedBalance }, today)!.matches).toBe(true);
+  expect(loanOriginStatus({ ...loan, balance: s.expectedBalance + 2_010.21 }, today)!.matches).toBe(true);
+  expect(loanOriginStatus({ ...loan, balance: s.expectedBalance + 6_000 }, today)!.matches).toBe(false);
+  // Fixed until 2 November, seen on 28 October: 5 days, not "0 months".
+  const soon = loanOriginStatus({ ...loan, rate_fixed_until: "2026-11-02" }, "2026-10-28")!;
+  expect(soon.fixedMonthsLeft).toBe(0);
+  expect(soon.fixedDaysLeft).toBe(5);
+});
