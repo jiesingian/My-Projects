@@ -1325,7 +1325,8 @@ const addToList: Rule = (q, ctx) => {
 
 /** A peso amount in a line: ₱3,200 / 3200 / php 3200 / 3.2k / 850 pesos. */
 function readAmount(text: string): number | null {
-  const m = /(?:₱|\bphp|\bp)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b)?(?:\s*(?:pesos|php|piso))?/.exec(text);
+  // A whole token: the "2" inside "E2E" or "PLDT2" is not an amount.
+  const m = /(?<![\w-])(?:₱|php|p)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?![\w-])\s*(k\b)?(?:\s*(?:pesos|php|piso))?/.exec(text);
   if (!m) return null;
   const amount = Number(m[1].replace(/,/g, "")) * (m[2] ? 1000 : 1);
   return amount > 0 ? amount : null;
@@ -1347,7 +1348,8 @@ const BILL_RECURRENCE = (text: string): "monthly" | "once" | "yearly" | "quarter
 /** The add_bill match once name, amount and due date are all known. */
 function addBillMatch(name: string, amount: number, dueDate: string, lang: Lang, ctx: RuleContext, extra: { category?: string; recurrence?: string }): RuleMatch {
   const t = pick(lang);
-  const titled = name.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  // `name` is already as the member typed it, first letter up.
+  const titled = name;
   return {
     rule: "add.bill",
     tool: "add_bill",
@@ -1363,7 +1365,7 @@ function addBillMatch(name: string, amount: number, dueDate: string, lang: Lang,
 /** The question for whatever a bill still lacks, with what is known kept. */
 function askForBill(name: string, amount: number | null, dueDate: string | null, lang: Lang, asked: number, extra: { category?: string; recurrence?: string }): Ask {
   const t = pick(lang);
-  const titled = name.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  const titled = name;
   const ask =
     amount === null && dueDate === null
       ? t(`How much is the ${titled} bill, and when is it due?`, `Magkano ang ${titled}, at kailan ang due?`)
@@ -1389,7 +1391,7 @@ const addBill: Rule = (q, ctx) => {
   const dueDate = range && range.single ? range.from : null;
   // The name: what is left once the verb, the amount, the date and the filler go.
   const name = beforeDue
-    .replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?/, " ")
+    .replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])/, " ")
     .replace(/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/, " ")
     .replace(/\b(a|an|the|new|bill|bills|subscription|of|for|ng|ang|na|sa|our|my|natin|namin|ko|worth|amount|amounting|to|please|naman|nga|po|babayaran|bayarin|this month|ngayong buwan|monthly|every month)\b/g, " ")
     .replace(/[:\-–]/g, " ")
@@ -1397,10 +1399,11 @@ const addBill: Rule = (q, ctx) => {
     .trim();
   if (!name) return null;
   const extra = { category: categoryIn(q.text) ?? billCategory(name) ?? undefined, recurrence: BILL_RECURRENCE(q.text) };
+  const typed = withRawCase(name, q.raw);
   // A bill is money due on a day: a missing amount or day is asked for, not
   // guessed and not handed on.
-  if (amount === null || !dueDate) return askForBill(name, amount, dueDate, q.lang, 1, extra);
-  return addBillMatch(name, amount, dueDate, q.lang, ctx, extra);
+  if (amount === null || !dueDate) return askForBill(typed, amount, dueDate, q.lang, 1, extra);
+  return addBillMatch(typed, amount, dueDate, q.lang, ctx, extra);
 };
 
 /* plain adds through the one-line parser (lib/quick-line.ts): an activity
@@ -1538,7 +1541,7 @@ const addGoal: Rule = (q, ctx) => {
   const byText = /\b(?:by|before|until|hanggang|bago|sa)\s+(.*)$/.exec(body)?.[1];
   const target = byText ? resolveRange(byText, ctx.today) : null;
   const title = body
-    .replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?/, " ")
+    .replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])/, " ")
     .replace(/\b(?:by|before|until|hanggang|bago|sa)\s+.*$/, " ")
     .replace(/\b(for|of|na|para|worth|target|goal|the|a|an|ng|ang|called|named)\b/g, " ")
     .replace(/[:\-–]/g, " ")
@@ -2179,7 +2182,7 @@ const markPaid: Rule = (q, ctx) => {
   const account = m[2]?.replace(/\b(the|our|my|ang|account|acct|wallet|na|ko)\b/g, " ").replace(/\s+/g, " ").trim() || null;
   // An amount in the line pays that much; "paid Meralco 3200".
   const amount = readAmount(bill);
-  if (amount) bill = bill.replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?/, " ").replace(/\s+/g, " ").trim();
+  if (amount) bill = bill.replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?![\w-])/, " ").replace(/\s+/g, " ").trim();
   const cashInLine = /\b(in cash|cash|over the counter|sa labas|outside kin|bayad center|7-?eleven)\s*$/.test(bill);
   bill = bill.replace(/\b(in cash|cash|over the counter|sa labas|outside kin|bayad center|7-?eleven)\s*$/, " ");
   bill = bill.replace(/\b(the|our|my|ang|yung|na|ko|bill|bills|for|of|this month|ngayong buwan)\b/g, " ").replace(/\s+/g, " ").trim();
@@ -2584,7 +2587,7 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
       amount = readAmount(q.text.replace(/\bdue\b.*$/, "")) ?? readAmount(q.text.replace(/\b\d{1,2}(?:st|nd|rd|th)\b|\b\d{4}-\d{2}-\d{2}\b/g, " "));
     }
     if (!dueDate) {
-      const dateText = /\bdue\b(.*)$/.exec(q.text)?.[1] ?? q.text.replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k\b/g, " ");
+      const dateText = /\bdue\b(.*)$/.exec(q.text)?.[1] ?? q.text.replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k\b/g, " ");
       const range = resolveRange(dateText.trim(), ctx.today);
       if (range?.single) dueDate = range.from;
     }

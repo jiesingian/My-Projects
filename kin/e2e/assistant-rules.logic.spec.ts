@@ -277,6 +277,9 @@ const TABLE: Row[] = [
   { ask: "pabili ng itlog bukas", tool: "add_buy_items", input: { items: [{ name: "itlog" }] }, rule: "add.list", lang: "tl" },
   { ask: "add family dinner Sunday 6pm", tool: "add_activity", input: { title: "Family dinner", date: "2026-11-01", start_time: "18:00", whole_family: true }, rule: "add.activity" },
   { ask: "add insurance 12000 due Dec 1 yearly", tool: "add_bill", input: { name: "Insurance", amount: 12000, due_date: "2026-12-01", category: "Insurance", recurrence: "yearly" }, rule: "add.bill" },
+  // A digit inside a word is not an amount; the typed casing stays.
+  { ask: "add E2E-RULES water bill 123 due tomorrow", tool: "add_bill", input: { name: "E2E-RULES water", amount: 123, due_date: "2026-10-29", category: "Utilities" }, rule: "add.bill" },
+  { ask: "add PLDT bill 1,699 due the 20th", tool: "add_bill", input: { name: "PLDT", amount: 1699, due_date: "2026-11-20", category: "Utilities" }, rule: "add.bill" },
   { ask: "meralco paid", tool: "get_money", rule: "mark.paid.ask" },
   { ask: "bought the milk and eggs", tool: "tick_list_item", input: { names: ["milk", "eggs"], checked: true }, rule: "mark.tick" },
   { ask: "nabili na ang itlog at gatas", tool: "tick_list_item", input: { names: ["itlog", "gatas"], checked: true }, rule: "mark.tick", lang: "tl" },
@@ -413,7 +416,7 @@ for (const ask of FOR_THE_MODEL) {
 test("a bill with a detail missing is asked for, not guessed and not handed on", () => {
   const both = asked("add bill meralco");
   expect(both.ask).toBe("How much is the Meralco bill, and when is it due?");
-  expect(both.pending).toMatchObject({ rule: "add.bill", slots: { name: "meralco", category: "Utilities" }, lang: "en", asked: 1 });
+  expect(both.pending).toMatchObject({ rule: "add.bill", slots: { name: "Meralco", category: "Utilities" }, lang: "en", asked: 1 });
   expect(asked("add Meralco bill due Nov 15").ask).toBe("How much is the Meralco bill?");
   expect(asked("add water bill 900").ask).toBe("When is Water due?");
   expect(asked("add Netflix subscription 549").ask).toBe("When is Netflix due?");
@@ -429,7 +432,7 @@ test("the answer finishes the add; a half answer is asked for once more; a third
   // Only the amount: the day is asked for next, the amount kept.
   const half = resumeRule(first.pending, "₱3,200", ctx);
   expect(half && isAsk(half) ? half.ask : null).toBe("When is Meralco due?");
-  expect(half && isAsk(half) ? half.pending.slots : null).toMatchObject({ name: "meralco", amount: 3200 });
+  expect(half && isAsk(half) ? half.pending.slots : null).toMatchObject({ name: "Meralco", amount: 3200 });
   const finished = resumeRule((half as Ask).pending, "the 15th", ctx);
   expect(finished && !isAsk(finished) ? finished.input : null).toEqual({ name: "Meralco", amount: 3200, due_date: "2026-11-15", category: "Utilities" });
   // Twice asked and still nothing: the message is read afresh.
