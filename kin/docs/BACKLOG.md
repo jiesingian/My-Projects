@@ -377,8 +377,15 @@ all Jonathan's on 23 October, each the recommended option:
      private link into the one field the Shortcut asks for on import
      (an Import Question). Needs a person with an iPhone to build and
      share it once (ask-a-person); after that nobody assembles anything.
-  2. Until then, hide the step list behind "Build it by hand" and keep the
-     screen to: your link, the Add button, when it was last read.
+  2. **Done (28 October):** the step list is behind a closed "Build it by
+     hand", and the screen is your link, when the Shortcut last read it, and
+     the Add button. The button opens `KIN_ALARMS_SHORTCUT_URL`
+     (`src/lib/dose-alarms.ts`); while it is empty the screen says "The
+     ready-made Shortcut is coming; your link is ready for it." The hand
+     steps now say how to fix the If (tap Dictionary Value → Text). Help
+     entry updated. Step 1 is written for Jonathan in
+     `docs/SETUP_FOR_JONATHAN.md`, section 9, ending with the iCloud link
+     pasted into a session that sets the constant.
   3. Jonathan's half-built Shortcut can be deleted (Shortcuts → long-press
      Kin Alarms → Delete); his private link stays valid, or a new one can
      be made on the screen.
