@@ -8,6 +8,8 @@ import { Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { DocFileRow } from "@/components/doc-file-row";
 import { DocEntryDeleteButton } from "@/components/doc-entry-delete-button";
+import { DocFolderDeleteButton } from "@/components/doc-folder-delete-button";
+import { isGrownUp } from "@/lib/roles";
 import { DocSelectionProvider } from "@/lib/doc-selection-context";
 import { familyDate } from "@/lib/format-family";
 import { keepKidViewOut } from "@/lib/kid-view";
@@ -96,6 +98,7 @@ export default async function DocFolderPage({
         >
           + NEW ENTRY IN THIS FOLDER
         </Link>
+        {isGrownUp(me.role) && <DocFolderDeleteButton folderId={folder.id} name={folder.name} entryCount={(entries ?? []).length} />}
       </div>
     </div>
   );

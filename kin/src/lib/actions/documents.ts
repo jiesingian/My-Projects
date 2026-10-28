@@ -9,6 +9,7 @@ import { allDayEvent } from "@/lib/calendar-shape";
 import { explainVisibilityRefusal } from "@/lib/visibility";
 import { databaseError, reportError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
+import { isGrownUp } from "@/lib/roles";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -254,5 +255,24 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
   if (error) return { error: databaseError(error) };
 
   revalidatePath(`/family/documents/${folderId}`);
+  return { error: null };
+}
+
+/** Deletes an empty folder from the vault (Janine, 27 October). Only an
+ * empty one: a folder with entries says so, rather than taking papers with
+ * it. Its Google Drive folder stays: deleting a Drive folder deletes what
+ * is in it too, and someone may have put a file there in Drive itself. */
+export async function deleteDocFolderAction(folderId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can delete a folder." };
+  const supabase = await createClient();
+  // Empty for everyone, counted past RLS (20261027160000): a "Just me" entry
+  // the deleter cannot see still keeps the folder.
+  const { data: result, error } = await supabase.rpc("delete_empty_doc_folder", { p_folder: folderId });
+  if (error) return { error: databaseError(error) };
+  if (result === "not_empty") return { error: "This folder still holds entries, some perhaps only their owner can see. Move or delete them first." };
+  if (result !== "deleted") return { error: "Not found." };
+
+  revalidatePath("/family");
   return { error: null };
 }
