@@ -1394,7 +1394,7 @@ const addBill: Rule = (q, ctx) => {
     .replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])/, " ")
     .replace(/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/, " ")
     .replace(/\b(a|an|the|new|bill|bills|subscription|of|for|ng|ang|na|sa|our|my|natin|namin|ko|worth|amount|amounting|to|please|naman|nga|po|babayaran|bayarin|this month|ngayong buwan|monthly|every month)\b/g, " ")
-    .replace(/[:\-–]/g, " ")
+    .replace(/:|(?:^|\s)[\-–]+(?=\s|$)/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!name) return null;
@@ -1544,7 +1544,7 @@ const addGoal: Rule = (q, ctx) => {
     .replace(/(?<![\w-])(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])|(?<![\w-])(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?(?![\w-])/, " ")
     .replace(/\b(?:by|before|until|hanggang|bago|sa)\s+.*$/, " ")
     .replace(/\b(for|of|na|para|worth|target|goal|the|a|an|ng|ang|called|named)\b/g, " ")
-    .replace(/[:\-–]/g, " ")
+    .replace(/:|(?:^|\s)[\-–]+(?=\s|$)/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!title) return null;
