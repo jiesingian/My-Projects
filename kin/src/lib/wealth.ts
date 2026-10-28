@@ -1149,6 +1149,14 @@ export type LoanOriginStatus = {
   /** Months the rate stays fixed from today, or null with no repricing
    * date; negative when it has passed. */
   fixedMonthsLeft: number | null;
+  /** Days the rate stays fixed from today (negative once passed), for a
+   * repricing under a month away, where months read "0". */
+  fixedDaysLeft: number | null;
+  /** The balance on record agrees with the terms: within what one payment
+   * pays down. The table moves a payment at a time, so a balance read off a
+   * statement mid-month, or after "keep the balance", falls between two of
+   * its points and never matches to the peso (28 October test). */
+  matches: boolean;
 };
 
 /** Where a loan stands by the terms it was taken on -- for a household that
@@ -1184,6 +1192,8 @@ export function loanOriginStatus(loan: LoanTerms, today: string): LoanOriginStat
     principalPaid: soFar.principalPaid,
     totalInterest: whole.interest,
     fixedMonthsLeft,
+    fixedDaysLeft: !loan.rate_fixed_until ? null : Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000),
+    matches: Math.abs(balance - soFar.balance) < Math.max(1, cents(payment - soFar.balance * (Math.max(0, rate ?? 0) / 100 / 12))),
   };
 }
 
