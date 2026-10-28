@@ -13,6 +13,7 @@ export function AssistantSheet({ open, onClose, titleId, memberName, start }: { 
       onClose={onClose}
       labelledBy={titleId}
       panelClassName="sheet-panel--full"
+      guardUnsaved
       panelStyle={{ maxHeight: "88vh", overflowY: "auto", padding: "0.625rem 1.125rem calc(env(safe-area-inset-bottom, 0px) + 1.125rem)" }}
     >
       <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />

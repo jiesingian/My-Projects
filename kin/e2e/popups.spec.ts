@@ -11,6 +11,7 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  *     its heading, and Escape goes back to the page under it
  *   - saving from that sheet closes it and shows what was saved
  *   - typed work is not thrown away by Escape without asking
+ *   - but a change undone again closes without asking (28 October)
  *   - Add a medicine waits to be asked for
  *   - a pinned Save never stretches the fields beside it (#1052)
  *
@@ -182,4 +183,19 @@ test("pinned buttons never stretch the fields beside them", async ({ page }) => 
   const contact = page.getByRole("dialog", { name: "Add a contact" });
   await expect(contact).toBeVisible();
   await expectNoStretchedFields(contact);
+});
+
+test("a change undone again closes without asking", async ({ page }) => {
+  // Typed and deleted again, the form is as it started: nothing to lose,
+  // so Escape closes it at once (Jonathan, 28 October).
+  await page.goto("/family?seg=quicklinks");
+  await page.getByRole("button", { name: /add contact/i }).click();
+  const sheet = page.getByRole("dialog", { name: "Add a contact" });
+  await expect(sheet).toBeVisible();
+  const name = sheet.getByLabel("Name");
+  await name.fill("Dr. Santos");
+  await name.fill("");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: "Keep editing" })).toHaveCount(0);
 });
