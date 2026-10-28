@@ -250,7 +250,8 @@ export const HELP_GUIDE: HelpTab[] = [
             ],
             "cons": [],
             "tips": [
-              "connect Google Drive so files stay in your own Drive and not in the household's storage."
+              "connect Google Drive so files stay in your own Drive and not in the household's storage.",
+              "an empty folder can be deleted from the foot of its page."
             ]
           },
           {
@@ -757,10 +758,11 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Today: what needs a tap",
             "tags": [],
-            "what": "Bills due, check-ups, medicines and chores for today, with Pay, Done or Skip. The heading folds the list to one line, and the phone remembers.",
-            "how": "Act on each line, or tap the heading to fold it. Pay opens that bill in Cash Flow.",
+            "what": "Everything for today from every tab, one line each with its button on the right: bills and credit cards due (Pay), medicines for the people you give them to (Taken), chores, check-ups, RSVPs answered on the row, a vault request, an open SOS, documents running out, cards to sign, trips under way, and a transfer still waiting on \"it went through\" (Confirm). The first five show, the rest wait behind \"Show N more\", and what's answered folds into one \"N done today\" line. Once a month it also lists assets whose value was last set over a year ago.",
+            "how": "Act on each line; open \"N done today\" to Undo. Tap the heading to fold the list to one line, and the phone remembers.",
             "pros": [
-              "The day's to-dos from every tab, in one list."
+              "The day's to-dos from every tab, in one short list.",
+              "Answered lines get out of the way but stay a tap from Undo."
             ],
             "cons": [],
             "tips": [
@@ -770,7 +772,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "At a glance",
             "tags": [],
-            "what": "Four tiles: medicines to take today, your goals and targets, the to-buy total, and what was spent this month.",
+            "what": "Four tiles: This week (how many things Coming up holds), Goals (\"2 of 3 · targets today\"), To buy (tonight's shortfall for the meal plan and the list's total) and Money (spent this month, plus the week's unpaid bills when no budget is set).",
             "how": "Tap a tile to open it.",
             "pros": [
               "The household's numbers without opening four tabs."
@@ -783,14 +785,14 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Add buttons",
             "tags": [],
-            "what": "Milestone, Event, To buy, Expense, Note, and I've arrived (tells the household you have arrived, in one tap).",
-            "how": "Tap a button; each opens the right form.",
+            "what": "The Quick add row: Milestone · Event · Expense · Note until you pick your own (up to four, from the same list as the Action Button and widget), and I've arrived, which tells the household you have arrived in one tap. The type-it line also reads an expense (\"paid Meralco 2300\") and a meal, and opens the form already filled in.",
+            "how": "Tap a button, or type a line. Settings → Action Button & widget → Today's Quick add to choose your own.",
             "pros": [
               "I've arrived replaces the \"I'm home now\" text.",
               "The fastest way to log an expense or a to-buy."
             ],
             "cons": [
-              "Six buttons only; anything else is added from its own tab or Ask Kin."
+              "Four picks at a time; anything else is added from its own tab or Ask Kin."
             ],
             "tips": []
           },
@@ -918,7 +920,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "setup"
             ],
-            "what": "Tasks and events go to each person's Google Calendar, so reminders reach their phone. A subscription link works for Apple Calendar and Outlook.",
+            "what": "Tasks and events go to each person's Google Calendar, so reminders reach their phone. A subscription link works for Apple Calendar and Outlook. Each grown-up chooses whether the events pulled from their Google Calendar are the whole family's or just theirs.",
             "how": "Settings → Connected apps → Google Calendar, for each grown-up.",
             "pros": [
               "Reminders arrive on the phone like any calendar alert.",
@@ -928,7 +930,8 @@ export const HELP_GUIDE: HelpTab[] = [
               "Each grown-up connects their own Google account."
             ],
             "tips": [
-              "without it, reminders stay inside Kin."
+              "without it, reminders stay inside Kin.",
+              "leave \"Show my Google events to the whole family\" on so the other grown-up's Today shows them too."
             ]
           }
         ]
@@ -1015,8 +1018,8 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Goals",
             "tags": [],
-            "what": "Money, water, steps, weight, gym, or anything else, for a person or the household, with who can see it. A goal can carry a promised reward, which Kin treats as binding and keeps reminding about until it is given.",
-            "how": "Planner → Goals → New goal.",
+            "what": "Money, water, steps, weight, gym, or anything else, for a person or the household, with who can see it. A goal can carry a promised reward, which Kin treats as binding and keeps reminding about until it is given. A money goal here is also a savings goal on Wealth, and the other way round; editing either keeps them the same.",
+            "how": "Planner → Goals → New goal. The dropdown at the top switches the view, like Who.",
             "pros": [
               "Goals become the targets children earn coins from.",
               "A promised reward is never quietly forgotten."
@@ -1108,10 +1111,11 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "The list",
             "tags": [],
-            "what": "Everything to buy, with a running total, what is in the basket, a shopping day and sections in the order you walk the market. Works offline.",
-            "how": "Household → To-Buy. Set a shopping day; type the price at the till.",
+            "what": "Everything to buy, with a budget on each item and, once ticked, what it actually cost and what was saved. A \"Shopping for\" picker narrows it to a kind of store (market, grocery, drugstore, bookstore and more) or an event, grouped by store name or by aisle. Checkout keeps the trip for a week with its Budget / Actual / Savings. Works offline.",
+            "how": "Household → To-Buy. Give items a budget; tick them at the till and confirm the price.",
             "pros": [
-              "Prices typed while shopping fill the price book, so the totals get better each week.",
+              "Budget against actual shows what each trip saved.",
+              "Prices confirmed at the till fill the price book, so the estimates get better each week.",
               "Everyone in the house adds to the same list."
             ],
             "cons": [],
@@ -1122,7 +1126,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Add an item",
             "tags": [],
-            "what": "Quantity, unit, market section, and \"for an event\" (like a birthday). Common groceries are filed in the right section by their name.",
+            "what": "Quantity, unit, budget, market section, kind of store and an optional store name, and \"for an event\" (like a birthday). Common groceries are filed in the right section by their name.",
             "how": "Household → To-Buy → +.",
             "pros": [
               "Items for a party stay grouped under that event."
@@ -1211,16 +1215,36 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "This month's net (\"More went out than came in\") against last month, a 12-month chart of money in and out, and budgets per category.",
-            "how": "Wealth → Cash Flow. Set budgets on the categories that move: groceries, utilities, school.",
+            "what": "This month's net against last month, a chart of money in and out over days, weeks, months or years, and Expenses: a breakdown by category (Market apart from Groceries) and by person (Family first, then each grown-up and child), each category listing its expenses. Under the chart: the next 30 days of bills and the reports.",
+            "how": "Wealth → Cash Flow. Tap a category to set, change or remove its budget, for the family or for one person.",
             "pros": [
               "See the month's direction at a glance.",
-              "Each bar shows in, out and budget."
+              "Each bar says what's left or how far over its budget it is.",
+              "Budgets per person show who spends on what without a separate sheet."
             ],
             "cons": [
-              "Only as accurate as what is logged. Tip: set budgets on the three categories that move."
+              "Only as accurate as what is logged."
             ],
-            "tips": []
+            "tips": [
+              "set budgets on the three categories that move: groceries, utilities, school."
+            ]
+          },
+          {
+            "name": "Add expense, edit an entry",
+            "tags": [
+              "plus"
+            ],
+            "what": "An expense is \"Already paid\" (it lands at once, on the day it was paid, from the account it came out of) or \"Due later\" (a bill with a date, a repeat from weekly to yearly, and a reminder). Either can say what it was for: a loan it pays down, an asset, or a goal. Any income or expense can be edited or removed from its line in Cash Flow.",
+            "how": "Wealth → Cash Flow → Add expense. To fix one, tap its line in Cash Flow → Edit.",
+            "pros": [
+              "A cash meal is one step, no Settle.",
+              "A loan's monthly bill, once paid, lowers the loan.",
+              "Moving an entry into an Only-you account keeps it to yourself; such entries say \"· only you\"."
+            ],
+            "cons": [],
+            "tips": [
+              "pick the account it was paid from, so the balance stays right without bank sync."
+            ]
           },
           {
             "name": "Income",
@@ -1243,7 +1267,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Repeating charges and income with what they cost a month and a year. Bills are paid from an account; paying a repeating bill offers to add the next one; \"Paid outside Kin\" clears one paid elsewhere.",
+            "what": "Repeating charges (weekly, monthly, quarterly, yearly) and income with what they cost a month and a year. Bills are paid from an account; paying a repeating bill offers to add the next one; \"Paid outside Kin\" clears one paid elsewhere. A bill can be for a loan, asset or goal; settling it pays the loan down. On the bill's day Kin asks whether it went through.",
             "how": "Wealth → Cash Flow → bills, or Subscriptions. Pay from Today or here.",
             "pros": [
               "Bills are reminded three days before.",
@@ -1279,32 +1303,37 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Every bank, e-wallet and cash account with a combined total, a chart by owner, the cash trend and recent activity. Private accounts can be left out of the totals.",
+            "what": "Every bank, e-wallet, cash and credit card account, listed by whose then by type, with a combined total, a chart by owner, the cash trend and recent activity. \"Waiting on you\" is one row per transfer still pending, with Went through or Discard; Went through lets you correct the amount, day or account first. An account can hold its QR code, shown full-screen for someone to scan and pay in. A credit card takes its due day and minimum payment, and Today reminds you. Private (Only-you) accounts are marked and can be left out of the totals.",
             "how": "Wealth → Accounts. Add each account once with its balance.",
             "pros": [
               "All the money in one view.",
-              "Private accounts never leave your own view."
+              "Show QR replaces sending a screenshot of your code.",
+              "Card due days are reminded like any bill."
             ],
             "cons": [
-              "No bank sync: balances move with what is logged in Kin. Tip: use the pending step for e-wallets."
+              "No bank sync: balances move with what is logged in Kin."
             ],
-            "tips": []
+            "tips": [
+              "for e-wallets, use the pending step and confirm it under Waiting on you."
+            ]
           },
           {
             "name": "Net worth: assets and liabilities",
             "tags": [
               "plus"
             ],
-            "what": "What you own less what you owe, by owner, grouped as a balance sheet is: cash and savings (with goals as money set aside), investments, property, vehicles; credit cards count as owed. An asset can hold what is inside it (furniture, appliances, renovation), each changing in value on its own; a house or car bought on a loan goes in with the loan in one entry, and a loan with its terms shows the balance it should have, the interest paid so far and when its fixed rate ends.",
+            "what": "What you own less what you owe, by owner, grouped as a balance sheet is: cash and savings (with goals as money set aside), investments, property, vehicles; credit cards count as owed. An asset can hold what is inside it (furniture, appliances, renovation), each changing in value on its own; a house or car bought on a loan goes in with the loan in one entry, and a loan with its terms shows the balance it should have, the interest paid so far and when its fixed rate ends. The line can show days, weeks, months or years, starts at the first figure that isn't zero, and says what moved it since the last period, part by part.",
             "how": "Wealth → A&L. Add the house and car once with a yearly change in value; tick Still being paid off to add the loan with it.",
             "pros": [
               "Net worth moves by itself after the first entry.",
               "Loans show what is left to pay, how each payment splits into interest and principal, and whether the balance matches the bank's table."
             ],
             "cons": [
-              "The line draws once there are two months."
+              "\"What moved\" shows once two periods are recorded."
             ],
-            "tips": []
+            "tips": [
+              "Today lists, once a month, the assets whose value is over a year old; update them there."
+            ]
           }
         ]
       },
@@ -1331,10 +1360,11 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Save toward a target in a real account, joint or yours, with a date. It appears on everyone's calendar.",
-            "how": "Planner → Goals → New goal → Money, and choose where it is saved.",
+            "what": "Save toward a target, for the family, yourself or a child: a From account (up to two, with what each gives a month) and a To account where it is kept, a start and a target end date, and \"set aside ₱X a month\" worked out for you. Each savings goal is also a ring on Planner; edit either side and both follow.",
+            "how": "Wealth → Add Goal (or Planner → Goals → New goal → Money). Put money in moves it From → To.",
             "pros": [
-              "Contributions come out of a real account, so the progress is real."
+              "Contributions come out of a real account, so the progress is real.",
+              "One goal, seen on both Wealth and Planner."
             ],
             "cons": [
               "Kin keeps the record; the money stays in your account."
@@ -1419,7 +1449,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "Twelve kinds you can switch on or off: events, health, bills, journal, shopping, chat, calls, family calls, chores to approve, letters and cards, arrivals and the week ahead.",
+            "what": "Twelve kinds you can switch on or off: events, health, bills, journal, shopping, chat, calls, family calls, chores to approve, letters and cards, arrivals and the week ahead. Medicine alarms on an iPhone have their own row here.",
             "how": "Settings → Notifications. On iPhone, add Kin to the Home Screen first, then allow notifications.",
             "pros": [
               "Choose exactly what buzzes."
