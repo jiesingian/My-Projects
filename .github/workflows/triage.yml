@@ -126,10 +126,12 @@ jobs:
       # merges.
       #
       # Nothing is lost by not blocking here, because the blocking was never
-      # the thing catching mistakes. watched-change.yml reads every push to
-      # main and opens an issue from the actual diff, whoever pushed it and
-      # whatever the commit message claimed. That is the record, and it does
-      # not depend on anyone reading a pull request in time.
+      # the thing catching mistakes. The weekly digest (weekly-check.yml's
+      # `watched` job; until 28 October watched-change.yml, per push) reads
+      # every commit on main and lists the watched ones from the actual diff,
+      # whoever pushed it and whatever the commit message claimed. That is
+      # the record, and it does not depend on anyone reading a pull request
+      # in time.
       - name: Flag it as watched
         if: steps.triage.outputs.needs_review == 'true'
         env:
@@ -142,7 +144,7 @@ jobs:
           gh pr comment "$PR" --repo "$REPO" --body \
             "**Watched territory** — $REASON.
 
-          Flagged, not held: it merges on green like anything else. This is a record, not an objection — \`watched-change.yml\` will open an issue for it once it lands on \`main\`, so it does not go by unseen."
+          Flagged, not held: it merges on green like anything else. This is a record, not an objection — the weekly digest (\`weekly-check.yml\`, Fridays) will list it once it lands on \`main\`, so it does not go by unseen."
 
       - name: Mark it as mergeable on green
         if: steps.triage.outputs.needs_review == 'false'

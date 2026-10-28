@@ -90,11 +90,12 @@ permissions:
   # that comment before adding anything else to this file that calls an API.
   #
   # WRITE, not read, and this is the third time round the same block. After
-  # merging, this job dispatches migrate.yml, watched-change.yml,
-  # schema-check.yml and e2e.yml against main, because GitHub does not start
-  # workflows from a push made with GITHUB_TOKEN and those four would
-  # otherwise never run on main again. (migrate.yml was missing from that
-  # list until 21 September, which is its own comment further down.)
+  # merging, this job dispatches migrate.yml, schema-check.yml, e2e.yml and
+  # close-absorbed.yml against main (and, until 28 October, watched-change.yml
+  # -- gone since; see below), because GitHub does not start workflows from a
+  # push made with GITHUB_TOKEN and those would otherwise never run on main
+  # again. (migrate.yml was missing from that list until 21 September, which
+  # is its own comment further down.)
   # Reading runs needs actions:read; starting one needs actions:write.
   # With read, all three dispatches answered
   #
@@ -170,9 +171,10 @@ jobs:
             # dead, which is a manual approval gate however it is spelled, and
             # the rule now is that nothing waits on a person. A change in
             # expensive territory is labelled "watched" and commented on by
-            # triage.yml, and then merges on green like anything else;
-            # watched-change.yml opens an issue for it once it lands, so it is
-            # recorded either way.
+            # triage.yml, and then merges on green like anything else; the
+            # weekly digest (weekly-check.yml's `watched` job, since 28
+            # October; watched-change.yml per push before that) lists it once
+            # it lands, so it is recorded either way.
             LABELS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')
             if ! echo "$LABELS" | grep -qx "auto-merge"; then
               echo "PR #$PR is not marked auto-merge — leaving it alone."; return 0
@@ -462,7 +464,13 @@ jobs:
               # just swallowed -- one stacked under it, whose commits went in
               # with the squash and which would otherwise sit there
               # "conflicting" until somebody noticed (#588, 13 October).
-              for W in watched-change.yml schema-check.yml e2e.yml close-absorbed.yml; do
+              #
+              # watched-change.yml was in this list until 28 October, when
+              # its issue-per-push became one digest a week, read from git
+              # history by weekly-check.yml's `watched` job on the Friday
+              # cron. Nothing here needs to wake that: it is not a push
+              # trigger, so GITHUB_TOKEN's silence does not reach it.
+              for W in schema-check.yml e2e.yml close-absorbed.yml; do
                 gh workflow run "$W" --repo "$REPO" --ref main \
                   && echo "  woke $W on main" \
                   || echo "  could not wake $W — run it by hand if it matters"
