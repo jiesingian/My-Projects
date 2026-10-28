@@ -75,6 +75,33 @@ may see, added up, as Wealth's All view does).
   that repeats (a routine), a chore, a reminder, a budget, money moving.
   The no-key line now picks its three examples by the words in the
   question (money, food, people).
+- **Third PR, same day (the wider lookups):** eight tools added to
+  `tools.ts`, each the same read the matching screen does, as the asker
+  (row-level security decides what is in the rows): `get_tasks` (routines
+  and chores on a day or range, whose turn, done or not, what is behind;
+  queries/routines.ts), `get_documents` (the Vault's titles and expiry,
+  by name or expiring within six months), `get_debts` (liabilities, and
+  lending both ways via queries/utang.ts), `get_subscriptions`
+  (queries/subscriptions.ts, with monthly and yearly totals),
+  `get_journal` (on this day across years, a range, a topic, the latest;
+  household entries and the asker's own), `get_spending` (money out by
+  category and member for any range, with money in), `get_allowance` (a
+  child's alkansya jars, weekly allowance and chore points),
+  `get_event_guests` (RSVPs and outside guests, by title or date), and the
+  pantry on `get_household`. Rules on them: goals progress ("how far is
+  the Baguio fund"), loans and lending ("how much do we owe on the car
+  loan", "sino may utang sa atin", "do I owe anyone"), subscriptions
+  ("what do we pay every month", "when is Netflix next charged"),
+  documents ("when does Lia's passport expire", "what expires soon"),
+  chores ("what are Lia's chores today", "who hasn't done their chores",
+  "did Ben do his chores", "whose turn is it to wash the dishes"), the
+  piggy bank and points, who is coming to an event, spending in any past
+  month, the last N months, last week, this year or last year ("how much
+  did we spend last month", "groceries in September"), the journal ("what
+  happened on this day"), "where is X" (search, answered by kind) and "do
+  we have X" / "may bigas pa ba" (the pantry and the list). Where a person
+  is stays the model's (Where everyone is). The model gets the same eight
+  tools.
 - **Not checked:** the console against the real route in a browser (no
   key here either way; the spec holds the matcher and the phrasing, the
   route's wiring is read-only). Taglish wording is a session's best
