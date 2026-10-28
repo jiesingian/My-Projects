@@ -24,6 +24,7 @@ import {
   updateLiabilityBalanceAction,
   setLoanPaymentsLeftAction,
   addLoanBillAction,
+  addBillAction,
   repriceLoanAction,
   transferAction,
   updateLiabilityScheduleAction,
@@ -48,7 +49,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, extraPaymentEffect, repricedPayment, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { accountAudienceLabel, costPerMonth, extraPaymentEffect, repricedPayment, RUNNING_COST_PRESETS, type RunningCostRepeat, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
 import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
@@ -2095,6 +2096,100 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
           onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp }), () => setOpen(false))}
         >
           {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
+        </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Add a running cost" on an asset (Jonathan, 28 October): a condo's
+ * association dues, its amilyar, a car's insurance and registration, as a
+ * repeating bill against the asset. Today and the calendar remind on its
+ * day; paying it records upkeep on the asset, and "Add the next one?"
+ * carries it to the next month or year. */
+export function AddRunningCostControl({ assetId, assetName, kind, whose, currency, today }: { assetId: string; assetName: string; kind: string; whose: string; currency: string; today: string }) {
+  const uid = useId();
+  const presets = RUNNING_COST_PRESETS[kind] ?? [];
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("Housing");
+  const [recurrence, setRecurrence] = useState<RunningCostRepeat>("monthly");
+  const [amount, setAmount] = useState(0);
+  const [due, setDue] = useState("");
+  const { error, pending, run } = useMoneyAction();
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
+  const save = () => {
+    const f = new FormData();
+    f.set("name", name.trim());
+    f.set("amount", String(amount));
+    f.set("due_date", due);
+    f.set("category", category);
+    f.set("recurrence", recurrence);
+    f.set("against", `assets:${assetId}`);
+    f.set("whose", whose);
+    // A yearly cost is reminded two weeks ahead: time to get the money or
+    // the renewal papers together. A month's comes three days ahead.
+    f.set("remind_days_before", recurrence === "monthly" ? "3" : "14");
+    run(() => addBillAction({ error: null }, f), () => {
+      setOpen(false);
+      setName("");
+      setAmount(0);
+      setDue("");
+    });
+  };
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Add a running cost
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`A running cost of ${assetName}`}>
+        {presets.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.75rem" }}>
+            {presets.map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                className="chip"
+                data-active={name === p.name}
+                onClick={() => {
+                  setName(p.name);
+                  setCategory(p.category);
+                  setRecurrence(p.recurrence);
+                }}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="field" style={{ marginBottom: "0.625rem" }}>
+          <label htmlFor={`${uid}-name`}>What it is</label>
+          <input id={`${uid}-name`} className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Association dues, parking, insurance" maxLength={150} style={field} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem", marginBottom: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+            <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount || undefined} onValueChange={setAmount} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-every`}>How often</label>
+            <select id={`${uid}-every`} className="input" value={recurrence} onChange={(e) => setRecurrence(e.target.value as RunningCostRepeat)} style={field}>
+              <option value="monthly">Every month</option>
+              <option value="quarterly">Every 3 months</option>
+              <option value="yearly">Every year</option>
+            </select>
+          </div>
+        </div>
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-due`}>Next due</label>
+          <DateInput id={`${uid}-due`} className="input" value={due} min={today} onChange={(e) => setDue(e.target.value)} style={field} />
+        </div>
+        {amount > 0 && recurrence !== "monthly" && (
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>About {formatCurrency(costPerMonth(amount, recurrence), currency)} a month.</p>
+        )}
+        {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 0.5rem" }}>{error}</p>}
+        <button type="button" className="btn btn-primary btn-block" disabled={pending || !name.trim() || !(amount > 0) || !due} onClick={save} style={{ minHeight: "2.75rem" }}>
+          {pending ? "Adding…" : "Add running cost"}
         </button>
       </FormSheet>
     </>

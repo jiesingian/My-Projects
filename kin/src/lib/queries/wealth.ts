@@ -940,3 +940,21 @@ export async function getAccountViewers(familyId: string): Promise<Map<string, s
   for (const row of data ?? []) byAccount.set(row.account_id, [...(byAccount.get(row.account_id) ?? []), row.member_id]);
   return byAccount;
 }
+
+/** Each asset's repeating bills, and what was spent on its upkeep in the
+ * twelve months to `today` (28 October): the running costs A&L shows under
+ * the asset. Upkeep is money out tied to the asset that is not capital --
+ * dues, repairs, insurance, fuel -- whether from a bill or Move money. */
+export async function getAssetCosts(familyId: string, today: string) {
+  const supabase = await createClient();
+  const since = `${String(Number(today.slice(0, 4)) - 1)}${today.slice(4, 10)}`;
+  const [{ data: bills }, { data: spent }] = await Promise.all([
+    supabase.from("bills").select("name, amount, recurrence, due_date, status, against_id").eq("family_id", familyId).eq("against_table", "assets").in("recurrence", ["monthly", "quarterly", "yearly"]),
+    supabase.from("wealth_transactions").select("amount, source_id").eq("family_id", familyId).eq("source_table", "assets").eq("direction", "out").eq("capital", false).eq("status", "confirmed").gte("occurred_at", `${since}T00:00:00Z`),
+  ]);
+  const billsFor = new Map<string, NonNullable<typeof bills>>();
+  for (const b of bills ?? []) if (b.against_id) billsFor.set(b.against_id, [...(billsFor.get(b.against_id) ?? []), b]);
+  const upkeep = new Map<string, number>();
+  for (const t of spent ?? []) if (t.source_id) upkeep.set(t.source_id, (upkeep.get(t.source_id) ?? 0) + Number(t.amount));
+  return { billsFor, upkeep };
+}

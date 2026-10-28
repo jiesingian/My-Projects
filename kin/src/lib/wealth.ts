@@ -1450,3 +1450,55 @@ export function loanInsuranceFund<G extends { title: string; repeats_yearly: boo
   if (!name) return null;
   return goals.find((g) => g.repeats_yearly && g.title.toLowerCase().startsWith(`${name} `) && /insurance|premium|\bmri\b/i.test(g.title.slice(name.length))) ?? null;
 }
+
+/* ------------------------------------------------ an asset's running costs */
+
+/** What owning a thing costs to keep (Jonathan, 28 October): a condo's
+ * association dues, the yearly real property tax (amilyar), a car's
+ * insurance and LTO registration. Each is a repeating bill against the
+ * asset (bills.against_table = "assets"), so it reaches Today, the calendar
+ * and its reminder like any bill, and paying it records upkeep on the asset.
+ * The suggestions are by kind; anything else can be typed. */
+export type RunningCostRepeat = "monthly" | "quarterly" | "yearly";
+export const RUNNING_COST_PRESETS: Record<string, { name: string; category: string; recurrence: RunningCostRepeat }[]> = {
+  property: [
+    { name: "Association dues", category: "Housing", recurrence: "monthly" },
+    { name: "Real property tax (amilyar)", category: "Housing", recurrence: "yearly" },
+    { name: "Fire insurance", category: "Insurance", recurrence: "yearly" },
+  ],
+  vehicle: [
+    { name: "Car insurance", category: "Insurance", recurrence: "yearly" },
+    { name: "LTO registration", category: "Transport", recurrence: "yearly" },
+    { name: "Preventive maintenance", category: "Transport", recurrence: "quarterly" },
+  ],
+};
+
+const PER_MONTH: Record<string, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+
+/** One repeating cost's monthly share: a yearly ₱28,000 is ₱2,333.33 a month. */
+export function costPerMonth(amount: number, recurrence: string): number {
+  const every = PER_MONTH[recurrence];
+  return every ? cents(amount / every) : 0;
+}
+
+export type RunningCost = { name: string; amount: number; recurrence: RunningCostRepeat; due: string | null; open: boolean; perMonth: number };
+
+/** An asset's running costs from its repeating bills: the newest bill of
+ * each name (a paid one stands until "Add the next one?" makes the next),
+ * its next due day while one is open, and what they come to a month. */
+export function runningCosts(bills: { name: string; amount: number; recurrence: string | null; due_date: string | null; status: string }[]): { costs: RunningCost[]; perMonth: number } {
+  const newest = new Map<string, (typeof bills)[number]>();
+  for (const b of bills) {
+    if (!b.recurrence || !(b.recurrence in PER_MONTH)) continue;
+    const key = b.name.trim().toLowerCase();
+    const seen = newest.get(key);
+    if (!seen || (b.due_date ?? "") > (seen.due_date ?? "")) newest.set(key, b);
+  }
+  const costs = [...newest.values()]
+    .map((b) => {
+      const open = b.status === "unpaid" || b.status === "scheduled";
+      return { name: b.name, amount: Number(b.amount), recurrence: b.recurrence as RunningCostRepeat, due: open ? b.due_date : null, open, perMonth: costPerMonth(Number(b.amount), b.recurrence!) };
+    })
+    .sort((a, b) => b.perMonth - a.perMonth);
+  return { costs, perMonth: cents(costs.reduce((t, c) => t + c.perMonth, 0)) };
+}
