@@ -3,6 +3,22 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 28 October: the watched-change record, weekly (Jonathan)
+
+Done the same day. `watched-change.yml` opened an issue on every push to
+`main` that touched a watched path or changed over ~400 lines, and nothing
+closed them: 341 open, almost all of these, so the open-issue list meant
+nothing. The record stays, as one issue a week: the `watched` job in
+`weekly-check.yml` (Fridays, with the human check) lists every commit on
+`main` since the previous digest -- each classified from its own diff with
+the per-push rules, never from the commit message or who pushed -- with
+links, the paths that matched, and the `WATCHED:` line when there is one.
+A week with none opens nothing. The per-push workflow is deleted;
+`automerge.yml` no longer wakes it after a merge. The 341 old issues were
+closed as not planned from the session that shipped this, not by a
+workflow, so that it stays a one-time act with a person's decision behind
+it.
+
 ## Decided 26 October: Cash Flow's Expenses group, trimmed (Jonathan)
 
 Done the same day. Under the donut now: Next 30 days, then REPORTS

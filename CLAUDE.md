@@ -137,7 +137,7 @@ like a manual step was not one.
 
 - If the diff touches a watched path or changes >~400 lines, add a commit-message line: `WATCHED: <area> — <what>`.
 - Watched: `kin/src/lib/actions/{auth,family,billing,wealth,drive}.ts`, `kin/src/lib/supabase/`, `kin/src/lib/session.ts`, `kin/src/lib/access.ts`, `kin/src/lib/billing/`, `kin/src/proxy.ts`, `kin/src/app/api/`, `kin/src/app/auth/`, account screens (`login/ signup/ verify/ forgot-password/ reset-password/ subscribe/`), `kin/next.config.*`, `kin/package{,-lock}.json`, `kin/eslint.config.*`, `.github/`, `.claude/`, `.gitignore`, `CLAUDE.md`, any `AGENTS.md`, `LICENSE`, any `.sql`.
-- `watched-change.yml` flags these anyway; don't move code to dodge the list.
+- The weekly digest (`weekly-check.yml`, Fridays) lists these anyway, from each commit's diff, in one `watched-change` issue a week; don't move code to dodge the list.
 
 <!--
 Most of the app is revertible. A bad component ships, somebody notices, it is
@@ -165,13 +165,17 @@ The paths, which are the same list `triage.yml` classifies from:
 - `.github/`, `.claude/`, `.gitignore`, `CLAUDE.md`, any `AGENTS.md`, `LICENSE`
 - any `.sql` file
 
-You are not being asked to grade your own homework. `.github/workflows/`
-`watched-change.yml` reads every push to `main` and opens an issue when it
-sees one of these, whoever pushed it and whatever the commit message claimed —
-so the flag is a courtesy that saves Jonathan finding out from a robot, not
-the thing being relied on. Do not move code out of a watched path to keep it
-quiet; the list exists because those files are where a mistake is expensive,
-and a change is not made safer by being harder to see.
+You are not being asked to grade your own homework. The `watched` job in
+`.github/workflows/weekly-check.yml` reads every commit on `main` since the
+previous digest and opens one issue a week listing those that touched one of
+these, whoever pushed it and whatever the commit message claimed — so the
+flag is a courtesy that saves Jonathan finding out from a robot, not the
+thing being relied on. (Until 28 October `watched-change.yml` did the same
+per push: 341 open issues and nothing closing them, so the list stopped
+meaning anything. Jonathan's call, 28 October: the record stays, weekly.)
+Do not move code out of a watched path to keep it quiet; the list exists
+because those files are where a mistake is expensive, and a change is not
+made safer by being harder to see.
 -->
 
 ### Neither session gates the other
@@ -277,10 +281,10 @@ each file that somebody had to remember to change. Twice nobody did. The
 ledger the pipeline writes is in the same transaction as the migration itself,
 so it cannot disagree.
 
-Nothing else here is a gate. `watched-change.yml` reads every push to `main`
-and opens an issue from the actual diff, whoever pushed and whatever the
-commit message claimed — so nobody grades their own homework and nobody has
-to police anybody.
+Nothing else here is a gate. The weekly digest (`weekly-check.yml`) reads
+every commit on `main` and lists the watched ones from the actual diff,
+whoever pushed and whatever the commit message claimed — so nobody grades
+their own homework and nobody has to police anybody.
 -->
 
 ## Real data is never a test target

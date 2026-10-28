@@ -2,7 +2,8 @@ name: Weekly check
 
 # One result a week, instead of two people watching each other's pushes --
 # and, since 18 September, the one place the comprehensive end-to-end suite
-# runs at all.
+# runs at all. Since 28 October also the week's watched-change digest: the
+# `watched` job at the foot of this file, which has its own comment.
 #
 # The automatic checks on each pull request are the gate -- nothing merges
 # without them. Those checks now run a fast, read-only smoke tier
@@ -444,3 +445,269 @@ jobs:
             gh issue create --repo "$REPO" --title "Errors this week — $TODAY" \
               --label "weekly-check" --body-file /tmp/errors-body.md
           fi
+
+  # THE WATCHED-CHANGE DIGEST (since 28 October; before that, watched-change.yml).
+  #
+  # Says out loud, once a week, what landed on `main` in the territory where
+  # a mistake cannot be undone in five minutes. Until 28 October a workflow of
+  # its own (watched-change.yml) did this on every push to main and opened an
+  # issue per push. Both people push many times a day, so it opened 341
+  # issues in seven weeks and closed none of them, and the open-issue list
+  # stopped meaning anything -- which is how a record earns being skimmed
+  # past. Jonathan decided (28 October): the record stays, as one issue a
+  # week, in the file that already is the one look a week.
+  #
+  # Three rules from the old workflow survive unchanged, and this job is
+  # wrong the day any of them goes:
+  #
+  #   - It classifies from the diff, never from the commit message. CLAUDE.md
+  #     asks for a "WATCHED:" line as a courtesy, and a courtesy is exactly
+  #     what it is -- an agent asked to describe its own change describes it
+  #     as small, and a tired person forgets. Nobody grades their own
+  #     homework, so this asks git. The WATCHED line is quoted in the digest
+  #     when there is one; it never decides whether a commit is in it.
+  #   - Who pushed is not part of the decision either. Jonathan's own commits
+  #     are listed the same as anyone's, which is both the honest rule and
+  #     the one that cannot rot: an exemption keyed on a username is an
+  #     exemption that silently covers whoever inherits the account.
+  #   - The list of paths is the one triage.yml classifies pull requests
+  #     from, copied by hand (see the comment on SENSITIVE below).
+  #
+  # It reads git history rather than a running log, because nothing may push
+  # to `main` -- not a person, not a workflow -- and a log file committed
+  # from here would be exactly that. The range starts where the previous
+  # digest stopped: each digest ends with an HTML comment naming the `main`
+  # commit it looked up to, and the next one reads it back from the newest
+  # digest issue, open or closed. No previous digest (the first run, or an
+  # issue somebody deleted): the last seven days. Scanning back to a digest
+  # weeks old never repeats a commit, since any commit worth listing would
+  # already have produced a digest of its own. The seven-day fallback can
+  # miss a commit only when a whole week's run never happened AND there was
+  # no digest before it to anchor on -- a narrow case, and a run that
+  # reports a week rather than erroring is the better failure.
+  #
+  # Each commit on main's first-parent line is classified on its own diff
+  # against its first parent -- for a squash merge that is the pull request,
+  # for a merge commit it is what the merge brought in -- so a 20-line change
+  # to an auth file is not hidden inside a 2,000-line week. A week with no
+  # watched commit opens nothing: silence on a good week is the point, as
+  # with the rest of this file.
+  #
+  # Its own job, not a step of `check`: it needs no dev database, so it must
+  # not wait on `turn`, and a suite cancelled at its time limit (23 October)
+  # must not take the week's record with it.
+  watched:
+    name: watched changes this week
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          # The whole history: this diffs every commit of the week against
+          # its parent, and the previous digest may be further back than
+          # any depth worth guessing at.
+          fetch-depth: 0
+
+      - name: Work out what landed this week
+        id: look
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SERVER: ${{ github.server_url }}
+        run: |
+          set -euo pipefail
+
+          # The same list triage.yml classifies from. Kept in step with it by
+          # hand, which is a real cost -- but the two run on different events
+          # with different inputs, and a shared file would have to be sourced
+          # by a `pull_request_target` job, which is the one context where
+          # reading a file from the branch is how a fork gets to run code here.
+          SENSITIVE='^(
+          kin/src/lib/actions/(auth|family|billing|wealth|drive)\.ts|
+          kin/src/lib/supabase/|
+          kin/src/lib/session\.ts|
+          kin/src/lib/access\.ts|
+          kin/src/lib/billing/|
+          kin/src/proxy\.ts|
+          kin/src/app/api/|
+          kin/src/app/auth/|
+          kin/src/app/login/|
+          kin/src/app/signup/|
+          kin/src/app/verify/|
+          kin/src/app/forgot-password/|
+          kin/src/app/reset-password/|
+          kin/src/app/subscribe/|
+          kin/next\.config\.|
+          kin/package(-lock)?\.json|
+          kin/eslint\.config\.|
+          \.github/|
+          \.claude/|
+          \.gitignore|
+          CLAUDE\.md|
+          .*AGENTS\.md|
+          LICENSE|
+          .*\.sql
+          )'
+          SENSITIVE=$(printf '%s' "$SENSITIVE" | tr -d ' \n')
+
+          HEAD_SHA=$(git rev-parse HEAD)
+
+          # Where the previous digest stopped. Open or closed: Jonathan closes
+          # a digest once he has read it, and that must not reset the range.
+          # The marker is an HTML comment at the foot of every digest body.
+          LAST=$(gh issue list --repo "$REPO" --label "watched-change" --state all --limit 1 \
+              --search '"Watched changes on main" in:title sort:created-desc' \
+              --json body --jq '.[0].body // empty' \
+            | grep -oE '<!-- digest-end: [0-9a-f]{40} -->' | grep -oE '[0-9a-f]{40}' || true)
+
+          if [ -n "$LAST" ] && git merge-base --is-ancestor "$LAST" HEAD 2>/dev/null; then
+            RANGE_NOTE="since the previous digest stopped, at ${LAST:0:7}"
+            COMMITS=$(git rev-list --first-parent --reverse "$LAST..HEAD")
+          else
+            if [ -n "$LAST" ]; then
+              echo "The previous digest stopped at $LAST, which is not on main any more; falling back to seven days."
+            else
+              echo "No previous digest found; falling back to seven days."
+            fi
+            RANGE_NOTE="over the last seven days (no previous digest to start from)"
+            COMMITS=$(git rev-list --first-parent --reverse --since="7 days ago" HEAD)
+          fi
+
+          LOOKED=0
+          MATCHED=0
+          : > /tmp/digest.md
+          for C in $COMMITS; do
+            LOOKED=$(( LOOKED + 1 ))
+            # A root commit has no parent and nothing to diff against; main
+            # has had one since 2 September, so this is never reached.
+            git rev-parse -q --verify "$C^" > /dev/null || continue
+
+            git diff --name-only "$C^" "$C" > /tmp/files.txt
+            grep -E "$SENSITIVE" /tmp/files.txt > /tmp/watched.txt || true
+
+            # numstat rather than shortstat: two integer columns per file, so
+            # this needs no bc and no parsing of a sentence whose wording
+            # changes with the count ("1 insertion" against "2 insertions").
+            # A binary file reports "-" for both, which awk reads as 0 --
+            # right, since a line count means nothing for one.
+            TOTAL=$(git diff --numstat "$C^" "$C" | awk '{ a += $1; d += $2 } END { print a + d + 0 }')
+
+            REASONS=""
+            if [ -s /tmp/watched.txt ]; then
+              REASONS="touches auth, data rules, billing, an API route, the toolchain, or a migration"
+            fi
+            if [ "$TOTAL" -gt 400 ]; then
+              if [ -n "$REASONS" ]; then
+                REASONS="$REASONS, and changes $TOTAL lines"
+              else
+                REASONS="changes $TOTAL lines, which is past the point of landing unread"
+              fi
+            fi
+            [ -n "$REASONS" ] || continue
+            MATCHED=$(( MATCHED + 1 ))
+
+            SHORT="${C:0:7}"
+            SUBJECT=$(git log -1 --format=%s "$C")
+            AUTHOR=$(git log -1 --format=%an "$C")
+            DATE=$(TZ=Asia/Manila git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M' "$C")
+            # The courtesy line, quoted when present; it decided nothing above.
+            # With the lines it wraps onto: people wrap at 72 columns, so the
+            # line after a WATCHED: is usually the rest of it, up to a blank
+            # line or the next "Something:" line (a trailer, or another flag).
+            FLAG=$(git log -1 --format=%B "$C" | awk '
+              /^WATCHED:/ { on = 1; print; next }
+              on && (/^[[:space:]]*$/ || /^[A-Za-z-]+:/) { on = 0 }
+              on { print }')
+
+            {
+              echo "### [\`$SHORT\`]($SERVER/$REPO/commit/$C) $SUBJECT"
+              echo
+              echo "$AUTHOR, $DATE Manila · $TOTAL lines · it $REASONS."
+              echo
+              if [ -n "$FLAG" ]; then
+                echo "$FLAG" | sed 's/^/> /'
+              else
+                echo "> _No \`WATCHED:\` line in the commit message._"
+              fi
+              echo
+              if [ -s /tmp/watched.txt ]; then
+                echo '```'
+                head -n 40 /tmp/watched.txt
+                N=$(wc -l < /tmp/watched.txt)
+                if [ "$N" -gt 40 ]; then echo "… and $(( N - 40 )) more"; fi
+                echo '```'
+              else
+                echo '_No watched path — listed on size alone._'
+              fi
+              echo
+            } >> /tmp/digest.md
+          done
+
+          echo "Looked at $LOOKED commit(s) on main $RANGE_NOTE; $MATCHED watched."
+          {
+            echo "## Watched changes on main"
+            echo
+            echo "Looked at $LOOKED commit(s) $RANGE_NOTE; **$MATCHED** in watched territory."
+            echo
+            cat /tmp/digest.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo "looked=$LOOKED"
+            echo "matched=$MATCHED"
+            echo "range_note=$RANGE_NOTE"
+            echo "head=$HEAD_SHA"
+            if [ "$MATCHED" -gt 0 ]; then echo "watched=true"; else echo "watched=false"; fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Say so, once
+        if: steps.look.outputs.watched == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          LOOKED: ${{ steps.look.outputs.looked }}
+          MATCHED: ${{ steps.look.outputs.matched }}
+          RANGE_NOTE: ${{ steps.look.outputs.range_note }}
+          HEAD_SHA: ${{ steps.look.outputs.head }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TODAY=$(TZ=Asia/Manila date +%Y-%m-%d)
+
+          {
+            echo "Changes that are expensive to undo landed on \`main\` this week. Nothing is wrong with them — this is a record, not an objection: one digest a week since 28 October, in place of an issue per push."
+            echo
+            echo "Looked at $LOOKED commit(s) $RANGE_NOTE; **$MATCHED** in watched territory. Each is classified from its own diff — never from the commit message or who pushed it."
+            echo
+            # GitHub stops an issue body at 65,536 characters. A week this
+            # long would be its own kind of news; cut it rather than fail to
+            # open the issue at all.
+            head -c 60000 /tmp/digest.md
+            if [ "$(wc -c < /tmp/digest.md)" -gt 60000 ]; then
+              echo
+              echo "_… cut here: the week was longer than an issue body holds. The run's summary has all of it._"
+              echo
+            fi
+            # Deliberately does not claim a migration has not been run. It
+            # cannot know: a file lands on main both before Jonathan runs it
+            # and after, and the first version of the per-push issue said
+            # "it has **not** been run" either way, which was already false
+            # on the first issue it opened.
+            echo "If a commit contains a \`.sql\` file, check whether it has been run before assuming either way — this digest cannot tell. \`migrate.yml\` applies migrations to dev on merge and to production when it is run with that target, so a file can sit on \`main\` with the schema unmoved."
+            echo
+            echo "[Workflow run]($RUN_URL)"
+            echo
+            echo "<!-- digest-end: $HEAD_SHA -->"
+            echo
+            echo "---"
+            echo "_Generated by [Claude Code](https://claude.ai/code)_"
+          } > /tmp/body.md
+
+          gh label create "watched-change" --repo "$REPO" --color FBCA04 \
+            --description "Landed on main in territory where a mistake is expensive." || true
+
+          gh issue create --repo "$REPO" \
+            --title "Watched changes on main — week of $TODAY" \
+            --label "watched-change" \
+            --body-file /tmp/body.md
