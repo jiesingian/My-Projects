@@ -20,6 +20,7 @@ import { addDays, weekdayOf, readableDay, daysBetween, familyClock } from "@/lib
 import { formatCurrency } from "@/lib/format";
 import { EXPENSE_CATEGORIES, GOAL_CATEGORY, TRANSFER_CATEGORY } from "@/lib/wealth";
 import { UNITS, formatQuantity } from "@/lib/grocery";
+import { parseQuickLine } from "@/lib/quick-line";
 
 export type Lang = "en" | "tl";
 
@@ -36,7 +37,22 @@ export type RuleContext = {
   canAskHealth: boolean;
   /** The household's zone, for the times in a schedule answer. */
   timeZone?: string;
+  /** The asker's full name: who an activity with nobody named is for, as
+   * Today's one-line add does it. Absent, it is the whole family's. */
+  me?: string;
 };
+
+/** What a rule remembers between a question of its own and the answer
+ * (28 October, second PR): which rule asked, the slots it already has, and
+ * the language. The console sends it back with the member's next message;
+ * `resumeRule` finishes the job. Slots come back from the client, so they
+ * are read as loosely as a model's tool input: the tool validates them. */
+export type Pending = { rule: string; slots: Record<string, string | number>; lang: Lang; asked: number };
+
+/** A rule that needs one more detail, or a choice between records, asks for
+ * it instead of guessing or handing the question to the model. `choices`
+ * are shown as chips; a free-text answer works too. */
+export type Ask = { ask: string; choices?: string[]; pending: Pending };
 
 export type RuleMatch = {
   /** Which rule matched, for the spec and the logs. */
@@ -47,10 +63,17 @@ export type RuleMatch = {
   input: Record<string, unknown>;
   /** The reply, phrased from the tool's parsed JSON result, in the member's
    * language. A tool's `{ error }` is relayed as it is: the tools already
-   * speak plainly. */
-  say: (result: unknown) => string;
+   * speak plainly. When the result holds two records that both answer
+   * ("Globe Fiber" and "Globe Postpaid"), an Ask with the choices instead. */
+  say: (result: unknown) => string | Ask;
   lang: Lang;
 };
+
+export type RuleOutcome = RuleMatch | Ask;
+
+export function isAsk(outcome: RuleOutcome | string | null | undefined): outcome is Ask {
+  return !!outcome && typeof outcome === "object" && "ask" in outcome;
+}
 
 /* ------------------------------------------------------------------ words */
 
@@ -422,7 +445,7 @@ function billMatches(bill: Bill, wanted: string): boolean {
 
 /* ------------------------------------------------------------------ rules */
 
-type Rule = (q: Query, ctx: RuleContext) => RuleMatch | null;
+type Rule = (q: Query, ctx: RuleContext) => RuleOutcome | null;
 
 /** A question that reads as advice, a plan, a why, a how-to, several things at
  * once, or a change to a record is the model's. The rules answer only what a
@@ -458,6 +481,44 @@ const billsOverdue: Rule = (q, ctx) => {
   };
 };
 
+/** The answer to "when is X due" / "how much is the X bill", from the unpaid
+ * bills. `exact` is a name the member picked from a choice: only that bill. */
+function billDueMatch(name: string, lang: Lang, ctx: RuleContext, exact: string | null): RuleMatch {
+  const t = pick(lang);
+  return {
+    rule: "bills.due_when",
+    tool: "get_money",
+    input: {},
+    lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const bills = rows<Bill>(result, "unpaid_bills")
+        .filter((b) => (exact ? b.name.toLowerCase() === exact.toLowerCase() : billMatches(b, name)))
+        .sort((a, b) => a.due_date.localeCompare(b.due_date));
+      if (bills.length === 0) {
+        return t(`No unpaid bill called "${name}" in Kin. Paid and other bills are under Wealth → Expenses.`, `Walang unpaid na bill na "${name}" sa Kin. Nasa Wealth → Expenses ang mga bayad na.`);
+      }
+      // Two different bills answer to the word ("Globe Fiber", "Globe
+      // Postpaid"): ask which, rather than pick.
+      const names = [...new Set(bills.map((b) => b.name))];
+      if (names.length > 1 && !exact) {
+        return {
+          ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`),
+          choices: names,
+          pending: { rule: "bills.due_when", slots: { name }, lang, asked: 1 },
+        };
+      }
+      const b = bills[0];
+      const when = `${readableDay(b.due_date)} (${distance(b.due_date, ctx.today, lang)})`;
+      const late = b.due_date < ctx.today;
+      return t(
+        `${b.name} (${money(b.amount, ctx.currency)}) ${late ? "was due" : "is due"} ${when}.`,
+        `${late ? "Due na ang" : "Due ang"} ${b.name} (${money(b.amount, ctx.currency)}) ${late ? "noong" : "sa"} ${when}.`,
+      );
+    },
+  };
+}
+
 const billDue: Rule = (q, ctx) => {
   // "when is X due", "kailan due ang X", "X due when", "kailan ang bayad ng X";
   // also "how much is the X bill", "magkano ang Meralco": the same answer,
@@ -473,27 +534,7 @@ const billDue: Rule = (q, ctx) => {
     .replace(/\s+/g, " ")
     .trim();
   if (!name) return null;
-  const t = pick(q.lang);
-  return {
-    rule: "bills.due_when",
-    tool: "get_money",
-    input: {},
-    lang: q.lang,
-    say: (result) => {
-      if (isError(result)) return result.error;
-      const bills = rows<Bill>(result, "unpaid_bills").filter((b) => billMatches(b, name)).sort((a, b) => a.due_date.localeCompare(b.due_date));
-      if (bills.length === 0) {
-        return t(`No unpaid bill called "${name}" in Kin. Paid and other bills are under Wealth → Expenses.`, `Walang unpaid na bill na "${name}" sa Kin. Nasa Wealth → Expenses ang mga bayad na.`);
-      }
-      const b = bills[0];
-      const when = `${readableDay(b.due_date)} (${distance(b.due_date, ctx.today, q.lang)})`;
-      const late = b.due_date < ctx.today;
-      return t(
-        `${b.name} (${money(b.amount, ctx.currency)}) ${late ? "was due" : "is due"} ${when}.`,
-        `${late ? "Due na ang" : "Due ang"} ${b.name} (${money(b.amount, ctx.currency)}) ${late ? "noong" : "sa"} ${when}.`,
-      );
-    },
-  };
+  return billDueMatch(name, q.lang, ctx, null);
 };
 
 const billsOwed: Rule = (q, ctx) => {
@@ -770,6 +811,7 @@ function scheduleLines(result: unknown, range: DayRange, ctx: RuleContext, lang:
 }
 
 const whatsOn: Rule = (q, ctx) => {
+  if (ADD_VERB.test(q.text)) return null;
   if (/\b(bill|bills|due|bayarin|spend|spent|gastos|budget|balance|list|listahan|bibilhin|buy|dinner|lunch|ulam|hapunan|tanghalian|almusal|breakfast|meal|meals|birthday|kaarawan|allerg|gamot|medicine)\b/.test(q.text)) return null;
   if (!/\b(what is on|whats on|what is happening|what do we have|what is (?:the )?(?:schedule|plan|agenda)|schedule|agenda|plans?|anong meron|ano meron|ano ang meron|may lakad|anong lakad|ano ang lakad|anong schedule|ano ang schedule|anong nakaschedule|anything on|anything (?:happening|scheduled)|what is up|calendar|busy|free)\b/.test(q.text)) return null;
   if (/\b(when|kailan|kelan)\b/.test(q.text)) return null;
@@ -1079,7 +1121,9 @@ const addToList: Rule = (q) => {
   if (/\b(₱|php|\d{3,})\b/.test(rest) && /\b(for|sa|due|worth)\b/.test(rest)) return null;
   // Where it goes. English needs the list named; Filipino "pa-add ng gatas" is the list.
   const target = /\s+(?:to|on|onto|in|into|sa)\s+(?:the\s+|our\s+|my\s+|ang\s+|aming\s+|ating\s+)?(?:shopping\s+|grocery\s+|groceries\s+|to-?buy\s+|market\s+|palengke\s+|grocery\s+)?(?:list|listahan|bilihin|to-?buy|groceries|cart)\b(?:\s+(?:please|naman|nga|po|ha|na|ngayon|today|bukas|tomorrow))*$/;
-  const named = target.test(rest);
+  const leading = /^(?:to |sa |on )?(?:the |our |ang )?(?:shopping |grocery |groceries )?(?:list|listahan|bilihin|to-?buy)\s*[:\-–]?\s*(.+)$/.exec(rest);
+  if (leading) rest = leading[1].trim();
+  const named = !!leading || target.test(rest);
   const filipino = /^(pa-?add|paki-?add|idagdag|dagdag|dagdagan|pakidagdag|pabili|pakibili|pa-?bili|bili)$/.test(verb[1]) || q.lang === "tl";
   if (!named && !filipino) return null;
   rest = rest.replace(target, "").replace(/\s+(?:please|naman|nga|po|ha|na|din|rin)$/g, "").trim();
@@ -1104,42 +1148,263 @@ const addToList: Rule = (q) => {
   };
 };
 
-const addBill: Rule = (q, ctx) => {
-  if (!/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/.test(q.text)) return null;
-  if (!/\b(bill|bills|due|babayaran|bayarin)\b/.test(q.text)) return null;
-  // The amount: ₱3,200 / 3200 / php 3200 / 3.2k.
-  const amountMatch = /(?:₱|php|p)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b)?(?:\s*(?:pesos|php|piso))?/.exec(q.text.replace(/\bdue\b.*$/, ""));
-  if (!amountMatch) return null;
-  const amount = Number(amountMatch[1].replace(/,/g, "")) * (amountMatch[2] ? 1000 : 1);
-  if (!(amount > 0)) return null;
-  // The date: after "due" (or "sa"/"on" when "due" sits before the amount).
-  const dueText = /\bdue\b(.*)$/.exec(q.text)?.[1] ?? /\b(?:on|sa|every|tuwing)\b(.*)$/.exec(q.text)?.[1];
-  if (!dueText) return null;
-  const range = resolveRange(dueText.trim(), ctx.today);
-  if (!range || !range.single) return null;
-  // The name: what is left once the verb, the amount, the date and the filler go.
-  const name = q.text
-    .replace(/\bdue\b.*$/, "")
-    .replace(/(?:₱|php|p)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?|(?:₱|php|p)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?/, " ")
-    .replace(/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/, " ")
-    .replace(/\b(a|an|the|new|bill|bills|of|for|ng|ang|na|sa|our|my|natin|namin|ko|worth|amount|amounting|to|please|naman|nga|po|babayaran|bayarin|this month|ngayong buwan|monthly|every month)\b/g, " ")
-    .replace(/[:\-–]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  if (!name) return null;
-  const category = categoryIn(q.text) ?? billCategory(name);
-  const recurring = /\b(monthly|every month|buwan-buwan|buwanang|every|tuwing)\b/.test(q.text) ? "monthly" : /\b(once|one-?time|isang beses|lang)\b/.test(q.text) ? "once" : undefined;
-  const t = pick(q.lang);
+/** A peso amount in a line: ₱3,200 / 3200 / php 3200 / 3.2k / 850 pesos. */
+function readAmount(text: string): number | null {
+  const m = /(?:₱|\bphp|\bp)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(k\b)?(?:\s*(?:pesos|php|piso))?/.exec(text);
+  if (!m) return null;
+  const amount = Number(m[1].replace(/,/g, "")) * (m[2] ? 1000 : 1);
+  return amount > 0 ? amount : null;
+}
+
+const BILL_RECURRENCE = (text: string): "monthly" | "once" | undefined =>
+  /\b(monthly|every month|buwan-buwan|buwanang|every|tuwing)\b/.test(text) ? "monthly" : /\b(once|one-?time|isang beses|lang)\b/.test(text) ? "once" : undefined;
+
+/** The add_bill match once name, amount and due date are all known. */
+function addBillMatch(name: string, amount: number, dueDate: string, lang: Lang, ctx: RuleContext, extra: { category?: string; recurrence?: string }): RuleMatch {
+  const t = pick(lang);
   const titled = name.replace(/\b[a-z]/g, (c) => c.toUpperCase());
   return {
     rule: "add.bill",
     tool: "add_bill",
-    input: { name: titled, amount, due_date: range.from, ...(category ? { category } : {}), ...(recurring ? { recurrence: recurring } : {}) },
-    lang: q.lang,
+    input: { name: titled, amount, due_date: dueDate, ...(extra.category ? { category: extra.category } : {}), ...(extra.recurrence ? { recurrence: extra.recurrence } : {}) },
+    lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      return t(`Added ${titled}, ${money(amount, ctx.currency)} due ${readableDay(range.from)}.`, `Na-add ang ${titled}, ${money(amount, ctx.currency)}, due sa ${readableDay(range.from)}.`);
+      return t(`Added ${titled}, ${money(amount, ctx.currency)} due ${readableDay(dueDate)}.`, `Na-add ang ${titled}, ${money(amount, ctx.currency)}, due sa ${readableDay(dueDate)}.`);
     },
+  };
+}
+
+/** The question for whatever a bill still lacks, with what is known kept. */
+function askForBill(name: string, amount: number | null, dueDate: string | null, lang: Lang, asked: number, extra: { category?: string; recurrence?: string }): Ask {
+  const t = pick(lang);
+  const titled = name.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  const ask =
+    amount === null && dueDate === null
+      ? t(`How much is the ${titled} bill, and when is it due?`, `Magkano ang ${titled}, at kailan ang due?`)
+      : amount === null
+        ? t(`How much is the ${titled} bill?`, `Magkano ang ${titled}?`)
+        : t(`When is ${titled} due?`, `Kailan due ang ${titled}?`);
+  const slots: Record<string, string | number> = { name };
+  if (amount !== null) slots.amount = amount;
+  if (dueDate) slots.due_date = dueDate;
+  if (extra.category) slots.category = extra.category;
+  if (extra.recurrence) slots.recurrence = extra.recurrence;
+  return { ask, pending: { rule: "add.bill", slots, lang, asked } };
+}
+
+const addBill: Rule = (q, ctx) => {
+  if (!/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/.test(q.text)) return null;
+  if (!/\b(bill|bills|due|babayaran|bayarin|subscription)\b/.test(q.text)) return null;
+  const beforeDue = q.text.replace(/\bdue\b.*$/, "");
+  const amount = readAmount(beforeDue);
+  // The date: after "due" (or "sa"/"on" when "due" sits before the amount).
+  const dueText = /\bdue\b(.*)$/.exec(q.text)?.[1] ?? /\b(?:on|sa|every|tuwing)\b(.*)$/.exec(q.text)?.[1];
+  const range = dueText ? resolveRange(dueText.trim(), ctx.today) : null;
+  const dueDate = range && range.single ? range.from : null;
+  // The name: what is left once the verb, the amount, the date and the filler go.
+  const name = beforeDue
+    .replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?/, " ")
+    .replace(/^(?:please\s+|paki\s+|pwede\s+)?(?:add|pa-?add|paki-?add|i-?add|idagdag|dagdag|track|new|record)\b/, " ")
+    .replace(/\b(a|an|the|new|bill|bills|subscription|of|for|ng|ang|na|sa|our|my|natin|namin|ko|worth|amount|amounting|to|please|naman|nga|po|babayaran|bayarin|this month|ngayong buwan|monthly|every month)\b/g, " ")
+    .replace(/[:\-–]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!name) return null;
+  const extra = { category: categoryIn(q.text) ?? billCategory(name) ?? undefined, recurrence: BILL_RECURRENCE(q.text) };
+  // A bill is money due on a day: a missing amount or day is asked for, not
+  // guessed and not handed on.
+  if (amount === null || !dueDate) return askForBill(name, amount, dueDate, q.lang, 1, extra);
+  return addBillMatch(name, amount, dueDate, q.lang, ctx, extra);
+};
+
+/* plain adds through the one-line parser (lib/quick-line.ts): an activity
+ * with a day and a time, an event, a meal for a day. Filipino day words are
+ * put into English first; the parser's grammar is English. */
+
+const TL_TO_EN: [RegExp, string][] = [
+  [/\bsa makalawa\b/g, "in 2 days"],
+  [/\bbukas\b/g, "tomorrow"],
+  [/\b(ngayon|ngayong araw|mamaya)\b/g, "today"],
+  [/\bsa susunod na linggo\b/g, "next week"],
+  [/\bsa susunod na\b/g, "next"],
+  [/\b(?:sa |tuwing )?(linggo)\b/g, "sunday"],
+  [/\b(?:sa |tuwing )?lunes\b/g, "monday"],
+  [/\b(?:sa |tuwing )?martes\b/g, "tuesday"],
+  [/\b(?:sa |tuwing )?miyerkules\b/g, "wednesday"],
+  [/\b(?:sa |tuwing )?huwebes\b/g, "thursday"],
+  [/\b(?:sa |tuwing )?biyernes\b/g, "friday"],
+  [/\b(?:sa |tuwing )?sabado\b/g, "saturday"],
+  [/\benero\b/g, "jan"], [/\bpebrero\b/g, "feb"], [/\bmarso\b/g, "mar"], [/\babril\b/g, "apr"], [/\bmayo\b/g, "may"], [/\bhunyo\b/g, "jun"],
+  [/\bhulyo\b/g, "jul"], [/\bagosto\b/g, "aug"], [/\bsetyembre\b/g, "sep"], [/\boktubre\b/g, "oct"], [/\bnobyembre\b/g, "nov"], [/\bdisyembre\b/g, "dec"],
+  [/\balas[- ](\d{1,2})\b/g, "at $1"],
+  [/\bng (umaga)\b/g, "am"], [/\bng (hapon|gabi)\b/g, "pm"],
+  [/\b(ulam|hapunan)\b/g, "dinner"], [/\btanghalian\b/g, "lunch"], [/\b(almusal|agahan)\b/g, "breakfast"],
+  [/\bkaarawan\b/g, "birthday"],
+  [/\b(ni|kay|para kay|para sa)\s+/g, ""],
+  [/\b(ng|ang|na|sa|yung|si)\s+/g, ""],
+];
+
+const ADD_VERB = /^(?:please\s+|paki\s+|pwede\s+|kin\s+)?(add|pa-?add|paki-?add|i-?add|idagdag|dagdag|pakidagdag|schedule|pa-?schedule|i-?schedule|book|put|ilagay|lagay|set|plan|note down|isulat)\b\s*(?:a |an |the |ng |ang |mo |mo ng |nga |naman |to |on |in |sa )*(.*)$/;
+
+/** The words of `text` as the member typed them: the parser works on the
+ * lowercased line, and "Lola Nena's birthday" should read back as written. */
+function withRawCase(text: string, raw: string): string {
+  return text
+    .split(" ")
+    .map((word) => {
+      const m = new RegExp(`(^|[^\\p{L}])(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?![\\p{L}])`, "iu").exec(raw);
+      return m ? m[2] : word;
+    })
+    .join(" ")
+    .replace(/^[a-z]/, (c) => c.toUpperCase());
+}
+
+/** A title without the people it is for: "Lia dentist" is Dentist, for Lia. */
+function withoutNames(title: string, names: string[]): string {
+  let t = title;
+  for (const n of names) t = t.replace(new RegExp(`(^|\\s)${firstName(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:'s)?(?=\\s|$)`, "i"), " ");
+  t = t.replace(/\s+/g, " ").trim();
+  // "Swimming for Lia and Ben" leaves "for and" behind: peel the joiners off
+  // both ends until none is left.
+  for (let i = 0; i < 4; i++) t = t.replace(/^(for|with|and|at|to|para|kasama)\s+/i, "").replace(/\s+(for|with|and|at|to|para|kasama)$/i, "").trim();
+  return t ? t[0].toUpperCase() + t.slice(1) : "";
+}
+
+const addPlain: Rule = (q, ctx) => {
+  const verb = ADD_VERB.exec(q.text);
+  if (!verb) return null;
+  let rest = verb[2].trim();
+  if (!rest) return null;
+  // The adds with their own rule, and the ones the model keeps.
+  if (/\b(bill|bills|due|list|listahan|bilihin|to-?buy|goal|journal|diary|trip|budget|account|reminder|chore|routine|allowance|₱|php|pesos|piso)\b/.test(rest) || /\d{3,}/.test(rest)) return null;
+  // Something that repeats is a routine, which the add tools do not write.
+  if (/\b(every|tuwing|weekly|daily|monthly|araw-araw|linggo-linggo|buwan-buwan|each)\b/.test(rest)) return null;
+  for (const [re, en] of TL_TO_EN) rest = rest.replace(re, en);
+  rest = rest.replace(/\s+/g, " ").trim();
+  const members = ctx.members.map((name) => ({ id: name, name }));
+  const parsed = parseQuickLine(rest, { today: ctx.today, members, meId: ctx.me });
+  if (!parsed) return null;
+  const t = pick(q.lang);
+  const hasDay = !!resolveRange(rest, ctx.today);
+  if (parsed.kind === "meal") {
+    if (!hasDay) return null;
+    return {
+      rule: "add.meal",
+      tool: "add_meal_plan",
+      input: { date: parsed.date, dish: withRawCase(parsed.dish, q.raw) },
+      lang: q.lang,
+      say: (result) => (isError(result) ? result.error : t(`Planned ${withRawCase(parsed.dish, q.raw)} for ${readableDay(parsed.date)}.`, `Nakaplano na ang ${withRawCase(parsed.dish, q.raw)} sa ${readableDay(parsed.date)}.`)),
+    };
+  }
+  if (parsed.kind === "event") {
+    if (!hasDay || parsed.title === "Untitled") return null;
+    const title = withRawCase(parsed.title, q.raw);
+    return {
+      rule: "add.event",
+      tool: "add_event",
+      input: { title, date: parsed.date, kind: parsed.eventKind, ...(parsed.note ? { note: parsed.note } : {}) },
+      lang: q.lang,
+      say: (result) => (isError(result) ? result.error : t(`Added ${title} on ${readableDay(parsed.date)}.`, `Na-add ang ${title} sa ${readableDay(parsed.date)}.`)),
+    };
+  }
+  if (parsed.kind === "task") {
+    // An activity needs a day and a time said outright; "add dentist" alone
+    // is the model's to ask about.
+    if (!hasDay || !parsed.from || parsed.title === "Untitled") return null;
+    const who = parsed.wholeFamily ? [] : parsed.who.map(firstName);
+    const title = withRawCase(withoutNames(parsed.title, parsed.who), q.raw);
+    if (!title) return null;
+    return {
+      rule: "add.activity",
+      tool: "add_activity",
+      input: { title, date: parsed.date, start_time: parsed.from, ...(parsed.to ? { end_time: parsed.to } : {}), whole_family: parsed.wholeFamily || who.length === 0, ...(who.length > 0 ? { member_names: who } : {}) },
+      lang: q.lang,
+      say: (result) => (isError(result) ? result.error : t(`Added ${title}, ${readableDay(parsed.date)} ${parsed.from}${who.length > 0 ? ` (${who.join(", ")})` : ""}.`, `Na-add ang ${title}, ${readableDay(parsed.date)} ${parsed.from}${who.length > 0 ? ` (${who.join(", ")})` : ""}.`)),
+    };
+  }
+  return null;
+};
+
+const addGoal: Rule = (q, ctx) => {
+  const m = /^(?:please\s+|paki\s+)?(?:add|pa-?add|i-?add|idagdag|set|new|create|start|gumawa ng|mag-?set ng)\s+(?:a |an |ng |ang |new |bagong )*(?:savings |money |ipon )?(?:goal|target|ipon|fund)\b\s*[:\-–]?\s*(.*)$/.exec(q.text) ?? /^(?:please\s+)?(?:add|pa-?add|set|create|start)\s+(.+?\bfund)\b\s*(.*)$/.exec(q.text);
+  if (!m) return null;
+  const body = m[2] !== undefined && /\bfund\b/.test(m[1]) ? `${m[1]} ${m[2]}` : m[1];
+  const amount = readAmount(body.replace(/\b\d{1,2}(?:st|nd|rd|th)\b/g, " "));
+  if (!amount || amount < 100) return null;
+  const byText = /\b(?:by|before|until|hanggang|bago|sa)\s+(.*)$/.exec(body)?.[1];
+  const target = byText ? resolveRange(byText, ctx.today) : null;
+  const title = body
+    .replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?(?:\s*(?:pesos|php|piso))?/, " ")
+    .replace(/\b(?:by|before|until|hanggang|bago|sa)\s+.*$/, " ")
+    .replace(/\b(for|of|na|para|worth|target|goal|the|a|an|ng|ang|called|named)\b/g, " ")
+    .replace(/[:\-–]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!title) return null;
+  const titled = withRawCase(title, q.raw);
+  const t = pick(q.lang);
+  const targetDate = target?.single ? target.from : target ? target.to : null;
+  return {
+    rule: "add.goal",
+    tool: "add_goal",
+    input: { title: titled, target_amount: amount, ...(targetDate ? { target_date: targetDate } : {}) },
+    lang: q.lang,
+    say: (result) => (isError(result) ? result.error : t(`Goal set: ${titled}, ${money(amount, ctx.currency)}${targetDate ? ` by ${readableDay(targetDate)}` : ""}.`, `Set na ang goal: ${titled}, ${money(amount, ctx.currency)}${targetDate ? ` hanggang ${readableDay(targetDate)}` : ""}.`)),
+  };
+};
+
+const addJournal: Rule = (q, ctx) => {
+  const m = /^(?:please\s+|paki\s+)?(?:(?:add|pa-?add|write|isulat|put|note|log|record)\s+(?:this |it |ito )?(?:to |in |into |sa )?(?:the |ang )?)?(?:journal|diary|talaarawan)(?:\s+entry)?\s*[:\-–]\s*(.+)$/.exec(q.text) ?? /^(?:add|pa-?add|write|isulat)\s+(?:a |an |ng )?(?:journal|diary)\s+entry\s+(?:about |na |tungkol sa )?(.+)$/.exec(q.text);
+  if (!m) return null;
+  const title = m[1].trim();
+  if (title.length < 3) return null;
+  const range = resolveRange(title, ctx.today);
+  const t = pick(q.lang);
+  // Kept as typed: the sentence is the entry. The casing of a diary line is
+  // the writer's.
+  const titled = q.raw.slice(q.raw.toLowerCase().indexOf(title)).trim() || title;
+  return {
+    rule: "add.journal",
+    tool: "add_journal_entry",
+    input: { title: titled, ...(range?.single ? { date: range.from } : {}) },
+    lang: q.lang,
+    say: (result) => (isError(result) ? result.error : t(`Written in the journal${range?.single ? ` for ${readableDay(range.from)}` : ""}.`, `Nakasulat na sa journal${range?.single ? ` para sa ${readableDay(range.from)}` : ""}.`)),
+  };
+};
+
+const addTrip: Rule = (q, ctx) => {
+  const m = /^(?:please\s+|paki\s+)?(?:add|pa-?add|plan|book|schedule|i-?plan|mag-?plan ng)\s+(?:a |an |ng |ang |our |the )?(?:trip|travel|vacation|biyahe|bakasyon|getaway)\s+(?:to |sa |papuntang )?(.+)$/.exec(q.text);
+  if (!m) return null;
+  const body = m[1];
+  // "Dec 20 to Dec 23", "Dec 20-23", "from the 20th to the 23rd"
+  const span = /^(.*?)\s+(?:from\s+)?(.+?)\s*(?:-|–|to|until|hanggang)\s*(.+)$/.exec(body);
+  const start = span ? resolveRange(span[2], ctx.today) : resolveRange(body, ctx.today);
+  if (!start || !start.single) return null;
+  let end: string | null = null;
+  if (span) {
+    const endText = span[3].trim();
+    const endRange = resolveRange(endText, ctx.today) ?? (/^\d{1,2}$/.test(endText) ? resolveRange(`${start.from.slice(5, 7) ? MONTHS_EN[Number(start.from.slice(5, 7)) - 1] : ""} ${endText}`, ctx.today) : null);
+    if (!endRange || !endRange.single || endRange.from < start.from) return null;
+    end = endRange.from;
+  }
+  const dateWords = new RegExp(`\\b(${[...MONTHS_EN, ...MONTH_SHORT, ...WEEKDAYS_EN, ...WEEKDAY_SHORT, "next", "this", "week", "weekend", "month", "the", "from", "to", "until", "on", "in"].join("|")})\\b`, "g");
+  const title = (span ? span[1] : body)
+    .replace(/\b\d{1,2}(?:st|nd|rd|th)?\b/g, " ")
+    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, " ")
+    .replace(dateWords, " ")
+    .replace(/[,\-–]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!title) return null;
+  const titled = withRawCase(title, q.raw);
+  const t = pick(q.lang);
+  return {
+    rule: "add.trip",
+    tool: "add_trip",
+    input: { title: titled, start_date: start.from, ...(end ? { end_date: end } : {}) },
+    lang: q.lang,
+    say: (result) => (isError(result) ? result.error : t(`Trip planned: ${titled}, ${readableDay(start.from)}${end ? ` to ${readableDay(end)}` : ""}.`, `Nakaplano na ang trip: ${titled}, ${readableDay(start.from)}${end ? ` hanggang ${readableDay(end)}` : ""}.`)),
   };
 };
 
@@ -1149,6 +1414,10 @@ const addBill: Rule = (q, ctx) => {
 const RULES: Rule[] = [
   addBill,
   addToList,
+  addGoal,
+  addJournal,
+  addTrip,
+  addPlain,
   health,
   billsOverdue,
   billDue,
@@ -1169,7 +1438,7 @@ const RULES: Rule[] = [
 
 /** The one entry point. Null means the model's turn (or, with no key, the
  * line that says what Kin answers on its own). */
-export function matchRule(message: string, ctx: RuleContext): RuleMatch | null {
+export function matchRule(message: string, ctx: RuleContext): RuleOutcome | null {
   const q = query(message);
   if (!q.text) return null;
   if (isForTheModel(q)) return null;
@@ -1180,13 +1449,87 @@ export function matchRule(message: string, ctx: RuleContext): RuleMatch | null {
   return null;
 }
 
+/** Whether what the client sent back is a Pending a rule here wrote. */
+export function isPending(v: unknown): v is Pending {
+  if (!v || typeof v !== "object") return false;
+  const p = v as Record<string, unknown>;
+  return typeof p.rule === "string" && !!p.slots && typeof p.slots === "object" && (p.lang === "en" || p.lang === "tl") && typeof p.asked === "number";
+}
+
+/** A rule's question answered: the finished match, another question when a
+ * detail is still missing (twice at most), or null when the answer is not
+ * one -- the message is then read afresh, as a new question. */
+export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): RuleOutcome | null {
+  const q = query(answer);
+  if (!q.text) return null;
+  const lang = pending.lang;
+  const slot = (key: string) => (typeof pending.slots[key] === "string" ? (pending.slots[key] as string) : null);
+  const numSlot = (key: string) => (typeof pending.slots[key] === "number" ? (pending.slots[key] as number) : null);
+
+  if (pending.rule === "add.bill") {
+    const name = slot("name");
+    if (!name) return null;
+    // "no" / "never mind" drops it.
+    if (/^(no|never ?mind|cancel|wag na|huwag na|hindi|forget it|skip)\b/.test(q.text)) {
+      return { ask: pick(lang)("Okay, not added.", "Sige, hindi na-add."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
+    }
+    let amount = numSlot("amount");
+    let dueDate = slot("due_date");
+    if (amount === null) {
+      // The amount first, so "3200 due the 15th" reads both.
+      amount = readAmount(q.text.replace(/\bdue\b.*$/, "")) ?? readAmount(q.text.replace(/\b\d{1,2}(?:st|nd|rd|th)\b|\b\d{4}-\d{2}-\d{2}\b/g, " "));
+    }
+    if (!dueDate) {
+      const dateText = /\bdue\b(.*)$/.exec(q.text)?.[1] ?? q.text.replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k\b/g, " ");
+      const range = resolveRange(dateText.trim(), ctx.today);
+      if (range?.single) dueDate = range.from;
+    }
+    const extra = { category: slot("category") ?? undefined, recurrence: slot("recurrence") ?? BILL_RECURRENCE(q.text) };
+    if (amount === null || !dueDate) {
+      if (pending.asked >= 2) return null;
+      return askForBill(name, amount, dueDate, lang, pending.asked + 1, extra);
+    }
+    return addBillMatch(name, amount, dueDate, lang, ctx, extra);
+  }
+
+  if (pending.rule === "bills.due_when") {
+    const name = slot("name");
+    if (!name) return null;
+    // The chip's text, or enough of it.
+    return billDueMatch(name, lang, ctx, q.raw.trim());
+  }
+
+  return null;
+}
+
 /** What Kin says when no rule matched and there is no key (the route's
- * KIN_AI_OFF replacement): three things it can answer by itself. */
+ * KIN_AI_OFF replacement): three things it can answer by itself, chosen by
+ * the words in the question so a money question hears money examples. */
 export function rulesOnlyLine(message: string): string {
-  const lang = detectLang(normalise(message));
+  const text = normalise(message);
+  const lang = detectLang(text);
+  const money = /\b(money|pera|bill|bills|budget|spend|spent|gastos|balance|cash|owe|utang|save|ipon|goal|account|peso|₱)\b/.test(text);
+  const food = /\b(list|listahan|buy|bili|grocery|groceries|meal|meals|dinner|lunch|ulam|cook|luto|recipe|pantry)\b/.test(text);
+  const people = /\b(family|pamilya|birthday|kaarawan|allerg|medicine|gamot|doctor|doktor|blood|health|checkup|check-up)\b/.test(text);
+  const examples = lang === "tl"
+    ? money
+      ? ["Kailan due ang Meralco?", "Magkano nagastos natin sa groceries this month?", "Magkano ang laman ng GCash?"]
+      : food
+        ? ["Anong nasa listahan?", "Anong ulam bukas?", "Pa-add ng gatas"]
+        : people
+          ? ["Kailan birthday ni Lia?", "Ano ang allergy ni Lia?", "Sino may check-up?"]
+          : ["Kailan due ang Meralco?", "Anong meron bukas?", "Pa-add ng gatas"]
+    : money
+      ? ["When is the electric bill due?", "How much did we spend on groceries this month?", "How much is in GCash?"]
+      : food
+        ? ["What's on the list?", "What's for dinner tomorrow?", "Add milk to the list"]
+        : people
+          ? ["When is Lia's birthday?", "What is Lia's allergy?", "Who has a check-up?"]
+          : ["When is the electric bill due?", "What's on tomorrow?", "Add milk to the list"];
+  const quoted = examples.map((e) => `"${e}"`);
   return lang === "tl"
-    ? "Hindi ko pa masagot 'yan nang mag-isa (hindi pa naka-on ang Kin AI, walang ipinadala kahit saan). Kaya ko: \"Kailan due ang Meralco?\", \"Magkano nagastos natin sa groceries this month?\", \"Anong meron bukas?\" — at \"Pa-add ng gatas\"."
-    : "I can't answer that one on my own yet (Kin AI isn't switched on, and nothing was sent anywhere). I can answer things like \"When is the electric bill due?\", \"How much did we spend on groceries this month?\" and \"What's on tomorrow?\", and add to the list: \"Add milk to the list\".";
+    ? `Hindi ko pa masagot 'yan nang mag-isa (hindi pa naka-on ang Kin AI, walang ipinadala kahit saan). Kaya ko: ${quoted[0]}, ${quoted[1]}, ${quoted[2]}.`
+    : `I can't answer that one on my own yet (Kin AI isn't switched on, and nothing was sent anywhere). I can answer things like ${quoted[0]}, ${quoted[1]} and ${quoted[2]}.`;
 }
 
 /** The one-line note the console shows the first time a rule answers. */
