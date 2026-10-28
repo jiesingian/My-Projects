@@ -45,6 +45,21 @@ export function choreAnswerVerdict(op: { approve: boolean; label: string }, log:
   return skip(`${op.label} is no longer waiting for an answer.`);
 }
 
+/** Money recorded offline on Move money (28 October): an expense, income or
+ * a transfer is never recorded twice. Its rows carry the ids made on the
+ * phone, so a replay sent again, or one that follows a save whose answer
+ * was lost on the way back ("Load failed" on a weak signal), finds them
+ * already there. Otherwise it is recorded, as of the date it was entered;
+ * the action's own checks (an account archived since, a loan already paid
+ * down) still apply and say why when they refuse. */
+export function moneyIds(op: { kind: string; id: string; inId?: string }): string[] {
+  return op.kind === "money.transfer" && op.inId ? [op.id, op.inId] : [op.id];
+}
+
+export function moneyVerdict(op: { kind: string; id: string; inId?: string }, recorded: readonly string[]): Verdict {
+  return moneyIds(op).some((id) => recorded.includes(id)) ? ALREADY : APPLY;
+}
+
 /** What a tick is a tick of, for changes where only the last one matters: a
  * list item, one dose, or one day of a chore. A second tick on the same thing
  * replaces the first in the queue (lib/offline/store). Null for everything
@@ -60,6 +75,8 @@ export function toggleTarget(op: { kind: string; itemId?: string; medicineId?: s
 export function offlineLine(pathname: string): string {
   if (/^\/(today|household|chat\/household)$/.test(pathname)) return "Offline — Done, ticks, new items and messages wait here and send when you’re back.";
   // Chores and approvals on the Planner; a member's medicine doses.
+  // Move money: entries wait; one through a banking app needs a signal.
+  if (pathname === "/wealth/transact") return "Offline — money in, out and transfers wait here and save when you’re back. Ones through a banking app need a signal.";
   if (/^\/planner$/.test(pathname) || /^\/family\/members\/[^/]+$/.test(pathname)) return "Offline — chores and medicine ticks wait here and send when you’re back. Other changes won’t save.";
   return "Offline — changes on this screen won’t save.";
 }

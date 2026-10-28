@@ -6,7 +6,8 @@ import { addBuyItemAction, toggleBuyItemAction } from "@/lib/actions/household";
 import { markTodayItemAction } from "@/lib/actions/today";
 import { approveRoutineLogAction, logRoutineAction, rejectRoutineLogAction } from "@/lib/actions/routines";
 import { setDoseTakenAction } from "@/lib/actions/health-care";
-import { choreAnswerVerdict, choreLogVerdict, doseVerdict, type Verdict } from "@/lib/offline/rules";
+import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
+import { choreAnswerVerdict, choreLogVerdict, doseVerdict, moneyIds, moneyVerdict, type Verdict } from "@/lib/offline/rules";
 import { sendMessageAction } from "@/lib/actions/chat";
 import { familyDay } from "@/lib/time";
 import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types";
@@ -32,6 +33,10 @@ import { reportError } from "@/lib/report-error";
  * - A medicine dose, a chore done or skipped from the Planner, and a yes or no
  *   to a chore waiting for approval (19 October): lib/offline/rules.ts, the
  *   same rules -- the later tick wins, an answer already given stands.
+ * - Money in, out or a transfer from Move money (28 October): recorded once,
+ *   as of the date it was entered. The ids made on the phone are the ledger
+ *   rows' ids, so one already there is not recorded again (moneyVerdict),
+ *   and the action itself refuses a second row with the same id.
  *
  * Changes are applied one at a time. The first that fails for a reason that
  * might pass (the database, a timeout) stops the run, and it and everything
@@ -189,6 +194,40 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
         .map((a) => ({ storagePath: a.storagePath, fileName: a.fileName, mimeType: a.mimeType, sizeBytes: Number(a.sizeBytes), transcript: typeof a.transcript === "string" ? a.transcript : undefined }));
       const r = await sendMessageAction({ body: String(op.body ?? ""), mentions, replyTo, attachments, clientId: op.id });
       return r.error ? skip(r.error) : done;
+    }
+
+    case "money.record":
+    case "money.transfer": {
+      const ids = moneyIds(op);
+      if (!ids.every((id) => UUID.test(id))) return skip("That entry could not be read, so nothing was recorded.");
+      const { data: found, error } = await supabase.from("wealth_transactions").select("id").in("id", ids).eq("family_id", familyId);
+      if (error) return { id: op.id, outcome: "retry" };
+      const recorded = (found ?? []).map((r) => r.id);
+      // Never through a banking app: that needs the app, and so a signal.
+      const run =
+        op.kind === "money.transfer"
+          ? () => transferAction({ fromAccountId: op.fromAccountId, toAccountId: op.toAccountId, amount: Number(op.amount), note: String(op.note ?? ""), occurredAt: op.occurredAt, viaApp: false, clientIds: { out: op.id, in: op.inId } })
+          : () =>
+              recordMovementAction({
+                accountId: op.accountId,
+                direction: op.direction === "in" ? "in" : "out",
+                amount: Number(op.amount),
+                particulars: String(op.particulars ?? ""),
+                category: op.category ?? null,
+                occurredAt: op.occurredAt,
+                viaApp: false,
+                againstTable: op.againstTable ?? null,
+                againstId: op.againstId ?? null,
+                principal: op.principal ?? null,
+                assetUse: op.assetUse,
+                assetItemKind: op.assetItemKind,
+                whose: op.whose,
+                clientId: op.id,
+              });
+      // What did not save says which entry it was: money the person thinks
+      // is recorded must not vanish into a bare reason.
+      const r = await settle(op.id, moneyVerdict(op, recorded), run);
+      return r.outcome === "skipped" && r.note ? { ...r, note: `${op.label} wasn't recorded: ${r.note}` } : r;
     }
 
     default:

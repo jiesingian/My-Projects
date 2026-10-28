@@ -117,6 +117,32 @@ export type QueuedOp =
   | { id: string; at: string; kind: "chore.log"; routineId: string; date: string; status: "done" | "skipped"; label: string }
   /** A grown-up's yes or no to a child's chore waiting for approval. */
   | { id: string; at: string; kind: "chore.answer"; routineId: string; date: string; approve: boolean; label: string }
+  /** Money in or out from Move money, saved with no signal (28 October).
+   * `id` is also the ledger row's own id, so it can only ever be recorded
+   * once (lib/offline/rules moneyVerdict). Never one through a banking app:
+   * that needs the app, and so a signal. Held on the phone only until it
+   * sends -- the snapshot itself still carries no money. */
+  | {
+      id: string;
+      at: string;
+      kind: "money.record";
+      accountId: string;
+      direction: "in" | "out";
+      amount: number;
+      particulars: string;
+      category: string | null;
+      occurredAt: string;
+      againstTable?: "assets" | "goals" | "liabilities" | null;
+      againstId?: string | null;
+      principal?: number | null;
+      assetUse?: "buy" | "add" | "upkeep";
+      assetItemKind?: string;
+      whose?: string;
+      label: string;
+    }
+  /** A transfer between two accounts, the same way. `id` is the money-out
+   * leg's row id and `inId` the money-in leg's. */
+  | { id: string; at: string; kind: "money.transfer"; inId: string; fromAccountId: string; toAccountId: string; amount: number; note: string; occurredAt: string; label: string }
   | {
       id: string;
       at: string;
