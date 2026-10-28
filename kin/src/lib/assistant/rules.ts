@@ -1257,7 +1257,7 @@ const addToList: Rule = (q, ctx) => {
   // list, as Today's one-line add reads them.
   const need = /^(?:we |i )?(?:need|needs|kailangan(?: natin| namin| ko)?(?: ng| bumili ng| pa ng)?)\s+(?:some |more |to buy |ng )?(.+)$/.exec(q.text);
   if (need && !/\b(money|pera|help|tulong|to|ba|ba tayo|plan|advice|budget|time|oras)\b/.test(need[1]) && need[1].split(" ").length <= 6) {
-    const items = need[1].split(/\s*,\s*|\s+(?:and|at|&)\s+/).map(parseItem).filter((i): i is NonNullable<typeof i> => i !== null);
+    const items = need[1].split(/\s*,\s*|\s+(?:and|at|&)\s+/).map(parseItem).filter((i): i is NonNullable<typeof i> => i !== null).map((i) => ({ ...i, name: asTyped(i.name, q.raw) }));
     // "We need a new car" is not groceries: every item has to land in a
     // market section the list knows, not Other.
     if (items.length > 0 && items.every((i) => looksLikeGrocery(i.name))) {
@@ -1305,7 +1305,7 @@ const addToList: Rule = (q, ctx) => {
   if (!rest) return null;
   // "milk and eggs", "gatas at itlog", "milk, eggs, bread"
   const parts = rest.split(/\s*,\s*|\s+(?:and|at|&|tsaka|saka|pati)\s+/).map((p) => p.trim()).filter(Boolean);
-  const items = parts.map(parseItem).filter((i): i is NonNullable<typeof i> => i !== null);
+  const items = parts.map(parseItem).filter((i): i is NonNullable<typeof i> => i !== null).map((i) => ({ ...i, name: asTyped(i.name, q.raw) }));
   if (items.length === 0 || items.length > 12) return null;
   if (items.some((i) => i.name.split(" ").length > 5)) return null;
   const t = pick(q.lang);
@@ -1434,15 +1434,18 @@ const ADD_VERB = /^(?:please\s+|paki\s+|pwede\s+|kin\s+)?(add|pa-?add|paki-?add|
 
 /** The words of `text` as the member typed them: the parser works on the
  * lowercased line, and "Lola Nena's birthday" should read back as written. */
-function withRawCase(text: string, raw: string): string {
+function asTyped(text: string, raw: string): string {
   return text
     .split(" ")
     .map((word) => {
       const m = new RegExp(`(^|[^\\p{L}])(${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?![\\p{L}])`, "iu").exec(raw);
       return m ? m[2] : word;
     })
-    .join(" ")
-    .replace(/^[a-z]/, (c) => c.toUpperCase());
+    .join(" ");
+}
+
+function withRawCase(text: string, raw: string): string {
+  return asTyped(text, raw).replace(/^[a-z]/, (c) => c.toUpperCase());
 }
 
 /** A title without the people it is for: "Lia dentist" is Dentist, for Lia. */

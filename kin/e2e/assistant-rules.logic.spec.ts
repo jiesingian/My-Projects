@@ -268,6 +268,7 @@ const TABLE: Row[] = [
   { ask: "add 5 kg rice", tool: "add_buy_items", input: { items: [{ name: "rice", quantity: 5, unit: "kg" }] }, rule: "add.list" },
   { ask: "add rice 5kg to list", tool: "add_buy_items", input: { items: [{ name: "rice", quantity: 5, unit: "kg" }] }, rule: "add.list" },
   { ask: "add egg", tool: "add_buy_items", input: { items: [{ name: "egg" }] }, rule: "add.list" },
+  { ask: "Add Nido and Bear Brand to the list", tool: "add_buy_items", input: { items: [{ name: "Nido" }, { name: "Bear Brand" }] }, rule: "add.list" },
   { ask: "add bananas", tool: "add_buy_items", input: { items: [{ name: "bananas" }] }, rule: "add.list" },
   { ask: "list: eggs", tool: "add_buy_items", input: { items: [{ name: "eggs" }] }, rule: "add.list" },
   { ask: "eggs to the list", tool: "add_buy_items", input: { items: [{ name: "eggs" }] }, rule: "add.list" },
