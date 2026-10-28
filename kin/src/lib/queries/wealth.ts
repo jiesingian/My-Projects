@@ -6,7 +6,7 @@ import { familyDay } from "@/lib/time";
 import { paluwaganPosition, utangLeft, type PaluwaganFrequency } from "@/lib/utang";
 import { householdZone } from "@/lib/household-zone";
 import { budgetsFor, budgetsInForce, budgetTotal, budgetWhose, FAMILY_BUDGET, type SpendingBudgetRow } from "@/lib/budgets";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, WEALTH_FAMILY, dayKey, netWorthSeries, type CashFlowRange, type WealthScope, type NetWorthPoint } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, accountGroup, AL_CASH, AL_INVESTMENTS, isHouseholdScope, TRANSFER_CATEGORY, GOAL_CATEGORY, WEALTH_FAMILY, dayKey, netWorthSeries, type CashFlowRange, type WealthScope, type NetWorthPoint } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -629,6 +629,42 @@ export async function getGoalsOnPlanner(familyId: string): Promise<Set<string>> 
   const supabase = await createClient();
   const { data } = await supabase.from("planner_goals").select("savings_goal_id").eq("family_id", familyId).is("removed_at", null).not("savings_goal_id", "is", null);
   return new Set((data ?? []).map((g) => g.savings_goal_id).filter((id): id is string => !!id));
+}
+
+/** What the household spent to live in each of the last `months` full
+ * months, oldest first, for the emergency cover (28 October): money out,
+ * confirmed, in this Who's view -- less what only moved money (transfers,
+ * goal contributions), what paid a loan down (its principal) and what bought
+ * or added to an asset. Interest and upkeep stay: they are costs. */
+export async function getMonthlySpending(familyId: string, scope: WealthScope, months = 6): Promise<number[]> {
+  const supabase = await createClient();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - months, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 1);
+  const [allAccounts, archivedAccounts, { data: transactions }, leaveOut] = await Promise.all([
+    loadAccounts(familyId),
+    getArchivedAccountsForFlow(familyId),
+    supabase
+      .from("wealth_transactions")
+      .select("*, accounts(name, owner_member_id, is_joint, is_archived, deleted_at), members:recorded_by(full_name)")
+      .eq("family_id", familyId)
+      .eq("direction", "out")
+      .eq("status", "confirmed")
+      .gte("occurred_at", start.toISOString())
+      .lt("occurred_at", end.toISOString()),
+    privateLeftOutOfAll(),
+  ]);
+  const rows = (transactions ?? []).map(toLedgerEntry).filter(flowFilter([...allAccounts, ...archivedAccounts], scope, leaveOut, "entry"));
+  const keys = Array.from({ length: months }, (_, i) => monthKey(new Date(start.getFullYear(), start.getMonth() + i, 1)));
+  const byMonth = new Map(keys.map((k) => [k, 0]));
+  for (const t of rows) {
+    if (t.category === TRANSFER_CATEGORY || t.category === GOAL_CATEGORY || t.goal_id || t.capital) continue;
+    const k = monthKey(t.occurred_at);
+    if (!byMonth.has(k)) continue;
+    const cost = Number(t.amount) - Number(t.principal_amount ?? 0);
+    byMonth.set(k, byMonth.get(k)! + Math.max(0, cost));
+  }
+  return keys.map((k) => Math.round(byMonth.get(k)! * 100) / 100);
 }
 
 export type RemittanceWithAllocations = Tables<"remittances"> & { allocations: Tables<"remittance_allocations">[] };

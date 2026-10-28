@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { extraPaymentEffect, repricedPayment, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance } from "@/lib/wealth";
+import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -149,6 +149,16 @@ test("loanOriginStatus: a balance within one payment of the table matches; a rep
   const soon = loanOriginStatus({ ...loan, rate_fixed_until: "2026-11-02" }, "2026-10-28")!;
   expect(soon.fixedMonthsLeft).toBe(0);
   expect(soon.fixedDaysLeft).toBe(5);
+});
+
+test("emergencyCover: cash over an average month of spending, against the 3-6 month aim", () => {
+  // ₱337,540 over months averaging ₱80,000: 4.2 months, on track.
+  expect(emergencyCover(337_540, [0, 0, 70_000, 90_000, 80_000, 80_000])).toEqual({ months: 4.2, average: 80_000, counted: 4, status: "on_track" });
+  expect(emergencyCover(100_000, [50_000, 50_000])!.status).toBe("low");
+  expect(emergencyCover(900_000, [50_000, 50_000])!.status).toBe("ample");
+  // Under two months of spending on record: too soon to say.
+  expect(emergencyCover(100_000, [0, 0, 0, 0, 0, 40_000])).toBeNull();
+  expect(emergencyCover(-5_000, [10_000, 10_000])!.months).toBe(0);
 });
 
 test("extraPaymentEffect: ₱2,000 more a month on ₱1.8M at 6.5% ends years sooner and saves interest", () => {
