@@ -11,7 +11,8 @@ import { shortNames } from "@/lib/format";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 
-export default async function AddGoalPage() {
+export default async function AddGoalPage({ searchParams }: { searchParams: Promise<{ yearly?: string; title?: string; note?: string; whose?: string }> }) {
+  const sp = await searchParams;
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const [accounts, members] = await Promise.all([getAccounts(me.family_id), getMembers(me.family_id)]);
@@ -34,6 +35,9 @@ export default async function AddGoalPage() {
           currency={me.families.currency}
           kids={children}
           today={familyDay(new Date(), await householdZone())}
+          // A loan's "Set aside for it" (28 October): a yearly fund named
+          // for the loan's insurance, joint or the viewer's as the loan is.
+          preset={{ yearly: sp.yearly === "1", title: (sp.title ?? "").slice(0, 150), note: (sp.note ?? "").slice(0, 300), whose: sp.whose === "me" ? "me" : "joint" }}
         />
       </div>
     </div>

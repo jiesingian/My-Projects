@@ -1416,3 +1416,37 @@ export function extraPaymentEffect(balance: number, ratePct: number | null, paym
 export function repricedPayment(balance: number, ratePct: number, paymentsLeft: number): number {
   return amortisedPayment(balance, ratePct, paymentsLeft);
 }
+
+/** The insurance a lender requires on a loan, renewed every year (Jonathan,
+ * 28 October). A Philippine bank housing loan wants fire and allied perils
+ * cover on the property and mortgage redemption insurance (MRI, life cover
+ * on the borrower that pays the loan off), each renewed yearly with proof
+ * sent before the old policy ends; a car loan wants comprehensive car
+ * insurance with the bank named, until the loan is paid. Pag-IBIG differs:
+ * both covers are in its monthly amortisation, so nothing is bought
+ * separately. Null for a loan with no such requirement. */
+export type LoanInsurance = { included: boolean; what: string; title: string; note: string };
+
+export function loanInsurance(loan: { name: string; kind: string; lender?: string | null }): LoanInsurance | null {
+  const title = `${loan.name} insurance`.slice(0, 150);
+  if (loan.kind === "mortgage") {
+    if (/pag-?\s?ibig|\bhdmf\b/i.test(`${loan.lender ?? ""} ${loan.name}`)) {
+      return { included: true, what: "Pag-IBIG adds MRI and fire insurance to the monthly payment, so there is nothing to buy each year.", title, note: "" };
+    }
+    return { included: false, what: "The bank requires fire insurance on the property and MRI (life cover on the borrower), renewed every year. Send the bank the new policy before the old one ends.", title, note: "Fire and MRI renewal for the bank" };
+  }
+  if (loan.kind === "auto_loan") {
+    return { included: false, what: "The bank requires comprehensive car insurance, with the bank named, renewed every year until the loan is paid.", title, note: "Comprehensive car insurance renewal for the bank" };
+  }
+  return null;
+}
+
+/** The yearly fund that pays a loan's insurance: a yearly savings goal
+ * titled with the loan's whole name and then insurance, a premium or MRI
+ * ("Set aside for it" titles it "<loan> insurance"). The name starts the
+ * title: "Car loan" is not "BDO car loan insurance". */
+export function loanInsuranceFund<G extends { title: string; repeats_yearly: boolean | null }>(loanName: string, goals: G[]): G | null {
+  const name = loanName.trim().toLowerCase();
+  if (!name) return null;
+  return goals.find((g) => g.repeats_yearly && g.title.toLowerCase().startsWith(`${name} `) && /insurance|premium|\bmri\b/i.test(g.title.slice(name.length))) ?? null;
+}

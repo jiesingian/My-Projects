@@ -8,7 +8,10 @@ import { CopyLink } from "@/components/quick-button-settings";
  * until the native app. A "Kin Alarms" Shortcut reads the member's dose times
  * from their private link and makes them iPhone Clock alarms, which ring full
  * screen with sound even on silent (lib/dose-alarms.ts). Built like "Add to
- * Kin": the link is shown once, made and turned off here. */
+ * Kin": the link is shown once, made and turned off here. The ready-made
+ * Shortcut was dropped (Jonathan, 28 October): Kin's App Store app will ring
+ * dose alarms itself (AlarmKit), so the hand steps stay as a closed fold for
+ * anyone who wants alarms before then. */
 export function DoseAlarmSettings({ initialOn, lastRead }: { initialOn: boolean; lastRead: string | null }) {
   const [on, setOn] = useState(initialOn);
   const [url, setUrl] = useState<string | null>(null);
@@ -88,39 +91,45 @@ export function DoseAlarmSettings({ initialOn, lastRead }: { initialOn: boolean;
         )}
       </section>
 
-      <section className="kin-quickbtn-section" aria-labelledby="alarms-steps">
-        <h2 id="alarms-steps" className="kin-quickbtn-h">
-          Make the Shortcut, once
+      <section className="kin-quickbtn-section" aria-labelledby="alarms-add">
+        <h2 id="alarms-add" className="kin-quickbtn-h">
+          The Shortcut
         </h2>
-        <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
-          <li>
-            In Shortcuts, tap <b>+</b>, tap the name at the top and call it <b>Kin Alarms</b>.
-          </li>
-          <li>
-            Add <b>Get Contents of URL</b> and paste your link.
-          </li>
-          <li>
-            Add <b>Get Dictionary Value</b>: get the value for <b>status</b>. Then add <b>If</b> it <b>is</b> <b>ok</b>. The next three steps go inside the If, so a failed read never
-            clears your alarms.
-          </li>
-          <li>
-            Clear the old ones: add <b>Find Alarms</b> where <b>Label</b> begins with <b>Kin ·</b>, then <b>Delete Alarm</b> on them. If your iPhone only offers{" "}
-            <b>Toggle Alarm</b>, set it to turn them off, and delete the old ones in Clock now and then.
-          </li>
-          <li>
-            Add <b>Get Dictionary Value</b> for <b>alarms</b> from <b>Contents of URL</b>, then <b>Repeat with Each</b> item in it.
-          </li>
-          <li>
-            Inside the Repeat: <b>Get Dictionary Value</b> for <b>time</b> and for <b>label</b> from <b>Repeat Item</b>, then <b>Create Alarm</b> at that time with that label,
-            repeating every day.
-          </li>
-          <li>
-            After the If, add <b>Get Dictionary Value</b> for <b>summary</b> from <b>Contents of URL</b>, and <b>Show Notification</b> with it. It says how many alarms Kin made.
-          </li>
-          <li>
-            Run it once now, and again after a medicine changes. Try one alarm with the phone on silent.
-          </li>
-        </ol>
+        <p className="kin-quickbtn-lead">
+          Kin&rsquo;s own iPhone app will ring dose alarms by itself. Until then, you can build the Shortcut yourself, once, with your link.
+        </p>
+        <details className="kin-quickbtn-more">
+          <summary>Build it by hand</summary>
+          <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
+            <li>
+              In Shortcuts, tap <b>+</b>, tap the name at the top and call it <b>Kin Alarms</b>.
+            </li>
+            <li>
+              Add <b>Get Contents of URL</b> and paste your link.
+            </li>
+            <li>
+              Add <b>Get Dictionary Value</b>: get the value for <b>status</b>. Then add <b>If</b> it <b>is</b> <b>ok</b>. If the If shows something else, such as{" "}
+              <b>File Size</b>, tap <b>Dictionary Value</b> in it and choose <b>Text</b>. The next three steps go inside the If, so a failed read never clears your alarms.
+            </li>
+            <li>
+              Clear the old ones: add <b>Find Alarms</b> where <b>Label</b> begins with <b>Kin ·</b>, then <b>Delete Alarm</b> on them. If your iPhone only offers{" "}
+              <b>Toggle Alarm</b>, set it to turn them off, and delete the old ones in Clock now and then.
+            </li>
+            <li>
+              Add <b>Get Dictionary Value</b> for <b>alarms</b> from <b>Contents of URL</b>, then <b>Repeat with Each</b> item in it.
+            </li>
+            <li>
+              Inside the Repeat: <b>Get Dictionary Value</b> for <b>time</b> and for <b>label</b> from <b>Repeat Item</b>, then <b>Create Alarm</b> at that time with that label,
+              repeating every day.
+            </li>
+            <li>
+              After the If, add <b>Get Dictionary Value</b> for <b>summary</b> from <b>Contents of URL</b>, and <b>Show Notification</b> with it. It says how many alarms Kin made.
+            </li>
+            <li>
+              Run it once now, and again after a medicine changes. Try one alarm with the phone on silent.
+            </li>
+          </ol>
+        </details>
       </section>
     </div>
   );

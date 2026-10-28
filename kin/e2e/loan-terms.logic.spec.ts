@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
+import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -192,4 +192,31 @@ test("after a repricing the table runs from that day's balance at the new rate, 
   expect(loanOriginStatus({ ...repriced, balance: s.expectedBalance }, today)!.matches).toBe(true);
   // Without the repricing, the original terms at the new rate would not agree.
   expect(loanOriginStatus({ ...repriced, repriced_on: null, balance: s.expectedBalance }, today)!.matches).toBe(false);
+});
+
+/** A lender's yearly insurance (28 October): a bank mortgage and a car loan
+ * need it bought each year; Pag-IBIG has it in the monthly payment. */
+test("which loans need yearly insurance, and the fund that pays it", () => {
+  const bank = loanInsurance({ name: "BPI housing loan", kind: "mortgage", lender: "BPI" });
+  expect(bank?.included).toBe(false);
+  expect(bank?.title).toBe("BPI housing loan insurance");
+  expect(bank?.what).toMatch(/fire insurance.*MRI/);
+  expect(loanInsurance({ name: "Housing loan", kind: "mortgage", lender: "Pag-IBIG Fund" })?.included).toBe(true);
+  expect(loanInsurance({ name: "HDMF loan", kind: "mortgage", lender: null })?.included).toBe(true);
+  expect(loanInsurance({ name: "Car loan", kind: "auto_loan", lender: "BDO" })?.what).toMatch(/comprehensive car insurance/);
+  expect(loanInsurance({ name: "Salary loan", kind: "personal_loan" })).toBeNull();
+  expect(loanInsurance({ name: "Visa", kind: "credit_card" })).toBeNull();
+
+  const goals = [
+    { title: "Tuition", repeats_yearly: true },
+    { title: "BPI housing loan insurance", repeats_yearly: false },
+    { title: "Car loan insurance", repeats_yearly: true },
+    { title: "BPI Housing Loan MRI", repeats_yearly: true },
+  ];
+  expect(loanInsuranceFund("Car loan", goals)?.title).toBe("Car loan insurance");
+  // A one-off goal is not a yearly fund; the MRI one names the loan.
+  expect(loanInsuranceFund("BPI housing loan", goals)?.title).toBe("BPI Housing Loan MRI");
+  expect(loanInsuranceFund("Auto loan", goals)).toBeNull();
+  // Another loan whose name sits inside the fund's is not its loan.
+  expect(loanInsuranceFund("Car loan", [{ title: "BDO car loan insurance", repeats_yearly: true }])).toBeNull();
 });

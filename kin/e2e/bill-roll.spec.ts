@@ -86,12 +86,17 @@ async function setSimple(on: boolean) {
   }
 }
 
-/** Cash Flow, scrolled to the bill, its Settle sheet open, "Paid outside Kin". */
+/** Cash Flow, scrolled to the bill, its Settle sheet open, "Paid outside Kin".
+ * `bill=<id>` is how Today's Pay arrives, and the bill's Settle sheet opens
+ * by itself just after the page hydrates (#1005). Tapping Settle as well
+ * raced that: the row's button sat under the sheet's backdrop (weekly
+ * check, 28 October). The bills here are due today, so the sheet asks
+ * "Did it go through?". */
 async function settleOutsideKin(page: Page, billId: string) {
   await page.goto(`/wealth?seg=cashflow&open=expenses&bill=${billId}`);
-  const row = page.locator(`#bill-${billId}`);
-  await row.getByRole("button", { name: "Settle" }).click();
-  await page.getByRole("button", { name: /Paid outside Kin/ }).click();
+  const settle = page.getByRole("dialog", { name: "Did it go through?" });
+  await expect(settle).toBeVisible();
+  await settle.getByRole("button", { name: /Paid outside Kin/ }).click();
 }
 
 const today = () => familyDay(new Date(), session?.tz ?? "Asia/Manila");
@@ -104,13 +109,15 @@ async function expectNoOffer(page: Page, name: string, billId: string) {
   await page.goto("/wealth?seg=cashflow&open=expenses");
   // The owner and category groups start folded on every visit (26 October).
   await expandAllCollapsedGroups(page);
-  // Its line in the owner → category breakdown: "Bills & utilities - <name>",
-  // marked settled underneath. The name and what sits under it (Due …,
-  // Settled …) share one element, so the match is on how the line starts; no
-  // RUN name here is the start of another.
-  const line = new RegExp(`^${`Bills & utilities - ${name}`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
-  await expect(page.getByText(line).first()).toBeVisible();
-  await expect(page.getByText(/Settled/).first()).toBeVisible();
+  // Its line under SPENDING BY PERSON → owner → Bills & utilities, marked
+  // settled underneath. The donut's breakdown above is a read-only report of
+  // what was spent (26 October), so a bill settled outside Kin -- nothing
+  // counted -- is not in it; its line, with Settle, lives here. The category
+  // is the heading, so the line reads just the name, and the row holds what
+  // sits under it (Due …, Settled …).
+  const line = page.getByText(name, { exact: true }).first().locator("xpath=../..");
+  await expect(line).toBeVisible();
+  await expect(line).toContainText("Settled");
   await expect(page.locator(`[data-next-bill="${billId}"]`)).toHaveCount(0);
 }
 
