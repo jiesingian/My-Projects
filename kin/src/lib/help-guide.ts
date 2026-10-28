@@ -1319,7 +1319,9 @@ export const HELP_GUIDE: HelpTab[] = [
               "The pending step keeps balances honest without bank sync."
             ],
             "cons": [],
-            "tips": []
+            "tips": [
+              "Paying through a bank or e-wallet app? Use \"Open app & log it\" so the entry waits until you confirm it went through."
+            ]
           },
           {
             "name": "Money goals",
