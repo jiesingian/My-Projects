@@ -119,6 +119,20 @@ may see, added up, as Wealth's All view does).
   name that fits none is refused with where to look. Nothing deletes:
   "delete", "cancel", "remove" stay the model's, and "mark paid" of a bill
   the asker may not see is refused by the same filter the screens use.
+- **Fifth PR, same day (the way thumbs type):** a spelling pass before the
+  rules (`SPELLINGS` in rules.ts): tmrw, wk, wat's, sked, pls, bday,
+  meds, "n" for and, nasan, san, anung, magkno, kelan, ngaun and the
+  like. A day on its own is a schedule question ("bukas", "tomorrow?",
+  "this week", "sked natin sa sabado"); a bare noun is its lookup ("ulam
+  bukas", "list natin", "family members", "pera sa GCash", "Meralco due
+  date", "due ng Meralco"); a statement of spending is the spending
+  question ("gastos natin this month", "spent on food this month"); "we
+  need milk" / "kailangan natin ng gatas" / "gatas pa-add" add to the
+  list, only when every item lands in a market section the list knows
+  ("we need a new car" stays the model's). What people actually type is
+  not logged anywhere: a store of unmatched questions, even as shapes,
+  would be a privacy decision for Jonathan, so the next rules come from
+  what the family reports instead.
 - **Not checked:** the console against the real route in a browser (no
   key here either way; the spec holds the matcher and the phrasing, the
   route's wiring is read-only). The three marks were typechecked and
