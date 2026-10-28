@@ -6,6 +6,7 @@ import { updateAccountAction } from "@/lib/actions/wealth";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
+import { DateInput } from "@/components/date-input";
 import { AppLinksField } from "@/components/wealth-controls";
 import { AccountNumberField } from "@/components/account-number";
 import type { Tables } from "@/lib/database.types";
@@ -59,6 +60,12 @@ export function AccountEditForm({ account, number, canNumber }: { account: Table
           {canNumber && <AccountNumberField defaultValue={number ?? ""} />}
           {/* A card's due day and minimum (26 October): Today reminds on
               the day, and the week before in Coming up. */}
+          {/* When a time deposit or MP2 matures (28 October): Today reminds. */}
+          {(accountType === "investment" || accountType === "stocks") && (
+            <Field label="Matures on (optional)">
+              <DateInput className="input" name="matures_on" defaultValue={account.matures_on ?? ""} style={{ minHeight: "2.625rem" }} />
+            </Field>
+          )}
           {accountType === "credit" && (
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <Field label="Statement due on day" style={{ flex: 1 }}>

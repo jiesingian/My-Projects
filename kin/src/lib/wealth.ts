@@ -1124,9 +1124,17 @@ export type LoanTerms = LoanSchedule & {
   original_amount: number | string | null;
   term_months: number | null;
   rate_fixed_until: string | null;
+  /** Repriced (20261028120000): the day the rate changed, and the balance
+   * and payments left that day. The table then runs from there. */
+  repriced_on?: string | null;
+  repriced_balance?: number | string | null;
+  repriced_payments_left?: number | null;
 };
 
 export type LoanOriginStatus = {
+  /** Where the table starts: the loan's first day, or the day it was
+   * repriced (then `original` is the balance that day). */
+  from: "start" | "repricing";
   /** What was borrowed, and the payment the figures below assume: the one
    * typed, else the level payment the terms imply. */
   original: number;
@@ -1166,8 +1174,12 @@ export type LoanOriginStatus = {
  * out); payments made are counted from the schedule's dates that have
  * passed, so nobody ticks them off. */
 export function loanOriginStatus(loan: LoanTerms, today: string): LoanOriginStatus | null {
-  const original = loan.original_amount == null ? null : Number(loan.original_amount);
-  const term = loan.term_months;
+  // After a repricing the bank's new table starts from that day's balance
+  // over the payments left then (Jonathan, 28 October): the original terms
+  // would read every peso since as a gap.
+  const repriced = !!loan.repriced_on && loan.repriced_balance != null && Number(loan.repriced_balance) > 0 && !!loan.repriced_payments_left;
+  const original = repriced ? Number(loan.repriced_balance) : loan.original_amount == null ? null : Number(loan.original_amount);
+  const term = repriced ? loan.repriced_payments_left! : loan.term_months;
   if (original == null || !(original > 0) || !term || term < 1) return null;
   const rate = loan.interest_rate == null ? null : Number(loan.interest_rate);
   const typed = loan.monthly_payment == null ? null : Number(loan.monthly_payment);
@@ -1181,6 +1193,7 @@ export function loanOriginStatus(loan: LoanTerms, today: string): LoanOriginStat
   const balance = Number(loan.balance);
   const fixedMonthsLeft = !loan.rate_fixed_until ? null : loan.rate_fixed_until >= today ? Math.round(yearsBetween(today, loan.rate_fixed_until) * 12) : -Math.round(yearsBetween(loan.rate_fixed_until, today) * 12);
   return {
+    from: repriced ? "repricing" : "start",
     original,
     payment,
     made,
@@ -1357,4 +1370,33 @@ export function cardDueDate(dueDay: number, today: string): string {
   };
   const thisMonth = onMonth(y, m);
   return thisMonth >= today ? thisMonth : m === 12 ? onMonth(y + 1, 1) : onMonth(y, m + 1);
+}
+
+/* --------------------------------------------- paying a loan down faster */
+
+/** Paying `extra` on top of each month's payment (Jonathan, 28 October): how
+ * many months the loan then takes and the interest over them, against the
+ * payment alone, both run on the table from what is owed now. A payment
+ * that does not cover the interest never ends: months null. The first
+ * payment falls on `firstDate` (YYYY-MM-DD), so the last one is dated. */
+export function extraPaymentEffect(balance: number, ratePct: number | null, payment: number, extra: number, firstDate: string) {
+  const run = (pay: number) => {
+    const r = amortise(balance, ratePct, pay, 1200);
+    return r.balance > 0.005 ? null : { months: r.months, interest: r.interest, last: addMonths(firstDate.slice(0, 10), Math.max(0, r.months - 1)) };
+  };
+  const base = run(payment);
+  const faster = run(payment + Math.max(0, extra));
+  return {
+    base,
+    faster,
+    monthsSooner: base && faster ? base.months - faster.months : null,
+    interestSaved: base && faster ? cents(base.interest - faster.interest) : null,
+  };
+}
+
+/** What a loan's monthly payment becomes at a new rate: the level payment
+ * that clears what is owed over the payments left, as the bank works it out
+ * when it reprices. */
+export function repricedPayment(balance: number, ratePct: number, paymentsLeft: number): number {
+  return amortisedPayment(balance, ratePct, paymentsLeft);
 }

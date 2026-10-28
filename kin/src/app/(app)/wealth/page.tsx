@@ -25,6 +25,8 @@ import {
   SetBalanceButton,
   EditSavingsGoalButton,
   LoanBillButton,
+  ExtraPaymentControl,
+  RepriceLoanControl,
   AccountPrivacyToggle,
   MoveMoneyButton,
   IncludePrivateToggle,
@@ -1293,7 +1295,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ),
       };
     }),
-    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
+    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: `${accountSub(a)}${a.matures_on ? ` · ${a.matures_on.slice(0, 10) < today ? "matured" : "matures"} ${fmtDate(a.matures_on)}` : ""}`, href: openAccount(a.id) })),
     ...assets.map((a) => ({
       id: `asset-${a.id}`,
       name: a.name,
@@ -1359,6 +1361,15 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
           {/* The payment as a monthly bill (26 October): Today, the
               calendar and the reminder, with Settle paying the loan down. */}
           {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
+          {Number(l.balance) > 0 && Number(l.monthly_payment ?? 0) > 0 && (
+            <ExtraPaymentControl
+              balance={Number(l.balance)}
+              rate={l.interest_rate == null ? null : Number(l.interest_rate)}
+              payment={Number(l.monthly_payment)}
+              firstDate={loanStatus(l, today).next ?? today}
+              currency={currency}
+            />
+          )}
           <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
           <LoanScheduleControl
             id={l.id}
@@ -1632,6 +1643,7 @@ function LoanLines({
   const split = monthly && monthly > 0 && rate != null && balance > 0 ? loanPaymentSplit(balance, rate, monthly) : null;
   const origin = loanOriginStatus(loan, today);
   const fixed = origin?.fixedMonthsLeft ?? null;
+  const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
   return (
     <>
       <LoanScheduleLine loan={{ ...loan, monthly_payment: monthly, interest_rate: rate }} today={today} currency={currency} fmtDate={fmtDate} />
@@ -1643,7 +1655,7 @@ function LoanLines({
       )}
       {origin && (
         <div style={muted}>
-          Borrowed {formatCurrency(origin.original, currency)} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
+          {origin.from === "repricing" ? `Repriced ${fmtDate(loan.repriced_on!)} from ${formatCurrency(origin.original, currency)}` : `Borrowed ${formatCurrency(origin.original, currency)}`} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
         </div>
       )}
       {origin && !origin.matches && (
@@ -1656,10 +1668,17 @@ function LoanLines({
       )}
       {origin && origin.matches && origin.made > 0 && <div style={muted}>The balance on record matches its terms{Math.abs(origin.gap) >= 1 ? ", within one payment" : ""}.</div>}
       {loan.rate_fixed_until && (
-        <div style={muted}>
-          {fixed != null && fixed < 0
-            ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank what the rate is now and update it under Payments.`
-            : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed == null ? "" : fixed >= 1 ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : origin?.fixedDaysLeft != null ? ` · ${origin.fixedDaysLeft === 0 ? "ends today" : `${origin.fixedDaysLeft} day${origin.fixedDaysLeft === 1 ? "" : "s"} more`}` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+        <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
+          <span>
+            {fixedDays != null && fixedDays < 0
+              ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank for the rate now and set it here, so the balance check runs from the new terms.`
+              : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed == null ? "" : fixed >= 1 ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : fixedDays != null ? ` · ${fixedDays === 0 ? "ends today" : `${fixedDays} day${fixedDays === 1 ? "" : "s"} more`}` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+          </span>
+          {/* Within a month of the end, or after it (28 October): the new
+              rate re-runs the table from today's balance. */}
+          {fixedDays != null && fixedDays <= 31 && balance > 0 && loanStatus(loan, today).left > 0 && (
+            <RepriceLoanControl id={loan.id} balance={balance} paymentsLeft={loanStatus(loan, today).left} currentRate={rate} currentPayment={monthly} currency={currency} />
+          )}
         </div>
       )}
     </>
