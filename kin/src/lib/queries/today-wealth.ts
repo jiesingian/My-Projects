@@ -30,8 +30,10 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   const cards = accounts
     .filter((a) => a.account_type === "credit" && a.card_due_day)
     .map((a) => ({ id: a.id, name: a.name, owed: Math.max(0, -a.balance), card_due_day: a.card_due_day, card_min_payment: a.card_min_payment == null ? null : Number(a.card_min_payment) }));
+  // Investments with a maturity date (20261028130000).
+  const maturities = accounts.filter((a) => (a.account_type === "investment" || a.account_type === "stocks") && a.matures_on).map((a) => ({ id: a.id, name: a.name, balance: a.balance, matures_on: a.matures_on }));
   const rows = wealthRows(
-    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards },
+    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards, maturities },
     today,
     me.families.currency,
   );

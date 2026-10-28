@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -25,6 +25,8 @@ import {
   SetBalanceButton,
   EditSavingsGoalButton,
   LoanBillButton,
+  ExtraPaymentControl,
+  RepriceLoanControl,
   AccountPrivacyToggle,
   MoveMoneyButton,
   IncludePrivateToggle,
@@ -67,6 +69,7 @@ import {
   loanOriginStatus,
   paymentsLeftForBalance,
   cardDueDate,
+  emergencyCover,
   assetGroup,
   AL_CASH,
   AL_INVESTMENTS,
@@ -1202,12 +1205,14 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [nw, who, allAccounts, loanBills, onPlanner] = await Promise.all([
+  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&range=${range}&who=${w}`),
     getAccounts(familyId),
     getLoanBillIds(familyId),
     getGoalsOnPlanner(familyId),
+    // The last six full months' living costs, for the emergency cover.
+    getMonthlySpending(familyId, scope, 6),
   ]);
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
@@ -1293,7 +1298,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ),
       };
     }),
-    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
+    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: `${accountSub(a)}${a.matures_on ? ` · ${a.matures_on.slice(0, 10) < today ? "matured" : "matures"} ${fmtDate(a.matures_on)}` : ""}`, href: openAccount(a.id) })),
     ...assets.map((a) => ({
       id: `asset-${a.id}`,
       name: a.name,
@@ -1359,6 +1364,15 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
           {/* The payment as a monthly bill (26 October): Today, the
               calendar and the reminder, with Settle paying the loan down. */}
           {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
+          {Number(l.balance) > 0 && Number(l.monthly_payment ?? 0) > 0 && (
+            <ExtraPaymentControl
+              balance={Number(l.balance)}
+              rate={l.interest_rate == null ? null : Number(l.interest_rate)}
+              payment={Number(l.monthly_payment)}
+              firstDate={loanStatus(l, today).next ?? today}
+              currency={currency}
+            />
+          )}
           <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
           <LoanScheduleControl
             id={l.id}
@@ -1427,6 +1441,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       <RangeRow range={range} hrefFor={(r) => `/wealth?seg=assets&range=${r}&who=${scope}`} />
       <NetWorthLine points={netWorthHistory} currency={currency} periodNoun={periodNoun} />
       <NetWorthMoves points={netWorthHistory} currency={currency} />
+      <EmergencyCoverLine cover={emergencyCover(cashTotal + goalTotal, monthlySpending)} liquid={cashTotal + goalTotal} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       {ownedLines.length === 0 ? (
@@ -1499,6 +1514,28 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
         Update a value whenever it changes.
       </div>
     </>
+  );
+}
+
+/** Under the net worth line (Jonathan, 28 October): how many months the
+ * household's cash and savings would carry an average month of living
+ * costs, against the usual aim of three to six. Nothing until two months of
+ * spending are on record. */
+function EmergencyCoverLine({ cover, liquid, currency }: { cover: ReturnType<typeof emergencyCover>; liquid: number; currency: string }) {
+  if (!cover) return null;
+  const tone = cover.status === "low" ? "var(--color-accent-700)" : "var(--color-text)";
+  const verdict = cover.status === "low" ? "below the 3 months most guides aim for" : cover.status === "on_track" ? "within the 3–6 months most guides aim for" : "more than 6 months: some could be invested";
+  return (
+    <div style={{ fontSize: "0.8125rem", margin: "-0.25rem 0 0.875rem", lineHeight: 1.5 }}>
+      <span style={{ fontWeight: 600 }}>Emergency cover: </span>
+      <span style={{ fontFamily: "var(--font-numeric)", fontWeight: 600, color: tone }}>
+        {cover.months} month{cover.months === 1 ? "" : "s"}
+      </span>
+      <span style={{ color: "var(--color-neutral-600)" }}>
+        {" "}
+        · {formatCurrency(liquid, currency)} in cash and savings ÷ {formatCurrency(Math.round(cover.average), currency)} a month (average of {cover.counted} month{cover.counted === 1 ? "" : "s"}) · {verdict}
+      </span>
+    </div>
   );
 }
 
@@ -1632,6 +1669,7 @@ function LoanLines({
   const split = monthly && monthly > 0 && rate != null && balance > 0 ? loanPaymentSplit(balance, rate, monthly) : null;
   const origin = loanOriginStatus(loan, today);
   const fixed = origin?.fixedMonthsLeft ?? null;
+  const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
   return (
     <>
       <LoanScheduleLine loan={{ ...loan, monthly_payment: monthly, interest_rate: rate }} today={today} currency={currency} fmtDate={fmtDate} />
@@ -1643,7 +1681,7 @@ function LoanLines({
       )}
       {origin && (
         <div style={muted}>
-          Borrowed {formatCurrency(origin.original, currency)} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
+          {origin.from === "repricing" ? `Repriced ${fmtDate(loan.repriced_on!)} from ${formatCurrency(origin.original, currency)}` : `Borrowed ${formatCurrency(origin.original, currency)}`} over {origin.term} months · {origin.made} paid, {origin.left} left · interest so far about {formatCurrency(origin.interestPaid, currency)}, about {formatCurrency(origin.totalInterest, currency)} over the whole loan
         </div>
       )}
       {origin && !origin.matches && (
@@ -1656,10 +1694,17 @@ function LoanLines({
       )}
       {origin && origin.matches && origin.made > 0 && <div style={muted}>The balance on record matches its terms{Math.abs(origin.gap) >= 1 ? ", within one payment" : ""}.</div>}
       {loan.rate_fixed_until && (
-        <div style={muted}>
-          {fixed != null && fixed < 0
-            ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank what the rate is now and update it under Payments.`
-            : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed == null ? "" : fixed >= 1 ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : origin?.fixedDaysLeft != null ? ` · ${origin.fixedDaysLeft === 0 ? "ends today" : `${origin.fixedDaysLeft} day${origin.fixedDaysLeft === 1 ? "" : "s"} more`}` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+        <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
+          <span>
+            {fixedDays != null && fixedDays < 0
+              ? `The fixed rate ended ${fmtDate(loan.rate_fixed_until)}: ask the bank for the rate now and set it here, so the balance check runs from the new terms.`
+              : `Rate fixed until ${fmtDate(loan.rate_fixed_until)}${fixed == null ? "" : fixed >= 1 ? ` · ${fixed} month${fixed === 1 ? "" : "s"} more` : fixedDays != null ? ` · ${fixedDays === 0 ? "ends today" : `${fixedDays} day${fixedDays === 1 ? "" : "s"} more`}` : ""}, then the bank reprices${fixed != null && fixed <= 3 ? " — soon: ask for the new rate" : ""}.`}
+          </span>
+          {/* Within a month of the end, or after it (28 October): the new
+              rate re-runs the table from today's balance. */}
+          {fixedDays != null && fixedDays <= 31 && balance > 0 && loanStatus(loan, today).left > 0 && (
+            <RepriceLoanControl id={loan.id} balance={balance} paymentsLeft={loanStatus(loan, today).left} currentRate={rate} currentPayment={monthly} currency={currency} />
+          )}
         </div>
       )}
     </>

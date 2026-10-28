@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance } from "@/lib/wealth";
+import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -149,4 +149,47 @@ test("loanOriginStatus: a balance within one payment of the table matches; a rep
   const soon = loanOriginStatus({ ...loan, rate_fixed_until: "2026-11-02" }, "2026-10-28")!;
   expect(soon.fixedMonthsLeft).toBe(0);
   expect(soon.fixedDaysLeft).toBe(5);
+});
+
+test("emergencyCover: cash over an average month of spending, against the 3-6 month aim", () => {
+  // ₱337,540 over months averaging ₱80,000: 4.2 months, on track.
+  expect(emergencyCover(337_540, [0, 0, 70_000, 90_000, 80_000, 80_000])).toEqual({ months: 4.2, average: 80_000, counted: 4, status: "on_track" });
+  expect(emergencyCover(100_000, [50_000, 50_000])!.status).toBe("low");
+  expect(emergencyCover(900_000, [50_000, 50_000])!.status).toBe("ample");
+  // Under two months of spending on record: too soon to say.
+  expect(emergencyCover(100_000, [0, 0, 0, 0, 0, 40_000])).toBeNull();
+  expect(emergencyCover(-5_000, [10_000, 10_000])!.months).toBe(0);
+});
+
+test("extraPaymentEffect: ₱2,000 more a month on ₱1.8M at 6.5% ends years sooner and saves interest", () => {
+  const e = extraPaymentEffect(1_800_000, 6.5, 14_911.44, 2_000, "2026-11-15");
+  expect(e.base!.months).toBeGreaterThan(190);
+  expect(e.faster!.months).toBeLessThan(e.base!.months);
+  expect(e.monthsSooner).toBe(e.base!.months - e.faster!.months);
+  expect(e.monthsSooner!).toBeGreaterThan(30);
+  expect(e.interestSaved!).toBeGreaterThan(200_000);
+  expect(e.base!.last > e.faster!.last).toBe(true);
+  // Nothing extra: no change. A payment under the interest: never ends.
+  expect(extraPaymentEffect(1_800_000, 6.5, 14_911.44, 0, "2026-11-15").monthsSooner).toBe(0);
+  const short = extraPaymentEffect(1_800_000, 6.5, 5_000, 2_000, "2026-11-15");
+  expect(short.base).toBeNull();
+  expect(short.monthsSooner).toBeNull();
+});
+
+test("after a repricing the table runs from that day's balance at the new rate, not the original terms", () => {
+  const today = "2027-01-20";
+  // Repriced on 2 November 2026 at 7.25%, ₱1,797,989.79 owed and 196 left.
+  const payment = repricedPayment(1_797_989.79, 7.25, 196);
+  expect(payment).toBeGreaterThan(14_911.44);
+  const repriced = { ...loan, interest_rate: 7.25, monthly_payment: payment, next_payment_date: "2026-11-15", payments_remaining: 196, repriced_on: "2026-11-02", repriced_balance: 1_797_989.79, repriced_payments_left: 196 };
+  const s = loanOriginStatus(repriced, today)!;
+  expect(s.from).toBe("repricing");
+  expect(s.original).toBe(1_797_989.79);
+  expect(s.term).toBe(196);
+  // November, December and January paid since.
+  expect(s.made).toBe(3);
+  // A balance that followed the new table reads as matching.
+  expect(loanOriginStatus({ ...repriced, balance: s.expectedBalance }, today)!.matches).toBe(true);
+  // Without the repricing, the original terms at the new rate would not agree.
+  expect(loanOriginStatus({ ...repriced, repriced_on: null, balance: s.expectedBalance }, today)!.matches).toBe(false);
 });

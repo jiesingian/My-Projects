@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { wealthRows, valuesToCheck, type AssetLike, type CardLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
+import { wealthRows, valuesToCheck, type AssetLike, type CardLike, type MaturityLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
 
 /** Wealth on Today (23 October): the rows and the week's Coming up lines,
  * from the same sums the Wealth tab shows. Friday 23 October 2026. */
@@ -112,4 +112,15 @@ test("a credit card on its due day while something is owed; the week before in C
   expect(rows(card({ owed: 0 })).today).toEqual([]);
   expect(rows(card({ card_due_day: null })).today).toEqual([]);
   expect(rows(card({ card_due_day: 10 })).soon).toEqual([]);
+});
+
+test("an investment maturing: the week before in Coming up, from the day a row for two weeks", () => {
+  const td = (matures_on: string | null): MaturityLike => ({ id: "m1", name: "Maya Time Deposit", balance: 100_243.3, matures_on });
+  const rows = (d: string | null) => wealthRows({ ...none, maturities: [td(d)] }, today, "PHP");
+  expect(rows("2026-10-29").soon.map((r) => [r.id, r.title, r.meta, r.at])).toEqual([["soon-matures-m1", "Maya Time Deposit matures", "₱100,243.30 · on Thursday · decide: roll it over, or move it", 6]]);
+  expect(rows("2026-10-23").today.map((r) => [r.id, r.title, r.meta, r.action])).toEqual([["matures-m1-2026-10-23", "Maya Time Deposit matures today", "₱100,243.30 · roll it over, or move it", "record"]]);
+  expect(rows("2026-10-20").today[0].title).toBe("Maya Time Deposit has matured");
+  expect(rows("2026-10-01").today).toEqual([]);
+  expect(rows("2026-11-30").soon).toEqual([]);
+  expect(rows(null).today).toEqual([]);
 });
