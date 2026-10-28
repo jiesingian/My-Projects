@@ -92,18 +92,33 @@ export async function runMarkTool(name: string, rawInput: unknown, me: CurrentMe
     }
 
     case "tick_list_item": {
-      const wanted = str(input, "name");
-      if (!wanted) return fail("Which item?");
+      // One name, or several ("bought the milk and eggs").
+      const wantedAll = (Array.isArray(input.names) ? input.names.filter((n): n is string => typeof n === "string" && !!n.trim()) : []).concat(str(input, "name") ? [str(input, "name")!] : []);
+      if (wantedAll.length === 0) return fail("Which item?");
       const checked = input.checked !== false;
       const { data: items } = await supabase.from("buy_items").select("id, name, checked").eq("family_id", familyId).eq("cleared", false);
-      const hits = pickByName(items ?? [], wanted);
-      if (hits.length === 0) return fail(`"${wanted}" isn't on the list.`);
-      const names = distinctNames(hits);
-      if (names.length > 1) return done({ ambiguous: names });
-      const toFlip = hits.filter((i) => i.checked !== checked);
-      if (toFlip.length === 0) return done({ already: checked ? "ticked" : "unticked", name: names[0] });
-      for (const item of toFlip) await toggleBuyItemAction(item.id, checked);
-      return done({ [checked ? "ticked" : "unticked"]: names[0], count: toFlip.length });
+      const flipped: string[] = [];
+      const already: string[] = [];
+      const missing: string[] = [];
+      for (const wanted of wantedAll) {
+        const hits = pickByName(items ?? [], wanted);
+        if (hits.length === 0) {
+          missing.push(wanted);
+          continue;
+        }
+        const names = distinctNames(hits);
+        if (names.length > 1) return done({ ambiguous: names });
+        const toFlip = hits.filter((i) => i.checked !== checked);
+        if (toFlip.length === 0) {
+          already.push(names[0]);
+          continue;
+        }
+        for (const item of toFlip) await toggleBuyItemAction(item.id, checked);
+        flipped.push(names[0]);
+      }
+      if (flipped.length === 0 && already.length === 0) return fail(`${missing.map((m) => `"${m}"`).join(", ")} ${missing.length === 1 ? "isn't" : "aren't"} on the list.`);
+      if (flipped.length === 0) return done({ already: checked ? "ticked" : "unticked", name: already.join(", ") });
+      return done({ [checked ? "ticked" : "unticked"]: flipped.join(", "), count: flipped.length, ...(missing.length > 0 ? { not_on_list: missing } : {}), ...(already.length > 0 ? { already: already.join(", ") } : {}) });
     }
 
     case "log_chore": {
