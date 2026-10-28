@@ -190,6 +190,30 @@ const TABLE: Row[] = [
   { ask: "are we out of milk", tool: "get_household", rule: "household.have" },
   { ask: "meron pa ba tayong toyo", tool: "get_household", rule: "household.have", lang: "tl" },
   { ask: "do we have plans tomorrow", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
+  // the marks (fourth PR): a bill paid, a list item ticked, a chore done, through the screens' own actions
+  { ask: "paid Meralco from GCash", tool: "mark_bill_paid", input: { bill_name: "meralco", account_name: "gcash" }, rule: "mark.paid" },
+  { ask: "paid Meralco 3200 from BPI", tool: "mark_bill_paid", input: { bill_name: "meralco", account_name: "bpi", amount: 3200 }, rule: "mark.paid" },
+  { ask: "binayaran ko na ang Globe sa GCash", tool: "mark_bill_paid", input: { bill_name: "globe", account_name: "gcash" }, rule: "mark.paid", lang: "tl" },
+  { ask: "paid Meralco in cash", tool: "mark_bill_paid", input: { bill_name: "meralco", outside: true }, rule: "mark.paid" },
+  { ask: "paid Meralco", tool: "get_money", rule: "mark.paid.ask" },
+  { ask: "bayad na ang Meralco", tool: "get_money", rule: "mark.paid.ask", lang: "tl" },
+  { ask: "mark Meralco as paid", tool: "get_money", rule: "mark.paid.ask" },
+  { ask: "Meralco is paid", tool: "get_money", rule: "mark.paid.ask" },
+  { ask: "tick milk", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
+  { ask: "bought milk", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
+  { ask: "nabili ko na ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: true }, rule: "mark.tick", lang: "tl" },
+  { ask: "check off eggs", tool: "tick_list_item", input: { name: "eggs", checked: true }, rule: "mark.tick" },
+  { ask: "bought 2 kilos of rice", tool: "tick_list_item", input: { name: "rice", checked: true }, rule: "mark.tick" },
+  { ask: "tick milk off the list", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
+  { ask: "untick milk", tool: "tick_list_item", input: { name: "milk", checked: false }, rule: "mark.untick" },
+  { ask: "hindi pa nabili ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: false }, rule: "mark.untick", lang: "tl" },
+  { ask: "Lia did the dishes", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done" },
+  { ask: "done with the trash", tool: "log_chore", input: { title: "trash", status: "done" }, rule: "mark.chore_done" },
+  { ask: "ginawa na ni Lia ang dishes", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done", lang: "tl" },
+  { ask: "tapos na ang homework ni Ben", tool: "log_chore", input: { title: "homework", status: "done", member_name: "Ben" }, rule: "mark.chore_done", lang: "tl" },
+  { ask: "mark laundry as done", tool: "log_chore", input: { title: "laundry", status: "done" }, rule: "mark.chore_done" },
+  { ask: "Ben finished his homework", tool: "log_chore", input: { title: "homework", status: "done", member_name: "Ben" }, rule: "mark.chore_done" },
+  { ask: "skip the dishes today", tool: "log_chore", input: { title: "dishes", status: "skipped" }, rule: "mark.chore_skipped" },
   // plain adds through the one-line parser: an activity with a day and a time, an event, a meal
   { ask: "Add dentist on Friday at 3pm", tool: "add_activity", input: { title: "Dentist", date: "2026-10-30", start_time: "15:00", whole_family: false, member_names: ["Ana"] }, rule: "add.activity" },
   { ask: "add Lia dentist tomorrow 9am", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "09:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity" },
@@ -252,6 +276,10 @@ const FOR_THE_MODEL = [
   // Where a person is: Where everyone is, and the model's.
   "where is Lia",
   "do we have money",
+  // A question about a payment, a plan being over, money moving: not a mark.
+  "Is Meralco paid?",
+  "the dentist is done",
+  "I got paid today",
 ];
 
 for (const ask of FOR_THE_MODEL) {
@@ -682,6 +710,48 @@ test("where is: the matching records by kind; do we have: the pantry and the lis
   expect(said("are we out of milk", household)).toBe("None in the pantry; on the list: milk.");
   expect(said("meron pa ba tayong toyo", household)).toBe("Sa pantry: Toyo (paubos na).");
   expect(said("do we have any eggs left", household)).toBe("No eggs in the pantry, and it isn't on the list.");
+});
+
+/* ------------------------------------------------------------- the marks */
+
+test("a bill paid with no account named: the bills are read, then which account is asked, with 'outside Kin' as a choice", () => {
+  const out = m("paid Meralco").say(moneyResult);
+  expect(isAsk(out) ? out.ask : out).toBe("Meralco (₱3,200): paid from which account?");
+  expect(isAsk(out) ? out.choices : null).toEqual(["GCash", "BPI Savings", "Paid outside Kin"]);
+  const picked = resumeRule((out as Ask).pending, "GCash", ctx);
+  expect(picked && !isAsk(picked) ? { tool: picked.tool, input: picked.input } : null).toEqual({ tool: "mark_bill_paid", input: { bill_name: "Meralco", account_name: "GCash", amount: 3200 } });
+  const outside = resumeRule((out as Ask).pending, "Paid outside Kin", ctx);
+  expect(outside && !isAsk(outside) ? outside.input : null).toEqual({ bill_name: "Meralco", outside: true, amount: 3200 });
+  expect(said("paid Meralco", { ...moneyResult, unpaid_bills: [] })).toBe('No unpaid bill called "meralco". To record money out that isn\'t a bill, use Wealth → Move money.');
+  // Two bills by that word: which one first.
+  const two = { ...moneyResult, unpaid_bills: [...unpaid, { name: "Globe Postpaid", amount: 999, due_date: "2026-11-03", status: "unpaid" }] };
+  const which = m("bayad na ang globe").say(two);
+  expect(isAsk(which) ? which.choices : null).toEqual(["Globe Fiber", "Globe Postpaid"]);
+});
+
+test("a mark's answer, and a mark the executor could not place", () => {
+  expect(said("paid Meralco from GCash", { paid: "Meralco", amount: 3200, due_date: "2026-11-15", account: "GCash" })).toBe("Meralco paid from GCash, ₱3,200.");
+  expect(said("paid Meralco in cash", { paid: "Meralco", amount: 3200, due_date: "2026-11-15", outside: true })).toBe("Meralco marked paid (₱3,200, outside Kin).");
+  expect(said("binayaran ko na ang Globe sa GCash", { paid: "Globe Fiber", amount: 1299, due_date: "2026-10-30", account: "GCash" })).toBe("Bayad na ang Globe Fiber mula sa GCash, ₱1,299.");
+  expect(said("paid Meralco from GCash", { error: 'No account called "gcash". Available: BPI Savings.' })).toBe('No account called "gcash". Available: BPI Savings.');
+  expect(said("tick milk", { ticked: "milk", count: 1 })).toBe("Ticked milk off the list.");
+  expect(said("nabili ko na ang gatas", { ticked: "gatas", count: 1 })).toBe("Na-tick na ang gatas sa list.");
+  expect(said("untick milk", { unticked: "milk", count: 1 })).toBe("milk is back on the list.");
+  expect(said("tick milk", { already: "ticked", name: "milk" })).toBe("milk was already ticked.");
+  expect(said("Lia did the dishes", { logged: "done", title: "Dishes", date: "2026-10-28", for: "Lia Santos", awaits_approval: false })).toBe("Dishes done (Lia).");
+  expect(said("Lia did the dishes", { logged: "done", title: "Dishes", date: "2026-10-28", for: "Lia Santos", awaits_approval: true })).toBe("Dishes done (Lia). A grown-up will be asked to approve it.");
+  expect(said("skip the dishes today", { logged: "skipped", title: "Dishes", date: "2026-10-28", for: "Ana Santos" })).toBe("Dishes skipped for today (Ana).");
+  expect(said("done with the trash", { error: 'No chore called "trash" today. The Planner\'s Tasks tab has the list.' })).toContain("No chore called");
+});
+
+test("a mark that fits two records asks which, and the chip finishes it", () => {
+  const out = m("tick milk").say({ ambiguous: ["Milk", "Milk tea"] });
+  expect(isAsk(out) ? out.choices : null).toEqual(["Milk", "Milk tea"]);
+  const picked = resumeRule((out as Ask).pending, "Milk tea", ctx);
+  expect(picked && !isAsk(picked) ? picked.input : null).toEqual({ name: "Milk tea", checked: true });
+  const chore = m("Lia did the dishes").say({ ambiguous: ["Dishes (lunch)", "Dishes (dinner)"] });
+  const pickedChore = resumeRule((chore as Ask).pending, "Dishes (dinner)", ctx);
+  expect(pickedChore && !isAsk(pickedChore) ? pickedChore.input : null).toEqual({ title: "Dishes (dinner)", status: "done", member_name: "Lia" });
 });
 
 test("the language of the answer follows the question", () => {

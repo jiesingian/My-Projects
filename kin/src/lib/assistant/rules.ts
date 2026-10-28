@@ -454,8 +454,8 @@ function isForTheModel(q: Query): boolean {
   if (q.text.length > 140) return true;
   if (/\b(then|tapos|and then|after that|also|at saka|pati|and also)\b/.test(q.text) && /\b(add|pa-?add|idagdag|tell|show|what|ano|magkano|how much)\b.*\b(add|pa-?add|idagdag|tell|show|what|ano|magkano|how much)\b/.test(q.text)) return true;
   if (/\b(should|why|bakit|paano|how do i|how can|how to|advice|advise|suggest|recommend|best|better|ideas?|plan for|help me|can you help|tips?|dapat|pwede ba|can we afford|afford|compare|explain|summar(?:y|ise|ize)|remind me)\b/.test(q.text)) return true;
-  if (/\b(delete|remove|edit|change|update|rename|cancel|move|mark|tanggalin|burahin|palitan|alisin)\b/.test(q.text)) return true;
-  if (/\b(record|log|received|nabayaran|paid|binayaran|got paid|spent \d|gastos ko \d|transfer|ilipat)\b/.test(q.text)) return true;
+  if (/\b(delete|remove|edit|change|update|rename|cancel|move|tanggalin|burahin|palitan|alisin)\b/.test(q.text)) return true;
+  if (/\b(record|received|got paid|spent \d|gastos ko \d|transfer|ilipat)\b/.test(q.text)) return true;
   return false;
 }
 
@@ -1898,6 +1898,173 @@ const doWeHave: Rule = (q, ctx) => {
   };
 };
 
+
+/* ------------------------------------------------------ the marks (PR 4) */
+
+/** The question for which account a bill was paid from, from get_money's
+ * accounts the member may move money from, plus "paid outside Kin". */
+function askAccountFor(bill: string, amount: number | null, accounts: Account[], lang: Lang, ctx: RuleContext): Ask {
+  const t = pick(lang);
+  const usable = accounts.filter((a) => a.scope === "joint" || a.scope === "your own").map((a) => a.name);
+  const outside = t("Paid outside Kin", "Bayad sa labas ng Kin");
+  return {
+    ask: t(`${bill}${amount ? ` (${money(amount, ctx.currency)})` : ""}: paid from which account?`, `${bill}${amount ? ` (${money(amount, ctx.currency)})` : ""}: saan galing ang bayad?`),
+    choices: [...usable, outside],
+    pending: { rule: "mark.paid", slots: { bill, ...(amount ? { amount } : {}) }, lang, asked: 1 },
+  };
+}
+
+/** The mark_bill_paid match once the bill and the account (or "outside") are known. */
+function markPaidMatch(bill: string, account: string | null, amount: number | null, lang: Lang, ctx: RuleContext): RuleMatch {
+  const t = pick(lang);
+  return {
+    rule: "mark.paid",
+    tool: "mark_bill_paid",
+    input: { bill_name: bill, ...(account ? { account_name: account } : { outside: true }), ...(amount ? { amount } : {}) },
+    lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const names = rows<string>(result, "ambiguous");
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(account ? { account } : { outside: 1 }), ...(amount ? { amount } : {}) }, lang, asked: 1 } };
+      const accounts = rows<string>(result, "ambiguous_account");
+      if (accounts.length > 0) return { ask: t(`Which account: ${accounts.join(" or ")}?`, `Aling account: ${accounts.join(" o ")}?`), choices: accounts, pending: { rule: "mark.paid", slots: { bill, ...(amount ? { amount } : {}) }, lang, asked: 1 } };
+      const paid = String(field(result, "paid") ?? bill);
+      const paidAmount = money(field(result, "amount"), ctx.currency);
+      if (field(result, "outside")) return t(`${paid} marked paid (${paidAmount}, outside Kin).`, `Bayad na ang ${paid} (${paidAmount}, sa labas ng Kin).`);
+      return t(`${paid} paid from ${field(result, "account")}, ${paidAmount}.`, `Bayad na ang ${paid} mula sa ${field(result, "account")}, ${paidAmount}.`);
+    },
+  };
+}
+
+const markPaid: Rule = (q, ctx) => {
+  // A question ("Is Meralco paid?", "did we pay") is not a mark.
+  if (/^(did|do|does|have|has|is|are|was|were|when|kailan|kelan|how|magkano|ano|anong|what|sino|who|may|meron)\b/.test(q.text)) return null;
+  const m =
+    /^(?:mark|i-?mark|set)\s+(?:the\s+|ang\s+|yung\s+)?(.+?)(?:\s+bill)?\s+(?:as\s+)?(?:paid|bayad|settled)(?:\s+(?:from|via|using|sa|gamit ang|through)\s+(.+))?$/.exec(q.text) ??
+    /^(?:i\s+)?(?:paid|settled|binayaran(?: ko)?(?: na)?|nabayaran(?: ko)?(?: na)?|bayad na(?: ang| yung| si)?|nagbayad(?: na)?(?: ako)?(?: ng| sa)?)\s+(?:the\s+|ang\s+|yung\s+|na\s+|for\s+)?(.+?)(?:\s+bill)?(?:\s+(?:na|already|today|ngayon|kanina))*(?:\s+(?:from|via|using|sa|gamit ang|through|mula sa)\s+(.+))?$/.exec(q.text) ??
+    /^(?:the\s+|ang\s+)?(.+?)(?:\s+bill)?\s+(?:is|was)\s+paid(?:\s+(?:from|via|using|through)\s+(.+))?$/.exec(q.text);
+  if (!m) return null;
+  let bill = m[1].trim();
+  const account = m[2]?.replace(/\b(the|our|my|ang|account|acct|wallet|na|ko)\b/g, " ").replace(/\s+/g, " ").trim() || null;
+  // An amount in the line pays that much; "paid Meralco 3200".
+  const amount = readAmount(bill);
+  if (amount) bill = bill.replace(/(?:₱|\bphp|\bp)?\s*\d{1,3}(?:,\d{3})+(?:\.\d+)?\s*k?|(?:₱|\bphp|\bp)?\s*\d+(?:\.\d+)?\s*k?/, " ").replace(/\s+/g, " ").trim();
+  const cashInLine = /\b(in cash|cash|over the counter|sa labas|outside kin|bayad center|7-?eleven)\s*$/.test(bill);
+  bill = bill.replace(/\b(in cash|cash|over the counter|sa labas|outside kin|bayad center|7-?eleven)\s*$/, " ");
+  bill = bill.replace(/\b(the|our|my|ang|yung|na|ko|bill|bills|for|of|this month|ngayong buwan)\b/g, " ").replace(/\s+/g, " ").trim();
+  if (!bill || bill.length < 2) return null;
+  if (/\b(list|listahan|chore|chores|dishes|trash|laundry|homework)\b/.test(bill)) return null;
+  const outside = cashInLine || /\b(outside kin|outside|cash|in cash|over the counter|sa labas|labas ng kin|7-?eleven|bayad center|personally)\b/.test(account ?? "");
+  if (account && !outside) return markPaidMatch(bill, account, amount, q.lang, ctx);
+  if (outside) return markPaidMatch(bill, null, amount, q.lang, ctx);
+  // No account named: read the bills and the accounts, then ask which.
+  const t = pick(q.lang);
+  return {
+    rule: "mark.paid.ask",
+    tool: "get_money",
+    input: {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const bills = rows<Bill>(result, "unpaid_bills").filter((b) => billMatches(b, bill)).sort((a, b) => a.due_date.localeCompare(b.due_date));
+      if (bills.length === 0) return t(`No unpaid bill called "${bill}". To record money out that isn't a bill, use Wealth → Move money.`, `Walang unpaid na bill na "${bill}". Para sa ibang gastos, Wealth → Move money.`);
+      const names = [...new Set(bills.map((b) => b.name))];
+      if (names.length > 1) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(amount ? { amount } : {}) }, lang: q.lang, asked: 1 } };
+      return askAccountFor(bills[0].name, amount ?? Number(bills[0].amount), rows<Account>(result, "accounts"), q.lang, ctx);
+    },
+  };
+};
+
+function tickMatch(item: string, checked: boolean, lang: Lang): RuleMatch {
+  const t = pick(lang);
+  return {
+    rule: checked ? "mark.tick" : "mark.untick",
+    tool: "tick_list_item",
+    input: { name: item, checked },
+    lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const names = rows<string>(result, "ambiguous");
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.tick", slots: { checked: checked ? 1 : 0 }, lang, asked: 1 } };
+      const name = String(field(result, checked ? "ticked" : "unticked") ?? field(result, "name") ?? item);
+      if (field(result, "already")) return checked ? t(`${name} was already ticked.`, `Naka-tick na ang ${name}.`) : t(`${name} wasn't ticked.`, `Hindi naka-tick ang ${name}.`);
+      return checked ? t(`Ticked ${name} off the list.`, `Na-tick na ang ${name} sa list.`) : t(`${name} is back on the list.`, `Balik sa list ang ${name}.`);
+    },
+  };
+}
+
+const tickItem: Rule = (q) => {
+  const un = /^(?:untick|uncheck|un-?tick|hindi pa nabili|di pa nabili|not bought|wala pa|put back|ibalik)\s+(?:the\s+|ang\s+|yung\s+|na\s+)?(.+?)(?:\s+(?:on|to|sa)\s+(?:the\s+)?list)?$/.exec(q.text);
+  if (un) return tickMatch(un[1].replace(/\b(pa|na|yet|please)\b/g, " ").replace(/\s+/g, " ").trim(), false, q.lang);
+  const m = /^(?:tick off|check off|cross off|cross out|tick|check|bought|got|nabili(?: ko| na| ko na| na namin)?|nakuha(?: ko| na)?|nakabili(?: na)?(?: ng)?|done with|tapos na ang)\s+(?:the\s+|ang\s+|yung\s+|na\s+|ng\s+|some\s+)?(.+?)(?:\s+(?:on|from|off|sa)\s+(?:the\s+)?list)?(?:\s+(?:na|already|kanina|today|ngayon))*$/.exec(q.text);
+  if (!m) return null;
+  const item = m[1].replace(/\b(na|already|please|the|ang|yung)\b/g, " ").replace(/\s+/g, " ").trim();
+  if (!item || item.length < 2) return null;
+  // "done with the dishes" is a chore; "bought 2 kilos of rice" is still rice.
+  if (/\b(dishes|trash|laundry|homework|chore|chores|bill|meralco|rent)\b/.test(item)) return null;
+  const cleaned = item.replace(/^\d+(?:\.\d+)?\s*(?:kg|kilos?|g|l|ml|pcs?|packs?|dozen|bottles?|cans?)?\s*(?:of\s+|ng\s+)?/, "").trim() || item;
+  return tickMatch(cleaned, true, q.lang);
+};
+
+function choreMatch(title: string, member: string | null, status: "done" | "skipped", lang: Lang): RuleMatch {
+  const t = pick(lang);
+  return {
+    rule: status === "done" ? "mark.chore_done" : "mark.chore_skipped",
+    tool: "log_chore",
+    input: { title, status, ...(member ? { member_name: firstName(member) } : {}) },
+    lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const names = rows<string>(result, "ambiguous");
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.chore", slots: { status, ...(member ? { member } : {}) }, lang, asked: 1 } };
+      const what = String(field(result, "title") ?? title);
+      const who = firstName(String(field(result, "for") ?? member ?? ""));
+      const waits = field(result, "awaits_approval") ? t(" A grown-up will be asked to approve it.", " Hihingin ang approval ng grown-up.") : "";
+      if (status === "skipped") return t(`${what} skipped for today${who ? ` (${who})` : ""}.`, `Na-skip ang ${what} ngayon${who ? ` (${who})` : ""}.`);
+      return t(`${what} done${who ? ` (${who})` : ""}.${waits}`, `Tapos na ang ${what}${who ? ` (${who})` : ""}.${waits}`);
+    },
+  };
+}
+
+const CHORE_WORDS = /\b(chore|chores|dishes|hugas|trash|basura|laundry|labahan|laba|homework|assignment|room|kwarto|bed|kama|plants|halaman|dog|aso|walk|sweep|walis|mop|linis|ligpit|clean|cook|luto|feed|pakain|bath|ligo|brush|toothbrush|reading|practice|piano|study|aral)\b/;
+
+const choreDone: Rule = (q, ctx) => {
+  if (/\b(bill|bills|list|listahan|bought|nabili|paid|bayad)\b/.test(q.text)) return null;
+  if (/^(did|do|does|have|has|is|are|was|were|when|kailan|kelan|how|magkano|ano|anong|what|sino|who|whose|kanino|may|meron)\b/.test(q.text)) return null;
+  const member = resolveMember(q.text, ctx.members);
+  const first = q.words[0] ?? "";
+  const startsWithMember = !!member && firstName(member).toLowerCase() === first;
+  const skipped = /\b(skip|skipped|laktawan|hindi (?:na )?gagawin|not doing|pass)\b/.test(q.text);
+  const patterns = [
+    /^(?:mark|i-?mark)\s+(?:the\s+|ang\s+|yung\s+)?(.+?)\s+(?:as\s+)?(?:done|finished|complete|completed|tapos|skipped)$/,
+    /^(?:done|finished|tapos na|natapos|natapos ko|natapos na)\s+(?:with\s+|the\s+|ang\s+|yung\s+|ko\s+na\s+ang\s+|na\s+ang\s+|na\s+)?(.+)$/,
+    /^(?:the\s+|ang\s+|yung\s+)?(.+?)\s+(?:is|are)\s+(?:done|finished)$/,
+    /^(.+?)\s+(?:done|tapos na|tapos)$/,
+    /^(?:skip|skipped|laktawan)\s+(?:the\s+|ang\s+|yung\s+)?(.+?)(?:\s+(?:today|ngayon|for today))?$/,
+    ...(startsWithMember ? [/^(?:\w+)\s+(?:did|finished|completed|has done|is done with|already did)\s+(?:the\s+|her\s+|his\s+|their\s+)?(.+)$/] : []),
+    /^(?:ginawa|tapos|natapos|nagawa)\s+na\s+(?:ni|si)\s+\w+\s+(?:ang\s+|yung\s+)?(.+)$/,
+    /^(?:na-?)?(?:hugas|linis|ligpit|walis|laba)\s+na\s+(?:ni\s+\w+\s+)?(?:ang\s+|yung\s+)?(.+)$/,
+  ];
+  let title: string | null = null;
+  for (const re of patterns) {
+    const m = re.exec(q.text);
+    if (m) {
+      title = m[1];
+      break;
+    }
+  }
+  if (!title) return null;
+  title = title
+    .replace(member ? new RegExp(`\\b${firstName(member).toLowerCase()}(?:'s)?\\b`, "g") : /$^/, " ")
+    .replace(/\b(the|ang|yung|her|his|their|my|ko|niya|nila|na|ni|si|kay|today|ngayon|already|for today|chore|chores|task|tasks|gawain|with|is|are)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!title || title.length < 3) return null;
+  // Not a chore word and nobody named: too likely a plan or a bill.
+  if (!CHORE_WORDS.test(q.text) && !member) return null;
+  return choreMatch(title, member, skipped ? "skipped" : "done", q.lang);
+};
+
 /** In the order they are tried. The adds first (an add that mentions "due"
  * is still an add), then the health facts, bills, money, schedule, the
  * household and the family. */
@@ -1908,6 +2075,9 @@ const RULES: Rule[] = [
   addJournal,
   addTrip,
   addPlain,
+  markPaid,
+  tickItem,
+  choreDone,
   health,
   whereIs,
   doWeHave,
@@ -1991,6 +2161,50 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
       return askForBill(name, amount, dueDate, lang, pending.asked + 1, extra);
     }
     return addBillMatch(name, amount, dueDate, lang, ctx, extra);
+  }
+
+  if (pending.rule === "mark.paid") {
+    const bill = slot("bill");
+    if (!bill) return null;
+    if (/^(no|never ?mind|cancel|wag na|huwag na|hindi|forget it|skip)\b/.test(q.text)) {
+      return { ask: pick(lang)("Okay, left as unpaid.", "Sige, hindi minarkahang bayad."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
+    }
+    const outside = /\b(outside|labas|cash|over the counter|personally|wala sa kin|hindi sa kin)\b/.test(q.text);
+    const account = outside ? null : q.raw.replace(/^(?:from|sa|via|using|mula sa|gamit ang)\s+/i, "").trim();
+    if (!outside && !account) return null;
+    return markPaidMatch(bill, account, numSlot("amount"), lang, ctx);
+  }
+
+  if (pending.rule === "mark.paid.which") {
+    const bill = q.raw.trim();
+    if (!bill) return null;
+    const account = slot("account");
+    const outside = pending.slots.outside === 1;
+    if (account || outside) return markPaidMatch(bill, account, numSlot("amount"), lang, ctx);
+    return {
+      rule: "mark.paid.ask",
+      tool: "get_money",
+      input: {},
+      lang,
+      say: (result) => {
+        if (isError(result)) return result.error;
+        const hit = rows<Bill>(result, "unpaid_bills").find((b) => b.name.toLowerCase() === bill.toLowerCase());
+        if (!hit) return pick(lang)(`No unpaid bill called "${bill}".`, `Walang unpaid na bill na "${bill}".`);
+        return askAccountFor(hit.name, numSlot("amount") ?? Number(hit.amount), rows<Account>(result, "accounts"), lang, ctx);
+      },
+    };
+  }
+
+  if (pending.rule === "mark.tick") {
+    const name = q.raw.trim();
+    if (!name) return null;
+    return tickMatch(name, pending.slots.checked !== 0, lang);
+  }
+
+  if (pending.rule === "mark.chore") {
+    const title = q.raw.trim();
+    if (!title) return null;
+    return choreMatch(title, slot("member"), pending.slots.status === "skipped" ? "skipped" : "done", lang);
   }
 
   if (pending.rule === "bills.due_when") {

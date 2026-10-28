@@ -7,6 +7,7 @@ import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 import { kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { isAsk, isPending, matchRule, resumeRule, rulesOnlyLine, type Ask } from "@/lib/assistant/rules";
+import { isMarkTool, runMarkTool } from "@/lib/assistant/marks";
 import { mayAskHealth } from "@/lib/assistant/health-answer";
 import { familyDay } from "@/lib/time";
 import { GONE_STATUSES } from "@/lib/member-status";
@@ -105,7 +106,10 @@ export async function POST(request: Request) {
     if (isAsk(rule)) return askBack(rule);
     let output: string;
     try {
-      output = await runAssistantTool(rule.tool, rule.input, me);
+      // The marks (a bill paid, an item ticked, a chore done) are the rule
+      // layer's alone: not offered to the model, run through the screens'
+      // own actions (lib/assistant/marks.ts).
+      output = isMarkTool(rule.tool) ? await runMarkTool(rule.tool, rule.input, me) : await runAssistantTool(rule.tool, rule.input, me);
     } catch (err) {
       reportError("Assistant rule tool threw", err, rule.tool);
       return NextResponse.json({ reply: "That didn't go through. Nothing was saved.", actions: [], source: "rules" });
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
     }
     const said = rule.say(parsed);
     if (isAsk(said)) return askBack(said);
-    const acted = rule.tool.startsWith("add_") && !(parsed && typeof parsed === "object" && "error" in parsed);
+    const acted = (rule.tool.startsWith("add_") || isMarkTool(rule.tool)) && !(parsed && typeof parsed === "object" && "error" in parsed);
     return NextResponse.json({ reply: said, actions: acted ? [rule.tool] : [], source: "rules" });
   }
 
