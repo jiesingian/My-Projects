@@ -274,6 +274,15 @@ export async function getAccountNumbers(familyId: string, accountIds?: string[])
   return new Map((data ?? []).map((r) => [r.account_id, r.number]));
 }
 
+/** An account's QR code for receiving money (account_qr_codes, 27 October):
+ * its image as a data URL, or null -- also null when the viewer may not see
+ * it, which row-level security decides as it does for the number. */
+export async function getAccountQr(familyId: string, accountId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("account_qr_codes").select("image").eq("family_id", familyId).eq("account_id", accountId).maybeSingle();
+  return data?.image ?? null;
+}
+
 export async function getBills(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
