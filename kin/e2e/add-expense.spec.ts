@@ -241,7 +241,10 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   await expect(page.getByText(new RegExp(`Due today · ₱456(\\.00)? · from ${RUN} wallet · did it go through\\?`)).first()).toBeVisible();
   const next30 = page.getByText("NEXT 30 DAYS", { exact: true }).locator("xpath=../..");
   await expect(next30).toContainText(`${RUN} tuition`);
-  // Today asks too, and its Pay lands on the question.
+  // Today asks too, and its Pay lands on the question. The first-visit
+  // tour (guided-tour.tsx) is marked seen, as anyone past their first day
+  // has it; it lies over the page until dismissed.
+  await page.addInitScript((id) => localStorage.setItem(`kin-tour-seen:${id}`, new Date().toISOString()), session!.memberId);
   await page.goto("/today");
   const row = page.locator(".kin-today-row").filter({ hasText: `${RUN} tuition` });
   await expect(row).toContainText("due today · did it go through?");
