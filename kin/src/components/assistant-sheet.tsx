@@ -6,7 +6,7 @@ import { AnimatedSheet } from "@/components/animated-sheet";
 
 /** The Ask Kin sheet, split from its button (assistant-fab) so it loads the
  * first time someone opens it rather than with every page. */
-export function AssistantSheet({ open, onClose, titleId, memberName, start }: { open: boolean; onClose: () => void; titleId: string; memberName: string; start: "chat" | "voice" | undefined }) {
+export function AssistantSheet({ open, onClose, titleId, memberName, start, aiReady }: { open: boolean; onClose: () => void; titleId: string; memberName: string; start: "chat" | "voice" | undefined; aiReady: boolean }) {
   return (
     <AnimatedSheet
       open={open}
@@ -25,7 +25,7 @@ export function AssistantSheet({ open, onClose, titleId, memberName, start }: { 
           <Icon name="x" size={15} />
         </button>
       </div>
-      <AssistantConsole key={start ?? "plain"} memberName={memberName} start={start} />
+      <AssistantConsole key={start ?? "plain"} memberName={memberName} start={start} aiReady={aiReady} />
     </AnimatedSheet>
   );
 }

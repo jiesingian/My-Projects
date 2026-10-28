@@ -7,19 +7,29 @@ import { Icon } from "@/components/icons";
 import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type Listener } from "@/lib/speech";
 import { scrollBehavior } from "@/lib/motion";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
+import { RULES_NOTE } from "@/lib/assistant/rules";
 
-type Turn = { role: "user" | "assistant"; content: string };
+/** `source` is where an answer came from (api/assistant): "rules" read the
+ * household's own records and sent nothing anywhere; "model" went to Claude;
+ * "off" is the line that says what Kin answers by itself while there is no
+ * key. */
+type Turn = { role: "user" | "assistant"; content: string; source?: "rules" | "model" | "off" };
 
 /** Nothing to subscribe to -- the answer is fixed for the life of the page. */
 function neverChanges() {
   return () => {};
 }
 
+/** Each of these is answered by the rule layer (lib/assistant/rules.ts), so
+ * the chips work with or without a key. */
 const SUGGESTIONS = ["What's on this week?", "Add milk and eggs to the list", "How much is left this month?", "Any bills due?"];
 
 /** `start` is how the phone's quick button (quick-button.ts) arrives: "chat"
- * puts the cursor in the box, "voice" tries the microphone straight away. */
-export function AssistantConsole({ memberName, start }: { memberName: string; start?: "chat" | "voice" }) {
+ * puts the cursor in the box, "voice" tries the microphone straight away.
+ * `aiReady` is whether the server has a key (kinAiReady): without one the
+ * rule layer still answers, so the console shows the same, minus the
+ * privacy line, which is about what goes to the model. */
+export function AssistantConsole({ memberName, start, aiReady = true }: { memberName: string; start?: "chat" | "voice"; aiReady?: boolean }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -48,6 +58,8 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: scrollBehavior() });
   }, [turns, thinking]);
 
+  const firstRulesTurn = turns.findIndex((t) => t.source === "rules");
+
   async function send(text: string) {
     const message = text.trim();
     if (!message || thinking) return;
@@ -70,7 +82,7 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
-      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string };
+      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string; source?: "rules" | "model" | "off" };
 
       if (!res.ok || data.error) {
         setError(data.error ?? "The assistant couldn't answer that.");
@@ -78,7 +90,7 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
       }
 
       const reply = data.reply ?? "Done.";
-      setTurns((prev) => [...prev, { role: "assistant", content: reply }]);
+      setTurns((prev) => [...prev, { role: "assistant", content: reply, source: data.source }]);
       // Only read back what was asked by voice. A typed question answered
       // out loud in a quiet room is a fright, not a feature.
       if (readAloud && canSpeak) speak(reply);
@@ -190,6 +202,12 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
               }}
             >
               {turn.content}
+              {/* Said once, under the first answer that came from the
+                  household's own records: a rules answer sends nothing
+                  anywhere, and that is worth one line the first time. */}
+              {turn.source === "rules" && i === firstRulesTurn && (
+                <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: 4 }}>{RULES_NOTE}</span>
+              )}
             </div>
           ))}
           {thinking && <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>Working on it…</div>}
@@ -265,8 +283,12 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
 
       {/* The one line every screen that sends family records to the model
           carries (Jonathan, 20 October). Ask Kin reads the household's
-          plans, money and, for a grown-up, health to answer. */}
-      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>{KIN_AI_PRIVACY}</p>
+          plans, money and, for a grown-up, health to answer. Only while a
+          key is on the server: without one nothing goes to the model, and
+          the rule layer answers from the records alone. */}
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>
+        {aiReady ? KIN_AI_PRIVACY : "Kin answers what your household's records hold: bills, spending, the schedule, the list, the family. Nothing is sent anywhere."}
+      </p>
 
       {/* Said once, the first time somebody presses it, because "the browser
           did the transcribing" is not the same as "nothing left the room"

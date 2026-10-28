@@ -844,16 +844,19 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "ai"
             ],
-            "what": "The floating button on every screen. Ask in English or your own language to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan.",
+            "what": "The floating button on every screen. Ask in English or your own language to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan. The household's own questions Kin answers by itself from its records: when a bill is due, what's due this week, what was spent on groceries this month, what's left in the budget, an account's balance, what's on today or tomorrow, what's for dinner, what's on the list, who is in the family, a birthday, and (for a grown-up) someone's allergy or medicines; \"Add milk to the list\" and \"Pa-add ng gatas\" too. Those cost nothing and send nothing anywhere. Anything else goes to Kin AI.",
             "how": "Tap the button and type or speak.",
             "pros": [
               "Adding something takes one sentence.",
-              "Answers questions across every tab."
+              "Answers questions across every tab.",
+              "The household's own questions are answered from its records in under a second, with nothing sent anywhere."
             ],
             "cons": [
-              "Kin AI: 5 uses a month on Free, unlimited on Plus."
+              "Kin AI, for everything the records alone can't answer: 5 uses a month on Free, unlimited on Plus."
             ],
-            "tips": []
+            "tips": [
+              "Ask the way you'd text a relative: \"Kailan due ang Meralco?\", \"Magkano nagastos natin sa groceries this month?\", \"Anong meron bukas?\"."
+            ]
           },
           {
             "name": "Guided tour",

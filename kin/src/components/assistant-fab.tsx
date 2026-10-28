@@ -8,8 +8,10 @@ import dynamic from "next/dynamic";
 const AssistantSheet = dynamic(() => import("@/components/assistant-sheet").then((m) => m.AssistantSheet), { ssr: false });
 
 /** Ask Kin, from anywhere. It rides above the tab bar on every page, the way
- * a help button does elsewhere, instead of taking the top of Today. */
-export function AssistantFab({ memberName }: { memberName: string }) {
+ * a help button does elsewhere, instead of taking the top of Today. Shown
+ * with or without a key on the server: the rule layer (lib/assistant/rules.ts)
+ * answers the household's structured questions from its records either way. */
+export function AssistantFab({ memberName, aiReady }: { memberName: string; aiReady: boolean }) {
   const [open, setOpen] = useState(false);
   // Once opened it stays mounted, so closing can animate out.
   const [opened, setOpened] = useState(false);
@@ -56,7 +58,7 @@ export function AssistantFab({ memberName }: { memberName: string }) {
 
       {/* Loaded on first open, not with every page (speed pass, 19 October):
           the sheet library and the console are most of this button's weight. */}
-      {opened && <AssistantSheet open={open} onClose={() => setOpen(false)} titleId={titleId} memberName={memberName} start={start} />}
+      {opened && <AssistantSheet open={open} onClose={() => setOpen(false)} titleId={titleId} memberName={memberName} start={start} aiReady={aiReady} />}
     </>
   );
 }
