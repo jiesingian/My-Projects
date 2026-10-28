@@ -1358,3 +1358,19 @@ export function cardDueDate(dueDay: number, today: string): string {
   const thisMonth = onMonth(y, m);
   return thisMonth >= today ? thisMonth : m === 12 ? onMonth(y + 1, 1) : onMonth(y, m + 1);
 }
+
+/* --------------------------------------------------- emergency cover */
+
+/** How many months the household's cash could carry its spending
+ * (Jonathan, 28 October): cash and savings over an average month's living
+ * costs, the first check most finance guides use, three to six months
+ * the usual aim. The average is over the months that had spending, so a
+ * household new to Kin is not measured against empty months. Fewer than
+ * two such months: too soon to say (null). */
+export function emergencyCover(liquid: number, monthlySpending: number[]): { months: number; average: number; counted: number; status: "low" | "on_track" | "ample" } | null {
+  const spent = monthlySpending.filter((m) => m > 0);
+  if (spent.length < 2) return null;
+  const average = cents(spent.reduce((t, m) => t + m, 0) / spent.length);
+  const months = Math.round((Math.max(0, liquid) / average) * 10) / 10;
+  return { months, average, counted: spent.length, status: months < 3 ? "low" : months <= 6 ? "on_track" : "ample" };
+}
