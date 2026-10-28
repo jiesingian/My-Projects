@@ -46,7 +46,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { accountAudienceLabel, extraPaymentEffect, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
 import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
@@ -1281,6 +1281,54 @@ export function EditSavingsGoalButton({ goal, currency }: { goal: { id: string; 
         >
           {pending ? "…" : "Save"}
         </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Pay extra?" on a loan (Jonathan, 28 October): type an extra amount a
+ * month and see how much sooner the loan ends and the interest it saves,
+ * worked on the same table as the rest of the loan line. An estimate:
+ * banks may charge for paying ahead, or count extra toward future months. */
+export function ExtraPaymentControl({ balance, rate, payment, firstDate, currency }: { balance: number; rate: number | null; payment: number; firstDate: string; currency: string }) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [extra, setExtra] = useState(2000);
+  const e = extraPaymentEffect(balance, rate, payment, extra, firstDate);
+  const monthYear = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-PH", { month: "short", year: "numeric" });
+  const span = (m: number) => {
+    const y = Math.floor(m / 12);
+    const r = m % 12;
+    return [y ? `${y} year${y === 1 ? "" : "s"}` : null, r ? `${r} month${r === 1 ? "" : "s"}` : null].filter(Boolean).join(" ") || "0 months";
+  };
+  const line = { fontSize: "0.875rem", margin: "0.5rem 0 0" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Pay extra?
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Pay extra each month">
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-extra`}>On top of {formatCurrency(payment, currency)} a month</label>
+          <AmountInput id={`${uid}-extra`} ariaLabel="Extra each month" defaultValue={extra} onValueChange={setExtra} style={{ minHeight: "2.625rem" }} />
+        </div>
+        {!e.base ? (
+          <p style={line}>At {formatCurrency(payment, currency)} the payment does not cover the interest, so the loan never ends. Check the rate and payment under Payments.</p>
+        ) : !e.faster || !(extra > 0) ? (
+          <p style={line}>Paying {formatCurrency(payment, currency)} a month, the last payment falls in {monthYear(e.base.last)}, with about {formatCurrency(Math.round(e.base.interest), currency)} interest still to pay.</p>
+        ) : (
+          <>
+            <p style={line}>
+              Done <strong>{span(e.monthsSooner!)} sooner</strong>: {monthYear(e.faster.last)}, not {monthYear(e.base.last)}.
+            </p>
+            <p style={line}>
+              About <strong>{formatCurrency(Math.round(e.interestSaved!), currency)} less interest</strong> ({formatCurrency(Math.round(e.faster.interest), currency)} instead of {formatCurrency(Math.round(e.base.interest), currency)}).
+            </p>
+          </>
+        )}
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0" }}>
+          An estimate from what is owed now and the rate. Ask the bank first: some charge a fee for paying ahead, or count extra toward later months instead of the balance.
+        </p>
       </FormSheet>
     </>
   );

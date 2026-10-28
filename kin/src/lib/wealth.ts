@@ -1358,3 +1358,25 @@ export function cardDueDate(dueDay: number, today: string): string {
   const thisMonth = onMonth(y, m);
   return thisMonth >= today ? thisMonth : m === 12 ? onMonth(y + 1, 1) : onMonth(y, m + 1);
 }
+
+/* --------------------------------------------- paying a loan down faster */
+
+/** Paying `extra` on top of each month's payment (Jonathan, 28 October): how
+ * many months the loan then takes and the interest over them, against the
+ * payment alone, both run on the table from what is owed now. A payment
+ * that does not cover the interest never ends: months null. The first
+ * payment falls on `firstDate` (YYYY-MM-DD), so the last one is dated. */
+export function extraPaymentEffect(balance: number, ratePct: number | null, payment: number, extra: number, firstDate: string) {
+  const run = (pay: number) => {
+    const r = amortise(balance, ratePct, pay, 1200);
+    return r.balance > 0.005 ? null : { months: r.months, interest: r.interest, last: addMonths(firstDate.slice(0, 10), Math.max(0, r.months - 1)) };
+  };
+  const base = run(payment);
+  const faster = run(payment + Math.max(0, extra));
+  return {
+    base,
+    faster,
+    monthsSooner: base && faster ? base.months - faster.months : null,
+    interestSaved: base && faster ? cents(base.interest - faster.interest) : null,
+  };
+}

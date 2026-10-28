@@ -25,6 +25,7 @@ import {
   SetBalanceButton,
   EditSavingsGoalButton,
   LoanBillButton,
+  ExtraPaymentControl,
   AccountPrivacyToggle,
   MoveMoneyButton,
   IncludePrivateToggle,
@@ -1359,6 +1360,15 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
           {/* The payment as a monthly bill (26 October): Today, the
               calendar and the reminder, with Settle paying the loan down. */}
           {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
+          {Number(l.balance) > 0 && Number(l.monthly_payment ?? 0) > 0 && (
+            <ExtraPaymentControl
+              balance={Number(l.balance)}
+              rate={l.interest_rate == null ? null : Number(l.interest_rate)}
+              payment={Number(l.monthly_payment)}
+              firstDate={loanStatus(l, today).next ?? today}
+              currency={currency}
+            />
+          )}
           <LoanAssetPicker liabilityId={l.id} assetId={l.asset_id} assets={assetChoices} />
           <LoanScheduleControl
             id={l.id}

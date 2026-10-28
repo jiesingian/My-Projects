@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance } from "@/lib/wealth";
+import { extraPaymentEffect, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -149,4 +149,19 @@ test("loanOriginStatus: a balance within one payment of the table matches; a rep
   const soon = loanOriginStatus({ ...loan, rate_fixed_until: "2026-11-02" }, "2026-10-28")!;
   expect(soon.fixedMonthsLeft).toBe(0);
   expect(soon.fixedDaysLeft).toBe(5);
+});
+
+test("extraPaymentEffect: ₱2,000 more a month on ₱1.8M at 6.5% ends years sooner and saves interest", () => {
+  const e = extraPaymentEffect(1_800_000, 6.5, 14_911.44, 2_000, "2026-11-15");
+  expect(e.base!.months).toBeGreaterThan(190);
+  expect(e.faster!.months).toBeLessThan(e.base!.months);
+  expect(e.monthsSooner).toBe(e.base!.months - e.faster!.months);
+  expect(e.monthsSooner!).toBeGreaterThan(30);
+  expect(e.interestSaved!).toBeGreaterThan(200_000);
+  expect(e.base!.last > e.faster!.last).toBe(true);
+  // Nothing extra: no change. A payment under the interest: never ends.
+  expect(extraPaymentEffect(1_800_000, 6.5, 14_911.44, 0, "2026-11-15").monthsSooner).toBe(0);
+  const short = extraPaymentEffect(1_800_000, 6.5, 5_000, 2_000, "2026-11-15");
+  expect(short.base).toBeNull();
+  expect(short.monthsSooner).toBeNull();
 });
