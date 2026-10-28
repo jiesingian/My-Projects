@@ -1313,31 +1313,15 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Log money in, out or between accounts, with the source and particulars. For e-wallet and bank apps, \"Open app & log it\" holds it as pending until you confirm it went through. A receipt or screenshot can fill the form.",
+            "what": "Log money in, out or between accounts, with the source and particulars. For e-wallet and bank apps, \"Open app & log it\" holds it as pending until you confirm it went through.",
             "how": "Wealth → + , or Today → Expense.",
             "pros": [
               "The pending step keeps balances honest without bank sync."
             ],
             "cons": [],
             "tips": [
-              "snap the receipt instead of typing (Kin AI)."
+              "Paying through a bank or e-wallet app? Use \"Open app & log it\" so the entry waits until you confirm it went through."
             ]
-          },
-          {
-            "name": "Snap a receipt or e-wallet screenshot",
-            "tags": [
-              "plus",
-              "ai"
-            ],
-            "what": "Take a photo of a receipt or an e-wallet screenshot and Kin fills in the amount, date and particulars.",
-            "how": "Wealth → Cash Flow → Add expense → Snap it (or Move money → Snap it), check the details, then save.",
-            "pros": [
-              "No typing at the till."
-            ],
-            "cons": [
-              "Uses Kin AI; check the amount before saving."
-            ],
-            "tips": []
           },
           {
             "name": "Money goals",

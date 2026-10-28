@@ -8,8 +8,7 @@ import type { SplitLoan } from "@/components/loan-split";
 export type ExpenseTargets = { assets: { id: string; name: string }[]; goals: { id: string; name: string }[]; loans: SplitLoan[] };
 
 /** "For (optional)": a loan it pays down, an asset, a goal -- the same
- * choice Move money offers, on Add expense (both halves), the receipt
- * scanner and Edit entry. Nothing to pick from: nothing shown. The value
+ * choice Move money offers, on Add expense (both halves) and Edit entry. Nothing to pick from: nothing shown. The value
  * is "liabilities:<id>", "assets:<id>", "goals:<id>" or "" for nothing in
  * particular; with `name` it is submitted under that field for a <form
  * action>. `loans` off hides the loans (money in is never a loan payment). */

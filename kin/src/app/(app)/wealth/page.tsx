@@ -82,7 +82,6 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, NetWorthMoves, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
-import { kinAiReady } from "@/lib/kin-ai";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
 import { getUtang } from "@/lib/queries/utang";
 import { instalmentPlan } from "@/lib/utang";
@@ -943,9 +942,9 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {/* Last in the group (Jonathan, 26 October), under the budget and
           Spending by person, as Add income closes INCOME and Add account
           closes the Accounts list: the group reads top to bottom, then
-          adds. Snap a receipt lives inside the sheet, and only once Kin AI
-          has its key: with no key the page could only say it is off. */}
-      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={targets} scan={kinAiReady()} />
+          adds. (The receipt scanner was removed, Jonathan, 28 October:
+          copying the total is quicker.) */}
+      <AddExpenseForm whose={whose} accounts={pickable} currency={currency} today={today} targets={targets} />
       </CollapsibleGroup>
     </>
   );

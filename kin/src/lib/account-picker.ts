@@ -1,7 +1,7 @@
 /** The account pickers, in one place.
  *
  * Every form that moves money (Move money, Pay a bill, Add goal, a task's
- * usual cost, a remittance, the basket, a scanned receipt) listed every
+ * usual cost, a remittance, the basket) listed every
  * account it could in one flat <select>, in the order they were created, ₱0
  * ones included. A household with BPI, BDO, GCash, Maya and the children's
  * accounts was scrolling a list of twelve to find the one it uses every day
@@ -51,8 +51,8 @@ export type PickableSource = {
 };
 
 /** Joint accounts and the viewer's own, the way every money form offers
- * them; `everyone` keeps every account the viewer can see (Move money and
- * the receipt scanner, where a transfer into a shared-with-you account is
+ * them; `everyone` keeps every account the viewer can see (Move money,
+ * where a transfer into a shared-with-you account is
  * allowed and the database decides the rest). */
 export function toPickable(
   accounts: readonly PickableSource[],
