@@ -159,6 +159,7 @@ const MIGRATIONS = [
   "20261027170000_account_qr_codes.sql",
   "20261028120000_loan_repricing.sql",
   "20261028130000_account_maturity.sql",
+  "20261028150000_drop_dose_alarm_link.sql",
 ];
 
 const only = process.argv[2];

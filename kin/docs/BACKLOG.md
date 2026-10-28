@@ -245,8 +245,10 @@ Read and checked by a session; nothing in a dashboard was changed.
   → Add user, e.g. `kin-dev-qa-child@example.com`, *Auto Confirm User*
   ticked. A session can then invite it into the QA household as a child,
   look at Journal, and record it in QA_HOUSEHOLDS.md.
-- **The free medicine-alarm stopgap: approved and built (Jonathan, 23
-  October).** Settings → Notifications → Medicine alarms (also linked from a
+- **Removed 28 October (Jonathan: "delete"; 20261028150000 drops it):**
+  the free medicine-alarm stopgap below, screen, link and Shortcut steps, as
+  the App Store app with AlarmKit is coming soon. What it was:
+  **approved and built (Jonathan, 23 October).** Settings → Notifications → Medicine alarms (also linked from a
   member's medicines in Health). A private read-only link per member
   (20261023237000_dose_alarm_link.sql, probe dose-alarm-link.mjs;
   `api/dose-alarms/<token>`, lib/dose-alarms.ts) gives the dose times taken
@@ -259,8 +261,7 @@ Read and checked by a session; nothing in a dashboard was changed.
     per iPhone; it is re-run by hand after a medicine changes; if Shortcuts
     offers only Toggle Alarm rather than Delete Alarm, old ones collect
     switched off.
-  - Not checked on an iPhone (below, "Needs a real phone"). Dropped when the
-    native app arrives.
+  - Never checked on an iPhone; removed before the native app arrived.
 
 ## Today finalised, 23 October (Jonathan: "finalize today tab")
 
@@ -388,10 +389,11 @@ all Jonathan's on 23 October, each the recommended option:
   he is getting the Apple Developer Program soon, so "skip it and stop
   popping to do this task").** On 26 October the hand-build steps proved too
   hard (they didn't match the phone; the If read "If File Size is Number
-  MB"). #1080 folded them behind a closed "Build it by hand" on the Medicine
-  alarms screen, which stays for anyone who wants alarms before the App
-  Store app; the iCloud-link button and its SETUP section were removed.
-  Nobody needs to build or share the Shortcut. Dose alarms come with the
+  MB"). #1080 folded them behind a closed "Build it by hand"; #1084 removed
+  the iCloud-link button and its SETUP section; then, the same day, the
+  whole Medicine alarms screen was deleted (Jonathan: "delete"), with its
+  link, API and table (20261028150000_drop_dose_alarm_link.sql). The
+  in-app alarm at /today/dose stays. Dose alarms come with the
   native app (AlarmKit), below.
   The native alarm (AlarmKit / Critical Alerts) stays on the money list.
 
@@ -1900,9 +1902,9 @@ work, last.
 - **An Android app (Google Play Console, US$25 once)**, same idea: a
   full-screen alarm notification for doses and a full-screen incoming call.
   Lower priority while every saved device is an iPhone.
-- **Free stopgap until then:** the hand-built "Kin Alarms" Shortcut on the
-  Medicine alarms screen; a ready-made one was dropped (28 October), as the
-  App Store app is coming soon.
+- **No free stopgap:** the "Kin Alarms" Shortcut screen was deleted on 28
+  October, as the App Store app is coming soon. Until then, the in-app alarm
+  at /today/dose and the 5- and 10-minute repeats.
 - **Done (20 October, 21 October):** Kin AI switched from Opus to Haiku 4.5,
   then to Haiku 5.5, the model named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
   setting for Jonathan when the key is added (SETUP section 4).

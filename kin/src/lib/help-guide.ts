@@ -168,26 +168,6 @@ export const HELP_GUIDE: HelpTab[] = [
             ]
           },
           {
-            "name": "Medicine alarms on an iPhone",
-            "tags": [
-              "phone",
-              "setup"
-            ],
-            "what": "Your dose times as iPhone Clock alarms, labelled \"Kin · Losartan 50 mg\", which ring full screen with sound even when the phone is on silent. A grown-up's also include a child's medicines shared with them.",
-            "how": "Settings → Notifications → Medicine alarms → Make my link and copy it, then follow Build it by hand there to make the \"Kin Alarms\" Shortcut and run it. Kin's own iPhone app will ring dose alarms by itself.",
-            "pros": [
-              "A dose isn't missed because the phone was on silent.",
-              "Free, until Kin has its own iPhone app."
-            ],
-            "cons": [
-              "The alarm doesn't know a dose was taken; tick it in Kin.",
-              "Run the Shortcut again after a medicine or a time changes."
-            ],
-            "tips": [
-              "try one alarm with the phone on silent before relying on it."
-            ]
-          },
-          {
             "name": "Emergency card",
             "tags": [],
             "what": "Blood type, allergies, current medicines, conditions, doctor and insurance on one card you can share or print, dated the day it was made. It shows how many of the six lines are filled, and each blank links to where to fill it.",
@@ -1451,7 +1431,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "Twelve kinds you can switch on or off: events, health, bills, journal, shopping, chat, calls, family calls, chores to approve, letters and cards, arrivals and the week ahead. Medicine alarms on an iPhone have their own row here.",
+            "what": "Twelve kinds you can switch on or off: events, health, bills, journal, shopping, chat, calls, family calls, chores to approve, letters and cards, arrivals and the week ahead.",
             "how": "Settings → Notifications. On iPhone, add Kin to the Home Screen first, then allow notifications.",
             "pros": [
               "Choose exactly what buzzes."

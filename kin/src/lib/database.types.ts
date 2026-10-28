@@ -9355,10 +9355,6 @@ export type Database = {
       guest_join_draw: { Args: { p_token_hash: string; p_name: string; p_in: boolean }; Returns: Json }
       clear_list_add_token: { Args: never; Returns: undefined }
       list_add_link_on: { Args: never; Returns: boolean }
-      set_dose_alarm_token: { Args: { p_token_hash: string }; Returns: undefined }
-      clear_dose_alarm_token: { Args: never; Returns: undefined }
-      dose_alarm_link_state: { Args: never; Returns: { made_at: string; last_used_at: string | null }[] }
-      dose_alarms_by_link: { Args: { p_token_hash: string; p_now?: string }; Returns: Json }
       set_send_to_kin_token: { Args: { p_token_hash: string }; Returns: undefined }
       clear_send_to_kin_token: { Args: never; Returns: undefined }
       send_to_kin_link_on: { Args: never; Returns: boolean }
