@@ -40,6 +40,7 @@ export type PaluwaganLike = {
 };
 export type LoanLike = { id: string; name: string; monthly_payment: number | null; next_payment_date: string | null; payments_remaining: number | null; rate_fixed_until?: string | null };
 export type FundLike = { id: string; title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean; created_at: string };
+export type MaturityLike = { id: string; name: string; balance: number; matures_on: string | null };
 export type CardLike = { id: string; name: string; owed: number; card_due_day: number | null; card_min_payment: number | null };
 export type AssetLike = { id: string; name: string; valued_on: string | null; annual_change_pct: number | string | null };
 export type IncomeLike = { id: string; name: string; amount: number; next_date: string | null; status: string };
@@ -59,7 +60,7 @@ function soonItem(partial: Omit<BriefItem, "whose" | "memberIds"> & { at: number
   return { ...partial, whose: "family", memberIds: [] };
 }
 
-export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[] }, today: string, currency: string): WealthRows {
+export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[]; maturities?: MaturityLike[] }, today: string, currency: string): WealthRows {
   const fmt = (n: number) => formatCurrency(n, currency);
   const todayRows: BriefItem[] = [];
   const soon: BriefItem[] = [];
@@ -159,6 +160,23 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
     else {
       const n = inWeek(due);
       if (n) soon.push(soonItem({ id: `soon-card-${c.id}`, icon: "wallet", tint: "money", title: `${c.name} due`, meta: `${what} · due ${onDay(today, due)}`, href, at: n }));
+    }
+  }
+
+  // An investment maturing (28 October): the week before in Coming up; from
+  // the day, a row for two weeks -- decide to roll it over or move it,
+  // before the bank rolls it over for you.
+  for (const m of input.maturities ?? []) {
+    if (!m.matures_on) continue;
+    const day = m.matures_on.slice(0, 10);
+    const n = daysUntil(today, day);
+    const href = `/wealth/accounts/${m.id}`;
+    const worth = fmt(m.balance);
+    if (n <= 0 && n >= -14) {
+      todayRows.push({ id: `matures-${m.id}-${day}`, action: "record", icon: "wallet", tint: "money", title: `${m.name} ${n === 0 ? "matures today" : "has matured"}`, meta: `${worth}${n < 0 ? ` · since ${onDay(today, day).replace(/^on /, "")}` : ""} · roll it over, or move it`, href });
+    } else {
+      const w = inWeek(day);
+      if (w) soon.push(soonItem({ id: `soon-matures-${m.id}`, icon: "wallet", tint: "money", title: `${m.name} matures`, meta: `${worth} · ${onDay(today, day)} · decide: roll it over, or move it`, href, at: w }));
     }
   }
 

@@ -24,6 +24,7 @@ import {
   updateLiabilityBalanceAction,
   setLoanPaymentsLeftAction,
   addLoanBillAction,
+  repriceLoanAction,
   transferAction,
   updateLiabilityScheduleAction,
   deleteAssetAction,
@@ -47,7 +48,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { accountAudienceLabel, extraPaymentEffect, repricedPayment, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
 import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
@@ -1287,54 +1288,45 @@ export function EditSavingsGoalButton({ goal, currency }: { goal: { id: string; 
   );
 }
 
-/** "Pay card" on a credit card (Jonathan, 28 October): what is owed, the
- * minimum, or another amount, from a bank or e-wallet, as one transfer --
- * the card's balance and the bank's move together. Today's Pay row opens it
- * straight away (`autoOpen`). Paid in the bank's app, it waits as pending
- * until confirmed, like any transfer made there. */
-export function PayCardControl({ cardId, cardName, owed, minimum, accounts, currency, autoOpen = false }: { cardId: string; cardName: string; owed: number; minimum: number | null; accounts: PickableAccount[]; currency: string; autoOpen?: boolean }) {
+/** "New rate" on a loan whose fixed rate has ended or is about to (28
+ * October): the new rate, the monthly payment it comes to over the
+ * payments left (or the bank's own figure), and the next fixed-until day. */
+export function RepriceLoanControl({ id, balance, paymentsLeft, currentRate, currentPayment, currency }: { id: string; balance: number; paymentsLeft: number; currentRate: number | null; currentPayment: number | null; currency: string }) {
   const uid = useId();
-  const from = accounts.filter((a) => a.id !== cardId && a.account_type !== "credit");
-  const [open, setOpen] = useState(autoOpen);
-  const [choice, setChoice] = useState<"owed" | "minimum" | "other">("owed");
-  const [other, setOther] = useState(owed);
-  const [accountId, setAccountId] = useState(from[0]?.id ?? "");
-  const [viaApp, setViaApp] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [rate, setRate] = useState(currentRate == null ? "" : String(currentRate));
+  const [own, setOwn] = useState<number | null>(null);
+  const [fixedUntil, setFixedUntil] = useState("");
   const { error, pending, run } = useMoneyAction();
-  const amount = choice === "owed" ? owed : choice === "minimum" && minimum ? minimum : other;
-  const radio = { display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.875rem", minHeight: "2rem" } as const;
+  const r = Number(rate);
+  const worked = rate.trim() && Number.isFinite(r) && r >= 0 ? repricedPayment(balance, r, paymentsLeft) : null;
+  const payment = own ?? worked;
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
   return (
     <>
-      <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.5rem" }} onClick={() => setOpen(true)}>
-        Pay card · {formatCurrency(owed, currency)} owed
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem" }} onClick={() => setOpen(true)}>
+        Set the new rate
       </button>
-      <FormSheet open={open} onClose={() => setOpen(false)} title={`Pay ${cardName}`}>
-        <div role="radiogroup" aria-label="Amount" style={{ marginBottom: "0.5rem" }}>
-          <label style={radio}>
-            <input type="radio" name={`${uid}-amt`} checked={choice === "owed"} onChange={() => setChoice("owed")} />
-            All that is owed · {formatCurrency(owed, currency)}
-          </label>
-          {minimum ? (
-            <label style={radio}>
-              <input type="radio" name={`${uid}-amt`} checked={choice === "minimum"} onChange={() => setChoice("minimum")} />
-              The minimum · {formatCurrency(minimum, currency)}
-            </label>
-          ) : null}
-          <label style={radio}>
-            <input type="radio" name={`${uid}-amt`} checked={choice === "other"} onChange={() => setChoice("other")} />
-            Another amount
-          </label>
-          {choice === "other" && <AmountInput ariaLabel="Amount" defaultValue={other} onValueChange={setOther} style={{ minHeight: "2.5rem", marginTop: "0.25rem" }} />}
+      <FormSheet open={open} onClose={() => setOpen(false)} title="New rate">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-rate`}>New rate (% a year)</label>
+            <input id={`${uid}-rate`} className="input" type="number" step="0.001" min="0" max="100" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-fixed`}>Fixed until (optional)</label>
+            <DateInput id={`${uid}-fixed`} className="input" value={fixedUntil} onChange={(e) => setFixedUntil(e.target.value)} style={field} />
+          </div>
         </div>
-        <div className="field" style={{ marginBottom: "0.5rem" }}>
-          <label htmlFor={`${uid}-from`}>Pay from</label>
-          <AccountSelect id={`${uid}-from`} accounts={from} value={accountId} onChange={setAccountId} currency={currency} />
+        <p style={{ fontSize: "0.875rem", margin: "0.75rem 0 0.25rem" }}>
+          From {formatCurrency(balance, currency)} over {paymentsLeft} payment{paymentsLeft === 1 ? "" : "s"}:{" "}
+          {worked != null ? <strong>about {formatCurrency(worked, currency)} a month</strong> : "—"}
+          {currentPayment ? ` (now ${formatCurrency(currentPayment, currency)})` : ""}.
+        </p>
+        <div className="field" style={{ margin: "0.5rem 0 0" }}>
+          <label htmlFor={`${uid}-pay`}>Monthly payment the bank set (if it differs)</label>
+          <AmountInput id={`${uid}-pay`} ariaLabel="Monthly payment" defaultValue={own ?? undefined} onValueChange={(v) => setOwn(v > 0 ? v : null)} style={field} />
         </div>
-        <label style={{ ...radio, marginBottom: "0.25rem" }}>
-          <input type="checkbox" checked={viaApp} onChange={(e) => setViaApp(e.target.checked)} />
-          Paying it in the bank&apos;s app now (it waits until you confirm it went through)
-        </label>
-        {from.length === 0 && <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Add the bank or e-wallet it is paid from on the Accounts tab first.</p>}
         {error && (
           <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
             {error}
@@ -1343,12 +1335,60 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
         <button
           type="button"
           className="btn btn-primary"
-          disabled={pending || !accountId || !(amount > 0)}
+          disabled={pending || payment == null}
           style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
-          onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp }), () => setOpen(false))}
+          onClick={() => run(() => repriceLoanAction(id, { rate: r, payment: payment!, fixedUntil }), () => setOpen(false))}
         >
-          {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
+          {pending ? "…" : payment != null ? `Use ${r}% and ${formatCurrency(payment, currency)} a month` : "Use this rate"}
         </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Pay extra?" on a loan (Jonathan, 28 October): type an extra amount a
+ * month and see how much sooner the loan ends and the interest it saves,
+ * worked on the same table as the rest of the loan line. An estimate:
+ * banks may charge for paying ahead, or count extra toward future months. */
+export function ExtraPaymentControl({ balance, rate, payment, firstDate, currency }: { balance: number; rate: number | null; payment: number; firstDate: string; currency: string }) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [extra, setExtra] = useState(2000);
+  const e = extraPaymentEffect(balance, rate, payment, extra, firstDate);
+  const monthYear = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-PH", { month: "short", year: "numeric" });
+  const span = (m: number) => {
+    const y = Math.floor(m / 12);
+    const r = m % 12;
+    return [y ? `${y} year${y === 1 ? "" : "s"}` : null, r ? `${r} month${r === 1 ? "" : "s"}` : null].filter(Boolean).join(" ") || "0 months";
+  };
+  const line = { fontSize: "0.875rem", margin: "0.5rem 0 0" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Pay extra?
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Pay extra each month" guardUnsaved={false}>
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-extra`}>On top of {formatCurrency(payment, currency)} a month</label>
+          <AmountInput id={`${uid}-extra`} ariaLabel="Extra each month" defaultValue={extra} onValueChange={setExtra} style={{ minHeight: "2.625rem" }} />
+        </div>
+        {!e.base ? (
+          <p style={line}>At {formatCurrency(payment, currency)} the payment does not cover the interest, so the loan never ends. Check the rate and payment under Payments.</p>
+        ) : !e.faster || !(extra > 0) ? (
+          <p style={line}>Paying {formatCurrency(payment, currency)} a month, the last payment falls in {monthYear(e.base.last)}, with about {formatCurrency(Math.round(e.base.interest), currency)} interest still to pay.</p>
+        ) : (
+          <>
+            <p style={line}>
+              Done <strong>{span(e.monthsSooner!)} sooner</strong>: {monthYear(e.faster.last)}, not {monthYear(e.base.last)}.
+            </p>
+            <p style={line}>
+              About <strong>{formatCurrency(Math.round(e.interestSaved!), currency)} less interest</strong> ({formatCurrency(Math.round(e.faster.interest), currency)} instead of {formatCurrency(Math.round(e.base.interest), currency)}).
+            </p>
+          </>
+        )}
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0" }}>
+          An estimate from what is owed now and the rate. Ask the bank first: some charge a fee for paying ahead, or count extra toward later months instead of the balance.
+        </p>
       </FormSheet>
     </>
   );
@@ -1990,6 +2030,73 @@ export function AccountPrivacyToggle({
           </button>
         </FormSheet>
       </span>
+    </>
+  );
+}
+
+/** "Pay card" on a credit card (Jonathan, 28 October): what is owed, the
+ * minimum, or another amount, from a bank or e-wallet, as one transfer --
+ * the card's balance and the bank's move together. Today's Pay row opens it
+ * straight away (`autoOpen`). Paid in the bank's app, it waits as pending
+ * until confirmed, like any transfer made there. */
+export function PayCardControl({ cardId, cardName, owed, minimum, accounts, currency, autoOpen = false }: { cardId: string; cardName: string; owed: number; minimum: number | null; accounts: PickableAccount[]; currency: string; autoOpen?: boolean }) {
+  const uid = useId();
+  const from = accounts.filter((a) => a.id !== cardId && a.account_type !== "credit");
+  const [open, setOpen] = useState(autoOpen);
+  const [choice, setChoice] = useState<"owed" | "minimum" | "other">("owed");
+  const [other, setOther] = useState(owed);
+  const [accountId, setAccountId] = useState(from[0]?.id ?? "");
+  const [viaApp, setViaApp] = useState(true);
+  const { error, pending, run } = useMoneyAction();
+  const amount = choice === "owed" ? owed : choice === "minimum" && minimum ? minimum : other;
+  const radio = { display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.875rem", minHeight: "2rem" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.5rem" }} onClick={() => setOpen(true)}>
+        Pay card · {formatCurrency(owed, currency)} owed
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`Pay ${cardName}`}>
+        <div role="radiogroup" aria-label="Amount" style={{ marginBottom: "0.5rem" }}>
+          <label style={radio}>
+            <input type="radio" name={`${uid}-amt`} checked={choice === "owed"} onChange={() => setChoice("owed")} />
+            All that is owed · {formatCurrency(owed, currency)}
+          </label>
+          {minimum ? (
+            <label style={radio}>
+              <input type="radio" name={`${uid}-amt`} checked={choice === "minimum"} onChange={() => setChoice("minimum")} />
+              The minimum · {formatCurrency(minimum, currency)}
+            </label>
+          ) : null}
+          <label style={radio}>
+            <input type="radio" name={`${uid}-amt`} checked={choice === "other"} onChange={() => setChoice("other")} />
+            Another amount
+          </label>
+          {choice === "other" && <AmountInput ariaLabel="Amount" defaultValue={other} onValueChange={setOther} style={{ minHeight: "2.5rem", marginTop: "0.25rem" }} />}
+        </div>
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-from`}>Pay from</label>
+          <AccountSelect id={`${uid}-from`} accounts={from} value={accountId} onChange={setAccountId} currency={currency} />
+        </div>
+        <label style={{ ...radio, marginBottom: "0.25rem" }}>
+          <input type="checkbox" checked={viaApp} onChange={(e) => setViaApp(e.target.checked)} />
+          Paying it in the bank&apos;s app now (it waits until you confirm it went through)
+        </label>
+        {from.length === 0 && <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Add the bank or e-wallet it is paid from on the Accounts tab first.</p>}
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || !accountId || !(amount > 0)}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp }), () => setOpen(false))}
+        >
+          {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
+        </button>
+      </FormSheet>
     </>
   );
 }
