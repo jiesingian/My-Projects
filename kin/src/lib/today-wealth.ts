@@ -153,7 +153,8 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
     if (!c.card_due_day || !(c.owed > 0)) continue;
     const due = cardDueDate(c.card_due_day, today);
     const what = [`${fmt(c.owed)} owed`, c.card_min_payment ? `minimum ${fmt(Number(c.card_min_payment))}` : null].filter(Boolean).join(" · ");
-    const href = `/wealth/accounts/${c.id}`;
+    // Pay opens the card's Pay sheet (28 October).
+    const href = `/wealth/accounts/${c.id}?pay=1`;
     if (due === today) todayRows.push({ id: `card-${c.id}-${due}`, action: "pay", urgent: true, icon: "wallet", tint: "money", title: `${c.name} due`, meta: `${what} · due today`, href });
     else {
       const n = inWeek(due);

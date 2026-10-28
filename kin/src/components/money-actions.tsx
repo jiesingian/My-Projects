@@ -24,6 +24,7 @@ import {
   updateLiabilityBalanceAction,
   setLoanPaymentsLeftAction,
   addLoanBillAction,
+  transferAction,
   updateLiabilityScheduleAction,
   deleteAssetAction,
   deleteLiabilityAction,
@@ -1280,6 +1281,73 @@ export function EditSavingsGoalButton({ goal, currency }: { goal: { id: string; 
           onClick={() => run(() => updateSavingsGoalAction(goal.id, { title, note, target, date }), () => setOpen(false))}
         >
           {pending ? "…" : "Save"}
+        </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Pay card" on a credit card (Jonathan, 28 October): what is owed, the
+ * minimum, or another amount, from a bank or e-wallet, as one transfer --
+ * the card's balance and the bank's move together. Today's Pay row opens it
+ * straight away (`autoOpen`). Paid in the bank's app, it waits as pending
+ * until confirmed, like any transfer made there. */
+export function PayCardControl({ cardId, cardName, owed, minimum, accounts, currency, autoOpen = false }: { cardId: string; cardName: string; owed: number; minimum: number | null; accounts: PickableAccount[]; currency: string; autoOpen?: boolean }) {
+  const uid = useId();
+  const from = accounts.filter((a) => a.id !== cardId && a.account_type !== "credit");
+  const [open, setOpen] = useState(autoOpen);
+  const [choice, setChoice] = useState<"owed" | "minimum" | "other">("owed");
+  const [other, setOther] = useState(owed);
+  const [accountId, setAccountId] = useState(from[0]?.id ?? "");
+  const [viaApp, setViaApp] = useState(true);
+  const { error, pending, run } = useMoneyAction();
+  const amount = choice === "owed" ? owed : choice === "minimum" && minimum ? minimum : other;
+  const radio = { display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.875rem", minHeight: "2rem" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.5rem" }} onClick={() => setOpen(true)}>
+        Pay card · {formatCurrency(owed, currency)} owed
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`Pay ${cardName}`}>
+        <div role="radiogroup" aria-label="Amount" style={{ marginBottom: "0.5rem" }}>
+          <label style={radio}>
+            <input type="radio" name={`${uid}-amt`} checked={choice === "owed"} onChange={() => setChoice("owed")} />
+            All that is owed · {formatCurrency(owed, currency)}
+          </label>
+          {minimum ? (
+            <label style={radio}>
+              <input type="radio" name={`${uid}-amt`} checked={choice === "minimum"} onChange={() => setChoice("minimum")} />
+              The minimum · {formatCurrency(minimum, currency)}
+            </label>
+          ) : null}
+          <label style={radio}>
+            <input type="radio" name={`${uid}-amt`} checked={choice === "other"} onChange={() => setChoice("other")} />
+            Another amount
+          </label>
+          {choice === "other" && <AmountInput ariaLabel="Amount" defaultValue={other} onValueChange={setOther} style={{ minHeight: "2.5rem", marginTop: "0.25rem" }} />}
+        </div>
+        <div className="field" style={{ marginBottom: "0.5rem" }}>
+          <label htmlFor={`${uid}-from`}>Pay from</label>
+          <AccountSelect id={`${uid}-from`} accounts={from} value={accountId} onChange={setAccountId} currency={currency} />
+        </div>
+        <label style={{ ...radio, marginBottom: "0.25rem" }}>
+          <input type="checkbox" checked={viaApp} onChange={(e) => setViaApp(e.target.checked)} />
+          Paying it in the bank&apos;s app now (it waits until you confirm it went through)
+        </label>
+        {from.length === 0 && <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Add the bank or e-wallet it is paid from on the Accounts tab first.</p>}
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || !accountId || !(amount > 0)}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp }), () => setOpen(false))}
+        >
+          {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
         </button>
       </FormSheet>
     </>
