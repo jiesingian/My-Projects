@@ -1307,7 +1307,7 @@ export function ExtraPaymentControl({ balance, rate, payment, firstDate, currenc
       <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
         Pay extra?
       </button>
-      <FormSheet open={open} onClose={() => setOpen(false)} title="Pay extra each month">
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Pay extra each month" guardUnsaved={false}>
         <div className="field" style={{ marginBottom: "0.5rem" }}>
           <label htmlFor={`${uid}-extra`}>On top of {formatCurrency(payment, currency)} a month</label>
           <AmountInput id={`${uid}-extra`} ariaLabel="Extra each month" defaultValue={extra} onValueChange={setExtra} style={{ minHeight: "2.625rem" }} />
