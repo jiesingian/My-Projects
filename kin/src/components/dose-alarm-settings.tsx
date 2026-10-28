@@ -3,16 +3,15 @@
 import { useState, useTransition } from "react";
 import { createDoseAlarmLinkAction, removeDoseAlarmLinkAction } from "@/lib/actions/settings";
 import { CopyLink } from "@/components/quick-button-settings";
-import { KIN_ALARMS_SHORTCUT_URL } from "@/lib/dose-alarms";
 
 /** Settings → Notifications → Medicine alarms (23 October): the free stopgap
  * until the native app. A "Kin Alarms" Shortcut reads the member's dose times
  * from their private link and makes them iPhone Clock alarms, which ring full
  * screen with sound even on silent (lib/dose-alarms.ts). Built like "Add to
- * Kin": the link is shown once, made and turned off here. The Shortcut comes
- * ready-made from an iCloud link (KIN_ALARMS_SHORTCUT_URL) that asks for the
- * link on import; building it by hand stays as a closed fold, since the
- * hand steps never quite match what the phone shows (26 October). */
+ * Kin": the link is shown once, made and turned off here. The ready-made
+ * Shortcut was dropped (Jonathan, 28 October): Kin's App Store app will ring
+ * dose alarms itself (AlarmKit), so the hand steps stay as a closed fold for
+ * anyone who wants alarms before then. */
 export function DoseAlarmSettings({ initialOn, lastRead }: { initialOn: boolean; lastRead: string | null }) {
   const [on, setOn] = useState(initialOn);
   const [url, setUrl] = useState<string | null>(null);
@@ -96,21 +95,9 @@ export function DoseAlarmSettings({ initialOn, lastRead }: { initialOn: boolean;
         <h2 id="alarms-add" className="kin-quickbtn-h">
           The Shortcut
         </h2>
-        {KIN_ALARMS_SHORTCUT_URL ? (
-          <>
-            <p className="kin-quickbtn-lead">
-              Copy your link first (if you no longer have it, make a new one above). Then add the Shortcut: when it asks for your Kin link, paste it, and tap <b>Add Shortcut</b>. Run it once now, and again after a medicine
-              changes.
-            </p>
-            <div className="kin-quickbtn-row">
-              <a className="btn btn-primary" href={KIN_ALARMS_SHORTCUT_URL} target="_blank" rel="noopener noreferrer">
-                Add the Kin Alarms Shortcut
-              </a>
-            </div>
-          </>
-        ) : (
-          <p className="kin-quickbtn-lead">The ready-made Shortcut is coming; your link is ready for it.</p>
-        )}
+        <p className="kin-quickbtn-lead">
+          Kin&rsquo;s own iPhone app will ring dose alarms by itself. Until then, you can build the Shortcut yourself, once, with your link.
+        </p>
         <details className="kin-quickbtn-more">
           <summary>Build it by hand</summary>
           <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">

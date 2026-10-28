@@ -360,35 +360,15 @@ all Jonathan's on 23 October, each the recommended option:
 - **Meanwhile, on an iPhone:** Settings → Notifications → Kin: Allow,
   Sounds, Lock Screen and Banners (Persistent) on, and add Kin to any Focus
   that should let medicine through.
-- **To do: the "Kin Alarms" Shortcut, without building it by hand (Jonathan,
-  26 October: "this task is so difficult, the instructions are not same as
-  actual in the phone. delete this task, this tasks shall be done next
-  time").** The free route (#957: a Shortcut reads the member's private
-  link at /api/dose-alarms/<token> and makes Clock alarms) works, but the
-  Medicine alarms screen asks a person to assemble ~14 Shortcuts actions,
-  and what the screen says does not match what the phone shows (the If
-  step read "If File Size is Number MB", then "couldn't convert from Text
-  to Dictionary"; the variable had to be retyped as Text). Jonathan got as
-  far as a clean If and stopped. Next time, in this order:
-  1. Ship the Shortcut ready-made: build "Kin Alarms" once on an iPhone,
-     share it as an iCloud link (Shortcuts → share → Copy iCloud Link), and
-     put one button on the Medicine alarms screen, "Add the Kin Alarms
-     Shortcut", that opens the link; the person then only pastes their
-     private link into the one field the Shortcut asks for on import
-     (an Import Question). Needs a person with an iPhone to build and
-     share it once (ask-a-person); after that nobody assembles anything.
-  2. **Done (28 October):** the step list is behind a closed "Build it by
-     hand", and the screen is your link, when the Shortcut last read it, and
-     the Add button. The button opens `KIN_ALARMS_SHORTCUT_URL`
-     (`src/lib/dose-alarms.ts`); while it is empty the screen says "The
-     ready-made Shortcut is coming; your link is ready for it." The hand
-     steps now say how to fix the If (tap Dictionary Value → Text). Help
-     entry updated. Step 1 is written for Jonathan in
-     `docs/SETUP_FOR_JONATHAN.md`, section 9, ending with the iCloud link
-     pasted into a session that sets the constant.
-  3. Jonathan's half-built Shortcut can be deleted (Shortcuts → long-press
-     Kin Alarms → Delete); his private link stays valid, or a new one can
-     be made on the screen.
+- **Dropped: the ready-made "Kin Alarms" Shortcut (Jonathan, 28 October:
+  he is getting the Apple Developer Program soon, so "skip it and stop
+  popping to do this task").** On 26 October the hand-build steps proved too
+  hard (they didn't match the phone; the If read "If File Size is Number
+  MB"). #1080 folded them behind a closed "Build it by hand" on the Medicine
+  alarms screen, which stays for anyone who wants alarms before the App
+  Store app; the iCloud-link button and its SETUP section were removed.
+  Nobody needs to build or share the Shortcut. Dose alarms come with the
+  native app (AlarmKit), below.
   The native alarm (AlarmKit / Critical Alerts) stays on the money list.
 
 ## Wrap-up, 22 October
@@ -1896,9 +1876,9 @@ work, last.
 - **An Android app (Google Play Console, US$25 once)**, same idea: a
   full-screen alarm notification for doses and a full-screen incoming call.
   Lower priority while every saved device is an iPhone.
-- **Free stopgap until then, not built:** a Kin-made Apple Shortcut that
-  turns a person's dose times into iPhone Clock alarms (ring on silent);
-  re-run when a medicine changes.
+- **Free stopgap until then:** the hand-built "Kin Alarms" Shortcut on the
+  Medicine alarms screen; a ready-made one was dropped (28 October), as the
+  App Store app is coming soon.
 - **Done (20 October, 21 October):** Kin AI switched from Opus to Haiku 4.5,
   then to Haiku 5.5, the model named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
   setting for Jonathan when the key is added (SETUP section 4).
@@ -2507,12 +2487,6 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 
-- **Medicine alarms (23 October):** Settings → Notifications → Medicine
-  alarms → Make my link, then build "Kin Alarms" from the steps there. Note
-  any step whose action name differs on iOS 26 (Find Alarms, Delete Alarm,
-  Create Alarm's repeat). Run it, check one "Kin ·" alarm per dose time in
-  Clock, and that one rings full screen with the phone on silent. Run it
-  again: the old ones should go, not double up.
 - **Undo read out (22 October, #884):** with VoiceOver on, delete a note,
   then a To-Buy item; VoiceOver should say "Deleted" with Undo, and Undo
   should put it back.
