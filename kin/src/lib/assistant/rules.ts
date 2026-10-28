@@ -1408,6 +1408,496 @@ const addTrip: Rule = (q, ctx) => {
   };
 };
 
+
+/* ------------------------------------------------ the wider lookups (PR 3) */
+
+type Goal = { title: string; target_amount: number | null; current_amount: number; target_date: string | null };
+
+const goals: Rule = (q, ctx) => {
+  if (!/\b(goal|goals|fund|ipon|savings goal|saved for|saving for|target)\b/.test(q.text)) return null;
+  if (!/\b(how far|how much|magkano|progress|how is|how are|kumusta|what are|ano ang|anong|list|status|close|malapit|na ba|have we|did we|is the|is our)\b/.test(q.text)) return null;
+  if (/\b(spend|spent|gastos|budget|bill|bills|add|pa-?add|set|create|chore|chores)\b/.test(q.text)) return null;
+  const name = q.text
+    .replace(/\b(how far|how much|magkano|progress|how is|how are|kumusta|what are|ano ang|anong|list|status|close|malapit|na ba|have we|did we|is the|is our|are we|along|with|the|our|my|ang|ng|ni|sa|na|ba|natin|namin|ko|goal|goals|fund|savings|saving|saved|for|to|on|of|ipon|target|towards?|so far|already|pa|lang|yet)\b/g, " ")
+    .replace(/'s\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const t = pick(q.lang);
+  const line = (g: Goal) => {
+    const target = Number(g.target_amount) || 0;
+    const pct = target > 0 ? Math.round((Number(g.current_amount) / target) * 100) : null;
+    const when = g.target_date ? `, target ${readableDay(g.target_date)}` : "";
+    return `${g.title}: ${money(g.current_amount, ctx.currency)}${target > 0 ? ` of ${money(target, ctx.currency)} (${pct}%)` : ""}${when}`;
+  };
+  return {
+    rule: name ? "goals.one" : "goals.list",
+    tool: "get_money",
+    input: {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const all = rows<Goal>(result, "goals");
+      if (all.length === 0) return t("No savings goals in Kin yet.", "Wala pang savings goal sa Kin.");
+      if (name) {
+        const words = name.split(" ").filter((w) => w.length > 2);
+        const hits = all.filter((g) => words.some((w) => g.title.toLowerCase().includes(w)));
+        if (hits.length === 0) return t(`No goal called "${name}". Goals: ${joinList(all.map((g) => g.title))}.`, `Walang goal na "${name}". Goals: ${joinList(all.map((g) => g.title))}.`);
+        return hits.map(line).join("; ") + ".";
+      }
+      return `Goals (${all.length}): ${all.slice(0, 5).map(line).join("; ")}${all.length > 5 ? ` +${all.length - 5}` : ""}.`;
+    },
+  };
+};
+
+type Lending = { person: string; amount: number; paid: number; left: number; due: string | null };
+
+const debts: Rule = (q, ctx) => {
+  if (!/\b(owe|owes|owed|utang|loan|loans|debt|debts|hulugan|amortization|borrowed|lent|pautang|inutang|inutangan|pinahiram|hiniram|humiram|nagpahiram)\b/.test(q.text)) return null;
+  if (/\b(bill|bills|add|pa-?add|record|log|paid|bayad na|nagbayad)\b/.test(q.text)) return null;
+  const whoOwesUs = /\b(who owes|who borrowed|sino (?:ang )?(?:may utang|humiram|nakautang|umutang)|owes us|owe us|utang sa (?:atin|amin|akin)|lent|pinahiram|pautang|sino may utang)\b/.test(q.text);
+  const weOwe = /\b(do i owe|do we owe anyone|whom do (?:we|i) owe|who do (?:we|i) owe|sino (?:ang )?(?:inutangan|pinagkakautangan)|we borrowed|hiniram|humiram (?:tayo|kami|ako)|utang (?:ko|natin|namin) kay)\b/.test(q.text);
+  const loanWords = /\b(loan|loans|hulugan|amortization|car|house|condo|motor|credit card|liability|liabilities|debts?)\b/.test(q.text);
+  const who = resolveMember(q.text, ctx.members);
+  // A plain "how much do we owe" is the bills rule's (unpaid bills plus debts).
+  if (!whoOwesUs && !weOwe && !loanWords) return null;
+  const person = q.text
+    .replace(/\b(how much|magkano|does|do|did|is|are|what|ano|anong|who|sino|sinong|owe|owes|owed|owing|utang|loan|loans|debt|debts|left|pa|on|the|our|my|ang|ng|ni|kay|sa|na|ba|natin|namin|ko|to|us|me|we|i|still|balance|remaining|hulugan|amortization|much|ilan|may|meron|mayroon|atin|amin|akin|kanila|tayo|kami|anyone|anybody|borrowed|lent|pinahiram|hiniram|humiram|pautang|inutang|inutangan|nagpahiram|have|has|got)\b/g, " ")
+    .replace(/'s\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const t = pick(q.lang);
+  const lineOf = (u: Lending) => `${u.person} ${money(u.left, ctx.currency)}${u.due ? ` (due ${readableDay(u.due)})` : ""}`;
+  return {
+    rule: whoOwesUs ? "debts.owed_to_us" : weOwe ? "debts.we_owe" : "debts.loans",
+    tool: "get_debts",
+    input: {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const owedToUs = rows<Lending>(result, "owed_to_us");
+      const weOweList = rows<Lending>(result, "we_owe");
+      const liabilities = rows<{ name: string; balance: number }>(result, "liabilities");
+      if (whoOwesUs) {
+        const hits = person && !who ? owedToUs.filter((u) => u.person.toLowerCase().includes(person)) : owedToUs;
+        if (hits.length === 0) return person && !who ? t(`${person} owes nothing recorded in Kin.`, `Walang nakarecord na utang ni ${person}.`) : t("Nobody owes the family anything recorded in Kin.", "Walang may utang sa atin na nakarecord.");
+        const total = hits.reduce((s, u) => s + Number(u.left), 0);
+        return t(`Owed to us (${hits.length}): ${hits.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`, `May utang sa atin (${hits.length}): ${hits.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
+      }
+      if (weOwe) {
+        if (weOweList.length === 0) return t("No lending owed to anyone recorded in Kin.", "Walang nakarecord na utang natin sa iba.");
+        const total = weOweList.reduce((s, u) => s + Number(u.left), 0);
+        return t(`We owe (${weOweList.length}): ${weOweList.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`, `Utang natin (${weOweList.length}): ${weOweList.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
+      }
+      // Whole words: "car" is the car loan, not the credit card.
+      const words = person.split(" ").filter((w) => w.length > 2);
+      const hits = words.length > 0 ? liabilities.filter((l) => words.some((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(l.name.toLowerCase()) && !new RegExp(`\\b${w}[a-z]`).test(l.name.toLowerCase()))) : liabilities;
+      if (hits.length === 0) return liabilities.length === 0 ? t("No loans or other debts in Kin.", "Walang loan o utang sa Kin.") : t(`No loan called "${person}". Loans: ${joinList(liabilities.map((l) => l.name))}.`, `Walang loan na "${person}". Loans: ${joinList(liabilities.map((l) => l.name))}.`);
+      const total = hits.reduce((s, l) => s + Number(l.balance), 0);
+      if (hits.length === 1) return t(`${hits[0].name}: ${money(hits[0].balance, ctx.currency)} left.`, `${hits[0].name}: ${money(hits[0].balance, ctx.currency)} pa ang natitira.`);
+      return t(`Loans and debts (${hits.length}): ${hits.map((l) => `${l.name} ${money(l.balance, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`, `Loans at utang (${hits.length}): ${hits.map((l) => `${l.name} ${money(l.balance, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`);
+    },
+  };
+};
+
+type Charge = { name: string; amount: number; repeat: string; per_month: number; next: string | null; overdue: boolean };
+
+const REPEAT_WORD: Record<string, [string, string]> = { weekly: ["weekly", "linggo-linggo"], monthly: ["monthly", "buwan-buwan"], quarterly: ["quarterly", "kada tatlong buwan"], yearly: ["yearly", "taon-taon"] };
+
+const subscriptions: Rule = (q, ctx) => {
+  if (!/\b(subscriptions?|subs|recurring|repeating|what do we pay (?:every|each|per) month|monthly (?:charges|payments|dues)|next charge|charged|renews?|renewal|auto-?debit|netflix|spotify|youtube|disney|hbo|canva|icloud|google one)\b/.test(q.text)) return null;
+  if (/\b(add|pa-?add|cancel|remove|stop|due)\b/.test(q.text)) return null;
+  const name = q.text
+    .replace(/\b(when|kailan|is|are|the|our|my|ang|ng|sa|na|ba|natin|namin|ko|next|charged|charge|renews?|renewal|what|ano|anong|how much|magkano|do|we|pay|for|subscriptions?|subs|recurring|repeating|every|each|per|month|monthly|list|all|lahat|payments?|charges|dues|have|got)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const t = pick(q.lang);
+  const rep = (r: string) => (REPEAT_WORD[r] ? (q.lang === "tl" ? REPEAT_WORD[r][1] : REPEAT_WORD[r][0]) : r);
+  return {
+    rule: name ? "subscriptions.one" : "subscriptions.list",
+    tool: "get_subscriptions",
+    input: {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const charges = rows<Charge>(result, "charges");
+      if (name) {
+        const hits = charges.filter((c) => c.name.toLowerCase().includes(name) || name.includes(c.name.toLowerCase()));
+        if (hits.length === 0) return t(`No repeating charge called "${name}" in Kin.`, `Walang paulit-ulit na bayad na "${name}" sa Kin.`);
+        return hits.map((c) => `${c.name} ${money(c.amount, ctx.currency)} ${rep(c.repeat)}${c.next ? t(`, next ${readableDay(c.next)}`, `, susunod ${readableDay(c.next)}`) : ""}${c.overdue ? " (overdue)" : ""}`).join("; ") + ".";
+      }
+      if (charges.length === 0) return t("No repeating charges in Kin.", "Walang paulit-ulit na bayad sa Kin.");
+      const perMonth = Number(field(result, "charges_per_month")) || 0;
+      const perYear = Number(field(result, "charges_per_year")) || 0;
+      const lines = charges.slice(0, 6).map((c) => `${c.name} ${money(c.amount, ctx.currency)} ${rep(c.repeat)}`);
+      const more = charges.length > 6 ? ` +${charges.length - 6}` : "";
+      return t(`${charges.length} repeating charges, about ${money(perMonth, ctx.currency)} a month (${money(perYear, ctx.currency)} a year): ${lines.join("; ")}${more}.`, `${charges.length} paulit-ulit na bayad, mga ${money(perMonth, ctx.currency)} kada buwan (${money(perYear, ctx.currency)} kada taon): ${lines.join("; ")}${more}.`);
+    },
+  };
+};
+
+type Doc = { title: string; type: string | null; whose: string; folder: string | null; expires: string | null; days_left: number | null };
+
+const documents: Rule = (q, ctx) => {
+  if (!/\b(passport|passports|license|licence|driver'?s license|registration|or\/cr|orcr|policy|documents?|papers|visa|birth certificate|certificate|ids?|expire|expires|expiring|expiry|expired|renew|renewal|valid until|hanggang kailan|mag-?expire|paso|pasaporte|lisensya)\b/.test(q.text)) return null;
+  if (!/\b(when|kailan|what|ano|anong|which|alin|is|are|does|do|may|meron|soon|malapit|na ba|still|pa ba|valid|expire|expires|expiring|expiry|expired|mag-?expire|paso)\b/.test(q.text)) return null;
+  if (/\b(add|pa-?add|upload|renew the|book|apply)\b/.test(q.text)) return null;
+  // "what expires soon" names nothing; "when does Lia's passport expire" names a document.
+  const who = resolveMember(q.text, ctx.members);
+  const query = q.text
+    .replace(/\b(when|kailan|what|ano|anong|which|alin|is|are|does|do|may|meron|soon|malapit|na ba|still|pa ba|valid|until|expire|expires|expiring|expiry|expired|renew|renewal|mag-?expire|paso|hanggang|the|our|my|ang|ng|ni|sa|na|ba|natin|namin|ko|documents?|papers|up to date|updated|yet|pa|this|next|month|year|week)\b/g, " ")
+    .replace(who ? new RegExp(`\\b${firstName(who).toLowerCase()}(?:'s)?\\b`, "g") : /$^/, " ")
+    .replace(/'s\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const t = pick(q.lang);
+  const line = (d: Doc) => {
+    const owner = d.whose && d.whose !== "household" ? `${firstName(d.whose)}'s ` : "";
+    if (!d.expires) return t(`${owner}${d.title}: no expiry recorded`, `${d.title}${owner ? ` ni ${firstName(d.whose)}` : ""}: walang expiry na nakarecord`);
+    const day = readableDay(d.expires.slice(0, 10));
+    const left = d.days_left ?? 0;
+    const when = left < 0 ? t(`expired ${day} (${-left} days ago)`, `expired na noong ${day} (${-left} days na)`) : t(`expires ${day} (${distance(d.expires.slice(0, 10), ctx.today, q.lang)})`, `mag-e-expire sa ${day} (${distance(d.expires.slice(0, 10), ctx.today, q.lang)})`);
+    return q.lang === "tl" && owner ? `${d.title} ni ${firstName(d.whose)}: ${when}` : `${owner}${d.title}: ${when}`;
+  };
+  return {
+    rule: query ? "documents.one" : "documents.expiring",
+    tool: "get_documents",
+    input: query ? { query } : {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      let docs = rows<Doc>(result, "documents");
+      if (who) docs = docs.filter((d) => d.whose.toLowerCase().startsWith(firstName(who).toLowerCase()) || d.whose === "household");
+      if (docs.length === 0) {
+        if (query) return t(`No document called "${query}"${who ? ` for ${firstName(who)}` : ""} in the Vault.`, `Walang document na "${query}"${who ? ` ni ${firstName(who)}` : ""} sa Vault.`);
+        return t("Nothing expires in the next six months.", "Walang mag-e-expire sa susunod na anim na buwan.");
+      }
+      if (query) return docs.slice(0, 4).map(line).join("; ") + ".";
+      return t(`Expiring: ${docs.slice(0, 6).map(line).join("; ")}.`, `Mag-e-expire: ${docs.slice(0, 6).map(line).join("; ")}.`);
+    },
+  };
+};
+
+type Task = { title: string; kind: string; date: string; time: string | null; who: string | string[]; status: string };
+
+const tasks: Rule = (q, ctx) => {
+  if (!/\b(chores?|tasks?|gawain|routines?|to-?do|to do|duties|duty|turn|whose turn|homework|dishes|trash|laundry|hugas|ligpit|linis|walis)\b/.test(q.text)) return null;
+  if (!/\b(what|ano|anong|who|sino|whose|kanino|did|has|have|is|are|left|remaining|done|tapos|na ba|list|today|ngayon|tomorrow|bukas|this week|ngayong linggo|natira|pending|still|pa ba|nagawa|ginawa)\b/.test(q.text)) return null;
+  if (/\b(add|pa-?add|idagdag|create|set|new|gumawa|delete|remove|edit|approve|mark)\b/.test(q.text)) return null;
+  const range = resolveRange(q.text, ctx.today) ?? single(ctx.today, `today`, `ngayon`);
+  const who = resolveMember(q.text, ctx.members);
+  const notDone = /\b(hasn'?t|haven'?t|not done|not yet|left|remaining|pending|still|hindi pa|di pa|natira|wala pa)\b/.test(q.text);
+  const didThey = /\b(did|has|have|tapos na ba|nagawa na ba|ginawa na ba|done na ba|na ba)\b/.test(q.text) && !!who;
+  const whoseTurn = /\b(whose turn|sino ang (?:mag|naka)|turn|kanino)\b/.test(q.text);
+  const title = whoseTurn ? q.text.replace(/\b(whose turn|is it|to|sino ang|mag|naka|turn|kanino|the|ang|ng|ngayon|today|bukas|tomorrow|it|is|for|ba|na|this|week)\b/g, " ").replace(/\s+/g, " ").trim() : "";
+  const t = pick(q.lang);
+  return {
+    rule: whoseTurn ? "tasks.turn" : notDone ? "tasks.not_done" : didThey ? "tasks.did" : "tasks.list",
+    tool: "get_tasks",
+    input: { from: range.from, to: range.to, ...(who ? { member_name: firstName(who) } : {}) },
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const all = rows<Task>(result, "tasks");
+      const behind = rows<{ title: string; who: string | string[]; dates: string[] }>(result, "behind_on");
+      const label = range.single && range.from === ctx.today ? t("today", "ngayon") : q.lang === "tl" ? range.label.tl : range.label.en;
+      const whoOf = (x: Task) => (Array.isArray(x.who) ? x.who.map(firstName).join(", ") : x.who === "whole family" ? t("everyone", "lahat") : x.who);
+      const line = (x: Task) => `${x.title} (${whoOf(x)})${range.single ? "" : ` ${readableDay(x.date)}`}${x.time ? ` ${x.time}` : ""}${x.status === "done" ? t(" done", " tapos") : x.status === "skipped" ? " skipped" : x.status === "missed" ? t(" missed", " hindi nagawa") : ""}`;
+      const behindLine = behind.length > 0 ? t(` Behind: ${behind.map((b) => `${b.title} (${b.dates.map((d) => readableDay(d)).join(", ")})`).join("; ")}.`, ` Hindi pa nagawa: ${behind.map((b) => `${b.title} (${b.dates.map((d) => readableDay(d)).join(", ")})`).join("; ")}.`) : "";
+      if (whoseTurn) {
+        const words = title.split(" ").filter((w) => w.length > 2);
+        const hits = words.length > 0 ? all.filter((x) => words.some((w) => x.title.toLowerCase().includes(w))) : all;
+        if (hits.length === 0) return t(`Nothing called "${title}" ${label}.`, `Walang "${title}" ${label}.`);
+        return hits.map((x) => `${x.title}: ${whoOf(x)}${x.status === "done" ? t(" (done)", " (tapos na)") : ""}`).join("; ") + ".";
+      }
+      if (notDone) {
+        const open = all.filter((x) => x.status !== "done" && x.status !== "skipped");
+        if (open.length === 0) return (all.length === 0 ? t(`Nothing scheduled ${label}.`, `Walang nakaschedule ${label}.`) : t(`All done ${label}.`, `Tapos na lahat ${label}.`)) + behindLine;
+        return t(`Not yet ${label} (${open.length}): ${open.map(line).join("; ")}.`, `Hindi pa tapos ${label} (${open.length}): ${open.map(line).join("; ")}.`) + behindLine;
+      }
+      if (didThey && who) {
+        if (all.length === 0) return t(`${firstName(who)} has nothing scheduled ${label}.`, `Walang nakaschedule si ${firstName(who)} ${label}.`);
+        const done = all.filter((x) => x.status === "done");
+        const open = all.filter((x) => x.status !== "done" && x.status !== "skipped");
+        if (open.length === 0) return t(`Yes: ${firstName(who)} did ${done.map((x) => x.title).join(", ")} ${label}.`, `Oo: tapos na ni ${firstName(who)} ang ${done.map((x) => x.title).join(", ")} ${label}.`);
+        return t(`${firstName(who)} ${label}: done ${done.length > 0 ? done.map((x) => x.title).join(", ") : "nothing yet"}; not yet ${open.map((x) => x.title).join(", ")}.`, `${firstName(who)} ${label}: tapos ${done.length > 0 ? done.map((x) => x.title).join(", ") : "wala pa"}; hindi pa ${open.map((x) => x.title).join(", ")}.`);
+      }
+      if (all.length === 0) return t(`No chores or tasks ${label}${who ? ` for ${firstName(who)}` : ""}.`, `Walang chores o tasks ${label}${who ? ` ni ${firstName(who)}` : ""}.`) + behindLine;
+      return `${label[0].toUpperCase()}${label.slice(1)}${who ? t(` for ${firstName(who)}`, ` ni ${firstName(who)}`) : ""} (${all.length}): ${all.slice(0, 10).map(line).join("; ")}${all.length > 10 ? ` +${all.length - 10}` : ""}.` + behindLine;
+    },
+  };
+};
+
+const allowance: Rule = (q, ctx) => {
+  if (!/\b(piggy ?bank|alkansya|allowance|baon|coins|points|stars|puntos|jars?)\b/.test(q.text)) return null;
+  if (/\b(add|pa-?add|give|bigay|pay|bayad|redeem|set)\b/.test(q.text) && !/\b(how much|magkano|ilan|how many|what|ano)\b/.test(q.text)) return null;
+  const who = resolveMember(q.text, ctx.members);
+  if (!who) return null;
+  const t = pick(q.lang);
+  const wantsPoints = /\b(coins|points|stars|puntos)\b/.test(q.text);
+  return {
+    rule: wantsPoints ? "allowance.points" : "allowance.jars",
+    tool: "get_allowance",
+    input: { member_name: firstName(who) },
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const name = firstName(who);
+      const jars = field(result, "jars") as { gastos: number; ipon: number; bigay: number; total: number } | null;
+      const balance = Number(field(result, "points_balance")) || 0;
+      const spent = Number(field(result, "points_spent")) || 0;
+      const pointsLine = t(`${balance} points${spent > 0 ? ` (${spent} spent)` : ""}`, `${balance} points${spent > 0 ? ` (${spent} nagastos)` : ""}`);
+      if (wantsPoints || !jars) return `${name}: ${pointsLine}.`;
+      const weekly = Number(field(result, "weekly_allowance")) || 0;
+      return t(
+        `${name}'s piggy bank: ${money(jars.total, ctx.currency)} (gastos ${money(jars.gastos, ctx.currency)}, ipon ${money(jars.ipon, ctx.currency)}, bigay ${money(jars.bigay, ctx.currency)})${weekly > 0 ? `, ${money(weekly, ctx.currency)} a week` : ""}; ${pointsLine}.`,
+        `Alkansya ni ${name}: ${money(jars.total, ctx.currency)} (gastos ${money(jars.gastos, ctx.currency)}, ipon ${money(jars.ipon, ctx.currency)}, bigay ${money(jars.bigay, ctx.currency)})${weekly > 0 ? `, ${money(weekly, ctx.currency)} kada linggo` : ""}; ${pointsLine}.`,
+      );
+    },
+  };
+};
+
+const eventGuests: Rule = (q, ctx) => {
+  if (!/\b(who(?:'s| is| are|s)? (?:all )?coming|who(?:'s| is| are)? (?:all )?(?:going|attending|invited)|sino (?:ang |mga )?(?:pupunta|dadalo|sasama|darating|kasama|invited)|how many (?:are |people |guests )?(?:coming|going|attending)|ilan (?:ang |mga )?(?:pupunta|dadalo|darating)|rsvps?|guest ?list|guests|attending|headcount|bisita)\b/.test(q.text)) return null;
+  if (/\b(add|pa-?add|invite|remove)\b/.test(q.text) && !/\b(who|sino|how many|ilan)\b/.test(q.text)) return null;
+  const range = resolveRange(q.text, ctx.today);
+  const name = q.text
+    .replace(/\b(who|whos|is|are|all|coming|going|attending|invited|sino|ang|mga|pupunta|dadalo|sasama|darating|kasama|how many|people|guests?|ilan|rsvps?|guest list|headcount|bisita|to|the|our|sa|ng|ni|on|for|at|this|next|ba|na|natin|namin|ko|kay|party|yung)\b/g, " ")
+    .replace(/\b(today|tomorrow|bukas|ngayon|weekend|week|month|sunday|monday|tuesday|wednesday|thursday|friday|saturday|linggo|lunes|martes|miyerkules|huwebes|biyernes|sabado)\b/g, " ")
+    .replace(new RegExp(`\\b(${[...MONTHS_EN, ...MONTHS_TL, ...MONTH_SHORT].join("|")})\\b`, "g"), " ")
+    .replace(/\b\d{1,2}(?:st|nd|rd|th)?\b/g, " ")
+    .replace(/'s\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!name && !range) return null;
+  const t = pick(q.lang);
+  return {
+    rule: "events.guests",
+    tool: "get_event_guests",
+    input: name ? { query: name } : { date: range!.from },
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      if (field(result, "matches") === "no event found") return t(`No event ${name ? `called "${name}"` : `on ${readableDay(range!.from)}`} in Kin.`, `Walang event ${name ? `na "${name}"` : `sa ${readableDay(range!.from)}`} sa Kin.`);
+      const event = String(field(result, "event") ?? "");
+      const date = String(field(result, "date") ?? "");
+      const going = rows<string>(result, "going").map(firstName);
+      const maybe = rows<string>(result, "maybe").map(firstName);
+      const no = rows<string>(result, "no").map(firstName);
+      const guestsGoing = rows<{ name: string; heads: number }>(result, "guests_going");
+      const guestsMaybe = rows<string>(result, "guests_maybe");
+      const unanswered = rows<string>(result, "guests_not_answered");
+      const heads = Number(field(result, "heads_going")) || 0;
+      const goingLine = [...going, ...guestsGoing.map((g) => (g.heads > 1 ? `${g.name} ×${g.heads}` : g.name))];
+      const parts = [
+        t(`going ${heads}${goingLine.length > 0 ? ` (${joinList(goingLine, 10)})` : ""}`, `pupunta ${heads}${goingLine.length > 0 ? ` (${joinList(goingLine, 10)})` : ""}`),
+        ...(maybe.length + guestsMaybe.length > 0 ? [t(`maybe ${joinList([...maybe, ...guestsMaybe])}`, `baka ${joinList([...maybe, ...guestsMaybe])}`)] : []),
+        ...(no.length > 0 ? [t(`not coming ${joinList(no)}`, `hindi pupunta ${joinList(no)}`)] : []),
+        ...(unanswered.length > 0 ? [t(`${unanswered.length} not answered`, `${unanswered.length} hindi pa sumagot`)] : []),
+      ];
+      return `${event} (${readableDay(date)}): ${parts.join("; ")}.`;
+    },
+  };
+};
+
+/** The past ranges a spending question names, as whole months: last month,
+ * a month by name (this year's if gone by, else last year's), the last N
+ * months (whole, before this one), last week, this year, last year. */
+export function pastRange(text: string, today: string): { from: string; to: string; label: { en: string; tl: string } } | null {
+  const t = ` ${text.toLowerCase()} `;
+  const [y, m] = today.split("-").map(Number);
+  const monthRange = (year: number, month1: number) => {
+    const from = `${year}-${String(month1).padStart(2, "0")}-01`;
+    return { from, to: endOfMonth(from) };
+  };
+  const nameOf = (month1: number, year: number) => `${MONTHS_EN[month1 - 1][0].toUpperCase()}${MONTHS_EN[month1 - 1].slice(1)}${year !== y ? ` ${year}` : ""}`;
+  if (/\b(last month|nakaraang buwan|previous month)\b/.test(t)) {
+    const d = new Date(Date.UTC(y, m - 2, 1));
+    const r = monthRange(d.getUTCFullYear(), d.getUTCMonth() + 1);
+    return { ...r, label: { en: "last month", tl: "noong nakaraang buwan" } };
+  }
+  const n = /\b(?:last|past|nakaraang|huling)\s+(\d{1,2}|two|three|four|five|six|dalawang|tatlong|apat na|limang|anim na)\s+months?\b/.exec(t);
+  if (n) {
+    const words: Record<string, number> = { two: 2, three: 3, four: 4, five: 5, six: 6, dalawang: 2, tatlong: 3, "apat na": 4, limang: 5, "anim na": 6 };
+    const count = Number(n[1]) || words[n[1]] || 0;
+    if (count >= 1 && count <= 24) {
+      const start = new Date(Date.UTC(y, m - 1 - count, 1));
+      const end = new Date(Date.UTC(y, m - 2, 1));
+      return { from: monthRange(start.getUTCFullYear(), start.getUTCMonth() + 1).from, to: monthRange(end.getUTCFullYear(), end.getUTCMonth() + 1).to, label: { en: `the last ${count} months`, tl: `nakaraang ${count} buwan` } };
+    }
+  }
+  if (/\b(last week|nakaraang linggo|previous week)\b/.test(t)) {
+    const from = addDays(mondayOf(today), -7)!;
+    return { from, to: addDays(from, 6)!, label: { en: "last week", tl: "noong nakaraang linggo" } };
+  }
+  if (/\b(this year|ngayong taon|year to date|so far this year)\b/.test(t)) return { from: `${y}-01-01`, to: today, label: { en: "this year", tl: "ngayong taon" } };
+  if (/\b(last year|nakaraang taon)\b/.test(t)) return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31`, label: { en: `${y - 1}`, tl: `${y - 1}` } };
+  const monthWord = "(" + [...MONTHS_EN, ...MONTHS_TL, ...MONTH_SHORT].join("|") + ")";
+  const mw = new RegExp(`\\b(in|sa|noong|nung|last|for|of|during|ng)?\\s*${monthWord}\\b(?:\\s+(\\d{4}))?(?!\\s*\\d)`).exec(t);
+  if (mw) {
+    const w = mw[2].replace(/\.$/, "");
+    let i = MONTHS_EN.indexOf(w);
+    if (i < 0) i = MONTHS_TL.indexOf(w);
+    if (i < 0) i = MONTH_SHORT.indexOf(w.slice(0, 3));
+    // "may" alone is the Filipino "there is": only with a preposition or a year.
+    if (i >= 0 && !(w === "may" && !mw[1] && !mw[3])) {
+      const month1 = i + 1;
+      if (month1 === m && !mw[3]) return null; // this month is get_money's
+      const year = mw[3] ? Number(mw[3]) : month1 < m ? y : y - 1;
+      const r = monthRange(year, month1);
+      return { ...r, label: { en: nameOf(month1, year), tl: nameOf(month1, year) } };
+    }
+  }
+  return null;
+}
+
+const spendingPast: Rule = (q, ctx) => {
+  if (!/\b(spend|spent|spending|gastos|nagastos|ginastos|gumastos|nagagastos|expenses?|paid for|kinita|earn|earned|income|kita)\b/.test(q.text)) return null;
+  if (!/\b(how much|magkano|what|ano|anong|total|ilan)\b/.test(q.text)) return null;
+  const range = pastRange(q.text, ctx.today);
+  if (!range) return null;
+  const category = categoryIn(q.text);
+  const who = resolveMember(q.text, ctx.members);
+  if (who && category) return null;
+  const wantsIncome = /\b(kinita|earn|earned|income|kita|money in|pumasok)\b/.test(q.text) && !/\b(spend|spent|gastos)\b/.test(q.text);
+  const t = pick(q.lang);
+  const label = q.lang === "tl" ? range.label.tl : range.label.en;
+  return {
+    rule: wantsIncome ? "spending.past_income" : who ? "spending.past_member" : category ? "spending.past_category" : "spending.past_total",
+    tool: "get_spending",
+    input: { from: range.from, to: range.to },
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const byCat = (field(result, "by_category") ?? {}) as Record<string, unknown>;
+      const spent = Number(field(result, "spent")) || 0;
+      if (wantsIncome) return t(`Money in ${label}: ${money(field(result, "money_in"), ctx.currency)}; out: ${money(spent, ctx.currency)}.`, `Pumasok ${label}: ${money(field(result, "money_in"), ctx.currency)}; lumabas: ${money(spent, ctx.currency)}.`);
+      if (who) {
+        const byMember = (field(result, "by_member") ?? {}) as Record<string, unknown>;
+        const key = Object.keys(byMember).find((k) => k.toLowerCase() === who.toLowerCase() || k.toLowerCase().split(" ")[0] === firstName(who).toLowerCase());
+        return t(`${firstName(who)}'s spending ${label}: ${money(key ? byMember[key] : 0, ctx.currency)} (from accounts you can see).`, `Nagastos ni ${firstName(who)} ${label}: ${money(key ? byMember[key] : 0, ctx.currency)} (sa mga account na nakikita mo).`);
+      }
+      if (category) return `${category} ${label}: ${money(byCat[category] ?? 0, ctx.currency)}.`;
+      const top = Object.entries(byCat)
+        .filter(([c, a]) => c !== TRANSFER_CATEGORY && c !== GOAL_CATEGORY && Number(a) > 0)
+        .sort((a, b) => Number(b[1]) - Number(a[1]))
+        .slice(0, 3)
+        .map(([c, a]) => `${c} ${money(a, ctx.currency)}`);
+      const topLine = top.length > 0 ? t(` Top: ${top.join(", ")}.`, ` Pinakamalaki: ${top.join(", ")}.`) : "";
+      return t(`Spent ${label}: ${money(spent, ctx.currency)}.${topLine}`, `Nagastos ${label}: ${money(spent, ctx.currency)}.${topLine}`);
+    },
+  };
+};
+
+type Entry = { title: string; date: string; note: string | null; milestone: boolean };
+
+const journal: Rule = (q, ctx) => {
+  if (!/\b(journal|diary|talaarawan|on this day|what happened|anong nangyari|ano nangyari|memories|alaala|last entry|latest entry|latest entries|wrote|sinulat|isinulat|milestones?)\b/.test(q.text)) return null;
+  if (/^(?:journal|diary)\s*[:\-–]/.test(q.text)) return null;
+  if (/^(?:please\s+)?(?:add|pa-?add|write|isulat|put|note down|delete|edit)\b/.test(q.text)) return null;
+  const onThisDay = /\b(on this day|this day|same day|ngayong araw noon|ngayong araw)\b/.test(q.text) || /\b(what happened|anong nangyari|ano nangyari)\b.*\b(today|ngayon)\b/.test(q.text);
+  const past = onThisDay ? null : pastRange(q.text, ctx.today);
+  const about = /\b(about|tungkol sa)\s+(.+)$/.exec(q.text);
+  const topic = about && !past && !onThisDay ? about[2].replace(/\b(the|ang|ng|sa|ba|natin|namin|ko)\b/g, " ").replace(/\s+/g, " ").trim() : "";
+  const t = pick(q.lang);
+  const input = onThisDay ? { on_day: ctx.today.slice(5) } : past ? { from: past.from, to: past.to } : topic ? { query: topic } : {};
+  return {
+    rule: onThisDay ? "journal.on_this_day" : past ? "journal.range" : topic ? "journal.about" : "journal.latest",
+    tool: "get_journal",
+    input,
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const entries = rows<Entry>(result, "entries");
+      const label = onThisDay ? t("on this day", "sa araw na ito") : past ? (q.lang === "tl" ? past.label.tl : past.label.en) : topic ? t(`about "${topic}"`, `tungkol sa "${topic}"`) : t("yet", "pa");
+      if (entries.length === 0) return onThisDay ? t("Nothing in the journal on this day in past years.", "Walang nakasulat sa journal sa araw na ito noong mga nakaraang taon.") : t(`Nothing in the journal ${label}.`, `Wala sa journal ${label}.`);
+      const line = (e: Entry) => `${readableDay(e.date, { year: true })}: ${e.title}${e.milestone ? " ★" : ""}`;
+      return `${entries.slice(0, 5).map(line).join("; ")}${entries.length > 5 ? ` +${entries.length - 5}` : ""}.`;
+    },
+  };
+};
+
+type Found = Record<string, unknown[]>;
+
+const whereIs: Rule = (q, ctx) => {
+  const m = /^(?:where(?:'s| is| are| did (?:we|i) (?:put|save|keep|file))|nasaan(?: ang| yung| si)?|saan (?:ko |natin |namin )?(?:makikita|nakalagay|naka-?save|nilagay)(?: ang| yung)?|find|hanapin(?: ang| yung)?|look up|search(?: for)?)\s+(?:the |our |my |ang |yung |mga )?(.+)$/.exec(q.text);
+  if (!m) return null;
+  const named = resolveMember(m[1], ctx.members);
+  const query = m[1]
+    .replace(/\b(in kin|sa kin|please|naman|nga|po|ba|na)\b/g, " ")
+    .replace(/'s\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!query || query.length < 3) return null;
+  // People are on Family and the map, not in the records: "where is Lia"
+  // is Where everyone is, and the model's. "Lia's passport" is a record.
+  if (named && query.split(" ").length <= 2) return null;
+  const cleaned = named ? query.replace(new RegExp(`\\b(ni|ng|kay|of|for)?\\s*${firstName(named).toLowerCase()}\\b`, "g"), " ").replace(/\s+/g, " ").trim() : query;
+  if (!cleaned) return null;
+  const t = pick(q.lang);
+  return {
+    rule: "search.where_is",
+    tool: "search",
+    input: { query: cleaned },
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      if (field(result, "matches") === "nothing found") return t(`Nothing called "${query}" in Kin.`, `Walang "${query}" sa Kin.`);
+      const r = result as Found;
+      const lines: string[] = [];
+      for (const d of (r.documents ?? []) as { title: string; doc_type: string | null; expires_at: string | null }[]) lines.push(`Document: ${d.title}${d.expires_at ? `, ${t("expires", "expires")} ${readableDay(d.expires_at.slice(0, 10))}` : ""} (Family → Vault)`);
+      for (const a of (r.accounts ?? []) as { name: string; institution: string | null }[]) lines.push(`Account: ${a.name}${a.institution ? ` (${a.institution})` : ""}`);
+      for (const a of (r.assets ?? []) as { name: string; kind: string; value: number }[]) lines.push(`Asset: ${a.name}, ${money(a.value, ctx.currency)}`);
+      for (const a of (r.activities ?? []) as { title: string; start_at: string; location: string | null }[]) {
+        const at = new Date(a.start_at);
+        const day = new Intl.DateTimeFormat("en-CA", { timeZone: ctx.timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+        lines.push(`Plan: ${a.title}, ${readableDay(day)} ${familyClock(at, ctx.timeZone)}${a.location ? `, ${a.location}` : ""}`);
+      }
+      for (const e of (r.events ?? []) as { title: string; event_date: string }[]) lines.push(`Event: ${e.title}, ${readableDay(e.event_date)}`);
+      for (const b of (r.bills ?? []) as Bill[]) lines.push(`Bill: ${b.name} ${money(b.amount, ctx.currency)}, ${b.status === "paid" ? t("paid", "bayad na") : "due"} ${readableDay(b.due_date)}`);
+      for (const g of (r.goals ?? []) as Goal[]) lines.push(`Goal: ${g.title}, ${money(g.current_amount, ctx.currency)}${g.target_amount ? ` of ${money(g.target_amount, ctx.currency)}` : ""}`);
+      for (const i of (r.shopping_list ?? []) as { name: string; checked: boolean }[]) lines.push(t(`On the list: ${i.name}${i.checked ? " (ticked)" : ""}`, `Sa list: ${i.name}${i.checked ? " (ticked)" : ""}`));
+      for (const mp of (r.meal_plans ?? []) as { dish: string; plan_date: string }[]) lines.push(t(`Meal: ${mp.dish}, ${readableDay(mp.plan_date)}`, `Ulam: ${mp.dish}, ${readableDay(mp.plan_date)}`));
+      for (const j of (r.journal ?? []) as { title: string; entry_date: string }[]) lines.push(`Journal: ${j.title}, ${readableDay(j.entry_date, { year: true })}`);
+      if (lines.length === 0) return t(`Nothing called "${query}" in Kin.`, `Walang "${query}" sa Kin.`);
+      return `${lines.slice(0, 5).join("; ")}${lines.length > 5 ? ` +${lines.length - 5}` : ""}.`;
+    },
+  };
+};
+
+type PantryItem = { name: string; quantity: number | null; unit: string | null; running_low: boolean };
+
+const doWeHave: Rule = (q, ctx) => {
+  const en = /^(?:do we (?:still )?have(?: any| some)?|is there (?:any |still |some )?|are we out of|do we need(?: more| to buy)?)\s+(.+?)(?:\s+(?:at home|in the pantry|in the ref|in the fridge|left|still))*$/.exec(q.text);
+  const tl = /^(?:may|meron|mayroon|wala na|ubos na|kailangan)\s+(?:pa\s+|ba\s+|na\s+|tayo\s+|kami\s+|ng\s+|bang\s+|pa\s+ba\s+|ba\s+tayo\s+|ba\s+kami\s+|bumili\s+ng\s+)*(.+?)(?:\s+(?:pa|ba|na|tayo|kami|sa bahay|sa pantry|sa ref|dito))*$/.exec(q.text);
+  const raw = en?.[1] ?? tl?.[1];
+  if (!raw) return null;
+  const item = raw.replace(/\b(pa|ba|na|tayo|kami|ng|sa|bahay|pantry|ref|left|at home|still|any|some|yung|ang|more|to buy)\b/g, " ").replace(/\s+/g, " ").trim();
+  if (!item || item.length < 2) return null;
+  if (resolveMember(item, ctx.members)) return null;
+  if (/\b(money|pera|cash|budget|bill|bills|time|oras|plan|plans|schedule|goal|utang|loan|insurance|hmo|allerg|medicine|gamot|chore|chores|task|homework|class|pasok|event|party|lakad|due|meron|appointment|visitors|guests)\b/.test(item)) return null;
+  const t = pick(q.lang);
+  return {
+    rule: "household.have",
+    tool: "get_household",
+    input: {},
+    lang: q.lang,
+    say: (result) => {
+      if (isError(result)) return result.error;
+      const words = item.split(" ").filter((w) => w.length > 1);
+      const hit = (name: string) => words.some((w) => name.toLowerCase().includes(w) || w.includes(name.toLowerCase()));
+      const pantry = rows<PantryItem>(result, "pantry").filter((p) => hit(p.name));
+      const list = rows<BuyItem>(result, "shopping_list").filter((b) => hit(b.name) && !b.checked);
+      const pantryLine = pantry.map((p) => `${p.name}${formatQuantity(p.quantity, p.unit) ? ` ${formatQuantity(p.quantity, p.unit)}` : ""}${p.running_low ? t(" (running low)", " (paubos na)") : ""}`);
+      if (pantry.length === 0 && list.length === 0) return t(`No ${item} in the pantry, and it isn't on the list.`, `Walang ${item} sa pantry, at wala rin sa list.`);
+      const parts = [
+        pantry.length > 0 ? t(`In the pantry: ${pantryLine.join(", ")}`, `Sa pantry: ${pantryLine.join(", ")}`) : t("None in the pantry", "Wala sa pantry"),
+        ...(list.length > 0 ? [t(`on the list: ${list.map((b) => b.name).join(", ")}`, `nasa list: ${list.map((b) => b.name).join(", ")}`)] : []),
+      ];
+      return parts.join("; ") + ".";
+    },
+  };
+};
+
 /** In the order they are tried. The adds first (an add that mentions "due"
  * is still an add), then the health facts, bills, money, schedule, the
  * household and the family. */
@@ -1419,10 +1909,21 @@ const RULES: Rule[] = [
   addTrip,
   addPlain,
   health,
+  whereIs,
+  doWeHave,
+  allowance,
+  eventGuests,
+  debts,
+  subscriptions,
+  documents,
+  tasks,
+  journal,
+  goals,
   billsOverdue,
   billDue,
   billsOwed,
   budgetLeft,
+  spendingPast,
   spending,
   billsInRange,
   accountBalance,

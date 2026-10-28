@@ -5,13 +5,19 @@ import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount, paidFromVisibleFilter, assetWorth } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
-import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
+import { familyDay, addDays, familyMidnight, familyInstant, daysBetween as daysBetweenDays } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { GONE_STATUSES, isGone } from "@/lib/member-status";
 import { inKidView } from "@/lib/kid-view";
 import { isGrownUp } from "@/lib/roles";
 import { healthAnswer, mayAskHealth } from "@/lib/assistant/health-answer";
 import { budgetsFor, budgetsInForce, budgetTotal } from "@/lib/budgets";
+import { getRoutines } from "@/lib/queries/routines";
+import { expandRoutine, parseISODate, toISODate, assigneeFor } from "@/lib/routines";
+import { getSubscriptions } from "@/lib/queries/subscriptions";
+import { getUtang } from "@/lib/queries/utang";
+import { getAlkansya } from "@/lib/queries/alkansya";
+import { getMemberScores } from "@/lib/queries/routines";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -68,6 +74,82 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
         member_name: { type: "string", description: "The member's first name as used in the household, e.g. 'Lia', 'Grandpa', 'Dad'. Use get_family first if unsure who is who." },
       },
       required: ["member_name"],
+    },
+  },
+  {
+    name: "get_tasks",
+    description:
+      "The household's routines, chores and repeating tasks falling on a day or in a range, with whose turn it is and whether each has been done, plus anything behind. Use for 'what are Lia's chores today', 'who hasn't done their chores', 'what's left to do'. Defaults to today.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: { type: "string", description: "Start date, YYYY-MM-DD. Defaults to today." },
+        to: { type: "string", description: "End date inclusive, YYYY-MM-DD. Defaults to from." },
+        member_name: { type: "string", description: "First name, to keep only one person's." },
+      },
+    },
+  },
+  {
+    name: "get_documents",
+    description:
+      "The household's documents the member may see (Family → Vault): title, type, whose, folder and expiry. With a query, the ones matching by title; without, the ones expiring within six months or already expired. Use for 'when does the passport expire', 'what documents expire soon'.",
+    input_schema: { type: "object", properties: { query: { type: "string", description: "Words in the document's title, e.g. 'passport', 'car registration'." } } },
+  },
+  {
+    name: "get_debts",
+    description:
+      "What the household owes and is owed: loans and other liabilities with their balances, and lending (utang) both ways -- who owes the family and whom the family owes, with what is left and when it is due. Use for 'how much do we owe on the car loan', 'who owes us', 'do I owe anyone'.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_subscriptions",
+    description:
+      "The repeating charges (subscriptions and recurring bills) with amount, how often, the next date and the monthly and yearly totals; repeating income too. Use for 'what subscriptions do we pay', 'what do we pay monthly', 'when is Netflix next charged'.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_journal",
+    description:
+      "Journal entries the member may read: on a given month and day across the years ('on this day'), in a date range, matching words in the title, or the latest few. Use for 'what happened on this day', 'what did we write last week', 'latest journal'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        on_day: { type: "string", description: "MM-DD, for 'on this day' across every year." },
+        from: { type: "string", description: "Start date, YYYY-MM-DD." },
+        to: { type: "string", description: "End date inclusive, YYYY-MM-DD." },
+        query: { type: "string", description: "Words in the entry's title." },
+      },
+    },
+  },
+  {
+    name: "get_spending",
+    description:
+      "Money out in a date range, by category and by member, with money in, from the accounts the member can see. Use for any month but this one: 'how much did we spend last month', 'groceries in September', 'the last three months'. get_money already has this month.",
+    input_schema: {
+      type: "object",
+      properties: {
+        from: { type: "string", description: "Start date, YYYY-MM-DD." },
+        to: { type: "string", description: "End date inclusive, YYYY-MM-DD." },
+      },
+      required: ["from", "to"],
+    },
+  },
+  {
+    name: "get_allowance",
+    description:
+      "A child's piggy bank (alkansya): the three jars -- gastos, ipon, bigay -- and the total, the weekly allowance, and the chore points they have earned and spent. Use for 'how much is in Lia's piggy bank', 'how many coins does Ben have'.",
+    input_schema: { type: "object", properties: { member_name: { type: "string", description: "The child's first name." } }, required: ["member_name"] },
+  },
+  {
+    name: "get_event_guests",
+    description:
+      "Who is coming to an event: the household members asked and their answers (going, maybe, no, not yet), and outside guests with their headcount. Find the event by words in its title, or by its date. Use for 'who's coming to the party', 'how many are coming Saturday'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Words in the event's title." },
+        date: { type: "string", description: "YYYY-MM-DD, when the member named a day rather than the event." },
+      },
     },
   },
   {
@@ -445,7 +527,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 7);
 
-      const [buy, meals] = await Promise.all([
+      const [buy, meals, pantry] = await Promise.all([
         supabase.from("buy_items").select("name, quantity, unit, section, checked").eq("family_id", familyId).eq("cleared", false),
         supabase
           .from("meal_plans")
@@ -454,12 +536,16 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .gte("plan_date", familyDay(weekStart))
           .lt("plan_date", familyDay(weekEnd))
           .order("plan_date"),
+        // What is at home (28 October, for "do we have rice?"): the pantry as
+        // Household → To-Buy keeps it, with what is running low.
+        supabase.from("pantry_items").select("name, quantity, unit, running_low").eq("family_id", familyId).order("name"),
       ]);
 
       return done({
         shopping_list: buy.data ?? [],
         still_to_buy: (buy.data ?? []).filter((b) => !b.checked).length,
         meals_this_week: meals.data ?? [],
+        pantry: pantry.data ?? [],
       });
     }
 
@@ -539,6 +625,215 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           dayOf: (iso) => familyDay(new Date(iso), tz),
         }),
       );
+    }
+
+    case "get_tasks": {
+      // The same view Planner → Tasks builds (queries/routines.ts): routines
+      // expanded over the range, whose turn it is, and what has been ticked.
+      const tz = me.families.time_zone || undefined;
+      const today = familyDay(new Date(), tz);
+      const from = str(input, "from") ?? today;
+      const to = str(input, "to") ?? from;
+      if (!familyMidnight(from) || !familyMidnight(to) || to < from) return fail("Those dates could not be read.");
+      const wanted = str(input, "member_name");
+      const routines = await getRoutines(familyId);
+      const end = addDays(to, 1) ?? to;
+      const tasks: Json[] = [];
+      const behind: Json[] = [];
+      for (const r of routines) {
+        if (r.paused) continue;
+        const forMember = (names: string[]) => !wanted || names.some((n) => n.toLowerCase().split(" ")[0] === wanted.toLowerCase() || n.toLowerCase() === wanted.toLowerCase());
+        const memberNames = r.members.map((m) => m.name);
+        if (!r.appliesToAll && !forMember(memberNames)) continue;
+        if (r.appliesToAll && wanted && !forMember(memberNames) && memberNames.length > 0) continue;
+        for (const occ of expandRoutine(r.rule, parseISODate(from), parseISODate(end))) {
+          const day = toISODate(occ.date);
+          const assignee = r.rotates ? assigneeFor(r.members, occ.index) : null;
+          const who = assignee ? [assignee.name] : r.appliesToAll ? "whole family" : memberNames;
+          if (wanted && assignee && !forMember([assignee.name])) continue;
+          const status = day === today ? r.today?.status ?? null : (r.recent.find((h) => h.date === day)?.status ?? null);
+          tasks.push({ title: r.title, kind: r.kind, date: day, time: r.timeOfDay, who, status: status ?? (day < today ? "missed" : "not yet"), approval: day === today ? r.today?.approval : undefined });
+        }
+        if (r.overdue.length > 0 && (!wanted || forMember(memberNames))) behind.push({ title: r.title, who: r.appliesToAll ? "whole family" : memberNames, dates: r.overdue.slice(0, 5) });
+      }
+      tasks.sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time ?? "99").localeCompare(String(b.time ?? "99")));
+      return done({ from, to, tasks, behind_on: behind });
+    }
+
+    case "get_documents": {
+      const q = str(input, "query");
+      const tz = me.families.time_zone || undefined;
+      const today = familyDay(new Date(), tz);
+      let query = supabase
+        .from("doc_entries")
+        .select("title, doc_type, expires_at, reference_no, members:owner_member_id(full_name), doc_folders:folder_id(name)")
+        .eq("family_id", familyId)
+        .order("expires_at", { ascending: true, nullsFirst: false })
+        .limit(20);
+      if (q) query = query.ilike("title", `%${q}%`);
+      else query = query.not("expires_at", "is", null).lte("expires_at", addDays(today, 183) ?? today);
+      const { data, error } = await query;
+      if (error) return fail(error.message);
+      return done({
+        documents: (data ?? []).map((d) => ({
+          title: d.title,
+          type: d.doc_type,
+          whose: (d.members as unknown as { full_name: string } | null)?.full_name ?? "household",
+          folder: (d.doc_folders as unknown as { name: string } | null)?.name ?? null,
+          expires: d.expires_at,
+          days_left: d.expires_at ? daysBetweenDays(today, d.expires_at.slice(0, 10)) : null,
+        })),
+      });
+    }
+
+    case "get_debts": {
+      const [{ data: liabilities }, utang] = await Promise.all([
+        supabase.from("liabilities").select("name, balance").eq("family_id", familyId).order("balance", { ascending: false }),
+        getUtang(familyId, me.id),
+      ]);
+      const open = utang.filter((u) => !u.settled);
+      const line = (u: (typeof open)[number]) => ({ person: u.personName, amount: u.amount, paid: u.paid, left: u.left, due: u.dueOn, instalments: u.instalments });
+      return done({
+        liabilities: (liabilities ?? []).map((l) => ({ name: l.name, balance: Number(l.balance) })),
+        liabilities_total: (liabilities ?? []).reduce((s, l) => s + Number(l.balance), 0),
+        // "lent": the family lent it, so the person owes the family.
+        owed_to_us: open.filter((u) => u.direction === "lent").map(line),
+        we_owe: open.filter((u) => u.direction !== "lent").map(line),
+      });
+    }
+
+    case "get_subscriptions": {
+      const subs = await getSubscriptions(familyId);
+      const line = (x: (typeof subs.charges)[number]) => ({ name: x.name, amount: x.amount, repeat: x.repeat, per_month: Math.round(x.monthly * 100) / 100, next: x.next, overdue: x.overdue, category: x.category });
+      return done({
+        charges: subs.charges.map(line),
+        charges_per_month: Math.round(subs.charges.reduce((s, c) => s + c.monthly, 0) * 100) / 100,
+        charges_per_year: subs.chargesPerYear,
+        income: subs.income.map(line),
+        income_per_year: subs.incomePerYear,
+      });
+    }
+
+    case "get_journal": {
+      const onDay = str(input, "on_day");
+      const from = str(input, "from");
+      const to = str(input, "to");
+      const q = str(input, "query");
+      // The household's entries and the asker's own; a private entry of
+      // someone else's is not in the rows (row-level security, as the Journal).
+      let query = supabase
+        .from("journal_entries")
+        .select("title, note, entry_date, milestone, visibility")
+        .eq("family_id", familyId)
+        .or(`visibility.eq.household,created_by.eq.${me.id}`)
+        .order("entry_date", { ascending: false })
+        .limit(onDay ? 60 : 10);
+      if (from && to) query = query.gte("entry_date", from).lte("entry_date", to);
+      if (q) query = query.ilike("title", `%${q}%`);
+      const { data, error } = await query;
+      if (error) return fail(error.message);
+      let rows = data ?? [];
+      if (onDay && /^\d{2}-\d{2}$/.test(onDay)) rows = rows.filter((r) => r.entry_date.slice(5) === onDay);
+      return done({
+        entries: rows.slice(0, 10).map((r) => ({ title: r.title, date: r.entry_date, note: r.note ? r.note.slice(0, 160) : null, milestone: r.milestone })),
+      });
+    }
+
+    case "get_spending": {
+      const from = str(input, "from");
+      const to = str(input, "to");
+      if (!from || !to) return fail("Need both from and to dates.");
+      const tz = me.families.time_zone || undefined;
+      const fromAt = familyMidnight(from, tz);
+      const toAt = familyMidnight(addDays(to, 1) ?? to, tz);
+      if (!fromAt || !toAt) return fail("Those dates could not be read.");
+      const [{ data: accounts }, { data: movements }, { data: members }] = await Promise.all([
+        supabase.from("accounts").select("id, is_joint, owner_member_id").eq("family_id", familyId),
+        supabase
+          .from("wealth_transactions")
+          .select("account_id, direction, amount, category, owner_member_id")
+          .eq("family_id", familyId)
+          .eq("status", "confirmed")
+          .gte("occurred_at", fromAt.toISOString())
+          .lt("occurred_at", toAt.toISOString()),
+        supabase.from("members").select("id, full_name").eq("family_id", familyId),
+      ]);
+      const nameOf = new Map((members ?? []).map((m) => [m.id, m.full_name]));
+      const accountOwner = new Map((accounts ?? []).map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
+      const byCategory: Record<string, number> = {};
+      const byMember: Record<string, number> = {};
+      let out = 0;
+      let moneyIn = 0;
+      for (const m of movements ?? []) {
+        if (m.direction === "in") {
+          moneyIn += Number(m.amount);
+          continue;
+        }
+        const cat = m.category ?? "Other";
+        byCategory[cat] = (byCategory[cat] ?? 0) + Number(m.amount);
+        // Transfers and goal contributions are not spending (lib/money-recap.ts).
+        if (cat === "Transfer" || cat === "Goal") continue;
+        out += Number(m.amount);
+        const ownerId = m.owner_member_id ?? accountOwner.get(m.account_id) ?? null;
+        const who = ownerId ? (nameOf.get(ownerId) ?? "Family") : "Family";
+        byMember[who] = (byMember[who] ?? 0) + Number(m.amount);
+      }
+      return done({ from, to, currency: me.families.currency, spent: out, money_in: moneyIn, by_category: byCategory, by_member: byMember });
+    }
+
+    case "get_allowance": {
+      const wanted = str(input, "member_name");
+      if (!wanted) return fail("Whose piggy bank? Give me a first name.");
+      const household = await loadMembers();
+      const [targetId] = matchMembers(household, [wanted]);
+      if (!targetId) return fail(`Nobody in the household matches "${wanted}". Members are: ${household.map((m) => m.full_name).join(", ")}.`);
+      const [alkansya, scores] = await Promise.all([getAlkansya(familyId, targetId), getMemberScores(familyId)]);
+      const score = scores.find((sc) => sc.id === targetId);
+      if (!alkansya && !score) return fail(`${wanted} has no piggy bank or points in Kin.`);
+      return done({
+        who: alkansya?.name ?? household.find((m) => m.id === targetId)?.full_name,
+        jars: alkansya?.balances ?? null,
+        weekly_allowance: alkansya?.plan?.active ? alkansya.plan.weeklyAmount : null,
+        points_earned: score?.points ?? 0,
+        points_spent: score?.spent ?? 0,
+        points_balance: score ? score.points - score.spent : 0,
+      });
+    }
+
+    case "get_event_guests": {
+      const q = str(input, "query");
+      const day = str(input, "date");
+      if (!q && !day) return fail("Which event? Give me words from its title, or its date.");
+      const tz = me.families.time_zone || undefined;
+      const today = familyDay(new Date(), tz);
+      let query = supabase
+        .from("events")
+        .select("id, title, event_date, kind, event_rsvps(answer, members(full_name)), event_guests(name, headcount, answer)")
+        .eq("family_id", familyId)
+        .order("event_date")
+        .limit(5);
+      if (q) query = query.ilike("title", `%${q}%`).gte("event_date", addDays(today, -1) ?? today);
+      if (day) query = query.eq("event_date", day);
+      const { data, error } = await query;
+      if (error) return fail(error.message);
+      if (!data || data.length === 0) return done({ matches: "no event found" });
+      const e = data[0];
+      type Rsvp = { answer: string; members: { full_name: string } | null };
+      const rsvps = (e.event_rsvps as unknown as Rsvp[] | null) ?? [];
+      const guests = (e.event_guests as unknown as { name: string; headcount: number; answer: string | null }[] | null) ?? [];
+      const names = (answer: string) => rsvps.filter((r) => r.answer === answer).map((r) => r.members?.full_name).filter((n): n is string => !!n);
+      return done({
+        event: e.title,
+        date: e.event_date,
+        going: names("going"),
+        maybe: names("maybe"),
+        no: names("no"),
+        guests_going: guests.filter((g) => g.answer === "going").map((g) => ({ name: g.name, heads: g.headcount })),
+        guests_maybe: guests.filter((g) => g.answer === "maybe").map((g) => g.name),
+        guests_not_answered: guests.filter((g) => !g.answer).map((g) => g.name),
+        heads_going: names("going").length + guests.filter((g) => g.answer === "going").reduce((s, g) => s + g.headcount, 0),
+        other_events: data.slice(1).map((x) => ({ title: x.title, date: x.event_date })),
+      });
     }
 
     case "add_activity": {
