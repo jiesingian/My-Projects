@@ -13,14 +13,6 @@ export type DoseAlarmFeed = { name: string; tz: string | null; today: string; al
  * clear) its own and never touch anyone's other alarms. */
 export const ALARM_LABEL_PREFIX = "Kin ·";
 
-/** The ready-made "Kin Alarms" Shortcut, shared from an iPhone as an iCloud
- * link (https://www.icloud.com/shortcuts/...). It asks for the member's
- * private link once, on import (an Import Question), so nobody assembles
- * it by hand. Empty until Jonathan builds and shares it
- * (docs/SETUP_FOR_JONATHAN.md, section 9); the Medicine alarms screen then
- * says it is coming instead of showing the button. */
-export const KIN_ALARMS_SHORTCUT_URL = "";
-
 const HHMM = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
 /** The database's answer, checked: anything not shaped like an alarm is

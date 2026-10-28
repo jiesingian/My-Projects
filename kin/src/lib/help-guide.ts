@@ -174,7 +174,7 @@ export const HELP_GUIDE: HelpTab[] = [
               "setup"
             ],
             "what": "Your dose times as iPhone Clock alarms, labelled \"Kin · Losartan 50 mg\", which ring full screen with sound even when the phone is on silent. A grown-up's also include a child's medicines shared with them.",
-            "how": "Settings → Notifications → Medicine alarms → Make my link and copy it. Then tap Add the Kin Alarms Shortcut, paste your link when it asks, and run it. Until the ready-made Shortcut is there, the screen says it is coming, and Build it by hand has the steps.",
+            "how": "Settings → Notifications → Medicine alarms → Make my link and copy it, then follow Build it by hand there to make the \"Kin Alarms\" Shortcut and run it. Kin's own iPhone app will ring dose alarms by itself.",
             "pros": [
               "A dose isn't missed because the phone was on silent.",
               "Free, until Kin has its own iPhone app."
