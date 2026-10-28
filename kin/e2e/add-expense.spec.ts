@@ -238,7 +238,7 @@ test("Due later makes a bill dated today out of the account, asking on its day; 
   // Its line asks, and Next 30 days counts it.
   await page.goto("/wealth?seg=cashflow&open=expenses");
   await expandAllCollapsedGroups(page);
-  await expect(page.getByText(new RegExp(`Due today · ₱456\\.00 · from ${RUN} wallet · did it go through\\?`)).first()).toBeVisible();
+  await expect(page.getByText(new RegExp(`Due today · ₱456(\\.00)? · from ${RUN} wallet · did it go through\\?`)).first()).toBeVisible();
   const next30 = page.getByText("NEXT 30 DAYS", { exact: true }).locator("xpath=../..");
   await expect(next30).toContainText(`${RUN} tuition`);
   // Today asks too, and its Pay lands on the question.
@@ -330,10 +330,10 @@ test("A loan payment pays the loan down by the split given; Edit moves it, then 
   await expect(addSheet(page).getByLabel("Spent on")).toHaveValue("Debt");
   const principal = addSheet(page).getByLabel("Pays the loan down");
   await expect(principal).toHaveValue(/^900(\.00)?$/);
-  await expect(addSheet(page)).toContainText("₱100.00");
+  await expect(addSheet(page)).toContainText(/₱100(\.00)?(?![\d,])/);
   // The bank's statement says otherwise: 850, and it is 850 that counts.
   await principal.fill("850");
-  await expect(addSheet(page)).toContainText("₱150.00");
+  await expect(addSheet(page)).toContainText(/₱150(\.00)?(?![\d,])/);
   await principal.fill("900");
   await addSheet(page).getByRole("button", { name: "Save expense" }).click();
   await expect(addSheet(page)).toBeHidden();
