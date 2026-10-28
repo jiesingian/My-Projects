@@ -19,7 +19,7 @@
 import { addDays, weekdayOf, readableDay, daysBetween, familyClock } from "@/lib/time";
 import { formatCurrency } from "@/lib/format";
 import { EXPENSE_CATEGORIES, GOAL_CATEGORY, TRANSFER_CATEGORY } from "@/lib/wealth";
-import { UNITS, formatQuantity } from "@/lib/grocery";
+import { UNITS, formatQuantity, guessSection } from "@/lib/grocery";
 import { parseQuickLine } from "@/lib/quick-line";
 
 export type Lang = "en" | "tl";
@@ -165,19 +165,56 @@ type Query = {
   lang: Lang;
 };
 
+/** Short forms and the spellings a thumb produces, put back into the words
+ * the rules know (28 October, fifth PR). Whole words only, so "n" between
+ * two items is "and" but "n" inside a word is left alone. */
+const SPELLINGS: [RegExp, string][] = [
+  [/\b(tmrw|tmr|tom|2moro|tomorow|tommorow|tomorro)\b/g, "tomorrow"],
+  [/\b(tdy|2day)\b/g, "today"],
+  [/\bwk\b/g, "week"],
+  [/\b(wat|wats|whats|wht)\b/g, "what is"],
+  [/\b(wen|whn)\b/g, "when"],
+  [/\b(wer|whr)\b/g, "where"],
+  [/\b(hw much|hm|hmuch)\b/g, "how much"],
+  [/\b(sked|sched|skedyul|iskedyul)\b/g, "schedule"],
+  [/\b(pls|plz|pz)\b/g, "please"],
+  [/\b(bday|b-day|bdae)\b/g, "birthday"],
+  [/\b(meds|gamots)\b/g, "medicines"],
+  [/\bn\b/g, "and"],
+  [/\b(nasan|nsan)\b/g, "nasaan"],
+  [/\b(san|saan ba)\b/g, "saan"],
+  [/\b(anung|anu|ano ba|anong ba|anung ba)\b/g, "ano"],
+  [/\b(magkno|mgkano|mgkno|magkanu)\b/g, "magkano"],
+  [/\b(kelan|kelan ba|kailan ba)\b/g, "kailan"],
+  [/\b(ung|yng)\b/g, "yung"],
+  [/\b(nmn|nman)\b/g, "naman"],
+  [/\b(bkit)\b/g, "bakit"],
+  [/\b(pano|paano ba)\b/g, "paano"],
+  [/\b(sinu|cno)\b/g, "sino"],
+  [/\b(d2|dto)\b/g, "dito"],
+  [/\b(ngaun|ngyon|ngayn)\b/g, "ngayon"],
+  [/\b(bkas|bukas na)\b/g, "bukas"],
+  [/\b(lst)\b/g, "list"],
+  [/\b(groc|grocer)\b/g, "grocery"],
+  [/\bbal\b/g, "balance"],
+  [/\b(acct|accnt)\b/g, "account"],
+];
+
 function normalise(message: string): string {
-  return message
+  let text = message
     .toLowerCase()
     .replace(/[’‘`]/g, "'")
-    .replace(/what's/g, "what is")
-    .replace(/when's/g, "when is")
-    .replace(/who's/g, "who is")
-    .replace(/how's/g, "how is")
-    .replace(/where's/g, "where is")
+    .replace(/\b(what|wat)'s\b/g, "what is")
+    .replace(/\bwhen's\b/g, "when is")
+    .replace(/\bwho's\b/g, "who is")
+    .replace(/\bhow's\b/g, "how is")
+    .replace(/\bwhere's\b/g, "where is")
     .replace(/[?!.]+$/g, "")
     .replace(/[?!]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  for (const [re, word] of SPELLINGS) text = text.replace(re, word);
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function detectLang(text: string): Lang {
@@ -523,7 +560,11 @@ const billDue: Rule = (q, ctx) => {
   // "when is X due", "kailan due ang X", "X due when", "kailan ang bayad ng X";
   // also "how much is the X bill", "magkano ang Meralco": the same answer,
   // the amount and the day, from the unpaid bills.
-  const whenDue = /\b(when|kailan|kelan)\b/.test(q.text) && /\b(due|bayad|bayaran|babayaran|deadline)\b/.test(q.text);
+  const hasRange = !!resolveRange(q.text, ctx.today);
+  const whenDue =
+    (/\b(when|kailan|kelan)\b/.test(q.text) && /\b(due|bayad|bayaran|babayaran|deadline)\b/.test(q.text)) ||
+    // "Meralco due date", "due date ng Meralco", "due ng Meralco": a bill named, no day named.
+    (!hasRange && !/\bbills\b/.test(q.text) && (/\bdue date\b/.test(q.text) || /^due\s+(?:ng|ni|ang|of|the)\b/.test(q.text) || /\b[a-z]+\s+due$/.test(q.text)) && !/\b(any|may|meron|overdue|anong|what|ano)\b/.test(q.text));
   const namesABill = /\b(bill|bills)\b/.test(q.text) || BILL_WORDS.some((g) => g.some((w) => ` ${q.text} `.includes(` ${w} `)));
   const notAnAmount = /\b(spend|spent|gastos|nagastos|budget|owe|utang|unpaid|overdue|due)\b/.test(q.text) || !!resolveRange(q.text, ctx.today);
   const howMuch = /\b(how much|magkano|what is|ano ang|anong)\b/.test(q.text) && namesABill && !notAnAmount;
@@ -632,7 +673,7 @@ const monthName = (today: string) => MONTHS_EN[Number(today.slice(5, 7)) - 1].re
 
 const budgetLeft: Rule = (q, ctx) => {
   if (!/\b(left|natitira|natira|remaining|remains|balance (?:of|ng) (?:the |our |ang )?budget|budget)\b/.test(q.text)) return null;
-  if (!/\b(left|natitira|natira|remaining|remains|how much|magkano|what is|ano|anong)\b/.test(q.text)) return null;
+  if (!/\b(left|natitira|natira|remaining|remains|how much|magkano|what is|ano|anong|kumusta|how is|how are|status|ok ba|okay ba)\b/.test(q.text)) return null;
   if (/\b(set|add|pa-?add|idagdag|change|palitan)\b/.test(q.text)) return null;
   if (/\b(last month|nakaraang buwan|next month|susunod na buwan)\b/.test(q.text)) return null;
   // "how much is left in GCash" is a balance, not the budget.
@@ -677,7 +718,8 @@ const budgetLeft: Rule = (q, ctx) => {
 
 const spending: Rule = (q, ctx) => {
   if (!/\b(spend|spent|spending|gastos|nagastos|ginastos|gumastos|nagagastos|expenses?|paid for)\b/.test(q.text)) return null;
-  if (!/\b(how much|magkano|what|ano|anong|total|ilan)\b/.test(q.text)) return null;
+  // A question, or a bare "gastos natin this month" / "spent on food this month".
+  if (!/\b(how much|magkano|what|ano|anong|total|ilan)\b/.test(q.text) && !/^(?:gastos|nagastos|spent|spending|expenses?|total)\b/.test(q.text)) return null;
   // get_money reads this month only. Last month is the Monthly recap's, and the model's.
   if (/\b(last month|nakaraang buwan|noong|last week|yesterday|kahapon|last year|this week|ngayong linggo|today|ngayon|bukas|tomorrow)\b/.test(q.text)) return null;
   const category = categoryIn(q.text);
@@ -755,12 +797,13 @@ const totalCash: Rule = (q, ctx) => {
 };
 
 const accountBalance: Rule = (q, ctx) => {
-  if (!/\b(how much|magkano|balance|laman|ilan)\b/.test(q.text)) return null;
+  if (!/\b(how much|magkano|balance|laman|ilan|pera)\b/.test(q.text)) return null;
   if (/\b(spend|spent|gastos|budget|owe|utang|bill|bills|due)\b/.test(q.text)) return null;
-  // "how much is in GCash", "magkano laman ng BPI", "GCash balance", "balance ng Maya"
+  // "how much is in GCash", "magkano laman ng BPI", "GCash balance", "balance ng Maya", "pera sa GCash"
   const m =
     /\b(?:in|sa|ng|nasa|laman ng)\s+(?:the |our |my |ang |aking |ating )?([a-z][a-z0-9 &'\-]*?)(?:\s+(?:account|acct|wallet|ngayon|now|right now|ba|natin|namin|ko))*$/.exec(q.text) ??
-    /^(?:what is |ano ang |anong |ano )?(?:the |our |my |ang )?([a-z0-9][a-z0-9 &'\-]*?)\s+balance\b/.exec(q.text);
+    /^(?:what is |ano ang |anong |ano )?(?:the |our |my |ang )?([a-z0-9][a-z0-9 &'\-]*?)\s+balance\b/.exec(q.text) ??
+    /^(?:pera|laman|balance)\s+(?:sa|ng|ni|in|of)\s+(?:the |our |my |ang )?([a-z][a-z0-9 &'\-]*?)$/.exec(q.text);
   if (!m) return null;
   const name = m[1].replace(/\b(the|our|my|ang|account|acct|wallet|natin|namin|ko|ba|now|ngayon)\b/g, " ").replace(/\s+/g, " ").trim();
   if (!name || /^(total|all|everything|lahat|cash|money|pera|bank|left|natitira)$/.test(name)) return null;
@@ -811,9 +854,23 @@ function scheduleLines(result: unknown, range: DayRange, ctx: RuleContext, lang:
 }
 
 const whatsOn: Rule = (q, ctx) => {
-  if (ADD_VERB.test(q.text)) return null;
   if (/\b(bill|bills|due|bayarin|spend|spent|gastos|budget|balance|list|listahan|bibilhin|buy|dinner|lunch|ulam|hapunan|tanghalian|almusal|breakfast|meal|meals|birthday|kaarawan|allerg|gamot|medicine)\b/.test(q.text)) return null;
-  if (!/\b(what is on|whats on|what is happening|what do we have|what is (?:the )?(?:schedule|plan|agenda)|schedule|agenda|plans?|anong meron|ano meron|ano ang meron|may lakad|anong lakad|ano ang lakad|anong schedule|ano ang schedule|anong nakaschedule|anything on|anything (?:happening|scheduled)|what is up|calendar|busy|free)\b/.test(q.text)) return null;
+  // A day on its own ("bukas", "tomorrow?", "this week", "schedule today",
+  // "sked natin sa sabado") is a schedule question.
+  const dayOnly = (() => {
+    const r = resolveRange(q.text, ctx.today);
+    if (!r) return false;
+    const rest = q.text
+      .replace(/\b(schedule|agenda|plans?|lakad|natin|namin|ko|ang|the|my|our|for|sa|on|ba|tayo|kami|what is|ano|anong|meron|may)\b/g, " ")
+      .replace(new RegExp(`\\b(${[...WEEKDAYS_EN, ...WEEKDAYS_TL, ...WEEKDAY_SHORT, ...MONTHS_EN, ...MONTHS_TL, ...MONTH_SHORT].join("|")})\\b`, "g"), " ")
+      .replace(/\b(today|tonight|tomorrow|bukas|ngayon|ngayong|araw|mamaya|this|next|week|weekend|month|linggo|buwan|susunod|na|sa|the|day after|makalawa|kahapon|yesterday|in)\b/g, " ")
+      .replace(/\b\d{1,2}(?:st|nd|rd|th)?\b|\b\d{4}-\d{2}-\d{2}\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return rest === "";
+  })();
+  if (!dayOnly && ADD_VERB.test(q.text)) return null;
+  if (!dayOnly && !/\b(what is on|whats on|what is happening|what do we have|what is (?:the )?(?:schedule|plan|agenda)|schedule|agenda|plans?|anong meron|ano meron|ano ang meron|may lakad|anong lakad|ano ang lakad|anong schedule|ano ang schedule|anong nakaschedule|anything on|anything (?:happening|scheduled)|what is up|calendar|busy|free)\b/.test(q.text)) return null;
   if (/\b(when|kailan|kelan)\b/.test(q.text)) return null;
   const range = resolveRange(q.text, ctx.today) ?? single(ctx.today, `today (${dayLabel(ctx.today)})`, `ngayon (${dayLabel(ctx.today)})`);
   const t = pick(q.lang);
@@ -910,7 +967,8 @@ type BuyItem = { name: string; quantity: number | null; unit: string | null; sec
 
 const shoppingList: Rule = (q, ctx) => {
   if (!/\b(list|listahan|to-?buy|shopping|grocery list|groceries list|bibilhin|need to buy|kailangan bilhin|what do we need|anong kailangan|anong bibilhin|ano bibilhin)\b/.test(q.text)) return null;
-  if (!/\b(what|ano|anong|show|whats|nasa|on the|sa|how many|ilan|is there|may|meron)\b/.test(q.text)) return null;
+  const bare = /^(?:the |our |ang |yung )?(?:shopping |grocery |groceries |to-?buy )?(?:list|listahan|bibilhin)(?: natin| namin| ko)?$/.test(q.text);
+  if (!bare && !/\b(what|ano|anong|show|whats|nasa|on the|sa|how many|ilan|is there|may|meron)\b/.test(q.text)) return null;
   if (/\b(add|pa-?add|idagdag|dagdag|pabili|remove|tanggalin|check|clear)\b/.test(q.text)) return null;
   const t = pick(q.lang);
   return {
@@ -935,7 +993,8 @@ const shoppingList: Rule = (q, ctx) => {
 
 const meals: Rule = (q, ctx) => {
   if (!/\b(dinner|lunch|breakfast|meal|meals|ulam|hapunan|tanghalian|almusal|menu|cook|luto|lutuin|eating|kain)\b/.test(q.text)) return null;
-  if (!/\b(what|ano|anong|whats|plan|planned|nakaplano|meron|may)\b/.test(q.text)) return null;
+  const bareMeal = /^(?:the |ang |yung )?(?:dinner|lunch|breakfast|meal|meals|ulam|hapunan|tanghalian|almusal|menu)(?: natin| namin| ko)?(?: (?:for |sa |ng |this |ngayong )?[a-z0-9 ]+)?$/.test(q.text) && q.words.length <= 5;
+  if (!bareMeal && !/\b(what|ano|anong|whats|plan|planned|nakaplano|meron|may)\b/.test(q.text)) return null;
   if (/\b(add|pa-?add|idagdag|dagdag|cost|magkano|how much|recipe)\b/.test(q.text)) return null;
   const range = resolveRange(q.text, ctx.today) ?? single(ctx.today, `tonight (${dayLabel(ctx.today)})`, `ngayon (${dayLabel(ctx.today)})`);
   const t = pick(q.lang);
@@ -960,8 +1019,9 @@ const meals: Rule = (q, ctx) => {
 type Member = { full_name: string; relationship: string | null; role: string; dob: string | null; status: string };
 
 const whoIsInFamily: Rule = (q, ctx) => {
-  if (!/\b(who|sino|sinu-sino|sino-sino|list|ilan|how many)\b/.test(q.text)) return null;
-  if (!/\b(family|household|pamilya|members?|kasama sa bahay|sa bahay|in kin)\b/.test(q.text)) return null;
+  const bareMembers = /^(?:the |our |ang |mga )?(?:family |household |pamilya )?members?(?: natin| namin| ng pamilya| ng household)?$/.test(q.text) || /^(?:sino sino|sinu-sino|sino-sino)(?: (?:ang|sa|dito))*(?: (?:pamilya|bahay|household|family))*$/.test(q.text);
+  if (!bareMembers && !/\b(who|sino|sinu-sino|sino-sino|list|ilan|how many)\b/.test(q.text)) return null;
+  if (!bareMembers && !/\b(family|household|pamilya|members?|kasama sa bahay|sa bahay|in kin)\b/.test(q.text)) return null;
   if (/\b(birthday|kaarawan|checkup|check-up|allerg|spend|gastos|owe|utang)\b/.test(q.text)) return null;
   const t = pick(q.lang);
   return {
@@ -1112,8 +1172,34 @@ function parseItem(raw: string): { name: string; quantity?: number; unit?: strin
 }
 
 const addToList: Rule = (q) => {
+  // "we need milk", "need eggs and bread", "kailangan natin ng gatas": the
+  // list, as Today's one-line add reads them.
+  const need = /^(?:we |i )?(?:need|needs|kailangan(?: natin| namin| ko)?(?: ng| bumili ng| pa ng)?)\s+(?:some |more |to buy |ng )?(.+)$/.exec(q.text);
+  if (need && !/\b(money|pera|help|tulong|to|ba|ba tayo|plan|advice|budget|time|oras)\b/.test(need[1]) && need[1].split(" ").length <= 6) {
+    const items = need[1].split(/\s*,\s*|\s+(?:and|at|&)\s+/).map(parseItem).filter((i): i is NonNullable<typeof i> => i !== null);
+    // "We need a new car" is not groceries: every item has to land in a
+    // market section the list knows, not Other.
+    if (items.length > 0 && items.every((i) => guessSection(i.name) !== "Other")) {
+      const t = pick(q.lang);
+      return {
+        rule: "add.list",
+        tool: "add_buy_items",
+        input: { items },
+        lang: q.lang,
+        say: (result) => {
+          if (isError(result)) return result.error;
+          const added = rows<{ name: string; quantity?: string }>(result, "items").map((i) => (i.quantity ? `${i.quantity} ${i.name}` : i.name));
+          const names = added.length > 0 ? added : items.map((i) => i.name);
+          return t(`Added to the list: ${names.join(", ")}.`, `Na-add sa list: ${names.join(", ")}.`);
+        },
+      };
+    }
+  }
+  // "gatas pa-add": the verb at the end, the Filipino way.
+  const tail = /^(.+?)\s+(pa-?add|paki-?add|idagdag|pabili|pakibili)(?:\s+(?:sa|to)\s+(?:the\s+)?(?:list|listahan))?$/.exec(q.text);
+  const text = tail ? `${tail[2]} ng ${tail[1]}` : q.text;
   // The verb: add / pa-add / idagdag / pabili ...
-  const verb = /^(?:please\s+|paki\s+|pwede\s+|kin\s+|hey kin\s+|hi kin\s+)?(add|pa-?add|paki-?add|i-?add|idagdag|dagdag|dagdagan|pakidagdag|ilagay|put|pabili|pakibili|pa-?bili|bili)\b\s*(?:ng|ang|mo|mo ng|nga|please|naman|nyo|ninyo|niyo|of)?\s*(.*)$/.exec(q.text);
+  const verb = /^(?:please\s+|paki\s+|pwede\s+|kin\s+|hey kin\s+|hi kin\s+)?(add|pa-?add|paki-?add|i-?add|idagdag|dagdag|dagdagan|pakidagdag|ilagay|put|pabili|pakibili|pa-?bili|bili)\b\s*(?:ng|ang|mo|mo ng|nga|please|naman|nyo|ninyo|niyo|of)?\s*(.*)$/.exec(text);
   if (!verb) return null;
   let rest = verb[2].trim();
   if (!rest) return null;
@@ -1819,7 +1905,7 @@ const journal: Rule = (q, ctx) => {
 type Found = Record<string, unknown[]>;
 
 const whereIs: Rule = (q, ctx) => {
-  const m = /^(?:where(?:'s| is| are| did (?:we|i) (?:put|save|keep|file))|nasaan(?: ang| yung| si)?|saan (?:ko |natin |namin )?(?:makikita|nakalagay|naka-?save|nilagay)(?: ang| yung)?|find|hanapin(?: ang| yung)?|look up|search(?: for)?)\s+(?:the |our |my |ang |yung |mga )?(.+)$/.exec(q.text);
+  const m = /^(?:where(?:'s| is| are| did (?:we|i) (?:put|save|keep|file))|nasaan(?: ang| yung| si| na| ba)*|saan(?: ko| natin| namin)?(?: makikita| nakalagay| naka-?save| nilagay)?(?: ang| yung| ba)*|find|hanapin(?: ang| yung)?|look up|search(?: for)?)\s+(?:the |our |my |ang |yung |mga )?(.+)$/.exec(q.text);
   if (!m) return null;
   const named = resolveMember(m[1], ctx.members);
   const query = m[1]
@@ -1867,14 +1953,14 @@ const whereIs: Rule = (q, ctx) => {
 type PantryItem = { name: string; quantity: number | null; unit: string | null; running_low: boolean };
 
 const doWeHave: Rule = (q, ctx) => {
-  const en = /^(?:do we (?:still )?have(?: any| some)?|is there (?:any |still |some )?|are we out of|do we need(?: more| to buy)?)\s+(.+?)(?:\s+(?:at home|in the pantry|in the ref|in the fridge|left|still))*$/.exec(q.text);
+  const en = /^(?:do we (?:still )?have(?: any| some)?|is there (?:any |still |some )?|are we out of|out of|do we need(?: more| to buy)?)\s+(.+?)(?:\s+(?:at home|in the pantry|in the ref|in the fridge|left|still))*$/.exec(q.text);
   const tl = /^(?:may|meron|mayroon|wala na|ubos na|kailangan)\s+(?:pa\s+|ba\s+|na\s+|tayo\s+|kami\s+|ng\s+|bang\s+|pa\s+ba\s+|ba\s+tayo\s+|ba\s+kami\s+|bumili\s+ng\s+)*(.+?)(?:\s+(?:pa|ba|na|tayo|kami|sa bahay|sa pantry|sa ref|dito))*$/.exec(q.text);
   const raw = en?.[1] ?? tl?.[1];
   if (!raw) return null;
   const item = raw.replace(/\b(pa|ba|na|tayo|kami|ng|sa|bahay|pantry|ref|left|at home|still|any|some|yung|ang|more|to buy)\b/g, " ").replace(/\s+/g, " ").trim();
   if (!item || item.length < 2) return null;
   if (resolveMember(item, ctx.members)) return null;
-  if (/\b(money|pera|cash|budget|bill|bills|time|oras|plan|plans|schedule|goal|utang|loan|insurance|hmo|allerg|medicine|gamot|chore|chores|task|homework|class|pasok|event|party|lakad|due|meron|appointment|visitors|guests)\b/.test(item)) return null;
+  if (/\b(money|pera|cash|budget|bill|bills|time|oras|plan|plans|schedule|goal|utang|loan|insurance|hmo|allerg|medicine|gamot|chore|chores|task|homework|class|pasok|event|party|lakad|due|overdue|meron|appointment|visitors|guests)\b/.test(item)) return null;
   const t = pick(q.lang);
   return {
     rule: "household.have",
