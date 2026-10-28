@@ -1295,7 +1295,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ),
       };
     }),
-    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: accountSub(a), href: openAccount(a.id) })),
+    ...investmentAccounts.map((a) => ({ id: `acct-${a.id}`, name: accountLabel(a), amount: a.balance, category: AL_INVESTMENTS, ...who.sliceOwner(a.owner_member_id, a.is_joint), sub: `${accountSub(a)}${a.matures_on ? ` · ${a.matures_on.slice(0, 10) < today ? "matured" : "matures"} ${fmtDate(a.matures_on)}` : ""}`, href: openAccount(a.id) })),
     ...assets.map((a) => ({
       id: `asset-${a.id}`,
       name: a.name,

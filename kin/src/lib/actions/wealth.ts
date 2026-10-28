@@ -194,6 +194,10 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     if (minText && min === null) return { error: "The minimum payment has to be a number, and cannot be less than zero." };
     card = { card_due_day: day, card_min_payment: min };
   }
+  // When an investment matures (20261028130000); cleared for other types.
+  const maturesText = String(formData.get("matures_on") ?? "").trim();
+  if (maturesText && !/^\d{4}-\d{2}-\d{2}$/.test(maturesText)) return { error: "The maturity date isn't a date Kin can read." };
+  const matures_on = (accountType === "investment" || accountType === "stocks") && maturesText ? maturesText : null;
 
   const { error, count } = await supabase
     .from("accounts")
@@ -206,6 +210,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
       play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,
       account_type: accountType,
       ...card,
+      matures_on,
     }, { count: "exact" })
     .eq("id", accountId)
     .eq("family_id", me.family_id);

@@ -1005,6 +1005,7 @@ export type Database = {
           is_joint: boolean
           is_private: boolean
           linked_app_url: string | null
+          matures_on: string | null
           name: string
           opening_balance: number
           owner_member_id: string | null
@@ -1026,6 +1027,7 @@ export type Database = {
           is_joint?: boolean
           is_private?: boolean
           linked_app_url?: string | null
+          matures_on?: string | null
           name: string
           opening_balance?: number
           owner_member_id?: string | null
@@ -1047,6 +1049,7 @@ export type Database = {
           is_joint?: boolean
           is_private?: boolean
           linked_app_url?: string | null
+          matures_on?: string | null
           name?: string
           opening_balance?: number
           owner_member_id?: string | null
