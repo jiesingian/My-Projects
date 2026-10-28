@@ -118,6 +118,8 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
         from: { type: "string", description: "Start date, YYYY-MM-DD." },
         to: { type: "string", description: "End date inclusive, YYYY-MM-DD." },
         query: { type: "string", description: "Words in the entry's title." },
+        milestones: { type: "boolean", description: "True for milestones only (★)." },
+        member_name: { type: "string", description: "With milestones: one person's, by first name." },
       },
     },
   },
@@ -143,7 +145,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   {
     name: "get_event_guests",
     description:
-      "Who is coming to an event: the household members asked and their answers (going, maybe, no, not yet), and outside guests with their headcount. Find the event by words in its title, or by its date. Use for 'who's coming to the party', 'how many are coming Saturday'.",
+      "Who is coming to an event: the household members asked and their answers (going, maybe, no, not yet), and outside guests with their headcount. Find the event by words in its title, or by its date; with neither, the next event coming up. Use for 'who's coming to the party', 'how many are coming Saturday'.",
     input_schema: {
       type: "object",
       properties: {
@@ -721,15 +723,22 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const q = str(input, "query");
       // The household's entries and the asker's own; a private entry of
       // someone else's is not in the rows (row-level security, as the Journal).
+      const milestonesOnly = input.milestones === true;
       let query = supabase
         .from("journal_entries")
-        .select("title, note, entry_date, milestone, visibility")
+        .select("title, note, entry_date, milestone, visibility, milestone_member_id")
         .eq("family_id", familyId)
         .or(`visibility.eq.household,created_by.eq.${me.id}`)
         .order("entry_date", { ascending: false })
         .limit(onDay ? 60 : 10);
       if (from && to) query = query.gte("entry_date", from).lte("entry_date", to);
       if (q) query = query.ilike("title", `%${q}%`);
+      if (milestonesOnly) query = query.eq("milestone", true);
+      const forName = str(input, "member_name");
+      if (milestonesOnly && forName) {
+        const [memberId] = matchMembers(await loadMembers(), [forName]);
+        if (memberId) query = query.eq("milestone_member_id", memberId);
+      }
       const { data, error } = await query;
       if (error) return fail(error.message);
       let rows = data ?? [];
@@ -803,35 +812,36 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     case "get_event_guests": {
       const q = str(input, "query");
       const day = str(input, "date");
-      if (!q && !day) return fail("Which event? Give me words from its title, or its date.");
       const tz = me.families.time_zone || undefined;
       const today = familyDay(new Date(), tz);
-      let query = supabase
-        .from("events")
-        .select("id, title, event_date, kind, event_rsvps(answer, members(full_name)), event_guests(name, headcount, answer)")
-        .eq("family_id", familyId)
-        .order("event_date")
-        .limit(5);
+      // Plain queries, no embeds: who answered is read from event_rsvps and
+      // the names from members, so no foreign-key naming can trip it.
+      let query = supabase.from("events").select("id, title, event_date, kind").eq("family_id", familyId).order("event_date").limit(5);
       if (q) query = query.ilike("title", `%${q}%`).gte("event_date", addDays(today, -1) ?? today);
-      if (day) query = query.eq("event_date", day);
+      else if (day) query = query.eq("event_date", day);
+      else query = query.gte("event_date", today);
       const { data, error } = await query;
       if (error) return fail(error.message);
       if (!data || data.length === 0) return done({ matches: "no event found" });
       const e = data[0];
-      type Rsvp = { answer: string; members: { full_name: string } | null };
-      const rsvps = (e.event_rsvps as unknown as Rsvp[] | null) ?? [];
-      const guests = (e.event_guests as unknown as { name: string; headcount: number; answer: string | null }[] | null) ?? [];
-      const names = (answer: string) => rsvps.filter((r) => r.answer === answer).map((r) => r.members?.full_name).filter((n): n is string => !!n);
+      const [{ data: rsvps }, { data: guests }, { data: members }] = await Promise.all([
+        supabase.from("event_rsvps").select("member_id, answer").eq("event_id", e.id).eq("family_id", familyId),
+        supabase.from("event_guests").select("name, headcount, answer").eq("event_id", e.id).eq("family_id", familyId),
+        supabase.from("members").select("id, full_name").eq("family_id", familyId),
+      ]);
+      const nameOf = new Map((members ?? []).map((m) => [m.id, m.full_name]));
+      const names = (answer: string) => (rsvps ?? []).filter((r) => r.answer === answer).map((r) => nameOf.get(r.member_id)).filter((n): n is string => !!n);
+      const outside = guests ?? [];
       return done({
         event: e.title,
         date: e.event_date,
         going: names("going"),
         maybe: names("maybe"),
         no: names("no"),
-        guests_going: guests.filter((g) => g.answer === "going").map((g) => ({ name: g.name, heads: g.headcount })),
-        guests_maybe: guests.filter((g) => g.answer === "maybe").map((g) => g.name),
-        guests_not_answered: guests.filter((g) => !g.answer).map((g) => g.name),
-        heads_going: names("going").length + guests.filter((g) => g.answer === "going").reduce((s, g) => s + g.headcount, 0),
+        guests_going: outside.filter((g) => g.answer === "going").map((g) => ({ name: g.name, heads: g.headcount })),
+        guests_maybe: outside.filter((g) => g.answer === "maybe").map((g) => g.name),
+        guests_not_answered: outside.filter((g) => !g.answer).map((g) => g.name),
+        heads_going: names("going").length + outside.filter((g) => g.answer === "going").reduce((s, g) => s + g.headcount, 0),
         other_events: data.slice(1).map((x) => ({ title: x.title, date: x.event_date })),
       });
     }

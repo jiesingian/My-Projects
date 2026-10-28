@@ -97,6 +97,7 @@ export async function POST(request: Request) {
     canAskHealth: mayAskHealth({ role: me.role, kidView: inKidView(me) }),
     timeZone: me.families.time_zone || undefined,
     me: me.full_name,
+    now: new Date(),
   };
   // A question a rule asked last turn ("How much is Meralco, and when is it
   // due?") is answered first; an answer that is not one is read afresh.
@@ -108,8 +109,9 @@ export async function POST(request: Request) {
     try {
       // The marks (a bill paid, an item ticked, a chore done) are the rule
       // layer's alone: not offered to the model, run through the screens'
-      // own actions (lib/assistant/marks.ts).
-      output = isMarkTool(rule.tool) ? await runMarkTool(rule.tool, rule.input, me) : await runAssistantTool(rule.tool, rule.input, me);
+      // own actions (lib/assistant/marks.ts). "none" needs no record at
+      // all (today's date, a fixed holiday).
+      output = rule.tool === "none" ? "{}" : isMarkTool(rule.tool) ? await runMarkTool(rule.tool, rule.input, me) : await runAssistantTool(rule.tool, rule.input, me);
     } catch (err) {
       reportError("Assistant rule tool threw", err, rule.tool);
       return NextResponse.json({ reply: "That didn't go through. Nothing was saved.", actions: [], source: "rules" });

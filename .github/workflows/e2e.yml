@@ -565,8 +565,14 @@ jobs:
       # popups.spec.ts the same (26 October): the pop-ups open, close on a
       # swipe, go back, save and ask before discarding typed work; its save
       # adds a goal named with its RUN and removes it after.
-      - name: Run smoke + logic + the Add expense sheet and the pop-ups on it
-        run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/popups.spec.ts e2e/*.logic.spec.ts --workers=2
+      # assistant-rules-live.spec.ts (28 October): Ask Kin's rule layer
+      # against this run's database -- every tool the rules reach, through
+      # POST /api/assistant as the signed-in household, plus a list item and
+      # a bill it adds, marks and removes (all named E2E-RULES). The matcher
+      # itself is held by the logic spec; this is where its queries are shown
+      # to run.
+      - name: Run smoke + logic + the Add expense sheet, the pop-ups, and Ask Kin's rules
+        run: npx playwright test e2e/smoke.spec.ts e2e/add-expense.spec.ts e2e/popups.spec.ts e2e/assistant-rules-live.spec.ts e2e/*.logic.spec.ts --workers=2
       # Playwright writes an outline of the page as it stood when a test
       # failed (error-context.md: every heading, button, dialog and line of
       # text, with its state). The report artifact holds it, but a Claude

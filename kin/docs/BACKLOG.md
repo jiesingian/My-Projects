@@ -133,10 +133,34 @@ may see, added up, as Wealth's All view does).
   not logged anywhere: a store of unmatched questions, even as shapes,
   would be a privacy decision for Jonathan, so the next rules come from
   what the family reports instead.
-- **Not checked:** the console against the real route in a browser (no
-  key here either way; the spec holds the matcher and the phrasing, the
-  route's wiring is read-only). The three marks were typechecked and
-  built, not run against a database. Taglish wording is a session's best
+- **Sixth PR, same day (checked, not assumed):** a probe of some three
+  hundred phrasings found about forty the rules missed and a dozen they
+  got wrong; all fixed and held in the spec (354 cases). New since: two
+  days or ranges joined ("today and tomorrow", "this month and next
+  month", "Monday to Friday"); several categories or people in one
+  question; income and what was kept this month; the biggest expenses;
+  the accounts listed; paid-status questions ("is Meralco paid", "bayad na
+  ba", "did we pay the water bill", "paid bills this month"), never a
+  mark; the pantry and what is running low; birthdays coming up; the
+  date, the time and the fixed-date days ("when is Christmas", "ilang
+  tulog bago mag-Pasko") with no record read at all; readings ("Lolo's
+  blood pressure") apart from blood type; the emergency list for the
+  asker; an activity with no time, or no day, asked for ("What time is
+  Dentist on Thu 29 Oct?") and finished on the next message; "piggy
+  bank" with nobody named asks whose; several items ticked at once; more
+  chore verbs ("Ben took out the trash", "ligpit na ni Lia"); grocery
+  adds with no list named when every item is one the list knows ("add 5
+  kg rice", "add egg"); bare words ("budget", "chores", "goals", "pantry")
+  as their usual question. Two questions in one, and an instruction to
+  pay, stay the model's. One real bug: the guests tool joined event_rsvps
+  to members through a foreign key the table does not have; it now reads
+  the two tables plainly. And a browser spec at last:
+  `e2e/assistant-rules-live.spec.ts` runs every tool through
+  `POST /api/assistant` as the sample household on each pull request's
+  private database (smoke-private-db), adds a list item and a bill, ticks,
+  marks paid, asks back and finishes, and removes what it made.
+- **Not checked:** the console (the sheet and its chips) in a real
+  browser; the route and tools now are, by the live spec. Taglish wording is a session's best
   effort; a line that reads wrong is one string in rules.ts.
 
 ## Decided 28 October: the watched-change record, weekly (Jonathan)
