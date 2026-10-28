@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers, getAccounts, getAttributableTargets, getTransferLegs } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountQr, getAccountViewers, getAccounts, getAttributableTargets, getTransferLegs } from "@/lib/queries/wealth";
 import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { isGone } from "@/lib/member-status";
 import { AccountNumber } from "@/components/account-number";
+import { AccountQr } from "@/components/account-qr";
 import { isGrownUp } from "@/lib/roles";
 import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
@@ -26,10 +27,11 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const sp = await searchParams;
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
-  const [{ account, entries }, history, numbers, viewers, members, allAccounts, targets] = await Promise.all([
+  const [{ account, entries }, history, numbers, qr, viewers, members, allAccounts, targets] = await Promise.all([
     getAccountDetail(me.family_id, id),
     getAccountHistory(me.family_id, id, range),
     getAccountNumbers(me.family_id, [id]),
+    getAccountQr(me.family_id, id),
     getAccountViewers(me.family_id),
     getMembers(me.family_id),
     getAccounts(me.family_id),
@@ -92,9 +94,11 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
             Opened at {formatCurrency(Number(account.opening_balance), currency)} · {confirmed.length} movement{confirmed.length === 1 ? "" : "s"} since
           </div>
-          {number && (
+          {(number || qr || canNumber) && (
             <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
-              <AccountNumber number={number} />
+              {number && <AccountNumber number={number} />}
+              {/* Its QR to receive money (Janine, 27 October): set by whoever may set the number. */}
+              <AccountQr accountId={account.id} accountName={account.name} image={qr} canSet={canNumber} />
             </div>
           )}
         </Blueprint>

@@ -497,6 +497,52 @@ export type Database = {
           },
         ]
       }
+      account_qr_codes: {
+        Row: {
+          account_id: string
+          family_id: string
+          image: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_id: string
+          family_id: string
+          image: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          family_id?: string
+          image?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_qr_codes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_qr_codes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_qr_codes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_viewers: {
         Row: {
           account_id: string
@@ -9315,6 +9361,7 @@ export type Database = {
       delete_household_for_account_deletion: { Args: { p_family: string }; Returns: string[] }
       sweep_sent_screenshots: { Args: never; Returns: undefined }
       delete_empty_doc_folder: { Args: { p_folder: string }; Returns: string }
+      can_set_account_qr: { Args: { p_account: string; p_family: string }; Returns: boolean }
       log_app_error: { Args: { p_fingerprint: string; p_kind: string; p_route: string; p_message: string; p_version: string }; Returns: undefined }
       app_error_digest: {
         Args: { p_days?: number }

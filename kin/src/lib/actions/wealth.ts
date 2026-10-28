@@ -54,6 +54,31 @@ async function saveAccountNumber(
     : databaseError(error);
 }
 
+/** Sets or removes an account's QR code (account_qr_codes, Janine, 27
+ * October): the image the bank or e-wallet gives to receive money, made
+ * small on the phone first. Row-level security decides who may, as for the
+ * number: the owner of a personal account, any grown-up on a joint one. */
+export async function setAccountQrAction(accountId: string, image: string | null): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  if (image === null) {
+    const { error } = await supabase.from("account_qr_codes").delete().eq("account_id", accountId).eq("family_id", me.family_id);
+    if (error) return { error: databaseError(error) };
+  } else {
+    if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image)) return { error: "That file isn't a picture Kin can keep. Try a PNG or JPG." };
+    if (image.length > 400_000) return { error: "That picture is too big. Try a screenshot of the QR alone." };
+    const { error } = await supabase
+      .from("account_qr_codes")
+      .upsert({ account_id: accountId, family_id: me.family_id, image, updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "account_id" });
+    if (error)
+      return {
+        error: /row-level security/i.test(error.message) ? "Only the account’s owner can set its QR code — or, on a joint account, a grown-up." : databaseError(error),
+      };
+  }
+  revalidatePath(`/wealth/accounts/${accountId}`);
+  return { error: null };
+}
+
 export async function addAccountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();

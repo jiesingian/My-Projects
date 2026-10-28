@@ -156,6 +156,7 @@ const MIGRATIONS = [
   "20261027130000_goal_second_source.sql",
   "20261027140000_credit_card_due.sql",
   "20261027160000_delete_empty_doc_folder.sql",
+  "20261027170000_account_qr_codes.sql",
 ];
 
 const only = process.argv[2];
