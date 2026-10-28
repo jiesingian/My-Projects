@@ -62,7 +62,7 @@ export async function restAsQa(): Promise<Rest | null> {
  *              household has no Google token today and so no links, but that
  *              is one connected calendar away from being untrue.
  */
-type Swept = { table: string; column: string; ledger?: true; calendar?: string };
+type Swept = { table: string; column: string; ledger?: true; calendar?: string; account?: true };
 
 const SWEPT: Swept[] = [
   { table: "activities", column: "title", calendar: "activities" },
@@ -76,6 +76,11 @@ const SWEPT: Swept[] = [
   { table: "assets", column: "name" },
   { table: "meal_plans", column: "dish", calendar: "meal_plans" },
   { table: "routines", column: "title", calendar: "routines" },
+  // Accounts too (28 October): writes.spec adds one per run and nothing
+  // removed it, so the sample household had a dozen "E2E-WRITES-… test
+  // wallet" accounts cluttering every Wealth page. Last, after the goals and
+  // assets that may point at one; its entries and the links to it go first.
+  { table: "accounts", column: "name", account: true },
 ];
 
 async function idsMatching(rest: Rest, kind: Swept, prefix: string): Promise<string[]> {
@@ -149,6 +154,18 @@ export async function tidyUpAfter(prefix: string): Promise<void> {
           `${rest.url}/rest/v1/calendar_event_links?source_table=eq.${kind.calendar}&source_id=in.${list}`,
           { headers: rest.headers },
         );
+      }
+      if (kind.account) {
+        // What deleteAccountAction clears before an account goes: its
+        // entries, and every row that names it as where money comes from.
+        await rest.ctx.delete(`${rest.url}/rest/v1/wealth_transactions?account_id=in.${list}`, { headers: rest.headers });
+        const unlink = async (table: string, column: string) =>
+          rest.ctx.patch(`${rest.url}/rest/v1/${table}?${column}=in.${list}`, { headers: { ...rest.headers, "Content-Type": "application/json" }, data: { [column]: null } });
+        await unlink("goals", "linked_account_id");
+        await unlink("liabilities", "linked_account_id");
+        await unlink("bills", "paid_from_account_id");
+        await unlink("bills", "account_id");
+        await unlink("income_schedules", "account_id");
       }
       if (kind.ledger) {
         await rest.ctx.delete(`${rest.url}/rest/v1/wealth_transactions?goal_id=in.${list}`, { headers: rest.headers });
