@@ -60,8 +60,8 @@ export function AnimatedSheet({
   panelClassName?: string;
   panelStyle?: React.CSSProperties;
   /** A form: a swipe, a tap on the backdrop, Escape or the back gesture
-   * asks before throwing away what was typed. The × and Cancel do not ask;
-   * they are said on purpose. */
+   * asks before throwing away what was typed and is still there. The × and
+   * Cancel do not ask; they are said on purpose. */
   guardUnsaved?: boolean;
   children: React.ReactNode;
 }) {
@@ -75,19 +75,27 @@ export function AnimatedSheet({
   );
   const panel = useRef<HTMLDivElement>(null);
   const backdrop = useRef<HTMLDivElement>(null);
-  // Typed in since it opened, and not submitted since (a list written
-  // several items at a time is saved at each Add).
+  // Typed in since it opened, and not saved since (a list written several
+  // items at a time is saved at each Add). And each field's value from the
+  // moment it was first touched: only a field that still differs from it
+  // counts, so a name typed and deleted again does not ask (Jonathan,
+  // 28 October).
   const dirty = useRef(false);
+  const before = useRef(new Map<Element, string>());
   const asking = useRef(false);
   useEffect(() => {
-    if (open) dirty.current = false;
+    if (open) {
+      dirty.current = false;
+      before.current = new Map();
+    }
   }, [open]);
 
   // A close the person did not say in so many words: the swipe, the
   // backdrop, Escape, the back gesture. Resolves whether it closed.
   const dismiss = useCallback(async () => {
     if (asking.current) return false;
-    const unsaved = guardUnsaved && (dirty.current || !!panel.current?.querySelector("[data-unsaved]"));
+    const changed = [...before.current].some(([el, was]) => el.isConnected && valueOf(el) !== was);
+    const unsaved = guardUnsaved && ((dirty.current && changed) || !!panel.current?.querySelector("[data-unsaved]"));
     if (!unsaved) {
       onClose();
       return true;
@@ -158,8 +166,25 @@ export function AnimatedSheet({
           onChangeCapture={(e) => {
             if (e.nativeEvent.isTrusted) dirty.current = true;
           }}
+          onFocusCapture={(e) => {
+            const el = e.target as Element;
+            if (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && !before.current.has(el)) before.current.set(el, valueOf(el));
+          }}
           onSubmitCapture={() => {
             dirty.current = false;
+            before.current = new Map();
+          }}
+          onClickCapture={(e) => {
+            // A save that is not a form's submit -- a price, a card, a
+            // contact saved by its own button -- starts a fresh count once
+            // it has run, so what it just saved is not asked about. Not a
+            // toggle that only looks primary (Already paid / Due later).
+            const button = (e.target as Element).closest?.('button[type="submit"], button.btn-primary, a.btn-primary');
+            if (!button || button.closest("[aria-pressed], [role='radiogroup'], [role='tablist']")) return;
+            setTimeout(() => {
+              dirty.current = false;
+              before.current = new Map();
+            }, 0);
           }}
           // The caller's own title and description, not Radix's: they are
           // already on the page with ids of their own.
@@ -175,4 +200,12 @@ export function AnimatedSheet({
       </Drawer.Portal>
     </Drawer.Root>
   );
+}
+
+/** What a field holds, as one string to compare: its text, whether a box is
+ * ticked, how many files are picked. */
+function valueOf(el: Element): string {
+  if (el instanceof HTMLInputElement) return el.type === "checkbox" || el.type === "radio" ? String(el.checked) : el.type === "file" ? String(el.files?.length ?? 0) : el.value;
+  if (el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) return el.value;
+  return "";
 }

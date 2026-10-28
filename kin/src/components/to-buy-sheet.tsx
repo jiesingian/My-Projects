@@ -39,7 +39,7 @@ export function ToBuySheet({ lines, onClose }: { lines: string[] | null; onClose
     });
 
   return (
-    <AnimatedSheet open={lines !== null} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--confirm">
+    <AnimatedSheet open={lines !== null} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--confirm" guardUnsaved>
       <h2 id={titleId} style={{ fontSize: "1.125rem", margin: "0 0 0.25rem" }}>
         Add to the To-Buy list
       </h2>

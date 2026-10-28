@@ -54,6 +54,7 @@ export function AddToCalendar({ date, members, meId, today }: { date: string; me
         onClose={() => setOpen(false)}
         labelledBy={titleId}
         panelClassName="sheet-panel--plain"
+        guardUnsaved
         panelStyle={{ maxHeight: "88vh", overflowY: "auto", padding: "0.625rem 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
       >
             <div className="sheet-grabber" style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
