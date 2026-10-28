@@ -12,6 +12,7 @@ import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { databaseError, reportError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
+import { UUID } from "@/lib/ids";
 import { isGrownUp } from "@/lib/roles";
 import { pesoRate, type PesoRate } from "@/lib/fx";
 import { householdZone } from "@/lib/household-zone";
@@ -467,6 +468,9 @@ export async function deleteAccountAction(accountId: string, deleteEntryIds: str
 /* ------------------------------------------------------------- the ledger */
 
 type LedgerInput = {
+  /** The row's id, when the phone made it (Move money): a second send of
+   * the same entry then collides with the first instead of adding to it. */
+  id?: string;
   accountId: string;
   direction: "in" | "out";
   amount: number;
@@ -489,6 +493,7 @@ type LedgerInput = {
 
 function ledgerRow(familyId: string, memberId: string, input: LedgerInput): TablesInsert<"wealth_transactions"> {
   return {
+    ...(input.id ? { id: input.id } : {}),
     family_id: familyId,
     account_id: input.accountId,
     direction: input.direction,
@@ -616,6 +621,10 @@ export async function recordMovementAction(input: {
   assetItemKind?: string;
   /** "me", "joint" or a member id: whose this money is (parseWhose). */
   whose?: string;
+  /** Made on the phone and kept until this saves (Move money, 28 October):
+   * the entry's own id, so a retry after an answer lost to a weak signal,
+   * or the offline queue sending it later, cannot record it twice. */
+  clientId?: string;
 }): Promise<{ error: string | null; transactionId?: string; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -664,8 +673,10 @@ export async function recordMovementAction(input: {
   if (!account) return { error: "Choose an account." };
 
   const status = input.viaApp ? "pending" : "confirmed";
+  const clientId = input.clientId && UUID.test(input.clientId) ? input.clientId : undefined;
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
     ...input,
+    id: clientId,
     particulars: input.particulars.trim(),
     status,
     sourceTable,
@@ -678,6 +689,8 @@ export async function recordMovementAction(input: {
     goalId: sourceTable === "goals" ? sourceId : null,
     owner: input.whose ? parseWhose(input.whose, me.id) : null,
   });
+  // Already recorded by an earlier send of this same entry.
+  if (error && clientId && error.code === "23505") return { error: null, transactionId: clientId, appUrl: input.viaApp ? account.linked_app_url : null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   // Adding to an asset: what it bought becomes one of the asset's items, so
@@ -720,6 +733,9 @@ export async function transferAction(input: {
   note: string;
   occurredAt: string | null;
   viaApp: boolean;
+  /** The two legs' ids, made on the phone, as recordMovementAction's
+   * clientId: a second send of the same transfer moves nothing. */
+  clientIds?: { out: string; in: string };
 }): Promise<{ error: string | null; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -739,9 +755,11 @@ export async function transferAction(input: {
   const status = input.viaApp ? "pending" : "confirmed";
   const transferGroupId = crypto.randomUUID();
   const note = clamp(input.note, 300);
+  const ids = input.clientIds && UUID.test(input.clientIds.out) && UUID.test(input.clientIds.in) && input.clientIds.out !== input.clientIds.in ? input.clientIds : undefined;
 
   const legs: LedgerInput[] = [
     {
+      id: ids?.out,
       accountId: from.id,
       direction: "out",
       amount: input.amount,
@@ -752,6 +770,7 @@ export async function transferAction(input: {
       transferGroupId,
     },
     {
+      id: ids?.in,
       accountId: to.id,
       direction: "in",
       amount: input.amount,
@@ -789,6 +808,9 @@ export async function transferAction(input: {
   const { error } = await supabase
     .from("wealth_transactions")
     .insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
+  // Already moved by an earlier send of this same transfer: one statement,
+  // so both legs are there or neither.
+  if (error && ids && error.code === "23505") return { error: null, appUrl: input.viaApp ? from.linked_app_url : null };
   if (error) return { error: databaseError(error) };
 
   revalidateWealth();

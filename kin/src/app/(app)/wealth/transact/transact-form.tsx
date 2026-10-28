@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_LABELS, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, loanPaymentSplit, type WhoseOption } from "@/lib/wealth";
@@ -15,10 +15,15 @@ import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
 import { RequiredMark } from "@/components/form";
 import { AccountNumber } from "@/components/account-number";
+import { isNetworkFailure, newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
+import type { QueuedOp } from "@/lib/offline/types";
 
 const MODES = ["in", "out", "transfer"] as const;
 type Mode = (typeof MODES)[number];
 const MODE_LABELS: Record<Mode, string> = { in: "Money in", out: "Money out", transfer: "Transfer" };
+// Said when the answer never came: it may have saved, so a second try is
+// safe rather than a second entry (the ids below).
+const NO_SIGNAL = "No signal — this may not have saved. Try again when you have one; it won’t be recorded twice.";
 
 export function TransactForm({
   accounts,
@@ -106,6 +111,14 @@ export function TransactForm({
   // rather than only named at the top (Janine, 12 October).
   const [bad, setBad] = useState<"amount" | "particulars" | null>(null);
   const [pending, startTransition] = useTransition();
+  // The entry's ids, made on the phone at the first try and kept until it
+  // saves or is queued: a retry after "Load failed" (a weak signal, the
+  // answer lost on its way back) then finds the first save rather than
+  // recording the money twice (28 October).
+  const ids = useRef<{ id: string; inId: string } | null>(null);
+  // Said under the button once an entry is waiting on the phone.
+  const [queuedNote, setQueuedNote] = useState<string | null>(null);
+  const waiting = useQueue().filter((q) => q.kind === "money.record" || q.kind === "money.transfer").length;
 
   const account = accounts.find((a) => a.id === accountId);
   const canUseApp = !!account?.linked_app_url;
@@ -127,32 +140,74 @@ export function TransactForm({
       requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-field="${missing}"] .input`)?.focus());
       return;
     }
+    setQueuedNote(null);
     startTransition(async () => {
       const occurredAt = new Date(`${occurredOn}T${new Date().toTimeString().slice(0, 8)}`).toISOString();
-      const res =
+      const through = viaApp && canUseApp;
+      const { id, inId } = (ids.current ??= { id: newOpId(), inId: newOpId() });
+      const label = `${particulars.trim() || MODE_LABELS[mode]} (${formatCurrency(amount, currency)})`;
+      const entry = {
+        accountId,
+        direction: mode === "in" ? ("in" as const) : ("out" as const),
+        amount,
+        particulars,
+        category,
+        occurredAt,
+        againstTable: against ? (against.split(":")[0] as "assets" | "goals" | "liabilities") : null,
+        againstId: against ? against.split(":")[1] : null,
+        principal: loan ? principal : null,
+        assetUse: mode === "out" && against.startsWith("assets:") ? assetUse : undefined,
+        assetItemKind: assetUse === "add" ? itemKind : undefined,
+        whose,
+      };
+      const transfer = { fromAccountId: accountId, toAccountId, amount, note: particulars, occurredAt };
+      const op = (): QueuedOp =>
         mode === "transfer"
-          ? await transferAction({ fromAccountId: accountId, toAccountId, amount, note: particulars, occurredAt, viaApp: viaApp && canUseApp })
-          : await recordMovementAction({
-              accountId,
-              direction: mode,
-              amount,
-              particulars,
-              category,
-              occurredAt,
-              viaApp: viaApp && canUseApp,
-              againstTable: against ? (against.split(":")[0] as "assets" | "goals" | "liabilities") : null,
-              againstId: against ? against.split(":")[1] : null,
-              principal: loan ? principal : null,
-              assetUse: mode === "out" && against.startsWith("assets:") ? assetUse : undefined,
-              assetItemKind: assetUse === "add" ? itemKind : undefined,
-              whose,
-            });
+          ? { id, inId, at: new Date().toISOString(), kind: "money.transfer", ...transfer, label }
+          : { id, at: new Date().toISOString(), kind: "money.record", ...entry, label };
+      const send = () =>
+        mode === "transfer"
+          ? transferAction({ ...transfer, viaApp: through, clientIds: { out: id, in: inId } })
+          : recordMovementAction({ ...entry, viaApp: through, clientId: id });
 
+      // Through a banking app it cannot wait: the app needs a signal too.
+      // Without one the form stays as it was, to try again.
+      if (through) {
+        let res: Awaited<ReturnType<typeof send>>;
+        try {
+          res = await send();
+        } catch (e) {
+          setError(isNetworkFailure(e) ? NO_SIGNAL : "That didn't save. Try again.");
+          return;
+        }
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+        ids.current = null;
+        if (res.appUrl) window.open(res.appUrl, "_blank", "noopener,noreferrer");
+        router.push(`/wealth/accounts/${accountId}`);
+        router.refresh();
+        return;
+      }
+
+      // Otherwise, with no signal it waits on the phone and saves on
+      // reconnect (lib/offline/live), as Health's dose ticks do.
+      const res = await sendOrQueue(send, op);
       if (res.error) {
         setError(res.error);
         return;
       }
-      if (res.appUrl) window.open(res.appUrl, "_blank", "noopener,noreferrer");
+      ids.current = null;
+      if (res.queued) {
+        // Cleared, so the same money is not entered a second time by hand.
+        setAmount(0);
+        setAmountKey((k) => k + 1);
+        setParticulars("");
+        setPrincipalOverride(null);
+        setQueuedNote(`No signal — ${label} is kept on this phone and will be recorded when you’re back online.`);
+        return;
+      }
       router.push(`/wealth/accounts/${accountId}`);
       router.refresh();
     });
@@ -196,7 +251,7 @@ export function TransactForm({
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label={`Amount (${currencySymbol(currency)})`} style={{ flex: 1 }} required name="amount">
-          <AmountInput key={amountKey} defaultValue={amount || defaultAmount} onValueChange={(v) => { setAmount(v); setPrincipalOverride(null); if (bad === "amount") setBad(null); }} style={{ minHeight: "2.75rem" }} required invalid={bad === "amount"} />
+          <AmountInput key={amountKey} defaultValue={amount || (amountKey === 0 ? defaultAmount : undefined)} onValueChange={(v) => { setAmount(v); setPrincipalOverride(null); if (bad === "amount") setBad(null); }} style={{ minHeight: "2.75rem" }} required invalid={bad === "amount"} />
         </Field>
         <Field label="Date" style={{ flex: 1 }}>
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.75rem" }} />
@@ -354,6 +409,12 @@ export function TransactForm({
       <button type="button" className="btn btn-primary btn-block" disabled={pending} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }} onClick={submit}>
         {pending ? "…" : viaApp && canUseApp ? "Open app & log it" : "Record it"}
       </button>
+
+      {(queuedNote || waiting > 0) && (
+        <p role="status" style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.625rem" }}>
+          {queuedNote ?? `${waiting} ${waiting === 1 ? "entry is" : "entries are"} waiting on this phone, to be recorded when you’re back online.`}
+        </p>
+      )}
 
       {viaApp && canUseApp && (
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
