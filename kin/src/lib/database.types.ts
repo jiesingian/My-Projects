@@ -6241,6 +6241,9 @@ export type Database = {
           original_amount: number | null
           payments_remaining: number | null
           rate_fixed_until: string | null
+          repriced_balance: number | null
+          repriced_on: string | null
+          repriced_payments_left: number | null
           term_months: number | null
           updated_at: string
         }
@@ -6264,6 +6267,9 @@ export type Database = {
           original_amount?: number | null
           payments_remaining?: number | null
           rate_fixed_until?: string | null
+          repriced_balance?: number | null
+          repriced_on?: string | null
+          repriced_payments_left?: number | null
           term_months?: number | null
           updated_at?: string
         }
@@ -6287,6 +6293,9 @@ export type Database = {
           original_amount?: number | null
           payments_remaining?: number | null
           rate_fixed_until?: string | null
+          repriced_balance?: number | null
+          repriced_on?: string | null
+          repriced_payments_left?: number | null
           term_months?: number | null
           updated_at?: string
         }

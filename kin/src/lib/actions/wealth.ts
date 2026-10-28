@@ -2397,6 +2397,47 @@ export async function setLoanPaymentsLeftAction(liabilityId: string, paymentsLef
   return { error: null };
 }
 
+/** A loan's new rate after its fixed rate ends (Jonathan, 28 October):
+ * the rate, the monthly payment (the one Kin worked out, or the bank's),
+ * and optionally the next fixed-until day. The balance and payments left
+ * today are kept as where the bank's new table starts (20261028120000), so
+ * the balance check runs from here rather than the original terms. */
+export async function repriceLoanAction(liabilityId: string, input: { rate: number; payment: number; fixedUntil: string }): Promise<ActionState> {
+  if (!(Number.isFinite(input.rate) && input.rate >= 0 && input.rate <= 100)) return { error: "The interest rate has to be a percentage from 0 to 100." };
+  if (!(Number.isFinite(input.payment) && input.payment > 0)) return { error: "The monthly payment has to be more than zero." };
+  const fixedUntil = input.fixedUntil.trim();
+  if (fixedUntil && !/^\d{4}-\d{2}-\d{2}$/.test(fixedUntil)) return { error: "The day the new fixed rate ends isn't a date Kin can read." };
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: loan } = await supabase.from("liabilities").select("balance, next_payment_date, payments_remaining").eq("id", liabilityId).eq("family_id", me.family_id).maybeSingle();
+  if (!loan) return { error: "That loan is no longer there — someone may have removed it." };
+  const today = familyDay(new Date(), await householdZone());
+  const left = loanStatus(loan, today).left;
+  if (!(left > 0)) return { error: "Set when the next payment is due and how many are left first, under Payments." };
+  const { error, count } = await supabase
+    .from("liabilities")
+    .update(
+      {
+        interest_rate: input.rate,
+        monthly_payment: Math.round(input.payment * 100) / 100,
+        rate_fixed_until: fixedUntil || null,
+        repriced_on: today,
+        repriced_balance: Number(loan.balance),
+        repriced_payments_left: left,
+        updated_at: new Date().toISOString(),
+      },
+      { count: "exact" },
+    )
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: databaseError(error) };
+  if (count === 0) return { error: "That loan is no longer there — someone may have removed it." };
+  revalidateWealth();
+  revalidatePath("/today");
+  revalidatePath("/planner");
+  return { error: null };
+}
+
 /** A loan's payment as a monthly bill (Jonathan, 26 October): the loan row
  * on A&L makes the bill once, for the next payment, against the loan
  * (20261026150000), so it reaches Today, the calendar and the reminder

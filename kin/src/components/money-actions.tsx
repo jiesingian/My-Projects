@@ -24,6 +24,7 @@ import {
   updateLiabilityBalanceAction,
   setLoanPaymentsLeftAction,
   addLoanBillAction,
+  repriceLoanAction,
   updateLiabilityScheduleAction,
   deleteAssetAction,
   deleteLiabilityAction,
@@ -46,7 +47,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, extraPaymentEffect, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { accountAudienceLabel, extraPaymentEffect, repricedPayment, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
 import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
@@ -1280,6 +1281,64 @@ export function EditSavingsGoalButton({ goal, currency }: { goal: { id: string; 
           onClick={() => run(() => updateSavingsGoalAction(goal.id, { title, note, target, date }), () => setOpen(false))}
         >
           {pending ? "…" : "Save"}
+        </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "New rate" on a loan whose fixed rate has ended or is about to (28
+ * October): the new rate, the monthly payment it comes to over the
+ * payments left (or the bank's own figure), and the next fixed-until day. */
+export function RepriceLoanControl({ id, balance, paymentsLeft, currentRate, currentPayment, currency }: { id: string; balance: number; paymentsLeft: number; currentRate: number | null; currentPayment: number | null; currency: string }) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [rate, setRate] = useState(currentRate == null ? "" : String(currentRate));
+  const [own, setOwn] = useState<number | null>(null);
+  const [fixedUntil, setFixedUntil] = useState("");
+  const { error, pending, run } = useMoneyAction();
+  const r = Number(rate);
+  const worked = rate.trim() && Number.isFinite(r) && r >= 0 ? repricedPayment(balance, r, paymentsLeft) : null;
+  const payment = own ?? worked;
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem" }} onClick={() => setOpen(true)}>
+        Set the new rate
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="New rate">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-rate`}>New rate (% a year)</label>
+            <input id={`${uid}-rate`} className="input" type="number" step="0.001" min="0" max="100" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-fixed`}>Fixed until (optional)</label>
+            <DateInput id={`${uid}-fixed`} className="input" value={fixedUntil} onChange={(e) => setFixedUntil(e.target.value)} style={field} />
+          </div>
+        </div>
+        <p style={{ fontSize: "0.875rem", margin: "0.75rem 0 0.25rem" }}>
+          From {formatCurrency(balance, currency)} over {paymentsLeft} payment{paymentsLeft === 1 ? "" : "s"}:{" "}
+          {worked != null ? <strong>about {formatCurrency(worked, currency)} a month</strong> : "—"}
+          {currentPayment ? ` (now ${formatCurrency(currentPayment, currency)})` : ""}.
+        </p>
+        <div className="field" style={{ margin: "0.5rem 0 0" }}>
+          <label htmlFor={`${uid}-pay`}>Monthly payment the bank set (if it differs)</label>
+          <AmountInput id={`${uid}-pay`} ariaLabel="Monthly payment" defaultValue={own ?? undefined} onValueChange={(v) => setOwn(v > 0 ? v : null)} style={field} />
+        </div>
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || payment == null}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() => run(() => repriceLoanAction(id, { rate: r, payment: payment!, fixedUntil }), () => setOpen(false))}
+        >
+          {pending ? "…" : payment != null ? `Use ${r}% and ${formatCurrency(payment, currency)} a month` : "Use this rate"}
         </button>
       </FormSheet>
     </>
