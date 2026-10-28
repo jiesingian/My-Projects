@@ -77,6 +77,8 @@ import {
   AL_OWNED_ORDER,
   type LoanTerms,
   pendingRows,
+  loanInsurance,
+  loanInsuranceFund,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -1346,7 +1348,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ]
         .filter(Boolean)
         .join(" · ") || undefined,
-      detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} />,
+      detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} />,
       actions: (
         <>
           {/* Paying it from here splits the payment into interest and
@@ -1656,11 +1658,15 @@ function LoanLines({
   today,
   currency,
   fmtDate,
+  insurance,
+  fund,
 }: {
-  loan: LoanTerms & { id: string };
+  loan: LoanTerms & { id: string; is_joint?: boolean | null };
   today: string;
   currency: string;
   fmtDate: (d: string) => string;
+  insurance?: ReturnType<typeof loanInsurance>;
+  fund?: { title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean | null; created_at: string } | null;
 }) {
   const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
   const balance = Number(loan.balance);
@@ -1707,7 +1713,36 @@ function LoanLines({
           )}
         </div>
       )}
+      {/* The lender's yearly insurance (28 October): the yearly fund that
+          pays it, or what is required and a way to set aside for it. */}
+      {insurance && balance > 0 && <LoanInsuranceLine insurance={insurance} fund={fund ?? null} isJoint={!!loan.is_joint} today={today} currency={currency} fmtDate={fmtDate} />}
     </>
+  );
+}
+
+function LoanInsuranceLine({ insurance, fund, isJoint, today, currency, fmtDate }: { insurance: NonNullable<ReturnType<typeof loanInsurance>>; fund: NonNullable<Parameters<typeof LoanLines>[0]["fund"]> | null; isJoint: boolean; today: string; currency: string; fmtDate: (d: string) => string }) {
+  const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
+  if (fund) {
+    const target = Number(fund.target_amount ?? 0);
+    const plan = fund.target_date && target > 0 ? fundPlan({ target, saved: Number(fund.current_amount), due: fund.target_date, today, cycleStart: cycleStart({ createdDay: fund.created_at.slice(0, 10), due: fund.target_date, repeatsYearly: !!fund.repeats_yearly }) }) : null;
+    return (
+      <div style={muted}>
+        Yearly insurance: {fund.title}
+        {target > 0 ? ` · ${formatCurrency(target, currency)}` : ""}
+        {fund.target_date ? ` · next due ${fmtDate(fund.target_date)}` : ""}
+        {plan ? (plan.status === "funded" ? " · set aside in full" : ` · set aside about ${formatCurrency(plan.perMonth, currency)} a month (${STATUS_TEXT[plan.status].toLowerCase()})`) : ""}
+      </div>
+    );
+  }
+  if (insurance.included) return <div style={muted}>{insurance.what}</div>;
+  const q = new URLSearchParams({ yearly: "1", title: insurance.title, note: insurance.note, whose: isJoint ? "joint" : "me" });
+  return (
+    <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
+      <span>{insurance.what}</span>
+      <Link href={`/wealth/add?${q}`} className="btn btn-secondary" style={{ minHeight: "1.625rem", fontSize: "0.71875rem", padding: "0 0.5rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+        Set aside for it
+      </Link>
+    </div>
   );
 }
 
