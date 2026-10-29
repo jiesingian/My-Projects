@@ -505,7 +505,17 @@ jobs:
           set -euo pipefail
           echo "Schema: $(grep -c '^CREATE TABLE' "$RUNNER_TEMP/schema.sql") tables; the copy records $(wc -l < "$RUNNER_TEMP/applied.txt") migrations."
           [ -n "$DEV_DB_URL" ] || exit 0
-          psql "$DEV_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by version" > "$RUNNER_TEMP/dev-now.txt"
+          # Dev's session pooler is shared by every PR at once and, on the free
+          # plan, sometimes cannot hand out a connection for a minute or two
+          # (29 October: ECHECKOUTTIMEOUT / "authentication did not complete
+          # within 15000ms" while Postgres itself had 7 connections). Wait and
+          # ask again, as check-schema.mjs does for sign-in, before calling it red.
+          for wait in 15 30 45 0; do
+            psql "$DEV_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by version" > "$RUNNER_TEMP/dev-now.txt" && break
+            [ "$wait" -gt 0 ] || { echo "::error::Dev's database did not answer after four tries, so the migration order was not checked. This is dev's pooler, not this PR."; exit 1; }
+            echo "Dev's pooler did not answer; trying again in ${wait}s."
+            sleep "$wait"
+          done
           newest=$(tail -1 "$RUNNER_TEMP/dev-now.txt")
           late=""
           for f in "$GITHUB_WORKSPACE"/kin/supabase/migrations/*.sql; do
