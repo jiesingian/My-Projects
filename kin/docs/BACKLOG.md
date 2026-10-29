@@ -227,13 +227,14 @@ Read and checked by a session; nothing in a dashboard was changed.
     October (#968's follow-up) window errors thrown in a script not served
     from Kin's own origin are not reported at all (`isOwnScriptError`,
     lib/error-capture.ts); unhandled rejections still are.
-- **Stale branches.** 488 of 521 can go: 449 are the head of a merged PR,
-  unchanged since, and 39 are wholly contained in `main`. 33 stay: 2 with
-  an open PR, 31 with commits not on `main` (closed without merging,
-  pushed to after their PR, or never opened). The session's permission
-  check refused `git push --delete`, so the deletion waits on Jonathan:
-  [github.com/jiesingian/My-Projects/branches/stale](https://github.com/jiesingian/My-Projects/branches/stale),
-  or allow the session to run it.
+- **Stale branches.** A session cannot delete them: its GitHub access
+  pushes to its own branch only (403 on 29 October). Since then
+  `.github/workflows/clean-branches.yml` does it: weekly on its own, or by
+  hand from [Actions → Clean up branches](https://github.com/jiesingian/My-Projects/actions/workflows/clean-branches.yml)
+  (lists only, unless "delete" is ticked). It deletes a branch only when its
+  tip is on main or is the unchanged head of a merged pull request, and never
+  one with an open pull request or touched in the last day. On 29 October
+  that was 590 of 636.
 - **The sign-up code email (#593) cannot be read by a session.** The
   template lives in the Auth config, which only the Management API reads,
   and there is no access token here; production has had no sign-up in 30

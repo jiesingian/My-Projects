@@ -1,0 +1,101 @@
+name: Clean up branches
+
+# Deletes branches whose work is already on main, so the branch list holds
+# only what is still open or unfinished. On 29 October there were 634
+# branches and 601 of them were finished work; a session could not delete
+# them (its GitHub access pushes to its own branch only), and 601 clicks on
+# the branches page is nobody's afternoon.
+#
+# A branch goes only when one of these proves nothing in it is lost:
+#
+#  1. CONTAINED. Its tip is a commit on main.
+#  2. MERGED, UNCHANGED. Its tip is exactly the head of a pull request that
+#     was merged into main (main's squash commit ends "(#N)", and GitHub
+#     keeps every pull request's head as refs/pull/N/head). A branch pushed
+#     to after its pull request merged has a different tip, and stays.
+#
+# And it stays, whatever the above says, when it is main, when an open pull
+# request uses it, or when its last commit is under a day old (a session may
+# be about to push its next change to the branch it just merged).
+#
+# A deleted branch of type 2 comes back with "Restore branch" on its pull
+# request's page; a type 1 branch is all on main already.
+#
+# Run by hand (Actions -> Clean up branches -> Run workflow), it lists what it
+# would delete and deletes nothing unless "delete" is ticked. The weekly run
+# deletes. GitHub starts scheduled runs late, often by hours.
+on:
+  schedule:
+    - cron: "23 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: "Delete them (leave unticked to only list them)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: clean-branches
+  cancel-in-progress: false
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Find the finished branches, and delete them
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DELETE: ${{ github.event_name == 'schedule' || inputs.delete }}
+        run: |
+          set -euo pipefail
+
+          git fetch --quiet --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/pull/*/head:refs/pr/*'
+          git for-each-ref --format='%(objectname) %(refname:lstrip=2)' refs/pr > /tmp/prheads.txt
+          git log origin/main --format=%s | grep -o '(#[0-9]*)$' | tr -d '(#)' | sort -u > /tmp/merged.txt
+          gh pr list --repo "$REPO" --state open --limit 500 --json headRefName --jq '.[].headRefName' | sort -u > /tmp/open.txt
+
+          declare -A heads merged open
+          while read -r SHA N; do heads[$SHA]="${heads[$SHA]:-} $N"; done < /tmp/prheads.txt
+          while read -r N; do merged[$N]=1; done < /tmp/merged.txt
+          while read -r B; do [ -n "$B" ] && open[$B]=1; done < /tmp/open.txt
+          DAY_AGO=$(( $(date +%s) - 86400 ))
+
+          : > /tmp/delete.txt
+          KEPT=0
+          while read -r SHA WHEN B; do
+            B=${B#origin/}
+            if [ "$B" = main ] || [ "$B" = HEAD ] || [ -n "${open[$B]:-}" ] || [ "$WHEN" -gt "$DAY_AGO" ]; then
+              KEPT=$((KEPT + 1)); continue
+            fi
+            if git merge-base --is-ancestor "$SHA" origin/main; then
+              echo "$B contained in main" >> /tmp/delete.txt; continue
+            fi
+            WHY=""
+            for N in ${heads[$SHA]:-}; do [ -n "${merged[$N]:-}" ] && WHY="head of merged #$N"; done
+            if [ -n "$WHY" ]; then echo "$B $WHY" >> /tmp/delete.txt; else KEPT=$((KEPT + 1)); fi
+          done < <(git for-each-ref --format='%(objectname) %(committerdate:unix) %(refname:short)' refs/remotes/origin)
+
+          COUNT=$(wc -l < /tmp/delete.txt)
+          {
+            echo "### Clean up branches"
+            echo
+            if [ "$DELETE" = true ]; then echo "Deleting $COUNT finished branches; $KEPT kept."; else echo "Would delete $COUNT finished branches ($KEPT kept). Nothing was deleted: run again with \"delete\" ticked."; fi
+            echo
+            echo '```'
+            cat /tmp/delete.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/delete.txt
+
+          [ "$DELETE" = true ] && [ "$COUNT" -gt 0 ] || exit 0
+          cut -d' ' -f1 /tmp/delete.txt | xargs -n 50 git push --quiet origin --delete
+          echo "Deleted $COUNT."
