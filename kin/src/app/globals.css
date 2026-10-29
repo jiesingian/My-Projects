@@ -148,6 +148,11 @@
   --cal-occasion-ink: color-mix(in oklab, var(--cal-occasion) 45%, var(--color-text));
   --cal-goal-ink: color-mix(in oklab, var(--cal-goal) 45%, var(--color-text));
   --cal-schedule-ink: color-mix(in oklab, var(--cal-schedule) 45%, var(--color-text));
+  /* The switch's green as text (29 October): "Saved ₱…" on a To-Buy trip
+     read at 1.98:1 in light, where the green itself is for fills. 25%, not
+     the others' 45%: the green is the lightest of them, and Catppuccin
+     light read 3.8:1 at 45% and 4.35:1 at 35%. */
+  --color-switch-on-ink: color-mix(in oklab, var(--color-switch-on) 25%, var(--color-text));
 
   /* Per-member colours. Six, capped for the same reason the wealth
      categories cap at seven -- past that they stop being tellable apart at
