@@ -129,7 +129,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(hub.first()).toContainText("Health profiles");
   // No "N places to keep track" line any more (Janine, 15 October).
   await expect(page.getByText(/places to keep track/)).toHaveCount(0);
-  await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
+  await expect(page.getByText("Private to your family. Nothing is sold, and Kin AI’s provider does not train on your records.")).toBeVisible();
   await expectTapTargets(page);
 
   // Share your result (19 October): a picture of the score, the profile only

@@ -36,7 +36,7 @@ const RULES: Rule[] = [
     // P0001 -- raised by require_kin_plus (20260928150000_kin_free_and_plus.sql)
     // when a household on Kin Free adds something to a Plus area.
     match: /kin_plus_required/i,
-    text: "That's part of Kin Plus. Everything already here stays yours to read — see Settings → Your plan to add more.",
+    text: "That's part of Kin Plus. Everything already here stays yours to read.",
   },
   {
     // P0001 -- raised by alkansya_entries_not_overdrawn (20261019100000)

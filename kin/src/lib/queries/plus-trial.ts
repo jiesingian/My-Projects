@@ -37,7 +37,7 @@ export async function getPlusTrialCard(me: CurrentMember): Promise<{ steps: Plus
 
   const steps: PlusTrialStep[] = [
     { id: "bill", title: "Add a bill", hint: "Kin reminds you the day before it's due.", href: "/wealth?seg=cashflow", done: (bills.count ?? 0) > 0 },
-    { id: "vault", title: "Put a document in the vault", hint: "A passport or birth certificate, behind Face ID.", href: "/family?seg=documents", done: (docs.count ?? 0) + (vault.count ?? 0) > 0 },
+    { id: "vault", title: "Put a document in the vault", hint: "A passport or birth certificate, with a Face ID or PIN lock.", href: "/family?seg=documents", done: (docs.count ?? 0) + (vault.count ?? 0) > 0 },
     { id: "medicine", title: "Add a medicine", hint: "Dose reminders for whoever takes it.", href: `/family/members/${me.id}/health/new`, done: (medicines.count ?? 0) > 0 },
   ];
   return steps.every((s) => s.done) ? null : { steps, daysLeft: access.daysLeft };

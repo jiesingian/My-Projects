@@ -9,6 +9,11 @@ name: iOS build
 # Only for changes under kin/native or this file, so a web-only pull request
 # never waits on a macOS runner. Free while the repository is public; macOS
 # minutes count ten times against a private plan.
+#
+# Also checks the App Store text in kin/native/ios/store/ against Apple's
+# length limits and the words it must never use (check.mjs), and, only when
+# started by hand with "screenshots" ticked, makes the App Store screenshots
+# (the `screenshots` job below).
 
 on:
   pull_request:
@@ -21,6 +26,11 @@ on:
       - "kin/native/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
+    inputs:
+      screenshots:
+        description: "Also make the App Store screenshots (QA household on dev; about 15 minutes)"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -38,6 +48,8 @@ jobs:
           cache: npm
           cache-dependency-path: kin/native/package-lock.json
       - run: npm ci
+      - name: The App Store text fits Apple's limits
+        run: node ios/store/check.mjs
       - name: Copy the config into the Xcode project
         run: npx cap sync ios
       - name: Which Xcode
@@ -49,3 +61,80 @@ jobs:
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' build | tail -n 80
+
+  # Waits until no End-to-end run is queued or going on dev, the same way
+  # weekly-check.yml does and for the same reason: GitHub keeps one waiter
+  # per concurrency group, so joining `e2e-dev` would cancel a pull
+  # request's or main's queued smoke run (or be cancelled by it).
+  turn:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.screenshots }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: .github/scripts
+      - name: Wait for a turn on dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/wait-for-dev.sh
+
+  # The App Store screenshots (kin/native/ios/store/screenshots.mjs): the
+  # web app as the iPhone app shows it, signed in as the throwaway QA
+  # household on dev, never a real one. It only reads. Kept as the run's
+  # artifact "app-store-screenshots" for 30 days, ready to drag into App
+  # Store Connect; started again whenever the screens change.
+  screenshots:
+    name: App Store screenshots
+    needs: turn
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
+      - name: Refuse to run without a throwaway account
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+        run: |
+          if [ -z "$E2E_EMAIL" ]; then
+            echo "::error::E2E_EMAIL and E2E_PASSWORD are not set: they are the throwaway QA household's (kin/docs/QA_HOUSEHOLDS.md)."
+            exit 1
+          fi
+      - name: Dev is answering
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: bash scripts/dev-preflight.sh "$URL" "$ANON"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build and start against dev
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run build
+          npm run start &
+          npx wait-on http://localhost:3000/login --timeout 120000
+      - name: Take them
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: node native/ios/store/screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: app-store-screenshots
+          path: kin/native/ios/store/screenshots/
+          retention-days: 30
+          if-no-files-found: warn

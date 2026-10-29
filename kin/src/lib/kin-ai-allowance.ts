@@ -22,7 +22,7 @@ export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<
   if (result?.ok === false) {
     return {
       ok: false,
-      error: `Kin Free includes ${FREE_AI_PER_MONTH} Kin AI questions and flyer scans a month, and this month's are used. They come back on the 1st, or Kin Plus makes them unlimited — see Settings → Your plan.`,
+      error: `Kin Free includes ${FREE_AI_PER_MONTH} Kin AI questions and flyer scans a month, and this month's are used. They come back on the 1st, or Kin Plus has no monthly limit — see Settings → Your plan.`,
     };
   }
   // What is left after this one, for "N of 5 left" in Ask Kin; null on Plus.
