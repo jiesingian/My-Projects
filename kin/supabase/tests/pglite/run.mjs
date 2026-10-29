@@ -35,6 +35,7 @@ const MIGRATIONS = [
   "20260930100000_member_card_and_sos.sql",
   "20260930100001_link_thread_reactions.sql",
   "20260930130000_remittance_log.sql",
+  "20261029030000_remittance_retry_once.sql",
   "20260930140000_wealth_charts.sql",
   "20260930150100_chat_room_edit_unsend.sql",
   "20260930160000_chat_room_pins.sql",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { logRemittanceAction } from "@/lib/actions/wealth";
@@ -9,7 +9,7 @@ import { REMITTANCE_CHANNELS, REMITTANCE_CHANNEL_LABELS, type RemittanceChannel 
 import { REMITTANCE_CURRENCIES } from "@/lib/fx";
 import { formatCurrency } from "@/lib/format";
 import { ErrorText } from "@/components/form";
-import { failedSaveMessage } from "@/lib/offline/live";
+import { failedSaveMessage, newOpId } from "@/lib/offline/live";
 import { DateInput } from "@/components/date-input";
 
 /* The two categories of Add income with more to say than an amount
@@ -63,6 +63,8 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Kept until it saves, so a retry after a lost answer logs it once.
+  const clientId = useRef<string | null>(null);
   return (
     <form
       onSubmit={(e) => {
@@ -83,10 +85,12 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
             note: "",
             isPrivate: false,
             allocations: [],
-            // A weak signal: kept as typed, and told to look before a retry.
-          }).catch((e: unknown) => ({ error: failedSaveMessage(e, false) }));
+            clientId: (clientId.current ??= newOpId()),
+            // A weak signal: kept as typed, to try again.
+          }).catch((e: unknown) => ({ error: failedSaveMessage(e, true) }));
           setError(res.error);
           if (res.error) return;
+          clientId.current = null;
           router.refresh();
           onDone();
         });

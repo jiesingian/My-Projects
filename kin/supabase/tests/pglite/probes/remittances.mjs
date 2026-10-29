@@ -55,4 +55,16 @@ export default async function ({ as, check, refused }) {
     await as(ann, "select delete_remittance($1)", [shared]);
     return (await as(ann, "select 1 from wealth_transactions where source_table = 'remittances' and account_id = $1", [JOINT])).length === 0;
   });
+
+  // A retry with the phone's id (20261029030000) logs it once.
+  const RETRY = "c1000000-0000-4000-8000-000000000001";
+  const logOnce = (who) => as(who, log(who, { account: JOINT }).replace(/\) id$/, `, '${RETRY}') id`));
+  await check("A retry with the same id returns the first and logs the money once", async () => {
+    const first = (await logOnce(ann))[0].id;
+    const again = (await logOnce(ann))[0].id;
+    const rows = await as(ann, "select 1 from wealth_transactions where source_table = 'remittances' and source_id = $1", [RETRY]);
+    return (first === RETRY && again === RETRY && rows.length === 1) || { first, again, rows: rows.length };
+  });
+  await check("Dan cannot reach House A's remittance by sending its id", async () =>
+    (await refused(() => logOnce(dan))) === true && (await as(dan, "select 1 from remittances where id = $1", [RETRY])).length === 0);
 }
