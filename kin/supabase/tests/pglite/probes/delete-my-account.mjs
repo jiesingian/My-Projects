@@ -197,6 +197,8 @@ export default async function ({ db, as, check, refused }) {
     ["reward_redemptions", "member_id"], ["routine_members", "member_id"], ["send_to_kin_tokens", "member_id"],
     ["sent_screenshots", "member_id"], ["sos_alerts", "member_id"],
     ["trip_travellers", "member_id"], ["vault_emergency_contacts", "member_id"], ["wealth_targets", "member_id"],
+    // Made after the job's list, swept by a trigger instead (20261030100000).
+    ["alarm_picks", "member_id", { kind: "bill" }], ["waiting_snoozes", "member_id"], ["feature_votes", "member_id", { choice: "other" }],
   ];
   // Rows they wrote for others, which keep the row and lose the name: [table, name column, column naming them].
   const NAMED = [
@@ -216,10 +218,10 @@ export default async function ({ db, as, check, refused }) {
   const REQ = "e1000000-0000-0000-0000-000000000003";
   const seedErrors = [];
   await db.exec("set session_replication_role = replica");
-  for (const [table, col] of ABOUT) {
+  for (const [table, col, extra] of ABOUT) {
     for (const who of [M("a1"), M("b1")]) {
       try {
-        await seed(table, { [col]: who });
+        await seed(table, { ...extra, [col]: who });
       } catch (e) {
         seedErrors.push(`${table}.${col}: ${e.message}`);
       }
