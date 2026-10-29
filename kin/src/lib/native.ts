@@ -15,6 +15,9 @@ export type AlarmStatus = {
   engine: "alarmkit" | "notifications" | "android";
   authorization: AlarmAuthorization;
   scheduled: number;
+  /** Android 14 and later only: false when the phone (or Google Play) took
+   * away the full screen, so alarms and calls ring as heads-up notifications. */
+  fullScreen?: boolean;
 };
 
 type KinAlarmsPlugin = {
