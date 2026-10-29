@@ -481,13 +481,13 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "ai"
             ],
-            "what": "A short summary of a busy chat's unread messages, shown once and not saved.",
+            "what": "A short summary of a busy chat's unread messages, shown once and not saved. Quick look, free on every plan and without Kin AI, lists who wrote how much, the questions, and where you were named.",
             "how": "Open a chat with many unread messages and tap the summary offer at the top.",
             "pros": [
               "Catch up on 80 messages in one paragraph."
             ],
             "cons": [
-              "Uses Kin AI (5 a month free, unlimited on Plus)."
+              "The written summary uses Kin AI (Kin Plus); Quick look is free but only lists, it doesn't summarise."
             ],
             "tips": []
           },

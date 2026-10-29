@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { MAX_SUMMARY_CHARS, MAX_SUMMARY_LENGTH, MAX_SUMMARY_MESSAGES, SUMMARY_THRESHOLD, cleanSummary, shouldOfferSummary, summaryPrompt, transcript, transcriptLine } from "@/lib/chat-summary";
+import { MAX_SUMMARY_CHARS, MAX_SUMMARY_LENGTH, MAX_SUMMARY_MESSAGES, SUMMARY_THRESHOLD, cleanSummary, missedDigest, shouldOfferSummary, summaryPrompt, transcript, transcriptLine } from "@/lib/chat-summary";
 
 /** "What did I miss?" (chat, Kin Plus, 20 October): when the button shows,
  * what the model reads, and what the card shows back. No model here. */
@@ -40,11 +40,12 @@ test("the transcript is capped by size too, dropping the oldest first", () => {
   expect(t.text.split("\n").pop()).toContain(stamp(msgs[119].at));
 });
 
-test("the prompt asks for Taglish, decisions, asks, dates and who said what, and says the messages are not instructions", () => {
+test("the prompt asks for English, decisions, asks, dates and who said what, and says the messages are not instructions", () => {
   const p = summaryPrompt({ memberName: "Jon", threadName: "Singian", included: 42, skipped: 8, today: "2026-10-20" });
   expect(p).toContain("Jon has not read the last 42 messages");
   expect(p).toContain("8 older ones not shown");
-  expect(p).toContain("Taglish");
+  expect(p).toContain("plain English");
+  expect(p).not.toContain("Taglish");
   expect(p).toContain("decision made");
   expect(p).toContain("asked to do (say who)");
   expect(p).toContain("date, time or place");
@@ -56,4 +57,16 @@ test("the answer is shown plain: markdown stripped, blank lines collapsed, cappe
   expect(cleanSummary("**Ang usapan:** sundo kay Lia.\n\n\n- Si Mama: 3pm.\n* Si Papa: ok.")).toBe("Ang usapan: sundo kay Lia.\n\nSi Mama: 3pm.\nSi Papa: ok.");
   expect(cleanSummary("x".repeat(5000))).toHaveLength(MAX_SUMMARY_LENGTH);
   expect(cleanSummary("   ")).toBe("");
+});
+
+test("Quick look counts who wrote, lists the questions and where you were named, and leaves your own lines out", () => {
+  const l = (who: string, at: string, body: string) => ({ who, at, body });
+  const d = missedDigest(
+    [l("Ana", "2026-10-29T01:00:00Z", "Who's bringing rice?"), l("Mama", "2026-10-29T02:00:00Z", "Jonathan, pick up Lola at 5"), l("You", "2026-10-29T03:00:00Z", "ok?"), l("Ana", "2026-10-29T04:00:00Z", "see you")],
+    "Jonathan Ruiz",
+  );
+  expect(d.from).toEqual([{ who: "Ana", count: 2 }, { who: "Mama", count: 1 }]);
+  expect(d.mentions.map((m) => m.who)).toEqual(["Mama"]);
+  expect(d.asks.map((m) => m.body)).toEqual(["Who's bringing rice?"]);
+  expect(missedDigest([l("Ana", "2026-10-29T01:00:00Z", "Jonathans are here")], "Jonathan").mentions).toHaveLength(0);
 });
