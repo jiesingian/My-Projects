@@ -25,6 +25,7 @@ export default function RefundsPage() {
       </ul>
 
       <h2>Refunds</h2>
+      <p>Kin Plus cannot be bought yet. When it can, these apply:</p>
       <ul>
         <li>
           <strong>Charged by mistake, or charged twice:</strong> refunded in full.
@@ -45,7 +46,7 @@ export default function RefundsPage() {
       </ul>
 
       <h2>How to ask</h2>
-      <p>Write to the email below with the household&rsquo;s name and the date of the payment. We reply within 3 working days.</p>
+      <p>Write to the email below with the household&rsquo;s name and the date of the payment. We reply within 3 working days. If we cannot agree, you can go to the Department of Trade and Industry.</p>
       <p>
         See also the <Link href="/legal/terms">terms</Link> and the <Link href="/legal/privacy">privacy notice</Link>.
       </p>
