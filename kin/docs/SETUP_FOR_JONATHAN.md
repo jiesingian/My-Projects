@@ -501,10 +501,10 @@ and make another. Nothing here changes the web app or the iPhone app.
    press **Generate new private key** → Generate key. A `.json` file
    downloads. In
    [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
-   add, for Production and Preview: `FCM_PROJECT_ID` (the file's
-   `project_id`), `FCM_CLIENT_EMAIL` (its `client_email`) and
-   `FCM_PRIVATE_KEY` (its `private_key`, the whole value between the quotes,
-   `\n`s included). Then redeploy from the three-dot menu on the newest
+   add one variable, for Production and Preview: `FCM_SERVICE_ACCOUNT_JSON`,
+   the whole file pasted as it is (easiest from a phone). The three separate
+   keys `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL` and `FCM_PRIVATE_KEY` taken from
+   it work too. Then redeploy from the three-dot menu on the newest
    deployment at [Deployments](https://vercel.com/jisingian/kin-family-app/deployments).
    Then delete the downloaded file. Until these exist, Android phones are
    skipped and everything else runs as before.
