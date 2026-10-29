@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import { missedDigestAction, summariseThreadAction } from "@/lib/actions/chat-summary";
+import { KinAiAsk, isKinAiAsk } from "@/components/kin-ai-ask";
 import type { MissedDigest } from "@/lib/chat-summary";
 
 /** "What did I miss?" (Kin Plus, 20 October; Quick look for every plan,
@@ -80,10 +81,14 @@ export function MissedSummary({ thread, since, count, threadName, peerName, plus
           ) : !ready ? (
             <p className="kin-missed-note">Kin AI isn&apos;t switched on yet; Quick look works without it.</p>
           ) : null}
-          {error && (
-            <p role="alert" className="kin-missed-note" style={{ color: "var(--color-accent-700)" }}>
-              {error}
-            </p>
+          {isKinAiAsk(error) ? (
+            <KinAiAsk onDone={() => setError(null)} />
+          ) : (
+            error && (
+              <p role="alert" className="kin-missed-note" style={{ color: "var(--color-accent-700)" }}>
+                {error}
+              </p>
+            )
           )}
         </>
       )}

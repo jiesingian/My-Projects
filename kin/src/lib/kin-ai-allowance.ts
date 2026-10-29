@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { FREE_AI_PER_MONTH } from "@/lib/access";
 import { reportError } from "@/lib/report-error";
+import { KIN_AI_ASK } from "@/lib/kin-ai";
 
 /** Takes one Kin AI use -- a question to the assistant or a flyer scan --
  * from the household's month. Kin Plus has no monthly limit; Kin Free gets
@@ -13,6 +14,13 @@ import { reportError } from "@/lib/report-error";
  * because our bookkeeping hiccupped, and the cost of one uncounted question
  * is a few pesos. */
 export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<{ ok: true; left: number | null } | { ok: false; error: string }> {
+  // This person's yes comes first, before a use is counted (Jonathan, 29
+  // October; App Review 5.1.2(i)). Unlike the counter below it fails closed:
+  // if it cannot be read, nothing goes to Anthropic.
+  const { data: allowed, error: askError } = await supabase.rpc("kin_ai_ok");
+  if (askError) reportError("kin_ai_ok failed; asking before Kin AI", askError);
+  if (allowed !== true) return { ok: false, error: KIN_AI_ASK };
+
   const { data, error } = await supabase.rpc("use_kin_ai");
   if (error) {
     reportError("use_kin_ai failed; letting this use through uncounted", error);

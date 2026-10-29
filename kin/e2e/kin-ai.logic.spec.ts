@@ -43,7 +43,7 @@ test("an answer that starts with a thinking block is read by type, not position"
 
 test("the off and privacy lines say what Jonathan asked for", () => {
   expect(KIN_AI_OFF).toContain("Kin AI isn't switched on yet");
-  expect(KIN_AI_PRIVACY).toContain("never used to train AI");
+  expect(KIN_AI_PRIVACY).toContain("Anthropic does not train on it");
 });
 
 test("only the text blocks of an answer are read", () => {
