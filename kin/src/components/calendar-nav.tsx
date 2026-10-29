@@ -172,6 +172,7 @@ export function CalendarJump({
               </button>
               <button
                 type="button"
+                className="kin-tap"
                 onClick={() => setPicking((p) => (p === "days" ? "months" : "days"))}
                 aria-label={picking === "days" ? "Pick a month" : "Back to the days"}
                 style={{

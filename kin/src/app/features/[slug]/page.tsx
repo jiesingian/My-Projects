@@ -72,7 +72,7 @@ export default async function FeaturePage({ params }: { params: Promise<{ slug: 
           </li>
         ))}
       </ul>
-      <p className="kin-feature-note">Screens from Kin’s sample household. Your family’s records are private to your family: each household is walled off from every other, nothing is sold, and your records never train AI.</p>
+      <p className="kin-feature-note">Screens from Kin’s sample household. Your family’s records are private to your family: each household is walled off from every other, nothing is sold, and Kin AI’s provider does not train on your records.</p>
 
       <h2>Free or Plus?</h2>
       <p className="kin-feature-plan" data-plan={page.plan}>
@@ -91,7 +91,7 @@ export default async function FeaturePage({ params }: { params: Promise<{ slug: 
 
       <div className="kin-feature-end">
         <h2>Start with Kin</h2>
-        <p>Take the one-minute family check-up, then set up your family. Everything is on your phone, private to your household.</p>
+        <p>Take the one-minute family check-up, then set up your family. Everything stays private to your household.</p>
         <p>
           <Link href="/" className="btn btn-primary kin-feature-cta">
             Start with Kin

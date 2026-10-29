@@ -6,6 +6,7 @@ import { ServiceWorker } from "@/components/service-worker";
 import { ErrorReporter } from "@/components/error-reporter";
 import { paletteById } from "@/lib/palettes";
 import { SITE_URL } from "@/lib/site";
+import { inIosApp } from "@/lib/ios-app";
 
 export const metadata: Metadata = {
   // Absolute URLs for Open Graph and the sitemap (lib/site.ts); the public
@@ -79,8 +80,11 @@ export default async function RootLayout({
   const darkOnly = paletteById(cookieStore.get("kin-palette")?.value).darkOnly;
   const dataTheme = darkOnly ? "dark" : theme === "light" || theme === "dark" ? theme : undefined;
 
+  // Inside the iPhone app: no purchase links (lib/ios-app.ts).
+  const iosApp = await inIosApp();
+
   return (
-    <html lang="en" data-theme={dataTheme}>
+    <html lang="en" data-theme={dataTheme} data-ios-app={iosApp ? "" : undefined}>
       <body>
         {children}
         <ServiceWorker />

@@ -73,7 +73,10 @@ export function MissedSummary({ thread, since, count, threadName, peerName, plus
           </div>
           {!plus ? (
             <p className="kin-missed-note">
-              Quick look is free: who wrote, the questions, and where you were named. A written catch-up by Kin AI is part of <b>Kin Plus</b>. <Link href="/subscribe">See plans</Link>
+              Quick look is free: who wrote, the questions, and where you were named. A written catch-up by Kin AI is part of <b>Kin Plus</b>.{" "}
+              <Link href="/subscribe" className="kin-web-only">
+                See plans
+              </Link>
             </p>
           ) : !ready ? (
             <p className="kin-missed-note">Kin AI isn&apos;t switched on yet; Quick look works without it.</p>

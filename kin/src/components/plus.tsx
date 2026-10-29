@@ -17,7 +17,8 @@ export function PlusNote({ area, detail }: { area: string; detail?: string }) {
       <p>
         <strong>{area} is part of Kin Plus.</strong> {detail ?? "Everything already here is still yours to open, change or delete. Adding something new needs Plus."}
       </p>
-      <Link href="/subscribe" className="btn btn-secondary kin-plus-cta">
+      {/* No link to the plans inside the iPhone app (lib/ios-app.ts). */}
+      <Link href="/subscribe" className="btn btn-secondary kin-plus-cta kin-web-only">
         See plans
       </Link>
     </aside>
@@ -28,16 +29,27 @@ export function PlusNote({ area, detail }: { area: string; detail?: string }) {
  * same days the organizer is pushed about it (due_trial_reminders). */
 export function TrialBanner({ daysLeft, isOrganiser }: { daysLeft: number; isOrganiser: boolean }) {
   const when = daysLeft <= 1 ? "Today is the last day" : `${daysLeft} days left`;
+  const text = (
+    <p>
+      <strong>{when} of your Kin Plus trial.</strong>{" "}
+      {isOrganiser
+        ? "After that the household moves to Kin Free: calendar, lists and chat stay free for good."
+        : "After that the household moves to Kin Free."}
+      {!isOrganiser && <span className="kin-web-only"> The organizer can keep Plus.</span>}
+    </p>
+  );
   return (
-    <Link href="/subscribe" className="kin-plus-note kin-plus-trial" aria-label={`Kin Plus trial: ${when}. See plans.`}>
-      <span className="kin-plus-badge">PLUS</span>
-      <p>
-        <strong>{when} of your Kin Plus trial.</strong>{" "}
-        {isOrganiser
-          ? "After that the household moves to Kin Free: calendar, lists and chat stay free for good."
-          : "After that the household moves to Kin Free. The organizer can keep Plus."}
-      </p>
-      <Icon name="chevronLeft" size="0.9375rem" className="kin-plus-chev" />
-    </Link>
+    <>
+      <Link href="/subscribe" className="kin-plus-note kin-plus-trial kin-web-only" aria-label={`Kin Plus trial: ${when}. See plans.`}>
+        <span className="kin-plus-badge">PLUS</span>
+        {text}
+        <Icon name="chevronLeft" size="0.9375rem" className="kin-plus-chev" />
+      </Link>
+      {/* The iPhone app: the same news, not a link to the plans (lib/ios-app.ts). */}
+      <aside className="kin-plus-note kin-plus-trial kin-ios-only" aria-label="Kin Plus trial">
+        <span className="kin-plus-badge">PLUS</span>
+        {text}
+      </aside>
+    </>
   );
 }

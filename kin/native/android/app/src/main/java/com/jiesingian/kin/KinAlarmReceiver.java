@@ -42,7 +42,7 @@ public class KinAlarmReceiver extends BroadcastReceiver {
         PendingIntent full = PendingIntent.getActivity(context, code, ring, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent open = PendingIntent.getActivity(context, code + 1, KinAlarms.openIntent(context, url), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification n = new NotificationCompat.Builder(context, KinAlarms.CHANNEL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_kin)
             .setContentTitle(title == null ? "Kin" : title)
             .setContentText(body == null ? "" : body)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

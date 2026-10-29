@@ -15,7 +15,7 @@ export function ForgotPasswordForm() {
   return (
     <OnboardingShell backHref="/login">
       <Wordmark />
-      <h2 style={{ fontSize: "2rem", margin: "24px 0 6px" }}>Forgot your password</h2>
+      <h1 style={{ fontSize: "2rem", margin: "24px 0 6px" }}>Forgot your password</h1>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
         Tell us the email you sign in with and we&apos;ll send a code to set a new password.
       </p>

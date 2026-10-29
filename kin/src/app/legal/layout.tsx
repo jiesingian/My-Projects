@@ -18,6 +18,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/privacy">Privacy</Link>
         <Link href="/legal/terms">Terms</Link>
         <Link href="/legal/refunds">Refunds</Link>
+        <Link href="/legal/support">Support</Link>
       </nav>
       <div className="kin-legal-back">
         <LegalBack />

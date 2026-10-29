@@ -57,9 +57,15 @@ export function AmountInput({
           setDisplay(next);
           onValueChange?.(Number(amountValue(next)) || 0);
           // React puts the caret at the end when a controlled value changes
-          // length; put it back where the person was typing.
+          // length; put it back where the person was typing. Not if, by the
+          // next frame, the field holds something else or a range is
+          // selected: a select-all to retype would otherwise collapse to this
+          // caret, and the new digits land beside the old ones ("850" then
+          // "900" became 850,900).
           requestAnimationFrame(() => {
-            if (document.activeElement === ref.current) ref.current?.setSelectionRange(caret, caret);
+            const el = ref.current;
+            if (!el || document.activeElement !== el || el.value !== next || el.selectionStart !== el.selectionEnd) return;
+            el.setSelectionRange(caret, caret);
           });
         }}
         onBlur={() => setDisplay((d) => finishAmountInput(d))}
