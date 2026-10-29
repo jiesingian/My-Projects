@@ -12,18 +12,19 @@ import { reportError } from "@/lib/report-error";
  * failure is logged: a family asking a question should not be refused
  * because our bookkeeping hiccupped, and the cost of one uncounted question
  * is a few pesos. */
-export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<{ ok: true; left: number | null } | { ok: false; error: string }> {
   const { data, error } = await supabase.rpc("use_kin_ai");
   if (error) {
     reportError("use_kin_ai failed; letting this use through uncounted", error);
-    return { ok: true };
+    return { ok: true, left: null };
   }
-  const result = data as { ok?: boolean } | null;
+  const result = data as { ok?: boolean; left?: number | null } | null;
   if (result?.ok === false) {
     return {
       ok: false,
       error: `Kin Free includes ${FREE_AI_PER_MONTH} Kin AI questions and flyer scans a month, and this month's are used. They come back on the 1st, or Kin Plus makes them unlimited — see Settings → Your plan.`,
     };
   }
-  return { ok: true };
+  // What is left after this one, for "N of 5 left" in Ask Kin; null on Plus.
+  return { ok: true, left: typeof result?.left === "number" ? result.left : null };
 }

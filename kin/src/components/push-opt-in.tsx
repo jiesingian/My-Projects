@@ -21,7 +21,32 @@ function keyBytes(b64: string): Uint8Array {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-type State = "unsupported" | "needs-install" | "not-set-up" | "off" | "on" | "blocked" | "app";
+export type PushState = "unsupported" | "needs-install" | "not-set-up" | "off" | "on" | "blocked" | "app";
+type State = PushState;
+
+/** Whether this device can hear from Kin, and if not, why. Settings ->
+ * Notifications shows it with its button; Today's PushNudge shows it only
+ * when something can be done about it. */
+export async function readPushState(): Promise<PushState> {
+  // The Kin iPhone app has its own notifications (components/native-push).
+  if (inNativeApp()) return "app";
+  if (!KEY) return "not-set-up";
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return ios && !standalone ? "needs-install" : "unsupported";
+  if (Notification.permission === "denied") return "blocked";
+  const reg = await navigator.serviceWorker.ready;
+  return (await reg.pushManager.getSubscription()) ? "on" : "off";
+}
+
+/** Switched off on purpose on this device (Settings' "Turn off"). */
+export function pushOptedOut(): boolean {
+  try {
+    return localStorage.getItem(OPTED_OUT) === "1";
+  } catch {
+    return false;
+  }
+}
 
 /** Notifications for this phone or browser. The switches below choose what;
  * this chooses whether this device hears about it at all. On an iPhone, web
@@ -43,17 +68,7 @@ export function PushOptIn() {
     });
 
   useEffect(() => {
-    (async () => {
-      // The Kin iPhone app has its own notifications (components/native-push).
-      if (inNativeApp()) return setState("app");
-      if (!KEY) return setState("not-set-up");
-      const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
-      const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return setState(ios && !standalone ? "needs-install" : "unsupported");
-      if (Notification.permission === "denied") return setState("blocked");
-      const reg = await navigator.serviceWorker.ready;
-      setState((await reg.pushManager.getSubscription()) ? "on" : "off");
-    })();
+    void readPushState().then(setState);
   }, []);
 
   const turnOn = () =>

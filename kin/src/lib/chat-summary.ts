@@ -1,6 +1,6 @@
 /** "What did I miss?" (chat, Kin Plus; Jonathan, 20 October). When a
  * conversation has about thirty or more unread messages, one tap gives a
- * short Taglish summary: decisions, asks, dates and places, who said what
+ * short summary in English: decisions, asks, dates and places, who said what
  * matters. It is never stored and shown once; the message count and the
  * privacy line are on the screen next to the button.
  *
@@ -57,9 +57,9 @@ export function transcript(messages: SummaryLine[], stamp: (iso: string) => stri
 export function summaryPrompt(opts: { memberName: string; threadName: string; included: number; skipped: number; today: string }): string {
   return `You are Kin, a family app's assistant. ${opts.memberName} has not read the last ${opts.included} messages in "${opts.threadName}"${opts.skipped > 0 ? ` (and ${opts.skipped} older ones not shown here)` : ""}. Today is ${opts.today}. The messages follow, oldest first, each as [time] Name: text. "You" is ${opts.memberName}.
 
-Write what ${opts.memberName} missed, in Taglish -- Tagalog and English mixed the way a Filipino family texts, short and warm, no preamble:
+Write what ${opts.memberName} missed, in plain English, short and warm, no preamble. Always English, whatever language the messages are in:
 - Start with one line on what the conversation was mostly about.
-- Then at most 6 short lines, each one thing that matters: a decision made, something someone is asked to do (say who), a date, time or place agreed, a question still open. Name who said it when it matters ("Si Mama: ...").
+- Then at most 6 short lines, each one thing that matters: a decision made, something someone is asked to do (say who), a date, time or place agreed, a question still open. Name who said it when it matters ("Mama: ...").
 - Leave out greetings, stickers, reactions and small talk. Do not invent anything that is not in the messages; if nothing much happened, say so in one line.
 - Keep it under 120 words. Plain lines, no headings, no markdown.
 
@@ -75,4 +75,25 @@ export function cleanSummary(text: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim()
     .slice(0, MAX_SUMMARY_LENGTH);
+}
+
+/** The free catch-up (29 October), for every plan and with no Kin AI: who
+ * wrote how much, the questions still waiting, and where you were named.
+ * Read from the same unread messages the AI summary reads; nothing leaves
+ * the household's records. Newest of each kind first, a few of each. */
+export type MissedDigest = { from: { who: string; count: number }[]; asks: SummaryLine[]; mentions: SummaryLine[] };
+export const DIGEST_LINES = 4;
+
+export function missedDigest(lines: SummaryLine[], memberName: string): MissedDigest {
+  const theirs = lines.filter((l) => l.who !== "You").sort((a, b) => (a.at < b.at ? 1 : -1));
+  const counts = new Map<string, number>();
+  for (const l of theirs) counts.set(l.who, (counts.get(l.who) ?? 0) + 1);
+  const from = [...counts].map(([who, count]) => ({ who, count })).sort((a, b) => b.count - a.count || a.who.localeCompare(b.who));
+  const text = (l: SummaryLine) => (mediaSummary(l.body) ?? l.body).replace(/\s+/g, " ").trim();
+  const short = (t: string) => (t.length > 140 ? `${t.slice(0, 139)}…` : t);
+  const first = memberName.trim().split(" ")[0];
+  const named = first.length >= 2 ? new RegExp(`(^|[^\\p{L}])${first.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu") : null;
+  const mentions = named ? theirs.filter((l) => named.test(text(l))).slice(0, DIGEST_LINES) : [];
+  const asks = theirs.filter((l) => text(l).includes("?") && !mentions.includes(l)).slice(0, DIGEST_LINES);
+  return { from, asks: asks.map((l) => ({ ...l, body: short(text(l)) })), mentions: mentions.map((l) => ({ ...l, body: short(text(l)) })) };
 }
