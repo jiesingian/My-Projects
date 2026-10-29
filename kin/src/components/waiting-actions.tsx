@@ -16,3 +16,4 @@ export const AddRunningCostControl = dynamic(() => load().then((m) => m.AddRunni
 export const EditSavingsGoalButton = dynamic(() => load().then((m) => m.EditSavingsGoalButton));
 export const FundPaidControl = dynamic(() => load().then((m) => m.FundPaidControl));
 export const LoanAssetPicker = dynamic(() => import("@/components/loan-asset-picker").then((m) => m.LoanAssetPicker));
+export const WealthGoalButton = dynamic(() => import("@/components/wealth-goal-button").then((m) => m.WealthGoalButton));

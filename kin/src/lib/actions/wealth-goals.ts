@@ -6,7 +6,9 @@ import { requireCurrentMember } from "@/lib/session";
 import { databaseError } from "@/lib/report-error";
 import { isGrownUp } from "@/lib/roles";
 import { setSpendingBudgetAction } from "@/lib/actions/wealth";
-import { isTracks, type Tracks } from "@/lib/wealth-goals";
+import { EXTRA_PREFIX, isTracks, milestoneOf, type Tracks } from "@/lib/wealth-goals";
+import { getTrackedGoals } from "@/lib/queries/wealth-goals";
+import { GOAL_CATEGORY } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 
 const clamp = (s: string, n: number) => s.trim().slice(0, n);
@@ -138,6 +140,10 @@ export async function makeWealthGoalAction(input: WealthGoalInput): Promise<Acti
   // set: one number in both places. Where it isn't, the goal keeps its own.
   if (input.tracks === "expense") await setSpendingBudgetAction({ whose: owner ?? "family", category: category!, amount });
 
+  // Already some way along when set: only the steps ahead are celebrated.
+  const t = [...(await getTrackedGoals(me.family_id, me.families.currency)).values()].find((x) => x.id === goal.id);
+  if (t && (input.tracks === "account" || input.tracks === "loan" || input.tracks === "asset")) await supabase.from("planner_goals").update({ milestone: milestoneOf(t.fraction, t.reached) }).eq("id", goal.id);
+
   revalidateGoals();
   return { error: null, goalId: goal.id };
 }
@@ -154,9 +160,13 @@ export async function updateWealthGoalAction(goalId: string, input: { amount: nu
   if (g.tracks === "loan" && !dueDate) return { error: "Choose the date to get there by." };
   const target = g.tracks === "loan" ? Math.round((Number(g.start_value) - amount) * 100) / 100 : amount;
   if (!(target > 0)) return { error: "It already owes that or less." };
+  // Its milestones start again from where the new number puts it: the next
+  // step is celebrated, the ones already behind it aren't sent again.
+  const t = [...(await getTrackedGoals(me.family_id, me.families.currency)).values()].find((x) => x.id === g.id);
+  const milestone = t ? milestoneOf(t.current / target, t.current >= target) : 0;
   const { error } = await supabase
     .from("planner_goals")
-    .update({ target, due_date: dueDate, ...(g.tracks === "income" ? { watch_on_time: !!input.watchOnTime } : {}) })
+    .update({ target, due_date: dueDate, milestone, ...(g.tracks === "income" ? { watch_on_time: !!input.watchOnTime } : {}) })
     .eq("id", g.id);
   if (error) return { error: databaseError(error) };
   if (g.savings_goal_id) await supabase.from("goals").update({ target_amount: amount, target_date: dueDate }).eq("id", g.savings_goal_id);
@@ -174,5 +184,50 @@ export async function stopWealthGoalAction(goalId: string): Promise<ActionState>
   if (error) return { error: /goal_promised/.test(error.message) ? "You promised a reward on this goal, so it stays until the reward is given." : databaseError(error) };
   if (count === 0) return { error: "That goal is no longer here." };
   revalidateGoals();
+  return { error: null };
+}
+
+/** Auto-save (Jonathan, 29 October): the monthly amount a goal needs, as a
+ * monthly bill on Today -- into a house or car's fund (a bill for the goal,
+ * which puts the money in when paid), or extra on a loan (a bill for the
+ * loan, which pays it down). Its first one on the day given: payday, as
+ * suggested. One per goal; a second replaces the amount of the first. */
+export async function autoSaveWealthGoalAction(goalId: string, input: { amount: number; accountId: string; firstDate: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const amount = Math.round(Number(input.amount) * 100) / 100;
+  if (!(amount > 0 && amount <= 1_000_000_000)) return { error: "Enter an amount above zero." };
+  if (!DAY.test(input.firstDate)) return { error: "Choose the day of the first one." };
+  const supabase = await createClient();
+  const [{ data: g }, { data: account }] = await Promise.all([
+    supabase.from("planner_goals").select("id, title, tracks, tracks_id, savings_goal_id, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("accounts").select("id").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
+  ]);
+  if (!g || !isTracks(g.tracks)) return { error: "That goal is gone." };
+  if (!account) return { error: "Choose the account it comes out of." };
+  const target = g.tracks === "asset" && g.savings_goal_id ? { table: "goals" as const, id: g.savings_goal_id } : g.tracks === "loan" && g.tracks_id ? { table: "liabilities" as const, id: g.tracks_id } : null;
+  if (!target) return { error: "Auto-save is for a fund or a loan." };
+  const { data: loan } = target.table === "liabilities" ? await supabase.from("liabilities").select("name").eq("id", target.id).maybeSingle() : { data: null };
+  const name = target.table === "goals" ? `Save for ${g.title}` : `${EXTRA_PREFIX}${loan?.name ?? g.title}`;
+  const owner = g.owner_member_id === null ? { is_joint: true, owner_member_id: null } : { is_joint: false, owner_member_id: g.owner_member_id };
+
+  // One a goal: an open one already there takes the new amount, account and
+  // day instead of a second being added.
+  const { data: open } = await supabase
+    .from("bills")
+    .select("id")
+    .eq("family_id", me.family_id)
+    .eq("recurrence", "monthly")
+    .eq("against_table", target.table)
+    .eq("against_id", target.id)
+    .in("status", ["unpaid", "overdue"])
+    .eq("name", name)
+    .limit(1);
+  const row = { name, amount, account_id: account.id, due_date: input.firstDate, category: target.table === "goals" ? GOAL_CATEGORY : "Debt", recurrence: "monthly", against_table: target.table, against_id: target.id, ...owner };
+  const { error } = open?.[0]
+    ? await supabase.from("bills").update(row).eq("id", open[0].id)
+    : await supabase.from("bills").insert({ ...row, family_id: me.family_id, status: "unpaid", created_by: me.id });
+  if (error) return { error: databaseError(error) };
+  revalidateGoals();
+  revalidatePath("/today");
   return { error: null };
 }
