@@ -1602,3 +1602,17 @@ export function depositProgress(contributors: { memberId: string; accountId: str
   }
   return { done, waiting };
 }
+
+/** A loan's flags (29 October): its balance off its terms, a fixed rate
+ * ending within a month or ended, and insurance nothing pays yet. */
+export function loanFlags(loan: LoanTerms, today: string, fmtDate: (d: string) => string, insuranceNeeded: boolean): string[] {
+  if (!(Number(loan.balance) > 0)) return [];
+  const flags: string[] = [];
+  const origin = loanOriginStatus(loan, today);
+  if (origin && !origin.matches) flags.push("balance differs from its terms");
+  const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
+  if (fixedDays != null && fixedDays < 0) flags.push("fixed rate ended: set the new rate");
+  else if (fixedDays != null && fixedDays <= 31) flags.push(`fixed rate ends ${fmtDate(loan.rate_fixed_until!)}`);
+  if (insuranceNeeded) flags.push("yearly insurance to set aside for");
+  return flags;
+}
