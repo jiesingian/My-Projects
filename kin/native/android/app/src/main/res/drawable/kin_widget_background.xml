@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kin's widgets: a plain card, light or dark with the phone. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/kin_widget_background" />
+    <corners android:radius="20dp" />
+</shape>

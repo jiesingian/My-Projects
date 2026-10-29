@@ -30,7 +30,8 @@ import java.util.Map;
  * - an SOS: on its own urgent channel, through Do Not Disturb.
  * - everything else: an ordinary notification that opens its page.
  * - `sync: alarms`, silent: the alarms are fetched and set again
- *   (KinAlarmSync), so a phone Kin isn't opened on never runs out.
+ *   (KinAlarmSync), so a phone Kin isn't opened on never runs out, and
+ *   the widgets are read again (KinWidgets).
  * Off until Kin has a Firebase project (google-services.json; SETUP).
  */
 public class KinMessagingService extends FirebaseMessagingService {
@@ -41,9 +42,11 @@ public class KinMessagingService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         Map<String, String> d = message.getData();
-        // The daily alarm re-sync (KinAlarmSync): nothing is shown.
-        if ("alarms".equals(d.get("sync"))) KinAlarmSync.run(this);
-        else if ("ring".equals(d.get("kind"))) ring(this, d);
+        // The daily alarm re-sync (KinAlarmSync) and the widgets: nothing is shown.
+        if ("alarms".equals(d.get("sync"))) {
+            KinAlarmSync.run(this);
+            KinWidgets.refresh(this, false);
+        } else if ("ring".equals(d.get("kind"))) ring(this, d);
         else notify(this, d);
     }
 
