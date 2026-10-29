@@ -1073,6 +1073,10 @@ function ActualRow({
   const [asking, setAsking] = useState<{ unitPrice: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Its own, so the question is answerable at once: saving the figure stays
+  // pending while the list refreshes behind it, which greyed out both buttons
+  // and showed "…" on one nobody had pressed (29 October, the QA run).
+  const [updating, startUpdate] = useTransition();
   const router = useRouter();
   const amount = parseAmount(value);
   const budget = lineBudget(line);
@@ -1094,7 +1098,7 @@ function ActualRow({
   }
 
   function updateBook(unitPrice: number) {
-    startTransition(async () => {
+    startUpdate(async () => {
       const r = await setItemPriceAction({ name: item.name, unitPrice, unit, section: item.section });
       if (r.error) return setError(r.error);
       onClose();
@@ -1113,10 +1117,10 @@ function ActualRow({
             : `Save ${formatCurrency(asking.unitPrice, currency)} per ${unit} as the usual price of ${item.name}?`}
         </span>
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={() => updateBook(asking.unitPrice)}>
-            {pending ? "…" : "Update price book"}
+          <button type="button" className="btn btn-primary" disabled={updating} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={() => updateBook(asking.unitPrice)}>
+            {updating ? "…" : "Update price book"}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={onClose}>
+          <button type="button" className="btn btn-secondary" disabled={updating} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} onClick={onClose}>
             Just this time
           </button>
         </div>
