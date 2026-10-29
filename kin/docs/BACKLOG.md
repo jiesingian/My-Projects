@@ -116,9 +116,17 @@ link for every step:
   `KinAlarmSync` sets the alarms again (`20261030153700`). After an
   update or a restart, `KinAlarmReceiver` sets them again
   (`MY_PACKAGE_REPLACED`, `BOOT_COMPLETED`).
+- **Home Screen widgets on Android** (29 October), the iPhone's twin:
+  "Today" (next dose and next plan) and "To-Buy" (the count), same
+  wording. The app reads `api/widget` with the web view's cookies
+  (`KinSession`, shared with `KinAlarmSync`) when Kin opens and goes to
+  the background, on the silent `sync: alarms` message, and every 30
+  minutes (the widgets' update period, Android's least), and keeps it in
+  its own SharedPreferences (`KinWidgets`). The widget steps on to the
+  next dose or plan by itself; signed out, it is emptied. A tap opens the
+  live page. No Play declaration needed.
 
 **Left, and why:**
-- **Android widgets:** not small, and not needed for Play.
 - **Screenshots:** a session can take them once dev answers. On 29
   October dev's Auth was timing out.
 
@@ -202,9 +210,10 @@ Built without the account, as a series in one session:
      `https://fcm.googleapis.com/kin-android/<token>`, p256dh `kin-native`,
      auth `fcm`. Off until the free Firebase project exists (SETUP section
      10: `GOOGLE_SERVICES_JSON` for the build, `FCM_*` in Vercel).
-   - Not done for Android: the widgets. The silent daily re-sync reaches
-     Android since 29 October (`20261030153700`, `KinAlarmSync`; "Kin on
-     Google Play" above).
+   - Widgets on Android too since 29 October (`KinWidgets`: "Today" and
+     "To-Buy", as the iPhone's), and the silent daily re-sync
+     (`20261030153700`, `KinAlarmSync`; both in "Kin on Google Play"
+     above).
 7. **Ready for the App Store** (29 October, #1135, #1140, #1144 and the
    walkthrough PR). Checked against Apple's current guidelines:
    - privacy manifests for the app and the widgets, no export question
@@ -2798,6 +2807,19 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
      and then share it.
   10. **Icons.** The launcher icon is Kin's house on any launcher shape,
       and the status bar shows a white house.
+  11. **Widgets.** Before opening Kin, add "Today" and "To-Buy" (long-press
+      the Home Screen → Widgets → Kin): they should say "Open Kin once to
+      fill this in." and "–". Then:
+      - open Kin: both fill in, with your next dose and plan and the
+        To-Buy count;
+      - tick that dose in Kin and go Home: it should be gone from the
+        widget;
+      - leave the phone until a dose's time: the widget shows it as late,
+        an hour later the next one, without opening Kin;
+      - tap the dose, the plan and the count: Kin opens on that page;
+      - add a To-Buy item on another phone: within about 30 minutes the
+        count goes up without opening Kin;
+      - sign out of Kin and go Home: both empty again.
 
 - **The Kin iPhone app (29 October), once it's on TestFlight (SETUP section
   9):**

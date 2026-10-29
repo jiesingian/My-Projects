@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kin's Home Screen widgets (KinWidgets): the iPhone widgets' wording
+     (ios/App/KinWidgets/KinWidgets.swift). English only. -->
+<resources>
+    <color name="kin_widget_background">#FFFFFFFF</color>
+    <color name="kin_widget_text">#FF1C1C1E</color>
+    <color name="kin_widget_secondary">#FF6E6E73</color>
+    <!-- The iPhone widgets' tint, rgb(0.84, 0.23, 0.33). -->
+    <color name="kin_widget_tint">#FFD63B54</color>
+
+    <string name="widget_today">Today</string>
+    <string name="widget_today_description">Your next dose and your next plan.</string>
+    <string name="widget_next_dose">Next dose</string>
+    <string name="widget_next_plan">Next plan</string>
+    <string name="widget_no_doses">No more doses today</string>
+    <string name="widget_no_plans">No more plans today</string>
+    <string name="widget_late">late</string>
+    <string name="widget_open_kin">Open Kin once to fill this in.</string>
+    <string name="widget_to_buy">To-Buy</string>
+    <string name="widget_to_buy_description">How many things are on the family\'s To-Buy list.</string>
+    <string name="widget_on_the_list">on the list</string>
+    <string name="widget_all_bought">All bought</string>
+
+    <!-- The widget picker's preview only, as the iPhone's placeholder. -->
+    <string name="widget_sample_dose">Losartan</string>
+    <string name="widget_sample_dose_detail">8:00 AM · 50mg</string>
+    <string name="widget_sample_plan">Sunday lunch</string>
+    <string name="widget_sample_plan_detail">12:00 PM</string>
+    <string name="widget_sample_count">4</string>
+</resources>

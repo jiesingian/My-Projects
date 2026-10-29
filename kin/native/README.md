@@ -75,15 +75,29 @@ internal testing (`scripts/play-upload.mjs`).
 - `KinAlarms.java`, `KinAlarmsPlugin.java`, `KinAlarmReceiver.java`,
   `KinAlarmActivity.java`: exact alarms that open full screen over the lock
   screen and ring on the alarm stream; set again after a restart.
+- `KinSession.java`: a request to Kin as the member with the web view's own
+  cookies (CookieManager), writing any refreshed cookie back (Supabase's
+  refresh token is single-use). No cookie at all counts as signed out.
 - `KinAlarmSync.java`: the daily re-sync, as on the iPhone. A silent Firebase
   data message `sync: alarms` (once a day, and after a change) has it fetch
-  `api/alarms` with the web view's session cookies and set them again.
+  `api/alarms` through `KinSession` and set them again.
+- `KinWidgets.java`, `KinTodayWidget.java`, `KinToBuyWidget.java`: the Home
+  Screen widgets, the iPhone's twin and wording: "Today" (next dose and next
+  plan) and "To-Buy" (the count), RemoteViews (`res/layout/kin_widget_*`).
+  The app reads `api/widget` when Kin opens and goes to the background
+  (`MainActivity`), on the silent `sync: alarms` message, and on the
+  widgets' 30-minute update period, and keeps the answer in its own
+  SharedPreferences; the widgets draw only from there. The day's other doses
+  and plans ride along, and an inexact alarm redraws Today when the next one
+  comes round. Signed out (401), the widgets empty. A tap opens Kin on the
+  item's page through `EXTRA_PATH`.
 - `KinMessagingService.java`, `KinPushPlugin.java`,
   `KinCallDeclineReceiver.java`: push through Firebase (`lib/fcm.ts`), a call
   as Android's full-screen incoming-call notification. Off until Kin has a
   Firebase project (`kin/docs/SETUP_FOR_JONATHAN.md`, section 10).
-- `MainActivity.java`: registers the plugins, and opens a page an alarm,
-  notification or answered call asks for.
+- `MainActivity.java`: registers the plugins, opens a page an alarm,
+  notification, answered call or widget asks for, and has the widgets read
+  again as Kin comes to the front and leaves it.
 - `store/`: what Google Play asks for, ready to paste:
   - `LISTING.md`: the listing text, the content rating and app access;
   - `DATA_SAFETY.md`: the Data safety answers;

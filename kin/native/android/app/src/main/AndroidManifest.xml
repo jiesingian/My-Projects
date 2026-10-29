@@ -52,6 +52,32 @@
         </service>
         <receiver android:name=".KinCallDeclineReceiver" android:exported="false" />
 
+        <!-- Home Screen widgets (KinWidgets): Today and To-Buy. Exported, as
+             Android's widget host sends their updates; they only draw what
+             the app stored. -->
+        <receiver
+            android:name=".KinTodayWidget"
+            android:exported="true"
+            android:label="@string/widget_today">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kin_widget_today" />
+        </receiver>
+        <receiver
+            android:name=".KinToBuyWidget"
+            android:exported="true"
+            android:label="@string/widget_to_buy">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kin_widget_to_buy" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

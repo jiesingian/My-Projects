@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="kin_widget_background">#FF1C1C1E</color>
+    <color name="kin_widget_text">#FFFFFFFF</color>
+    <color name="kin_widget_secondary">#FFAEAEB2</color>
+    <color name="kin_widget_tint">#FFFF6680</color>
+</resources>

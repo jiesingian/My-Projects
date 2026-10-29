@@ -5,9 +5,9 @@ import { reportError } from "@/lib/report-error";
 import { familyDay, FAMILY_TZ } from "@/lib/time";
 import { widgetSnapshot } from "@/lib/widget";
 
-/** What the Kin iPhone app's widgets show (lib/widget.ts): the rest of
+/** What the Kin iPhone and Android apps' widgets show (lib/widget.ts): the rest of
  * today's doses and plans, as Today lists them, and the To-Buy count. Asked
- * by the app with the member's own session (KinWidgetStore, kin/native), so
+ * by the app with the member's own session (KinWidgetStore, KinWidgets.java), so
  * everything is read through row-level security as them -- Today's own
  * queries, the same people and plans. Read-only; nothing is stored. */
 export async function GET() {

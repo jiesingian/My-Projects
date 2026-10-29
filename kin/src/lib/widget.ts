@@ -8,7 +8,8 @@ import type { TodayDose } from "@/lib/today-doses";
  * The app asks api/widget, as the member through row-level security, each
  * time Kin opens and when the silent alarm push wakes it (KinAlarmSync), and
  * leaves the answer in the App Group the widget reads (kin/native,
- * KinWidgetStore). A widget can't sign in, so it never asks the server
+ * KinWidgetStore). The Android app's widgets are the same two, from the same
+ * answer (KinWidgets.java, its own SharedPreferences). A widget can't sign in, so it never asks the server
  * itself. The rest of the day's doses and plans ride along, so the widget
  * steps on to the next one at its time without a new read; a tick in Kin is
  * shown at the next open or wake. Only what is harmless a little stale is

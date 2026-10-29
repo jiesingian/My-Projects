@@ -11,8 +11,8 @@ import com.getcapacitor.BridgeActivity;
  * Kin's Android app (kin/native/android): the live web app in Capacitor's
  * web view, with Kin's own native plugins -- real alarms (KinAlarmsPlugin)
  * and push (KinPushPlugin) -- which the page reaches as
- * Capacitor.Plugins.<name> (lib/native.ts). An alarm, a notification or an
- * answered call opens it on a page (EXTRA_PATH).
+ * Capacitor.Plugins.<name> (lib/native.ts). An alarm, a notification, an
+ * answered call or a widget opens it on a page (EXTRA_PATH).
  */
 public class MainActivity extends BridgeActivity {
     static final String SERVER = "https://kin-family-app.vercel.app";
@@ -30,6 +30,20 @@ public class MainActivity extends BridgeActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         openFrom(intent);
+    }
+
+    // The widgets (KinWidgets): read again each time Kin comes to the front,
+    // and as it leaves, so a dose just ticked is off the Home Screen.
+    @Override
+    public void onResume() {
+        super.onResume();
+        KinWidgets.refreshSoon(this);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        KinWidgets.refreshSoon(this);
     }
 
     private void openFrom(Intent intent) {
