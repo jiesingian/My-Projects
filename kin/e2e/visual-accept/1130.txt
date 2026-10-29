@@ -1,0 +1,4 @@
+planner-simple-on
+today-simple-off
+to-buy-simple-on
+wealth-simple-on

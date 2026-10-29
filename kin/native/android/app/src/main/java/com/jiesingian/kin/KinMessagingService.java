@@ -63,7 +63,7 @@ public class KinMessagingService extends FirebaseMessagingService {
         PendingIntent decline = PendingIntent.getBroadcast(context, code + 1, declineIntent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Person person = new Person.Builder().setName(caller).setImportant(true).build();
         Notification n = new NotificationCompat.Builder(context, CALLS)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_kin)
             .setContentTitle(caller)
             .setContentText("true".equals(d.get("video")) ? "Kin video call" : "Kin call")
             .setCategory(NotificationCompat.CATEGORY_CALL)
@@ -86,7 +86,7 @@ public class KinMessagingService extends FirebaseMessagingService {
         int code = tag.hashCode();
         PendingIntent open = PendingIntent.getActivity(context, code, KinAlarms.openIntent(context, d.get("url")), PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification n = new NotificationCompat.Builder(context, urgent ? URGENT : GENERAL)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_kin)
             .setContentTitle(d.get("title") == null ? "Kin" : d.get("title"))
             .setContentText(d.get("body") == null ? "" : d.get("body"))
             .setStyle(new NotificationCompat.BigTextStyle().bigText(d.get("body") == null ? "" : d.get("body")))
