@@ -557,16 +557,15 @@ on dev (#701).
   refusalMessage both run; an expired login and PGRST116 count as
   defects. Read the first Friday's "Errors this week" with that in mind.
 
-**Proposals, for Jonathan and Janine to decide (nothing changed):**
-- **Simple Kin's own 44px for every control.** The segmented controls,
-  the Planner's month button, Wealth's Income/Expenses headers and
-  Journal's share chips are 26–40px tall with Simple Kin on. WCAG's 24px is met, so this is Simple Kin's
-  promise, not a failure. The proposal: `min-height: 44px` on those
-  under `.kin-simple`, which makes those rows taller.
-- **The Notes board's arrows go note to note.** ↑/↓ (#864) step through
-  each note's two buttons (Edit, Delete), so a board of ten notes is
-  twenty presses. The proposal: arrows move between notes, Tab reaches a
-  note's buttons.
+**Proposals, decided 29 October:**
+- **Done (29 October, Jonathan: yes to both): Simple Kin's own 44px for
+  every control.** `min-height: 44px` under `.kin-simple` on the segmented
+  controls, the Planner's month button, Wealth's Income/Expenses folds and
+  Journal's share chips (`.kin-tap` marks a control sized inline). Simple
+  Kin only; those rows are a little taller there.
+- **Done (29 October): the Notes board's arrows go note to note.** Each
+  note is a stop of its own (`data-kin-arrow-item`, keyboard-shortcuts.tsx),
+  so ↑/↓ move between notes and Tab reaches a note's Edit and Delete.
 
 ## Final design check, 22 October (Jonathan: approved, decide and explain)
 

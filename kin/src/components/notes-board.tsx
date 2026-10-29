@@ -95,7 +95,7 @@ export function NotesBoard({ notes, startWriting, tz }: { notes: Note[]; startWr
       ) : (
         <ul data-kin-arrows="list" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.625rem" }}>
           {shown.map((n) => (
-            <li key={n.id} style={{ padding: "0.75rem 0.875rem", background: "var(--color-surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--radius-card)" }}>
+            <li key={n.id} data-kin-arrow-item tabIndex={0} className="kin-note-card" style={{ padding: "0.75rem 0.875rem", background: "var(--color-surface)", boxShadow: "var(--shadow-sm)", borderRadius: "var(--radius-card)" }}>
               {editing?.id === n.id ? (
                 <>
                   <textarea
