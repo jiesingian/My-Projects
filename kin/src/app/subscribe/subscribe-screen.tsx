@@ -56,7 +56,7 @@ export function SubscribeScreen({
           <h3 id={`${uid}-free`}>
             Kin Free {plan === "free" && <span className="tag tag-accent">CURRENT</span>}
           </h3>
-          <p className="kin-plan-price">{iosApp ? "Free, for good" : "₱0, for good"}</p>
+          <p className="kin-plan-price">{iosApp ? "Free, no time limit" : "₱0, no time limit"}</p>
           <ul>
             {FREE_FEATURES.map((f) => (
               <li key={f}>
@@ -133,6 +133,12 @@ export function SubscribeScreen({
 
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.375rem", textAlign: "center" }}>
         <Link href="/today">Back to Kin</Link>
+      </p>
+      {/* The terms and refund policy beside the prices (Consumer Act; App
+          Review 3.1.2). Web only: in the iPhone app this screen shows no
+          prices, and the refund policy names other ways to pay (lib/ios-app.ts). */}
+      <p className="kin-web-only" style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.5rem", textAlign: "center" }}>
+        <Link href="/legal/terms">Terms</Link> · <Link href="/legal/refunds">Refunds</Link> · <Link href="/legal/privacy">Privacy</Link>
       </p>
     </OnboardingShell>
   );
