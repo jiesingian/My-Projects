@@ -219,9 +219,13 @@ function normalise(message: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/** Kin replies in English only (Jonathan, 28 October), whatever language the
+ * question is in. Filipino words are still understood (bukas, ulam,
+ * magkano...), so a question typed that way is answered, in English. */
 function detectLang(text: string): Lang {
-  const words = text.replace(/[^a-z0-9'\- ]/g, " ").split(/\s+/).filter(Boolean);
-  return words.some((w) => TAGALOG_MARKERS.includes(w)) ? "tl" : "en";
+  void text;
+  void TAGALOG_MARKERS;
+  return "en";
 }
 
 function query(message: string): Query {
@@ -442,10 +446,13 @@ const firstName = (full: string) => full.split(" ")[0];
 
 /* --------------------------------------------------------------- phrasing */
 
-type Say = (en: string, tl: string) => string;
+type Say = (en: string) => string;
 
+/** Kin replies in English only (Jonathan, 28 October). Every line goes
+ * through here, so a reply's wording has one place to change. */
 function pick(lang: Lang): Say {
-  return (en, tl) => (lang === "tl" ? tl : en);
+  void lang;
+  return (en) => en;
 }
 
 function money(amount: unknown, currency: string): string {
@@ -472,11 +479,11 @@ function distance(day: string, today: string, lang: Lang): string {
   const n = daysBetween(today, day);
   const t = pick(lang);
   if (n === null) return "";
-  if (n === 0) return t("today", "ngayon");
-  if (n === 1) return t("tomorrow", "bukas");
-  if (n === -1) return t("yesterday", "kahapon");
-  if (n > 0) return t(`in ${n} days`, `${n} days pa`);
-  return t(`${-n} days ago`, `${-n} days na`);
+  if (n === 0) return t("today");
+  if (n === 1) return t("tomorrow");
+  if (n === -1) return t("yesterday");
+  if (n > 0) return t(`in ${n} days`);
+  return t(`${-n} days ago`);
 }
 
 type Bill = { name: string; amount: number; due_date: string; status: string };
@@ -531,10 +538,10 @@ const billsOverdue: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const late = rows<Bill>(result, "unpaid_bills").filter((b) => b.due_date < ctx.today).sort((a, b) => a.due_date.localeCompare(b.due_date));
-      if (late.length === 0) return t("No overdue bills.", "Walang overdue na bill.");
-      const lines = late.map((b) => `${b.name} ${money(b.amount, ctx.currency)}, ${t("due", "due")} ${readableDay(b.due_date)} (${distance(b.due_date, ctx.today, q.lang)})`);
+      if (late.length === 0) return t("No overdue bills.");
+      const lines = late.map((b) => `${b.name} ${money(b.amount, ctx.currency)}, ${t("due")} ${readableDay(b.due_date)} (${distance(b.due_date, ctx.today, q.lang)})`);
       const total = late.reduce((s, b) => s + Number(b.amount), 0);
-      return t(`Overdue (${late.length}): ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`, `Overdue (${late.length}): ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`);
+      return t(`Overdue (${late.length}): ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`);
     },
   };
 };
@@ -554,14 +561,14 @@ function billDueMatch(name: string, lang: Lang, ctx: RuleContext, exact: string 
         .filter((b) => (exact ? b.name.toLowerCase() === exact.toLowerCase() : billMatches(b, name)))
         .sort((a, b) => a.due_date.localeCompare(b.due_date));
       if (bills.length === 0) {
-        return t(`No unpaid bill called "${name}" in Kin. Paid and other bills are under Wealth → Expenses.`, `Walang unpaid na bill na "${name}" sa Kin. Nasa Wealth → Expenses ang mga bayad na.`);
+        return t(`No unpaid bill called "${name}" in Kin. Paid and other bills are under Wealth → Expenses.`);
       }
       // Two different bills answer to the word ("Globe Fiber", "Globe
       // Postpaid"): ask which, rather than pick.
       const names = [...new Set(bills.map((b) => b.name))];
       if (names.length > 1 && !exact) {
         return {
-          ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`),
+          ask: t(`Which one: ${names.join(" or ")}?`),
           choices: names,
           pending: { rule: "bills.due_when", slots: { name }, lang, asked: 1 },
         };
@@ -571,7 +578,6 @@ function billDueMatch(name: string, lang: Lang, ctx: RuleContext, exact: string 
       const late = b.due_date < ctx.today;
       return t(
         `${b.name} (${money(b.amount, ctx.currency)}) ${late ? "was due" : "is due"} ${when}.`,
-        `${late ? "Due na ang" : "Due ang"} ${b.name} (${money(b.amount, ctx.currency)}) ${late ? "noong" : "sa"} ${when}.`,
       );
     },
   };
@@ -614,8 +620,8 @@ const billsOwed: Rule = (q, ctx) => {
       const bills = rows<Bill>(result, "unpaid_bills");
       const total = bills.reduce((s, b) => s + Number(b.amount), 0);
       const debts = Number(field(result, "liabilities_total")) || 0;
-      const billsLine = bills.length === 0 ? t("No unpaid bills", "Walang unpaid na bill") : t(`Unpaid bills: ${money(total, ctx.currency)} (${bills.length})`, `Unpaid bills: ${money(total, ctx.currency)} (${bills.length})`);
-      const debtLine = debts > 0 ? t(` Loans and other debts: ${money(debts, ctx.currency)}.`, ` Loans at ibang utang: ${money(debts, ctx.currency)}.`) : "";
+      const billsLine = bills.length === 0 ? t("No unpaid bills") : t(`Unpaid bills: ${money(total, ctx.currency)} (${bills.length})`);
+      const debtLine = debts > 0 ? t(` Loans and other debts: ${money(debts, ctx.currency)}.`) : "";
       return `${billsLine}.${debtLine}`;
     },
   };
@@ -638,11 +644,11 @@ const billsInRange: Rule = (q, ctx) => {
       say: (result) => {
         if (isError(result)) return result.error;
         const bills = rows<Bill>(result, "unpaid_bills").sort((a, b) => a.due_date.localeCompare(b.due_date));
-        if (bills.length === 0) return t("No unpaid bills.", "Walang unpaid na bill.");
+        if (bills.length === 0) return t("No unpaid bills.");
         const total = bills.reduce((s, b) => s + Number(b.amount), 0);
         const lines = bills.slice(0, 6).map((b) => `${b.name} ${money(b.amount, ctx.currency)} ${readableDay(b.due_date)}`);
         const more = bills.length > 6 ? ` +${bills.length - 6}` : "";
-        return t(`Unpaid (${bills.length}): ${lines.join("; ")}${more}. Total ${money(total, ctx.currency)}.`, `Unpaid (${bills.length}): ${lines.join("; ")}${more}. Total ${money(total, ctx.currency)}.`);
+        return t(`Unpaid (${bills.length}): ${lines.join("; ")}${more}. Total ${money(total, ctx.currency)}.`);
       },
     };
   }
@@ -655,11 +661,11 @@ const billsInRange: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const bills = rows<Bill>(result, "bills_due").filter((b) => b.status !== "paid").sort((a, b) => a.due_date.localeCompare(b.due_date));
       const label = q.lang === "tl" ? range.label.tl : range.label.en;
-      if (bills.length === 0) return t(`Nothing due ${label}.`, `Walang due ${label}.`);
+      if (bills.length === 0) return t(`Nothing due ${label}.`);
       const total = bills.reduce((s, b) => s + Number(b.amount), 0);
       const lines = bills.map((b) => (range.single ? `${b.name} ${money(b.amount, ctx.currency)}` : `${b.name} ${money(b.amount, ctx.currency)} ${readableDay(b.due_date)}`));
-      if (wantsTotal) return t(`Due ${label}: ${money(total, ctx.currency)} (${lines.join("; ")}).`, `Due ${label}: ${money(total, ctx.currency)} (${lines.join("; ")}).`);
-      return t(`Due ${label}: ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`, `Due ${label}: ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`);
+      if (wantsTotal) return t(`Due ${label}: ${money(total, ctx.currency)} (${lines.join("; ")}).`);
+      return t(`Due ${label}: ${lines.join("; ")}. Total ${money(total, ctx.currency)}.`);
     },
   };
 };
@@ -728,9 +734,9 @@ const budgetLeft: Rule = (q, ctx) => {
       if (category) {
         const b = Number(byCat[category]) || 0;
         const s = spent.get(category) ?? 0;
-        if (!b) return t(`No ${category} budget set for ${month}. Spent so far: ${money(s, ctx.currency)}.`, `Walang ${category} budget para sa ${month}. Nagastos na: ${money(s, ctx.currency)}.`);
-        if (s > b) return t(`${category} is over by ${money(s - b, ctx.currency)}: ${money(s, ctx.currency)} spent of ${money(b, ctx.currency)}.`, `Lagpas na ng ${money(s - b, ctx.currency)} ang ${category}: ${money(s, ctx.currency)} nagastos sa ${money(b, ctx.currency)}.`);
-        return t(`${money(b - s, ctx.currency)} left of the ${money(b, ctx.currency)} ${category} budget (${money(s, ctx.currency)} spent).`, `${money(b - s, ctx.currency)} pa ang natitira sa ${money(b, ctx.currency)} ${category} budget (${money(s, ctx.currency)} nagastos).`);
+        if (!b) return t(`No ${category} budget set for ${month}. Spent so far: ${money(s, ctx.currency)}.`);
+        if (s > b) return t(`${category} is over by ${money(s - b, ctx.currency)}: ${money(s, ctx.currency)} spent of ${money(b, ctx.currency)}.`);
+        return t(`${money(b - s, ctx.currency)} left of the ${money(b, ctx.currency)} ${category} budget (${money(s, ctx.currency)} spent).`);
       }
       const total = Number(budgets.total) || 0;
       const spentTotal = [...spent.values()].reduce((a, b) => a + b, 0);
@@ -739,12 +745,11 @@ const budgetLeft: Rule = (q, ctx) => {
         const moneyOut = Number(field(result, "this_month_out")) || 0;
         return t(
           `No budget set for ${month}. In so far: ${money(moneyIn, ctx.currency)}, out: ${money(moneyOut, ctx.currency)}, so ${money(moneyIn - moneyOut, ctx.currency)} of this month's money in is left.`,
-          `Walang budget para sa ${month}. Pasok: ${money(moneyIn, ctx.currency)}, labas: ${money(moneyOut, ctx.currency)}, kaya ${money(moneyIn - moneyOut, ctx.currency)} pa ang natitira sa pumasok ngayong buwan.`,
         );
       }
-      const whoNote = who ? t(` (every budget you can see, not only ${firstName(who)}'s)`, ` (lahat ng budget na nakikita mo, hindi lang kay ${firstName(who)})`) : "";
-      if (spentTotal > total) return t(`Over budget by ${money(spentTotal - total, ctx.currency)} for ${month}: ${money(spentTotal, ctx.currency)} spent of ${money(total, ctx.currency)}${whoNote}.`, `Lagpas na ng ${money(spentTotal - total, ctx.currency)} sa budget ng ${month}: ${money(spentTotal, ctx.currency)} nagastos sa ${money(total, ctx.currency)}${whoNote}.`);
-      return t(`${money(total - spentTotal, ctx.currency)} left of ${month}'s ${money(total, ctx.currency)} budget (${money(spentTotal, ctx.currency)} spent)${whoNote}.`, `${money(total - spentTotal, ctx.currency)} pa ang natitira sa ${money(total, ctx.currency)} budget ng ${month} (${money(spentTotal, ctx.currency)} nagastos)${whoNote}.`);
+      const whoNote = who ? t(` (every budget you can see, not only ${firstName(who)}'s)`) : "";
+      if (spentTotal > total) return t(`Over budget by ${money(spentTotal - total, ctx.currency)} for ${month}: ${money(spentTotal, ctx.currency)} spent of ${money(total, ctx.currency)}${whoNote}.`);
+      return t(`${money(total - spentTotal, ctx.currency)} left of ${month}'s ${money(total, ctx.currency)} budget (${money(spentTotal, ctx.currency)} spent)${whoNote}.`);
     },
   };
 };
@@ -776,7 +781,7 @@ const spending: Rule = (q, ctx) => {
         if (isError(result)) return result.error;
         const moneyIn = Number(field(result, "this_month_in")) || 0;
         const out = [...spentByCategory(result).values()].reduce((a, b) => a + b, 0);
-        return t(`In ${month} so far: ${money(moneyIn, ctx.currency)} in, ${money(out, ctx.currency)} out, so ${money(moneyIn - out, ctx.currency)} kept.`, `Ngayong ${month}: ${money(moneyIn, ctx.currency)} pumasok, ${money(out, ctx.currency)} lumabas, kaya ${money(moneyIn - out, ctx.currency)} ang natira.`);
+        return t(`In ${month} so far: ${money(moneyIn, ctx.currency)} in, ${money(out, ctx.currency)} out, so ${money(moneyIn - out, ctx.currency)} kept.`);
       },
     };
   }
@@ -793,8 +798,8 @@ const spending: Rule = (q, ctx) => {
           const key = Object.keys(byMember).find((k) => k.toLowerCase() === who.toLowerCase() || k.toLowerCase().split(" ")[0] === firstName(who).toLowerCase());
           return key ? Number(byMember[key]) || 0 : 0;
         };
-        if (members.length === 1) return t(`${firstName(members[0])}'s spending in ${month} so far: ${money(amountOf(members[0]), ctx.currency)} (from accounts you can see).`, `Nagastos ni ${firstName(members[0])} ngayong ${month}: ${money(amountOf(members[0]), ctx.currency)} (sa mga account na nakikita mo).`);
-        return t(`Spending in ${month} so far: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")} (from accounts you can see).`, `Nagastos ngayong ${month}: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")} (sa mga account na nakikita mo).`);
+        if (members.length === 1) return t(`${firstName(members[0])}'s spending in ${month} so far: ${money(amountOf(members[0]), ctx.currency)} (from accounts you can see).`);
+        return t(`Spending in ${month} so far: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")} (from accounts you can see).`);
       },
     };
   }
@@ -808,16 +813,16 @@ const spending: Rule = (q, ctx) => {
       const spent = spentByCategory(result);
       if (categories.length === 1) {
         const amount = spent.get(categories[0]) ?? 0;
-        return t(`${categories[0]} in ${month} so far: ${money(amount, ctx.currency)}.`, `${categories[0]} ngayong ${month}: ${money(amount, ctx.currency)}.`);
+        return t(`${categories[0]} in ${month} so far: ${money(amount, ctx.currency)}.`);
       }
       if (categories.length > 1) {
         const sum = categories.reduce((a, c) => a + (spent.get(c) ?? 0), 0);
-        return t(`${month} so far: ${categories.map((c) => `${c} ${money(spent.get(c) ?? 0, ctx.currency)}`).join("; ")}. Together ${money(sum, ctx.currency)}.`, `Ngayong ${month}: ${categories.map((c) => `${c} ${money(spent.get(c) ?? 0, ctx.currency)}`).join("; ")}. Kabuuan ${money(sum, ctx.currency)}.`);
+        return t(`${month} so far: ${categories.map((c) => `${c} ${money(spent.get(c) ?? 0, ctx.currency)}`).join("; ")}. Together ${money(sum, ctx.currency)}.`);
       }
       const total = [...spent.values()].reduce((a, b) => a + b, 0);
       const top = [...spent.entries()].filter(([, a]) => a > 0).sort((a, b) => b[1] - a[1]).slice(0, biggest ? 5 : 3).map(([c, a]) => `${c} ${money(a, ctx.currency)}`);
-      const topLine = top.length > 0 ? t(` Top: ${top.join(", ")}.`, ` Pinakamalaki: ${top.join(", ")}.`) : "";
-      return t(`Spent in ${month} so far: ${money(total, ctx.currency)}.${topLine}`, `Nagastos ngayong ${month}: ${money(total, ctx.currency)}.${topLine}`);
+      const topLine = top.length > 0 ? t(` Top: ${top.join(", ")}.`) : "";
+      return t(`Spent in ${month} so far: ${money(total, ctx.currency)}.${topLine}`);
     },
   };
 };
@@ -847,11 +852,11 @@ const totalCash: Rule = (q, ctx) => {
       const cash = Number(field(result, "combined_balance")) || 0;
       if (netWorth) {
         const nw = Number(field(result, "net_worth")) || 0;
-        return t(`Net worth: ${money(nw, ctx.currency)} (cash ${money(cash, ctx.currency)}, assets ${money(field(result, "assets_total"), ctx.currency)}, debts ${money(field(result, "liabilities_total"), ctx.currency)}).`, `Net worth: ${money(nw, ctx.currency)} (cash ${money(cash, ctx.currency)}, assets ${money(field(result, "assets_total"), ctx.currency)}, utang ${money(field(result, "liabilities_total"), ctx.currency)}).`);
+        return t(`Net worth: ${money(nw, ctx.currency)} (cash ${money(cash, ctx.currency)}, assets ${money(field(result, "assets_total"), ctx.currency)}, debts ${money(field(result, "liabilities_total"), ctx.currency)}).`);
       }
-      if (accounts.length === 0) return t("No accounts in Kin yet.", "Wala pang account sa Kin.");
+      if (accounts.length === 0) return t("No accounts in Kin yet.");
       const lines = accounts.map((a) => `${a.name} ${money(a.balance, ctx.currency)}`);
-      return t(`Cash across ${accounts.length} account${accounts.length === 1 ? "" : "s"}: ${money(cash, ctx.currency)} (${joinList(lines, 6)}).`, `Total cash sa ${accounts.length} account: ${money(cash, ctx.currency)} (${joinList(lines, 6)}).`);
+      return t(`Cash across ${accounts.length} account${accounts.length === 1 ? "" : "s"}: ${money(cash, ctx.currency)} (${joinList(lines, 6)}).`);
     },
   };
 };
@@ -879,7 +884,7 @@ const accountBalance: Rule = (q, ctx) => {
       const accounts = rows<Account>(result, "accounts");
       const wanted = name.toLowerCase();
       const found = accounts.filter((a) => a.name.toLowerCase() === wanted) .concat(accounts.filter((a) => a.name.toLowerCase() !== wanted && (a.name.toLowerCase().includes(wanted) || (a.institution ?? "").toLowerCase().includes(wanted))));
-      if (found.length === 0) return t(`No account called "${name}" that you can see. Accounts: ${joinList(accounts.map((a) => a.name)) || "none yet"}.`, `Walang account na "${name}" na nakikita mo. Accounts: ${joinList(accounts.map((a) => a.name)) || "wala pa"}.`);
+      if (found.length === 0) return t(`No account called "${name}" that you can see. Accounts: ${joinList(accounts.map((a) => a.name)) || "none yet"}.`);
       if (found.length === 1) return `${found[0].name}: ${money(found[0].balance, ctx.currency)}.`;
       return found.map((a) => `${a.name}: ${money(a.balance, ctx.currency)}`).join("; ") + ".";
     },
@@ -904,10 +909,10 @@ function scheduleLines(result: unknown, range: DayRange, ctx: RuleContext, lang:
     const who = Array.isArray(a.who) ? (a.who.length > 0 ? ` (${a.who.map(firstName).join(", ")})` : "") : "";
     lines.push({ day, text: `${clock ? `${clock} ` : ""}${a.title}${who}${a.location ? `, ${a.location}` : ""}` });
   }
-  for (const e of rows<Event>(result, "events")) lines.push({ day: e.event_date, text: e.kind === "birthday" ? t(`${e.title} (birthday)`, `${e.title} (birthday)`) : e.title });
-  for (const b of rows<Bill>(result, "bills_due")) if (b.status !== "paid") lines.push({ day: b.due_date, text: t(`${b.name} due ${money(b.amount, ctx.currency)}`, `${b.name} due ${money(b.amount, ctx.currency)}`) });
-  for (const m of rows<Meal>(result, "meals")) lines.push({ day: m.plan_date, text: t(`meal: ${m.dish}`, `ulam: ${m.dish}`) });
-  for (const g of rows<GoalDeadline>(result, "goal_deadlines")) lines.push({ day: g.target_date, text: t(`goal ${g.title} due`, `deadline ng goal na ${g.title}`) });
+  for (const e of rows<Event>(result, "events")) lines.push({ day: e.event_date, text: e.kind === "birthday" ? t(`${e.title} (birthday)`) : e.title });
+  for (const b of rows<Bill>(result, "bills_due")) if (b.status !== "paid") lines.push({ day: b.due_date, text: t(`${b.name} due ${money(b.amount, ctx.currency)}`) });
+  for (const m of rows<Meal>(result, "meals")) lines.push({ day: m.plan_date, text: t(`meal: ${m.dish}`) });
+  for (const g of rows<GoalDeadline>(result, "goal_deadlines")) lines.push({ day: g.target_date, text: t(`goal ${g.title} due`) });
   lines.sort((a, b) => a.day.localeCompare(b.day) || a.text.localeCompare(b.text));
   if (range.single) return lines.map((l) => l.text);
   return lines.map((l) => `${readableDay(l.day)}: ${l.text}`);
@@ -950,9 +955,9 @@ const whatsOn: Rule = (q, ctx) => {
         filtered = { ...(result as object), activities, events: [], bills_due: [], goal_deadlines: [], meals: [] };
       }
       const lines = scheduleLines(filtered, range, ctx, q.lang);
-      const forWho = who ? t(` for ${firstName(who)}`, ` ni ${firstName(who)}`) : "";
-      if (lines.length === 0) return t(`Nothing on ${label}${forWho}.`, `Walang nakaschedule ${label}${forWho}.`);
-      return t(`${label[0].toUpperCase()}${label.slice(1)}${forWho}: ${lines.join("; ")}.`, `${label[0].toUpperCase()}${label.slice(1)}${forWho}: ${lines.join("; ")}.`);
+      const forWho = who ? t(` for ${firstName(who)}`) : "";
+      if (lines.length === 0) return t(`Nothing on ${label}${forWho}.`);
+      return t(`${label[0].toUpperCase()}${label.slice(1)}${forWho}: ${lines.join("; ")}.`);
     },
   };
 };
@@ -986,14 +991,14 @@ const whenIs: Rule = (q, ctx) => {
       const meals = rows<{ dish: string; plan_date: string }>(result, "meal_plans").filter((m) => m.plan_date >= ctx.today).sort((a, b) => a.plan_date.localeCompare(b.plan_date));
       if (activities[0]) {
         const a = activities[0];
-        return t(`${a.title}: ${readableDay(a.day)} ${a.clock}${a.location ? `, ${a.location}` : ""} (${distance(a.day, ctx.today, q.lang)}).`, `${a.title}: ${readableDay(a.day)} ${a.clock}${a.location ? `, ${a.location}` : ""} (${distance(a.day, ctx.today, q.lang)}).`);
+        return t(`${a.title}: ${readableDay(a.day)} ${a.clock}${a.location ? `, ${a.location}` : ""} (${distance(a.day, ctx.today, q.lang)}).`);
       }
       if (events[0]) {
         const e = events[0];
         return `${e.title}: ${readableDay(e.event_date)} (${distance(e.event_date, ctx.today, q.lang)}).`;
       }
-      if (meals[0]) return t(`${meals[0].dish} is planned for ${readableDay(meals[0].plan_date)}.`, `${meals[0].dish}: ${readableDay(meals[0].plan_date)}.`);
-      return t(`Nothing coming up called "${name}" in Kin's plans.`, `Walang paparating na "${name}" sa plans sa Kin.`);
+      if (meals[0]) return t(`${meals[0].dish} is planned for ${readableDay(meals[0].plan_date)}.`);
+      return t(`Nothing coming up called "${name}" in Kin's plans.`);
     },
   };
 };
@@ -1016,9 +1021,9 @@ const checkups: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       let due = rows<{ who: string | null; what: string; when: string | null; status: string }>(result, "health_due");
       if (who) due = due.filter((d) => d.who === who || (d.who ?? "").toLowerCase().startsWith(firstName(who).toLowerCase()));
-      if (due.length === 0) return who ? t(`No health check due for ${firstName(who)}.`, `Walang due na health check si ${firstName(who)}.`) : t("No health checks due.", "Walang due na health check.");
+      if (due.length === 0) return who ? t(`No health check due for ${firstName(who)}.`) : t("No health checks due.");
       const lines = due.map((d) => `${d.who ? firstName(d.who) : "?"}: ${d.what}${d.when ? `, ${readableDay(d.when)}` : ""}`);
-      return t(`Due: ${lines.join("; ")}.`, `Due: ${lines.join("; ")}.`);
+      return t(`Due: ${lines.join("; ")}.`);
     },
   };
 };
@@ -1041,12 +1046,12 @@ const shoppingList: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const items = rows<BuyItem>(result, "shopping_list").filter((i) => !i.checked);
-      if (items.length === 0) return t("The list is empty.", "Walang laman ang list.");
+      if (items.length === 0) return t("The list is empty.");
       const names = items.map((i) => {
         const qty = formatQuantity(i.quantity, i.unit);
         return qty ? `${qty} ${i.name}` : i.name;
       });
-      return t(`To buy (${items.length}): ${joinList(names, 12)}.`, `Bibilhin (${items.length}): ${joinList(names, 12)}.`);
+      return t(`To buy (${items.length}): ${joinList(names, 12)}.`);
     },
     // ctx is unused here but keeps every rule the same shape.
     ...(ctx ? {} : {}),
@@ -1069,9 +1074,9 @@ const meals: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const planned = rows<Meal>(result, "meals").sort((a, b) => a.plan_date.localeCompare(b.plan_date));
       const label = q.lang === "tl" ? range.label.tl : range.label.en;
-      if (planned.length === 0) return t(`No meal planned for ${label}.`, `Walang nakaplanong ulam ${label}.`);
-      if (range.single) return t(`${label[0].toUpperCase()}${label.slice(1)}: ${planned.map((m) => m.dish).join(", ")}.`, `Ulam ${label}: ${planned.map((m) => m.dish).join(", ")}.`);
-      return t(`Meals ${label}: ${planned.map((m) => `${readableDay(m.plan_date)} ${m.dish}`).join("; ")}.`, `Ulam ${label}: ${planned.map((m) => `${readableDay(m.plan_date)} ${m.dish}`).join("; ")}.`);
+      if (planned.length === 0) return t(`No meal planned for ${label}.`);
+      if (range.single) return t(`${label[0].toUpperCase()}${label.slice(1)}: ${planned.map((m) => m.dish).join(", ")}.`);
+      return t(`Meals ${label}: ${planned.map((m) => `${readableDay(m.plan_date)} ${m.dish}`).join("; ")}.`);
     },
   };
 };
@@ -1094,9 +1099,9 @@ const whoIsInFamily: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const members = rows<Member>(result, "members");
-      if (members.length === 0) return t("Nobody is listed yet.", "Wala pang nakalista.");
+      if (members.length === 0) return t("Nobody is listed yet.");
       const lines = members.map((m) => `${firstName(m.full_name)}${m.relationship ? ` (${m.relationship})` : ""}`);
-      return t(`${members.length} in the household: ${lines.join(", ")}.`, `${members.length} sa pamilya: ${lines.join(", ")}.`);
+      return t(`${members.length} in the household: ${lines.join(", ")}.`);
     },
     ...(ctx ? {} : {}),
   };
@@ -1118,7 +1123,7 @@ const birthday: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const m = rows<Member>(result, "members").find((r) => r.full_name === who) ?? rows<Member>(result, "members").find((r) => firstName(r.full_name).toLowerCase() === firstName(who).toLowerCase());
       const name = firstName(who);
-      if (!m || !m.dob) return t(`${name}'s date of birth isn't recorded in Kin. Family → ${name} → Edit adds it.`, `Hindi pa nakarecord ang birthday ni ${name} sa Kin. Family → ${name} → Edit.`);
+      if (!m || !m.dob) return t(`${name}'s date of birth isn't recorded in Kin. Family → ${name} → Edit adds it.`);
       const [y, mo, d] = m.dob.split("-").map(Number);
       const year = Number(ctx.today.slice(0, 4));
       const thisYear = `${year}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
@@ -1126,8 +1131,8 @@ const birthday: Rule = (q, ctx) => {
       const turning = Number(next.slice(0, 4)) - y;
       const ageNow = turning - 1;
       const when = `${readableDay(next)} (${distance(next, ctx.today, q.lang)})`;
-      if (wantsAge) return t(`${name} is ${ageNow}, turning ${turning} on ${when}.`, `${ageNow} si ${name}, magi-${turning} sa ${when}.`);
-      return t(`${name}'s birthday is ${d} ${MONTHS_EN[mo - 1].replace(/^./, (c) => c.toUpperCase())}: turning ${turning} on ${when}.`, `Birthday ni ${name}: ${d} ${MONTHS_EN[mo - 1].replace(/^./, (c) => c.toUpperCase())}, magi-${turning} sa ${when}.`);
+      if (wantsAge) return t(`${name} is ${ageNow}, turning ${turning} on ${when}.`);
+      return t(`${name}'s birthday is ${d} ${MONTHS_EN[mo - 1].replace(/^./, (c) => c.toUpperCase())}: turning ${turning} on ${when}.`);
     },
   };
 };
@@ -1195,7 +1200,7 @@ const health: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const value = healthValue(field(result, fact.key));
       const name = firstName(who);
-      return t(`${name}'s ${fact.en}: ${value}.`, `${fact.tl[0].toUpperCase()}${fact.tl.slice(1)} ni ${name}: ${value}.`);
+      return t(`${name}'s ${fact.en}: ${value}.`);
     },
   };
 };
@@ -1271,7 +1276,7 @@ const addToList: Rule = (q, ctx) => {
           if (isError(result)) return result.error;
           const added = rows<{ name: string; quantity?: string }>(result, "items").map((i) => (i.quantity ? `${i.quantity} ${i.name}` : i.name));
           const names = added.length > 0 ? added : items.map((i) => i.name);
-          return t(`Added to the list: ${names.join(", ")}.`, `Na-add sa list: ${names.join(", ")}.`);
+          return t(`Added to the list: ${names.join(", ")}.`);
         },
       };
     }
@@ -1318,7 +1323,7 @@ const addToList: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const added = rows<{ name: string; quantity?: string }>(result, "items").map((i) => (i.quantity ? `${i.quantity} ${i.name}` : i.name));
       const names = added.length > 0 ? added : items.map((i) => i.name);
-      return t(`Added to the list: ${names.join(", ")}.`, `Na-add sa list: ${names.join(", ")}.`);
+      return t(`Added to the list: ${names.join(", ")}.`);
     },
   };
 };
@@ -1357,7 +1362,7 @@ function addBillMatch(name: string, amount: number, dueDate: string, lang: Lang,
     lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      return t(`Added ${titled}, ${money(amount, ctx.currency)} due ${readableDay(dueDate)}.`, `Na-add ang ${titled}, ${money(amount, ctx.currency)}, due sa ${readableDay(dueDate)}.`);
+      return t(`Added ${titled}, ${money(amount, ctx.currency)} due ${readableDay(dueDate)}.`);
     },
   };
 }
@@ -1368,10 +1373,10 @@ function askForBill(name: string, amount: number | null, dueDate: string | null,
   const titled = name;
   const ask =
     amount === null && dueDate === null
-      ? t(`How much is the ${titled} bill, and when is it due?`, `Magkano ang ${titled}, at kailan ang due?`)
+      ? t(`How much is the ${titled} bill, and when is it due?`)
       : amount === null
-        ? t(`How much is the ${titled} bill?`, `Magkano ang ${titled}?`)
-        : t(`When is ${titled} due?`, `Kailan due ang ${titled}?`);
+        ? t(`How much is the ${titled} bill?`)
+        : t(`When is ${titled} due?`);
   const slots: Record<string, string | number> = { name };
   if (amount !== null) slots.amount = amount;
   if (dueDate) slots.due_date = dueDate;
@@ -1485,7 +1490,7 @@ const addPlain: Rule = (q, ctx) => {
       tool: "add_meal_plan",
       input: { date: parsed.date, dish: withRawCase(parsed.dish, q.raw) },
       lang: q.lang,
-      say: (result) => (isError(result) ? result.error : t(`Planned ${withRawCase(parsed.dish, q.raw)} for ${readableDay(parsed.date)}.`, `Nakaplano na ang ${withRawCase(parsed.dish, q.raw)} sa ${readableDay(parsed.date)}.`)),
+      say: (result) => (isError(result) ? result.error : t(`Planned ${withRawCase(parsed.dish, q.raw)} for ${readableDay(parsed.date)}.`)),
     };
   }
   if (parsed.kind === "event") {
@@ -1496,7 +1501,7 @@ const addPlain: Rule = (q, ctx) => {
       tool: "add_event",
       input: { title, date: parsed.date, kind: parsed.eventKind, ...(parsed.note ? { note: parsed.note } : {}) },
       lang: q.lang,
-      say: (result) => (isError(result) ? result.error : t(`Added ${title} on ${readableDay(parsed.date)}.`, `Na-add ang ${title} sa ${readableDay(parsed.date)}.`)),
+      say: (result) => (isError(result) ? result.error : t(`Added ${title} on ${readableDay(parsed.date)}.`)),
     };
   }
   if (parsed.kind === "task") {
@@ -1519,7 +1524,7 @@ function activityMatch(title: string, date: string, from: string, to: string | n
     tool: "add_activity",
     input: { title, date, start_time: from, ...(to ? { end_time: to } : {}), whole_family: wholeFamily || who.length === 0, ...(who.length > 0 ? { member_names: who } : {}) },
     lang,
-    say: (result) => (isError(result) ? result.error : t(`Added ${title}, ${readableDay(date)} ${from}${who.length > 0 ? ` (${who.join(", ")})` : ""}.`, `Na-add ang ${title}, ${readableDay(date)} ${from}${who.length > 0 ? ` (${who.join(", ")})` : ""}.`)),
+    say: (result) => (isError(result) ? result.error : t(`Added ${title}, ${readableDay(date)} ${from}${who.length > 0 ? ` (${who.join(", ")})` : ""}.`)),
   };
 }
 
@@ -1527,7 +1532,7 @@ function askForActivity(title: string, date: string | null, who: string[], whole
   const t = pick(lang);
   const forWho = who.length > 0 ? ` (${who.join(", ")})` : "";
   return {
-    ask: date ? t(`What time is ${title} on ${readableDay(date)}${forWho}?`, `Anong oras ang ${title} sa ${readableDay(date)}${forWho}?`) : t(`When is ${title}${forWho}? Give me the day and the time.`, `Kailan ang ${title}${forWho}? Araw at oras.`),
+    ask: date ? t(`What time is ${title} on ${readableDay(date)}${forWho}?`) : t(`When is ${title}${forWho}? Give me the day and the time.`),
     pending: { rule: "add.activity", slots: { title, ...(date ? { date } : {}), who: who.join("|"), whole_family: wholeFamily ? 1 : 0 }, lang, asked },
   };
 }
@@ -1556,7 +1561,7 @@ const addGoal: Rule = (q, ctx) => {
     tool: "add_goal",
     input: { title: titled, target_amount: amount, ...(targetDate ? { target_date: targetDate } : {}) },
     lang: q.lang,
-    say: (result) => (isError(result) ? result.error : t(`Goal set: ${titled}, ${money(amount, ctx.currency)}${targetDate ? ` by ${readableDay(targetDate)}` : ""}.`, `Set na ang goal: ${titled}, ${money(amount, ctx.currency)}${targetDate ? ` hanggang ${readableDay(targetDate)}` : ""}.`)),
+    say: (result) => (isError(result) ? result.error : t(`Goal set: ${titled}, ${money(amount, ctx.currency)}${targetDate ? ` by ${readableDay(targetDate)}` : ""}.`)),
   };
 };
 
@@ -1575,7 +1580,7 @@ const addJournal: Rule = (q, ctx) => {
     tool: "add_journal_entry",
     input: { title: titled, ...(range?.single ? { date: range.from } : {}) },
     lang: q.lang,
-    say: (result) => (isError(result) ? result.error : t(`Written in the journal${range?.single ? ` for ${readableDay(range.from)}` : ""}.`, `Nakasulat na sa journal${range?.single ? ` para sa ${readableDay(range.from)}` : ""}.`)),
+    say: (result) => (isError(result) ? result.error : t(`Written in the journal${range?.single ? ` for ${readableDay(range.from)}` : ""}.`)),
   };
 };
 
@@ -1610,7 +1615,7 @@ const addTrip: Rule = (q, ctx) => {
     tool: "add_trip",
     input: { title: titled, start_date: start.from, ...(end ? { end_date: end } : {}) },
     lang: q.lang,
-    say: (result) => (isError(result) ? result.error : t(`Trip planned: ${titled}, ${readableDay(start.from)}${end ? ` to ${readableDay(end)}` : ""}.`, `Nakaplano na ang trip: ${titled}, ${readableDay(start.from)}${end ? ` hanggang ${readableDay(end)}` : ""}.`)),
+    say: (result) => (isError(result) ? result.error : t(`Trip planned: ${titled}, ${readableDay(start.from)}${end ? ` to ${readableDay(end)}` : ""}.`)),
   };
 };
 
@@ -1644,11 +1649,11 @@ const goals: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const all = rows<Goal>(result, "goals");
-      if (all.length === 0) return t("No savings goals in Kin yet.", "Wala pang savings goal sa Kin.");
+      if (all.length === 0) return t("No savings goals in Kin yet.");
       if (name) {
         const words = name.split(" ").filter((w) => w.length > 2);
         const hits = all.filter((g) => words.some((w) => g.title.toLowerCase().includes(w)));
-        if (hits.length === 0) return t(`No goal called "${name}". Goals: ${joinList(all.map((g) => g.title))}.`, `Walang goal na "${name}". Goals: ${joinList(all.map((g) => g.title))}.`);
+        if (hits.length === 0) return t(`No goal called "${name}". Goals: ${joinList(all.map((g) => g.title))}.`);
         return hits.map(line).join("; ") + ".";
       }
       return `Goals (${all.length}): ${all.slice(0, 5).map(line).join("; ")}${all.length > 5 ? ` +${all.length - 5}` : ""}.`;
@@ -1689,22 +1694,22 @@ const debts: Rule = (q, ctx) => {
       const liabilities = rows<{ name: string; balance: number }>(result, "liabilities");
       if (whoOwesUs) {
         const hits = person && !who ? owedToUs.filter((u) => u.person.toLowerCase().includes(person)) : owedToUs;
-        if (hits.length === 0) return person && !who ? t(`${person} owes nothing recorded in Kin.`, `Walang nakarecord na utang ni ${person}.`) : t("Nobody owes the family anything recorded in Kin.", "Walang may utang sa atin na nakarecord.");
+        if (hits.length === 0) return person && !who ? t(`${person} owes nothing recorded in Kin.`) : t("Nobody owes the family anything recorded in Kin.");
         const total = hits.reduce((s, u) => s + Number(u.left), 0);
-        return t(`Owed to us (${hits.length}): ${hits.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`, `May utang sa atin (${hits.length}): ${hits.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
+        return t(`Owed to us (${hits.length}): ${hits.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
       }
       if (weOwe) {
-        if (weOweList.length === 0) return t("No lending owed to anyone recorded in Kin.", "Walang nakarecord na utang natin sa iba.");
+        if (weOweList.length === 0) return t("No lending owed to anyone recorded in Kin.");
         const total = weOweList.reduce((s, u) => s + Number(u.left), 0);
-        return t(`We owe (${weOweList.length}): ${weOweList.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`, `Utang natin (${weOweList.length}): ${weOweList.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
+        return t(`We owe (${weOweList.length}): ${weOweList.map(lineOf).join("; ")}. Total ${money(total, ctx.currency)}.`);
       }
       // Whole words: "car" is the car loan, not the credit card.
       const words = person.split(" ").filter((w) => w.length > 2);
       const hits = words.length > 0 ? liabilities.filter((l) => words.some((w) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(l.name.toLowerCase()) && !new RegExp(`\\b${w}[a-z]`).test(l.name.toLowerCase()))) : liabilities;
-      if (hits.length === 0) return liabilities.length === 0 ? t("No loans or other debts in Kin.", "Walang loan o utang sa Kin.") : t(`No loan called "${person}". Loans: ${joinList(liabilities.map((l) => l.name))}.`, `Walang loan na "${person}". Loans: ${joinList(liabilities.map((l) => l.name))}.`);
+      if (hits.length === 0) return liabilities.length === 0 ? t("No loans or other debts in Kin.") : t(`No loan called "${person}". Loans: ${joinList(liabilities.map((l) => l.name))}.`);
       const total = hits.reduce((s, l) => s + Number(l.balance), 0);
-      if (hits.length === 1) return t(`${hits[0].name}: ${money(hits[0].balance, ctx.currency)} left.`, `${hits[0].name}: ${money(hits[0].balance, ctx.currency)} pa ang natitira.`);
-      return t(`Loans and debts (${hits.length}): ${hits.map((l) => `${l.name} ${money(l.balance, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`, `Loans at utang (${hits.length}): ${hits.map((l) => `${l.name} ${money(l.balance, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`);
+      if (hits.length === 1) return t(`${hits[0].name}: ${money(hits[0].balance, ctx.currency)} left.`);
+      return t(`Loans and debts (${hits.length}): ${hits.map((l) => `${l.name} ${money(l.balance, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`);
     },
   };
 };
@@ -1733,20 +1738,20 @@ const subscriptions: Rule = (q, ctx) => {
       const charges = rows<Charge>(result, "charges");
       if (name) {
         const hits = charges.filter((c) => c.name.toLowerCase().includes(name) || name.includes(c.name.toLowerCase()));
-        if (hits.length === 0) return t(`No repeating charge called "${name}" in Kin.`, `Walang paulit-ulit na bayad na "${name}" sa Kin.`);
-        return hits.map((c) => `${c.name} ${money(c.amount, ctx.currency)} ${rep(c.repeat)}${c.next ? t(`, next ${readableDay(c.next)}`, `, susunod ${readableDay(c.next)}`) : ""}${c.overdue ? " (overdue)" : ""}`).join("; ") + ".";
+        if (hits.length === 0) return t(`No repeating charge called "${name}" in Kin.`);
+        return hits.map((c) => `${c.name} ${money(c.amount, ctx.currency)} ${rep(c.repeat)}${c.next ? t(`, next ${readableDay(c.next)}`) : ""}${c.overdue ? " (overdue)" : ""}`).join("; ") + ".";
       }
       if (yearlyOnly) {
         const yearly = charges.filter((c) => c.repeat === "yearly");
-        if (yearly.length === 0) return t("Nothing is charged yearly.", "Walang taon-taon na bayad.");
-        return t(`Yearly (${yearly.length}): ${yearly.map((c) => `${c.name} ${money(c.amount, ctx.currency)}${c.next ? ` next ${readableDay(c.next)}` : ""}`).join("; ")}.`, `Taon-taon (${yearly.length}): ${yearly.map((c) => `${c.name} ${money(c.amount, ctx.currency)}${c.next ? ` susunod ${readableDay(c.next)}` : ""}`).join("; ")}.`);
+        if (yearly.length === 0) return t("Nothing is charged yearly.");
+        return t(`Yearly (${yearly.length}): ${yearly.map((c) => `${c.name} ${money(c.amount, ctx.currency)}${c.next ? ` next ${readableDay(c.next)}` : ""}`).join("; ")}.`);
       }
-      if (charges.length === 0) return t("No repeating charges in Kin.", "Walang paulit-ulit na bayad sa Kin.");
+      if (charges.length === 0) return t("No repeating charges in Kin.");
       const perMonth = Number(field(result, "charges_per_month")) || 0;
       const perYear = Number(field(result, "charges_per_year")) || 0;
       const lines = charges.slice(0, 6).map((c) => `${c.name} ${money(c.amount, ctx.currency)} ${rep(c.repeat)}`);
       const more = charges.length > 6 ? ` +${charges.length - 6}` : "";
-      return t(`${charges.length} repeating charges, about ${money(perMonth, ctx.currency)} a month (${money(perYear, ctx.currency)} a year): ${lines.join("; ")}${more}.`, `${charges.length} paulit-ulit na bayad, mga ${money(perMonth, ctx.currency)} kada buwan (${money(perYear, ctx.currency)} kada taon): ${lines.join("; ")}${more}.`);
+      return t(`${charges.length} repeating charges, about ${money(perMonth, ctx.currency)} a month (${money(perYear, ctx.currency)} a year): ${lines.join("; ")}${more}.`);
     },
   };
 };
@@ -1769,10 +1774,10 @@ const documents: Rule = (q, ctx) => {
   const t = pick(q.lang);
   const line = (d: Doc) => {
     const owner = d.whose && d.whose !== "household" ? `${firstName(d.whose)}'s ` : "";
-    if (!d.expires) return t(`${owner}${d.title}: no expiry recorded`, `${d.title}${owner ? ` ni ${firstName(d.whose)}` : ""}: walang expiry na nakarecord`);
+    if (!d.expires) return t(`${owner}${d.title}: no expiry recorded`);
     const day = readableDay(d.expires.slice(0, 10));
     const left = d.days_left ?? 0;
-    const when = left < 0 ? t(`expired ${day} (${-left} days ago)`, `expired na noong ${day} (${-left} days na)`) : t(`expires ${day} (${distance(d.expires.slice(0, 10), ctx.today, q.lang)})`, `mag-e-expire sa ${day} (${distance(d.expires.slice(0, 10), ctx.today, q.lang)})`);
+    const when = left < 0 ? t(`expired ${day} (${-left} days ago)`) : t(`expires ${day} (${distance(d.expires.slice(0, 10), ctx.today, q.lang)})`);
     return q.lang === "tl" && owner ? `${d.title} ni ${firstName(d.whose)}: ${when}` : `${owner}${d.title}: ${when}`;
   };
   return {
@@ -1785,11 +1790,11 @@ const documents: Rule = (q, ctx) => {
       let docs = rows<Doc>(result, "documents");
       if (who) docs = docs.filter((d) => d.whose.toLowerCase().startsWith(firstName(who).toLowerCase()) || d.whose === "household");
       if (docs.length === 0) {
-        if (query) return t(`No document called "${query}"${who ? ` for ${firstName(who)}` : ""} in the Vault.`, `Walang document na "${query}"${who ? ` ni ${firstName(who)}` : ""} sa Vault.`);
-        return t("Nothing expires in the next six months.", "Walang mag-e-expire sa susunod na anim na buwan.");
+        if (query) return t(`No document called "${query}"${who ? ` for ${firstName(who)}` : ""} in the Vault.`);
+        return t("Nothing expires in the next six months.");
       }
       if (query) return docs.slice(0, 4).map(line).join("; ") + ".";
-      return t(`Expiring: ${docs.slice(0, 6).map(line).join("; ")}.`, `Mag-e-expire: ${docs.slice(0, 6).map(line).join("; ")}.`);
+      return t(`Expiring: ${docs.slice(0, 6).map(line).join("; ")}.`);
     },
   };
 };
@@ -1816,30 +1821,30 @@ const tasks: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const all = rows<Task>(result, "tasks");
       const behind = rows<{ title: string; who: string | string[]; dates: string[] }>(result, "behind_on");
-      const label = range.single && range.from === ctx.today ? t("today", "ngayon") : q.lang === "tl" ? range.label.tl : range.label.en;
-      const whoOf = (x: Task) => (Array.isArray(x.who) ? x.who.map(firstName).join(", ") : x.who === "whole family" ? t("everyone", "lahat") : x.who);
-      const line = (x: Task) => `${x.title} (${whoOf(x)})${range.single ? "" : ` ${readableDay(x.date)}`}${x.time ? ` ${x.time}` : ""}${x.status === "done" ? t(" done", " tapos") : x.status === "skipped" ? " skipped" : x.status === "missed" ? t(" missed", " hindi nagawa") : ""}`;
-      const behindLine = behind.length > 0 ? t(` Behind: ${behind.map((b) => `${b.title} (${b.dates.map((d) => readableDay(d)).join(", ")})`).join("; ")}.`, ` Hindi pa nagawa: ${behind.map((b) => `${b.title} (${b.dates.map((d) => readableDay(d)).join(", ")})`).join("; ")}.`) : "";
+      const label = range.single && range.from === ctx.today ? t("today") : q.lang === "tl" ? range.label.tl : range.label.en;
+      const whoOf = (x: Task) => (Array.isArray(x.who) ? x.who.map(firstName).join(", ") : x.who === "whole family" ? t("everyone") : x.who);
+      const line = (x: Task) => `${x.title} (${whoOf(x)})${range.single ? "" : ` ${readableDay(x.date)}`}${x.time ? ` ${x.time}` : ""}${x.status === "done" ? t(" done") : x.status === "skipped" ? " skipped" : x.status === "missed" ? t(" missed") : ""}`;
+      const behindLine = behind.length > 0 ? t(` Behind: ${behind.map((b) => `${b.title} (${b.dates.map((d) => readableDay(d)).join(", ")})`).join("; ")}.`) : "";
       if (whoseTurn) {
         const words = title.split(" ").filter((w) => w.length > 2);
         const hits = words.length > 0 ? all.filter((x) => words.some((w) => x.title.toLowerCase().includes(w))) : all;
-        if (hits.length === 0) return t(`Nothing called "${title}" ${label}.`, `Walang "${title}" ${label}.`);
-        return hits.map((x) => `${x.title}: ${whoOf(x)}${x.status === "done" ? t(" (done)", " (tapos na)") : ""}`).join("; ") + ".";
+        if (hits.length === 0) return t(`Nothing called "${title}" ${label}.`);
+        return hits.map((x) => `${x.title}: ${whoOf(x)}${x.status === "done" ? t(" (done)") : ""}`).join("; ") + ".";
       }
       if (notDone) {
         const open = all.filter((x) => x.status !== "done" && x.status !== "skipped");
-        if (open.length === 0) return (all.length === 0 ? t(`Nothing scheduled ${label}.`, `Walang nakaschedule ${label}.`) : t(`All done ${label}.`, `Tapos na lahat ${label}.`)) + behindLine;
-        return t(`Not yet ${label} (${open.length}): ${open.map(line).join("; ")}.`, `Hindi pa tapos ${label} (${open.length}): ${open.map(line).join("; ")}.`) + behindLine;
+        if (open.length === 0) return (all.length === 0 ? t(`Nothing scheduled ${label}.`) : t(`All done ${label}.`)) + behindLine;
+        return t(`Not yet ${label} (${open.length}): ${open.map(line).join("; ")}.`) + behindLine;
       }
       if (didThey && who) {
-        if (all.length === 0) return t(`${firstName(who)} has nothing scheduled ${label}.`, `Walang nakaschedule si ${firstName(who)} ${label}.`);
+        if (all.length === 0) return t(`${firstName(who)} has nothing scheduled ${label}.`);
         const done = all.filter((x) => x.status === "done");
         const open = all.filter((x) => x.status !== "done" && x.status !== "skipped");
-        if (open.length === 0) return t(`Yes: ${firstName(who)} did ${done.map((x) => x.title).join(", ")} ${label}.`, `Oo: tapos na ni ${firstName(who)} ang ${done.map((x) => x.title).join(", ")} ${label}.`);
-        return t(`${firstName(who)} ${label}: done ${done.length > 0 ? done.map((x) => x.title).join(", ") : "nothing yet"}; not yet ${open.map((x) => x.title).join(", ")}.`, `${firstName(who)} ${label}: tapos ${done.length > 0 ? done.map((x) => x.title).join(", ") : "wala pa"}; hindi pa ${open.map((x) => x.title).join(", ")}.`);
+        if (open.length === 0) return t(`Yes: ${firstName(who)} did ${done.map((x) => x.title).join(", ")} ${label}.`);
+        return t(`${firstName(who)} ${label}: done ${done.length > 0 ? done.map((x) => x.title).join(", ") : "nothing yet"}; not yet ${open.map((x) => x.title).join(", ")}.`);
       }
-      if (all.length === 0) return t(`No chores or tasks ${label}${who ? ` for ${firstName(who)}` : ""}.`, `Walang chores o tasks ${label}${who ? ` ni ${firstName(who)}` : ""}.`) + behindLine;
-      return `${label[0].toUpperCase()}${label.slice(1)}${who ? t(` for ${firstName(who)}`, ` ni ${firstName(who)}`) : ""} (${all.length}): ${all.slice(0, 10).map(line).join("; ")}${all.length > 10 ? ` +${all.length - 10}` : ""}.` + behindLine;
+      if (all.length === 0) return t(`No chores or tasks ${label}${who ? ` for ${firstName(who)}` : ""}.`) + behindLine;
+      return `${label[0].toUpperCase()}${label.slice(1)}${who ? t(` for ${firstName(who)}`) : ""} (${all.length}): ${all.slice(0, 10).map(line).join("; ")}${all.length > 10 ? ` +${all.length - 10}` : ""}.` + behindLine;
     },
   };
 };
@@ -1851,7 +1856,7 @@ const allowance: Rule = (q, ctx) => {
   const wantsPoints = /\b(coins|points|stars|puntos)\b/.test(q.text);
   if (!who) {
     const t0 = pick(q.lang);
-    return { ask: t0(wantsPoints ? "Whose points?" : "Whose piggy bank?", wantsPoints ? "Kaninong points?" : "Kaninong alkansya?"), choices: ctx.members.map(firstName), pending: { rule: "allowance.who", slots: { points: wantsPoints ? 1 : 0 }, lang: q.lang, asked: 1 } };
+    return { ask: t0(wantsPoints ? "Whose points?" : "Whose piggy bank?"), choices: ctx.members.map(firstName), pending: { rule: "allowance.who", slots: { points: wantsPoints ? 1 : 0 }, lang: q.lang, asked: 1 } };
   }
   const t = pick(q.lang);
   return {
@@ -1865,12 +1870,11 @@ const allowance: Rule = (q, ctx) => {
       const jars = field(result, "jars") as { gastos: number; ipon: number; bigay: number; total: number } | null;
       const balance = Number(field(result, "points_balance")) || 0;
       const spent = Number(field(result, "points_spent")) || 0;
-      const pointsLine = t(`${balance} points${spent > 0 ? ` (${spent} spent)` : ""}`, `${balance} points${spent > 0 ? ` (${spent} nagastos)` : ""}`);
+      const pointsLine = t(`${balance} points${spent > 0 ? ` (${spent} spent)` : ""}`);
       if (wantsPoints || !jars) return `${name}: ${pointsLine}.`;
       const weekly = Number(field(result, "weekly_allowance")) || 0;
       return t(
         `${name}'s piggy bank: ${money(jars.total, ctx.currency)} (gastos ${money(jars.gastos, ctx.currency)}, ipon ${money(jars.ipon, ctx.currency)}, bigay ${money(jars.bigay, ctx.currency)})${weekly > 0 ? `, ${money(weekly, ctx.currency)} a week` : ""}; ${pointsLine}.`,
-        `Alkansya ni ${name}: ${money(jars.total, ctx.currency)} (gastos ${money(jars.gastos, ctx.currency)}, ipon ${money(jars.ipon, ctx.currency)}, bigay ${money(jars.bigay, ctx.currency)})${weekly > 0 ? `, ${money(weekly, ctx.currency)} kada linggo` : ""}; ${pointsLine}.`,
       );
     },
   };
@@ -1897,7 +1901,7 @@ const eventGuests: Rule = (q, ctx) => {
     lang: q.lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      if (field(result, "matches") === "no event found") return t(`No event ${name ? `called "${name}"` : range ? `on ${readableDay(range.from)}` : "coming up"} in Kin.`, `Walang event ${name ? `na "${name}"` : range ? `sa ${readableDay(range.from)}` : "na paparating"} sa Kin.`);
+      if (field(result, "matches") === "no event found") return t(`No event ${name ? `called "${name}"` : range ? `on ${readableDay(range.from)}` : "coming up"} in Kin.`);
       const event = String(field(result, "event") ?? "");
       const date = String(field(result, "date") ?? "");
       const going = rows<string>(result, "going").map(firstName);
@@ -1909,10 +1913,10 @@ const eventGuests: Rule = (q, ctx) => {
       const heads = Number(field(result, "heads_going")) || 0;
       const goingLine = [...going, ...guestsGoing.map((g) => (g.heads > 1 ? `${g.name} ×${g.heads}` : g.name))];
       const parts = [
-        t(`going ${heads}${goingLine.length > 0 ? ` (${joinList(goingLine, 10)})` : ""}`, `pupunta ${heads}${goingLine.length > 0 ? ` (${joinList(goingLine, 10)})` : ""}`),
-        ...(maybe.length + guestsMaybe.length > 0 ? [t(`maybe ${joinList([...maybe, ...guestsMaybe])}`, `baka ${joinList([...maybe, ...guestsMaybe])}`)] : []),
-        ...(no.length > 0 ? [t(`not coming ${joinList(no)}`, `hindi pupunta ${joinList(no)}`)] : []),
-        ...(unanswered.length > 0 ? [t(`${unanswered.length} not answered`, `${unanswered.length} hindi pa sumagot`)] : []),
+        t(`going ${heads}${goingLine.length > 0 ? ` (${joinList(goingLine, 10)})` : ""}`),
+        ...(maybe.length + guestsMaybe.length > 0 ? [t(`maybe ${joinList([...maybe, ...guestsMaybe])}`)] : []),
+        ...(no.length > 0 ? [t(`not coming ${joinList(no)}`)] : []),
+        ...(unanswered.length > 0 ? [t(`${unanswered.length} not answered`)] : []),
       ];
       return `${event} (${readableDay(date)}): ${parts.join("; ")}.`;
     },
@@ -1992,15 +1996,15 @@ const spendingPast: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const byCat = (field(result, "by_category") ?? {}) as Record<string, unknown>;
       const spent = Number(field(result, "spent")) || 0;
-      if (wantsIncome) return t(`Money in ${label}: ${money(field(result, "money_in"), ctx.currency)}; out: ${money(spent, ctx.currency)}.`, `Pumasok ${label}: ${money(field(result, "money_in"), ctx.currency)}; lumabas: ${money(spent, ctx.currency)}.`);
+      if (wantsIncome) return t(`Money in ${label}: ${money(field(result, "money_in"), ctx.currency)}; out: ${money(spent, ctx.currency)}.`);
       if (members.length > 0) {
         const byMember = (field(result, "by_member") ?? {}) as Record<string, unknown>;
         const amountOf = (m: string) => {
           const key = Object.keys(byMember).find((k) => k.toLowerCase() === m.toLowerCase() || k.toLowerCase().split(" ")[0] === firstName(m).toLowerCase());
           return key ? byMember[key] : 0;
         };
-        if (members.length === 1) return t(`${firstName(who!)}'s spending ${label}: ${money(amountOf(who!), ctx.currency)} (from accounts you can see).`, `Nagastos ni ${firstName(who!)} ${label}: ${money(amountOf(who!), ctx.currency)} (sa mga account na nakikita mo).`);
-        return t(`Spending ${label}: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")}.`, `Nagastos ${label}: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")}.`);
+        if (members.length === 1) return t(`${firstName(who!)}'s spending ${label}: ${money(amountOf(who!), ctx.currency)} (from accounts you can see).`);
+        return t(`Spending ${label}: ${members.map((m) => `${firstName(m)} ${money(amountOf(m), ctx.currency)}`).join("; ")}.`);
       }
       if (categories.length > 1) return `${label[0].toUpperCase()}${label.slice(1)}: ${categories.map((c) => `${c} ${money(byCat[c] ?? 0, ctx.currency)}`).join("; ")}.`;
       if (category) return `${category} ${label}: ${money(byCat[category] ?? 0, ctx.currency)}.`;
@@ -2009,8 +2013,8 @@ const spendingPast: Rule = (q, ctx) => {
         .sort((a, b) => Number(b[1]) - Number(a[1]))
         .slice(0, 3)
         .map(([c, a]) => `${c} ${money(a, ctx.currency)}`);
-      const topLine = top.length > 0 ? t(` Top: ${top.join(", ")}.`, ` Pinakamalaki: ${top.join(", ")}.`) : "";
-      return t(`Spent ${label}: ${money(spent, ctx.currency)}.${topLine}`, `Nagastos ${label}: ${money(spent, ctx.currency)}.${topLine}`);
+      const topLine = top.length > 0 ? t(` Top: ${top.join(", ")}.`) : "";
+      return t(`Spent ${label}: ${money(spent, ctx.currency)}.${topLine}`);
     },
   };
 };
@@ -2040,8 +2044,8 @@ const journal: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const entries = rows<Entry>(result, "entries");
-      const label = onThisDay ? t("on this day", "sa araw na ito") : milestones ? t(`as milestones${who ? ` for ${firstName(who)}` : ""}`, `na milestone${who ? ` ni ${firstName(who)}` : ""}`) : past ? (q.lang === "tl" ? past.label.tl : past.label.en) : topic ? t(`about "${topic}"`, `tungkol sa "${topic}"`) : t("yet", "pa");
-      if (entries.length === 0) return onThisDay ? t("Nothing in the journal on this day in past years.", "Walang nakasulat sa journal sa araw na ito noong mga nakaraang taon.") : t(`Nothing in the journal ${label}.`, `Wala sa journal ${label}.`);
+      const label = onThisDay ? t("on this day") : milestones ? t(`as milestones${who ? ` for ${firstName(who)}` : ""}`) : past ? (q.lang === "tl" ? past.label.tl : past.label.en) : topic ? t(`about "${topic}"`) : t("yet");
+      if (entries.length === 0) return onThisDay ? t("Nothing in the journal on this day in past years.") : t(`Nothing in the journal ${label}.`);
       const line = (e: Entry) => `${readableDay(e.date, { year: true })}: ${e.title}${e.milestone ? " ★" : ""}`;
       return `${entries.slice(0, 5).map(line).join("; ")}${entries.length > 5 ? ` +${entries.length - 5}` : ""}.`;
     },
@@ -2074,10 +2078,10 @@ const whereIs: Rule = (q, ctx) => {
     lang: q.lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      if (field(result, "matches") === "nothing found") return t(`Nothing called "${query}" in Kin.`, `Walang "${query}" sa Kin.`);
+      if (field(result, "matches") === "nothing found") return t(`Nothing called "${query}" in Kin.`);
       const r = result as Found;
       const lines: string[] = [];
-      for (const d of (r.documents ?? []) as { title: string; doc_type: string | null; expires_at: string | null }[]) lines.push(`Document: ${d.title}${d.expires_at ? `, ${t("expires", "expires")} ${readableDay(d.expires_at.slice(0, 10))}` : ""} (Family → Vault)`);
+      for (const d of (r.documents ?? []) as { title: string; doc_type: string | null; expires_at: string | null }[]) lines.push(`Document: ${d.title}${d.expires_at ? `, ${t("expires")} ${readableDay(d.expires_at.slice(0, 10))}` : ""} (Family → Vault)`);
       for (const a of (r.accounts ?? []) as { name: string; institution: string | null }[]) lines.push(`Account: ${a.name}${a.institution ? ` (${a.institution})` : ""}`);
       for (const a of (r.assets ?? []) as { name: string; kind: string; value: number }[]) lines.push(`Asset: ${a.name}, ${money(a.value, ctx.currency)}`);
       for (const a of (r.activities ?? []) as { title: string; start_at: string; location: string | null }[]) {
@@ -2086,12 +2090,12 @@ const whereIs: Rule = (q, ctx) => {
         lines.push(`Plan: ${a.title}, ${readableDay(day)} ${familyClock(at, ctx.timeZone)}${a.location ? `, ${a.location}` : ""}`);
       }
       for (const e of (r.events ?? []) as { title: string; event_date: string }[]) lines.push(`Event: ${e.title}, ${readableDay(e.event_date)}`);
-      for (const b of (r.bills ?? []) as Bill[]) lines.push(`Bill: ${b.name} ${money(b.amount, ctx.currency)}, ${b.status === "paid" ? t("paid", "bayad na") : "due"} ${readableDay(b.due_date)}`);
+      for (const b of (r.bills ?? []) as Bill[]) lines.push(`Bill: ${b.name} ${money(b.amount, ctx.currency)}, ${b.status === "paid" ? t("paid") : "due"} ${readableDay(b.due_date)}`);
       for (const g of (r.goals ?? []) as Goal[]) lines.push(`Goal: ${g.title}, ${money(g.current_amount, ctx.currency)}${g.target_amount ? ` of ${money(g.target_amount, ctx.currency)}` : ""}`);
-      for (const i of (r.shopping_list ?? []) as { name: string; checked: boolean }[]) lines.push(t(`On the list: ${i.name}${i.checked ? " (ticked)" : ""}`, `Sa list: ${i.name}${i.checked ? " (ticked)" : ""}`));
-      for (const mp of (r.meal_plans ?? []) as { dish: string; plan_date: string }[]) lines.push(t(`Meal: ${mp.dish}, ${readableDay(mp.plan_date)}`, `Ulam: ${mp.dish}, ${readableDay(mp.plan_date)}`));
+      for (const i of (r.shopping_list ?? []) as { name: string; checked: boolean }[]) lines.push(t(`On the list: ${i.name}${i.checked ? " (ticked)" : ""}`));
+      for (const mp of (r.meal_plans ?? []) as { dish: string; plan_date: string }[]) lines.push(t(`Meal: ${mp.dish}, ${readableDay(mp.plan_date)}`));
       for (const j of (r.journal ?? []) as { title: string; entry_date: string }[]) lines.push(`Journal: ${j.title}, ${readableDay(j.entry_date, { year: true })}`);
-      if (lines.length === 0) return t(`Nothing called "${query}" in Kin.`, `Walang "${query}" sa Kin.`);
+      if (lines.length === 0) return t(`Nothing called "${query}" in Kin.`);
       return `${lines.slice(0, 5).join("; ")}${lines.length > 5 ? ` +${lines.length - 5}` : ""}.`;
     },
   };
@@ -2120,11 +2124,11 @@ const doWeHave: Rule = (q, ctx) => {
       const hit = (name: string) => words.some((w) => name.toLowerCase().includes(w) || w.includes(name.toLowerCase()));
       const pantry = rows<PantryItem>(result, "pantry").filter((p) => hit(p.name));
       const list = rows<BuyItem>(result, "shopping_list").filter((b) => hit(b.name) && !b.checked);
-      const pantryLine = pantry.map((p) => `${p.name}${formatQuantity(p.quantity, p.unit) ? ` ${formatQuantity(p.quantity, p.unit)}` : ""}${p.running_low ? t(" (running low)", " (paubos na)") : ""}`);
-      if (pantry.length === 0 && list.length === 0) return t(`No ${item} in the pantry, and it isn't on the list.`, `Walang ${item} sa pantry, at wala rin sa list.`);
+      const pantryLine = pantry.map((p) => `${p.name}${formatQuantity(p.quantity, p.unit) ? ` ${formatQuantity(p.quantity, p.unit)}` : ""}${p.running_low ? t(" (running low)") : ""}`);
+      if (pantry.length === 0 && list.length === 0) return t(`No ${item} in the pantry, and it isn't on the list.`);
       const parts = [
-        pantry.length > 0 ? t(`In the pantry: ${pantryLine.join(", ")}`, `Sa pantry: ${pantryLine.join(", ")}`) : t("None in the pantry", "Wala sa pantry"),
-        ...(list.length > 0 ? [t(`on the list: ${list.map((b) => b.name).join(", ")}`, `nasa list: ${list.map((b) => b.name).join(", ")}`)] : []),
+        pantry.length > 0 ? t(`In the pantry: ${pantryLine.join(", ")}`) : t("None in the pantry"),
+        ...(list.length > 0 ? [t(`on the list: ${list.map((b) => b.name).join(", ")}`)] : []),
       ];
       return parts.join("; ") + ".";
     },
@@ -2139,9 +2143,9 @@ const doWeHave: Rule = (q, ctx) => {
 function askAccountFor(bill: string, amount: number | null, accounts: Account[], lang: Lang, ctx: RuleContext): Ask {
   const t = pick(lang);
   const usable = accounts.filter((a) => a.scope === "joint" || a.scope === "your own").map((a) => a.name);
-  const outside = t("Paid outside Kin", "Bayad sa labas ng Kin");
+  const outside = t("Paid outside Kin");
   return {
-    ask: t(`${bill}${amount ? ` (${money(amount, ctx.currency)})` : ""}: paid from which account?`, `${bill}${amount ? ` (${money(amount, ctx.currency)})` : ""}: saan galing ang bayad?`),
+    ask: t(`${bill}${amount ? ` (${money(amount, ctx.currency)})` : ""}: paid from which account?`),
     choices: [...usable, outside],
     pending: { rule: "mark.paid", slots: { bill, ...(amount ? { amount } : {}) }, lang, asked: 1 },
   };
@@ -2158,13 +2162,13 @@ function markPaidMatch(bill: string, account: string | null, amount: number | nu
     say: (result) => {
       if (isError(result)) return result.error;
       const names = rows<string>(result, "ambiguous");
-      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(account ? { account } : { outside: 1 }), ...(amount ? { amount } : {}) }, lang, asked: 1 } };
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(account ? { account } : { outside: 1 }), ...(amount ? { amount } : {}) }, lang, asked: 1 } };
       const accounts = rows<string>(result, "ambiguous_account");
-      if (accounts.length > 0) return { ask: t(`Which account: ${accounts.join(" or ")}?`, `Aling account: ${accounts.join(" o ")}?`), choices: accounts, pending: { rule: "mark.paid", slots: { bill, ...(amount ? { amount } : {}) }, lang, asked: 1 } };
+      if (accounts.length > 0) return { ask: t(`Which account: ${accounts.join(" or ")}?`), choices: accounts, pending: { rule: "mark.paid", slots: { bill, ...(amount ? { amount } : {}) }, lang, asked: 1 } };
       const paid = String(field(result, "paid") ?? bill);
       const paidAmount = money(field(result, "amount"), ctx.currency);
-      if (field(result, "outside")) return t(`${paid} marked paid (${paidAmount}, outside Kin).`, `Bayad na ang ${paid} (${paidAmount}, sa labas ng Kin).`);
-      return t(`${paid} paid from ${field(result, "account")}, ${paidAmount}.`, `Bayad na ang ${paid} mula sa ${field(result, "account")}, ${paidAmount}.`);
+      if (field(result, "outside")) return t(`${paid} marked paid (${paidAmount}, outside Kin).`);
+      return t(`${paid} paid from ${field(result, "account")}, ${paidAmount}.`);
     },
   };
 }
@@ -2201,9 +2205,9 @@ const markPaid: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const bills = rows<Bill>(result, "unpaid_bills").filter((b) => billMatches(b, bill)).sort((a, b) => a.due_date.localeCompare(b.due_date));
-      if (bills.length === 0) return t(`No unpaid bill called "${bill}". To record money out that isn't a bill, use Wealth → Move money.`, `Walang unpaid na bill na "${bill}". Para sa ibang gastos, Wealth → Move money.`);
+      if (bills.length === 0) return t(`No unpaid bill called "${bill}". To record money out that isn't a bill, use Wealth → Move money.`);
       const names = [...new Set(bills.map((b) => b.name))];
-      if (names.length > 1) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(amount ? { amount } : {}) }, lang: q.lang, asked: 1 } };
+      if (names.length > 1) return { ask: t(`Which one: ${names.join(" or ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(amount ? { amount } : {}) }, lang: q.lang, asked: 1 } };
       return askAccountFor(bills[0].name, amount ?? Number(bills[0].amount), rows<Account>(result, "accounts"), q.lang, ctx);
     },
   };
@@ -2220,10 +2224,10 @@ function tickMatch(items: string | string[], checked: boolean, lang: Lang): Rule
     say: (result) => {
       if (isError(result)) return result.error;
       const names = rows<string>(result, "ambiguous");
-      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.tick", slots: { checked: checked ? 1 : 0 }, lang, asked: 1 } };
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`), choices: names, pending: { rule: "mark.tick", slots: { checked: checked ? 1 : 0 }, lang, asked: 1 } };
       const name = String(field(result, checked ? "ticked" : "unticked") ?? field(result, "name") ?? item);
-      if (field(result, "already")) return checked ? t(`${name} was already ticked.`, `Naka-tick na ang ${name}.`) : t(`${name} wasn't ticked.`, `Hindi naka-tick ang ${name}.`);
-      return checked ? t(`Ticked ${name} off the list.`, `Na-tick na ang ${name} sa list.`) : t(`${name} is back on the list.`, `Balik sa list ang ${name}.`);
+      if (field(result, "already")) return checked ? t(`${name} was already ticked.`) : t(`${name} wasn't ticked.`);
+      return checked ? t(`Ticked ${name} off the list.`) : t(`${name} is back on the list.`);
     },
   };
 }
@@ -2252,12 +2256,12 @@ function choreMatch(title: string, member: string | null, status: "done" | "skip
     say: (result) => {
       if (isError(result)) return result.error;
       const names = rows<string>(result, "ambiguous");
-      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`, `Alin: ${names.join(" o ")}?`), choices: names, pending: { rule: "mark.chore", slots: { status, ...(member ? { member } : {}) }, lang, asked: 1 } };
+      if (names.length > 0) return { ask: t(`Which one: ${names.join(" or ")}?`), choices: names, pending: { rule: "mark.chore", slots: { status, ...(member ? { member } : {}) }, lang, asked: 1 } };
       const what = String(field(result, "title") ?? title);
       const who = firstName(String(field(result, "for") ?? member ?? ""));
-      const waits = field(result, "awaits_approval") ? t(" A grown-up will be asked to approve it.", " Hihingin ang approval ng grown-up.") : "";
-      if (status === "skipped") return t(`${what} skipped for today${who ? ` (${who})` : ""}.`, `Na-skip ang ${what} ngayon${who ? ` (${who})` : ""}.`);
-      return t(`${what} done${who ? ` (${who})` : ""}.${waits}`, `Tapos na ang ${what}${who ? ` (${who})` : ""}.${waits}`);
+      const waits = field(result, "awaits_approval") ? t(" A grown-up will be asked to approve it.") : "";
+      if (status === "skipped") return t(`${what} skipped for today${who ? ` (${who})` : ""}.`);
+      return t(`${what} done${who ? ` (${who})` : ""}.${waits}`);
     },
   };
 }
@@ -2329,10 +2333,10 @@ const pantry: Rule = (q) => {
       const items = rows<PantryItem>(result, "pantry");
       const low = items.filter((p) => p.running_low);
       const line = (p: PantryItem) => `${p.name}${formatQuantity(p.quantity, p.unit) ? ` ${formatQuantity(p.quantity, p.unit)}` : ""}`;
-      if (lowOnly) return low.length === 0 ? t("Nothing is marked running low.", "Walang nakamarkang paubos.") : t(`Running low (${low.length}): ${joinList(low.map(line), 12)}.`, `Paubos na (${low.length}): ${joinList(low.map(line), 12)}.`);
-      if (items.length === 0) return t("The pantry list is empty. Household → To-Buy keeps it.", "Walang laman ang pantry list. Nasa Household → To-Buy ito.");
-      const lowNote = low.length > 0 ? t(` Running low: ${low.map((p) => p.name).join(", ")}.`, ` Paubos na: ${low.map((p) => p.name).join(", ")}.`) : "";
-      return t(`In the pantry (${items.length}): ${joinList(items.map(line), 15)}.${lowNote}`, `Sa pantry (${items.length}): ${joinList(items.map(line), 15)}.${lowNote}`);
+      if (lowOnly) return low.length === 0 ? t("Nothing is marked running low.") : t(`Running low (${low.length}): ${joinList(low.map(line), 12)}.`);
+      if (items.length === 0) return t("The pantry list is empty. Household → To-Buy keeps it.");
+      const lowNote = low.length > 0 ? t(` Running low: ${low.map((p) => p.name).join(", ")}.`) : "";
+      return t(`In the pantry (${items.length}): ${joinList(items.map(line), 15)}.${lowNote}`);
     },
   };
 };
@@ -2360,9 +2364,9 @@ const paidStatus: Rule = (q, ctx) => {
         if (isError(result)) return result.error;
         const paid = rows<Bill>(result, "bills_due").filter((b) => b.status === "paid").sort((a, b) => a.due_date.localeCompare(b.due_date));
         const label = q.lang === "tl" ? r.label.tl : r.label.en;
-        if (paid.length === 0) return t(`No bills paid ${label} yet.`, `Wala pang bayad na bill ${label}.`);
+        if (paid.length === 0) return t(`No bills paid ${label} yet.`);
         const total = paid.reduce((s, b) => s + Number(b.amount), 0);
-        return t(`Paid ${label} (${paid.length}): ${paid.map((b) => `${b.name} ${money(b.amount, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`, `Bayad na ${label} (${paid.length}): ${paid.map((b) => `${b.name} ${money(b.amount, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`);
+        return t(`Paid ${label} (${paid.length}): ${paid.map((b) => `${b.name} ${money(b.amount, ctx.currency)}`).join("; ")}. Total ${money(total, ctx.currency)}.`);
       },
     };
   }
@@ -2379,14 +2383,14 @@ const paidStatus: Rule = (q, ctx) => {
     say: (result) => {
       if (isError(result)) return result.error;
       const bills = rows<Bill>(result, "bills").filter((b) => billMatches(b, name)).sort((a, b) => b.due_date.localeCompare(a.due_date));
-      if (bills.length === 0) return t(`No bill called "${name}" in Kin.`, `Walang bill na "${name}" sa Kin.`);
+      if (bills.length === 0) return t(`No bill called "${name}" in Kin.`);
       const paid = bills.filter((b) => b.status === "paid")[0];
       const open = bills.filter((b) => b.status !== "paid").sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
       // Not paid: nothing paid yet, or an open one that is current or earlier than the paid one.
       if (open && (!paid || open.due_date <= ctx.today || open.due_date < paid.due_date)) {
-        return t(`${open.name} is not paid yet: ${money(open.amount, ctx.currency)} due ${readableDay(open.due_date)} (${distance(open.due_date, ctx.today, q.lang)}).`, `Hindi pa bayad ang ${open.name}: ${money(open.amount, ctx.currency)}, due ${readableDay(open.due_date)} (${distance(open.due_date, ctx.today, q.lang)}).`);
+        return t(`${open.name} is not paid yet: ${money(open.amount, ctx.currency)} due ${readableDay(open.due_date)} (${distance(open.due_date, ctx.today, q.lang)}).`);
       }
-      if (paid) return t(`Yes, ${paid.name} is paid (${money(paid.amount, ctx.currency)}, due ${readableDay(paid.due_date)})${open ? `; the next one, ${money(open.amount, ctx.currency)}, is due ${readableDay(open.due_date)}` : ""}.`, `Oo, bayad na ang ${paid.name} (${money(paid.amount, ctx.currency)}, due ${readableDay(paid.due_date)})${open ? `; ang susunod, ${money(open.amount, ctx.currency)}, due ${readableDay(open.due_date)}` : ""}.`);
+      if (paid) return t(`Yes, ${paid.name} is paid (${money(paid.amount, ctx.currency)}, due ${readableDay(paid.due_date)})${open ? `; the next one, ${money(open.amount, ctx.currency)}, is due ${readableDay(open.due_date)}` : ""}.`);
       return `${bills[0].name}: ${bills[0].status}, due ${readableDay(bills[0].due_date)}.`;
     },
   };
@@ -2417,9 +2421,9 @@ const birthdaysComing: Rule = (q, ctx) => {
         })
         .sort((a, b) => a.next.localeCompare(b.next));
       const inRange = range ? coming.filter((c) => c.next >= range.from && c.next <= range.to) : coming.slice(0, 3);
-      const label = range ? (q.lang === "tl" ? range.label.tl : range.label.en) : t("next up", "susunod");
-      if (inRange.length === 0) return t(`No birthdays ${label}.`, `Walang birthday ${label}.`);
-      return t(`Birthdays ${label}: ${inRange.map((c) => `${c.name} ${readableDay(c.next)} (${c.turning})`).join("; ")}.`, `Birthday ${label}: ${inRange.map((c) => `${c.name} ${readableDay(c.next)} (${c.turning})`).join("; ")}.`);
+      const label = range ? (q.lang === "tl" ? range.label.tl : range.label.en) : t("next up");
+      if (inRange.length === 0) return t(`No birthdays ${label}.`);
+      return t(`Birthdays ${label}: ${inRange.map((c) => `${c.name} ${readableDay(c.next)} (${c.turning})`).join("; ")}.`);
     },
   };
 };
@@ -2446,10 +2450,10 @@ const dateAndTime: Rule = (q, ctx) => {
   const none = (rule: string, line: string): RuleMatch => ({ rule, tool: "none", input: {}, lang: q.lang, say: () => line });
   if (/^(?:what time is it|what is the time|anong oras na|anong oras|time check|oras)(?: now| ngayon)?$/.test(q.text)) {
     if (!ctx.now) return null;
-    return none("clock.time", t(`It's ${familyTime(ctx.now, ctx.timeZone)}.`, `${familyTime(ctx.now, ctx.timeZone)} na.`));
+    return none("clock.time", t(`It's ${familyTime(ctx.now, ctx.timeZone)}.`));
   }
   if (/^(?:what day is it|what day is it today|what is the date|what is the date today|what is today'?s date|date today|today'?s date|anong petsa|anong petsa ngayon|anong araw ngayon|anong araw na|ano ang petsa ngayon|petsa ngayon)$/.test(q.text)) {
-    return none("clock.date", t(`Today is ${readableDay(ctx.today, { long: true, year: true })}.`, `Ngayon ay ${readableDay(ctx.today, { long: true, year: true })}.`));
+    return none("clock.date", t(`Today is ${readableDay(ctx.today, { long: true, year: true })}.`));
   }
   const day = FIXED_DAYS.find((d) => d.re.test(q.text));
   if (day && /\b(when|kailan|how many days|ilang araw|ilang tulog|how many sleeps|days until|days to|days before|bago|is it|na ba|malapit|countdown)\b/.test(q.text) && !/\b(add|pa-?add|plan|party|gift|regalo|budget|list|buy|spend|spent|gastos)\b/.test(q.text)) {
@@ -2458,9 +2462,9 @@ const dateAndTime: Rule = (q, ctx) => {
     const date = make(year) >= ctx.today ? make(year) : make(year + 1);
     const n = daysBetween(ctx.today, date) ?? 0;
     const name = q.lang === "tl" ? day.tl : day.en;
-    if (n === 0) return none("clock.holiday", t(`${name} is today!`, `${name} na ngayon!`));
+    if (n === 0) return none("clock.holiday", t(`${name} is today!`));
     const withYear = date.slice(0, 4) !== ctx.today.slice(0, 4);
-    return none("clock.holiday", t(`${name} is ${readableDay(date, { year: withYear })}, ${n === 1 ? "tomorrow" : `in ${n} days`}.`, `${name}: ${readableDay(date, { year: withYear })}, ${n === 1 ? "bukas" : `${n} araw pa`}.`));
+    return none("clock.holiday", t(`${name} is ${readableDay(date, { year: withYear })}, ${n === 1 ? "tomorrow" : `in ${n} days`}.`));
   }
   return null;
 };
@@ -2578,7 +2582,7 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
     if (!name) return null;
     // "no" / "never mind" drops it.
     if (/^(no|never ?mind|cancel|wag na|huwag na|hindi|forget it|skip)\b/.test(q.text)) {
-      return { ask: pick(lang)("Okay, not added.", "Sige, hindi na-add."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
+      return { ask: pick(lang)("Okay, not added."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
     }
     let amount = numSlot("amount");
     let dueDate = slot("due_date");
@@ -2603,7 +2607,7 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
     const bill = slot("bill");
     if (!bill) return null;
     if (/^(no|never ?mind|cancel|wag na|huwag na|hindi|forget it|skip)\b/.test(q.text)) {
-      return { ask: pick(lang)("Okay, left as unpaid.", "Sige, hindi minarkahang bayad."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
+      return { ask: pick(lang)("Okay, left as unpaid."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
     }
     const outside = /\b(outside|labas|cash|over the counter|personally|wala sa kin|hindi sa kin)\b/.test(q.text);
     const account = outside ? null : q.raw.replace(/^(?:from|sa|via|using|mula sa|gamit ang)\s+/i, "").trim();
@@ -2625,7 +2629,7 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
       say: (result) => {
         if (isError(result)) return result.error;
         const hit = rows<Bill>(result, "unpaid_bills").find((b) => b.name.toLowerCase() === bill.toLowerCase());
-        if (!hit) return pick(lang)(`No unpaid bill called "${bill}".`, `Walang unpaid na bill na "${bill}".`);
+        if (!hit) return pick(lang)(`No unpaid bill called "${bill}".`);
         return askAccountFor(hit.name, numSlot("amount") ?? Number(hit.amount), rows<Account>(result, "accounts"), lang, ctx);
       },
     };
@@ -2647,7 +2651,7 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
     const title = slot("title");
     if (!title) return null;
     if (/^(no|never ?mind|cancel|wag na|huwag na|hindi|forget it|skip)\b/.test(q.text)) {
-      return { ask: pick(lang)("Okay, not added.", "Sige, hindi na-add."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
+      return { ask: pick(lang)("Okay, not added."), pending: { rule: "none", slots: {}, lang, asked: 0 } };
     }
     const who = (slot("who") ?? "").split("|").filter(Boolean);
     const wholeFamily = pending.slots.whole_family === 1;
@@ -2686,29 +2690,18 @@ export function resumeRule(pending: Pending, answer: string, ctx: RuleContext): 
  * the words in the question so a money question hears money examples. */
 export function rulesOnlyLine(message: string): string {
   const text = normalise(message);
-  const lang = detectLang(text);
   const money = /\b(money|pera|bill|bills|budget|spend|spent|gastos|balance|cash|owe|utang|save|ipon|goal|account|peso|₱)\b/.test(text);
   const food = /\b(list|listahan|buy|bili|grocery|groceries|meal|meals|dinner|lunch|ulam|cook|luto|recipe|pantry)\b/.test(text);
   const people = /\b(family|pamilya|birthday|kaarawan|allerg|medicine|gamot|doctor|doktor|blood|health|checkup|check-up)\b/.test(text);
-  const examples = lang === "tl"
-    ? money
-      ? ["Kailan due ang Meralco?", "Magkano nagastos natin sa groceries this month?", "Magkano ang laman ng GCash?"]
-      : food
-        ? ["Anong nasa listahan?", "Anong ulam bukas?", "Pa-add ng gatas"]
-        : people
-          ? ["Kailan birthday ni Lia?", "Ano ang allergy ni Lia?", "Sino may check-up?"]
-          : ["Kailan due ang Meralco?", "Anong meron bukas?", "Pa-add ng gatas"]
-    : money
-      ? ["When is the electric bill due?", "How much did we spend on groceries this month?", "How much is in GCash?"]
-      : food
-        ? ["What's on the list?", "What's for dinner tomorrow?", "Add milk to the list"]
-        : people
-          ? ["When is Lia's birthday?", "What is Lia's allergy?", "Who has a check-up?"]
-          : ["When is the electric bill due?", "What's on tomorrow?", "Add milk to the list"];
+  const examples = money
+    ? ["When is the electric bill due?", "How much did we spend on groceries this month?", "How much is in GCash?"]
+    : food
+      ? ["What's on the list?", "What's for dinner tomorrow?", "Add milk to the list"]
+      : people
+        ? ["When is Lia's birthday?", "What is Lia's allergy?", "Who has a check-up?"]
+        : ["When is the electric bill due?", "What's on tomorrow?", "Add milk to the list"];
   const quoted = examples.map((e) => `"${e}"`);
-  return lang === "tl"
-    ? `Hindi ko pa masagot 'yan nang mag-isa (hindi pa naka-on ang Kin AI, walang ipinadala kahit saan). Kaya ko: ${quoted[0]}, ${quoted[1]}, ${quoted[2]}.`
-    : `I can't answer that one on my own yet (Kin AI isn't switched on, and nothing was sent anywhere). I can answer things like ${quoted[0]}, ${quoted[1]} and ${quoted[2]}.`;
+  return `I can't answer that one on my own yet (Kin AI isn't switched on, and nothing was sent anywhere). I can answer things like ${quoted[0]}, ${quoted[1]} and ${quoted[2]}.`;
 }
 
 /** The one-line note the console shows the first time a rule answers. */

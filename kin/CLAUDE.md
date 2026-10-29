@@ -32,3 +32,7 @@ rather than assumed:
   dirty the tree.
 - Never run `graphify label`. It is a paid LLM pass and Jonathan's call.
 -->
+
+## Language
+
+Kin speaks English only (Jonathan, 28 October): Ask Kin's replies, its rule layer, the model's prompt, help text and examples. It may understand Filipino words in a question, but it always answers in English. Never write Taglish or Filipino replies, and never suggest them.
