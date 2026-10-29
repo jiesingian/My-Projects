@@ -73,7 +73,8 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
 
 /** The ring nobody picked up becomes "Missed call from Janine", in the same
  * place on the lock screen (same tag), so it does not keep saying "calling"
- * after the caller has given up. */
+ * after the caller has given up. On the iPhone app the same push also ends
+ * the CallKit ring at once (`endsCall`; lib/apns.ts). */
 export async function missedCallAction(to: string, video: boolean, callId: string): Promise<void> {
   const me = await requireCurrentMember();
   if (!UUID.test(to) || to === me.id || !UUID.test(callId)) return;
@@ -86,6 +87,7 @@ export async function missedCallAction(to: string, video: boolean, callId: strin
       body: "Open Kin to call back.",
       url: "/chat/household",
       tag: `call-${me.id}`,
+      endsCall: callId,
     }),
   );
 }

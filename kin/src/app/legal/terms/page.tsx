@@ -42,8 +42,13 @@ export default function TermsPage() {
           <strong>Kin Free</strong> costs nothing and has no time limit.
         </li>
         <li>
-          <strong>Kin Plus</strong> costs {pesos(PLANS.monthly.amountCents)} a month or {pesos(PLANS.annual.amountCents)} a
-          year for the whole household. Prices are in Philippine pesos and include any tax that applies.
+          {/* No price inside the iPhone app, which sells nothing (lib/ios-app.ts). */}
+          <strong>Kin Plus</strong>{" "}
+          <span className="kin-web-only">
+            costs {pesos(PLANS.monthly.amountCents)} a month or {pesos(PLANS.annual.amountCents)} a year for the whole
+            household. Prices are in Philippine pesos and include any tax that applies.
+          </span>
+          <span className="kin-ios-only">is a paid plan for the whole household.</span>
         </li>
         <li>
           A new household can get <strong>{TRIAL_DAYS} days of Kin Plus free</strong>. No payment details are asked for, and

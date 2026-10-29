@@ -64,8 +64,10 @@ checked them yet:
 - A Kin call rings with the incoming-call screen with Kin closed;
   answering opens the call and the sound works, also with the screen
   locked (the `audio` background mode); declining stops the caller's ring.
-- A call the caller hangs up before it is answered: the iPhone keeps
-  ringing until its 60 seconds run out (there is no "call ended" push yet).
+- A call the caller hangs up before it is answered: the iPhone should stop
+  ringing within a few seconds (the missed-call push ends the CallKit ring,
+  `endsCall`), with no second incoming call flashing up, and "Missed call"
+  should show. Needs the APNs key (§9 step 7).
 - The widgets show Today's next dose and plan and the To-Buy count after
   Kin has been opened once, and are emptied after signing out.
 - The silent daily push re-sets the alarms without opening Kin (needs the
