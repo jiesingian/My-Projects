@@ -77,7 +77,7 @@ HEALTH AND SAFETY
 MONEY, TOGETHER
 • Accounts, budgets, bills and their reminders, goals and net worth.
 • Lending between relatives and savings circles, with reminders you send yourself.
-• A vault for documents and shared passwords, behind Face ID.
+• A vault for documents and shared passwords, with a Face ID or PIN lock.
 
 MEMORIES
 • A journal with photos, and recorded stories from the grandparents.
@@ -88,7 +88,7 @@ ASK KIN
 
 PRIVATE BY DESIGN
 • Each household is walled off from every other one in the database itself.
-• No ads, no algorithm, no strangers. Kin does not sell your information or use it to train AI.
+• No ads, no algorithm, no strangers. Kin does not sell your information, and Kin AI's provider does not train on it.
 • Delete your account at any time from Settings → Account.
 ```
 

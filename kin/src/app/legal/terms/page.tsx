@@ -22,8 +22,9 @@ export default function TermsPage() {
       <h2>Accounts and households</h2>
       <ul>
         <li>
-          You must be 18 or older, or have a parent or guardian&rsquo;s permission, to create an account. Children under
-          13 are added by a parent or guardian as managed profiles.
+          You must be 18 or older to create an account, or have a parent or guardian&rsquo;s permission. A child can be
+          added by a parent or guardian as a managed profile, or have their own login once the household&rsquo;s organizer
+          approves them as a child.
         </li>
         <li>
           Everything in Kin belongs to a household. The person who creates it is its organizer, who manages members and
@@ -59,6 +60,10 @@ export default function TermsPage() {
       </ul>
 
       <h2>Paying and renewing</h2>
+      <p>
+        Kin Plus cannot be bought yet: today a household has it through the trial, a Kin code or a gift. When it can be
+        bought, these apply:
+      </p>
       <ul>
         <li>
           A monthly plan renews every month and a yearly plan every year, until it is cancelled. Payments by GCash or
@@ -83,6 +88,10 @@ export default function TermsPage() {
 
       <h2>Using Kin fairly</h2>
       <p>Do not use Kin to break the law, to harm or harass anyone, to store content you have no right to, or to try to reach another household&rsquo;s information or disrupt the service.</p>
+      <p>
+        &ldquo;No monthly limit&rdquo; on Kin AI is for a household&rsquo;s own use. If use is far beyond what a family
+        could need (for example, automated), we may slow or pause it and will tell the organizer why.
+      </p>
 
       <h2>Kin AI, health and money</h2>
       <p>
@@ -108,6 +117,20 @@ export default function TermsPage() {
         To the extent Philippine law allows, Kin is not liable for indirect or consequential loss, and our total liability
         to you is limited to what you paid for Kin in the 12 months before the claim. Nothing here limits your rights as a
         consumer under the Consumer Act of the Philippines or other law that cannot be set aside by agreement.
+      </p>
+
+      <h2>Questions and complaints</h2>
+      <p>
+        Write to us at the contact below. We reply within 7 days. If we cannot resolve it, you can go to the Department
+        of Trade and Industry (
+        <a href="https://www.dti.gov.ph/" rel="noreferrer">
+          dti.gov.ph
+        </a>
+        ), or, about your personal information, the National Privacy Commission (
+        <a href="https://privacy.gov.ph/" rel="noreferrer">
+          privacy.gov.ph
+        </a>
+        ).
       </p>
 
       <h2>Law</h2>

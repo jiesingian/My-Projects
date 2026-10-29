@@ -204,3 +204,10 @@ export function checkInAnswerPush(answererName: string, askerId: string, checkIn
     urgent: answer === "call_me",
   };
 }
+
+/** Whether `iso` is more than `days` days ago: an SOS alert's position is
+ * blanked after 30 (20261030110000), and the page says so rather than that
+ * the phone never shared one. */
+export function olderThanDays(iso: string, days: number, now: Date = new Date()): boolean {
+  return now.getTime() - new Date(iso).getTime() > days * 86_400_000;
+}

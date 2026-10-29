@@ -731,7 +731,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it.",
+            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it. The alert stays in the household's SOS history; where you were is kept for 30 days.",
             "how": "Tap SOS in the header. Rehearse once with a grown-up.",
             "pros": [
               "Help is one tap away.",
@@ -875,7 +875,7 @@ export const HELP_GUIDE: HelpTab[] = [
               "The household's own questions are answered from its records in under a second, with nothing sent anywhere."
             ],
             "cons": [
-              "Kin AI, for everything the records alone can't answer: 5 uses a month on Free, unlimited on Plus."
+              "Kin AI, for everything the records alone can't answer: 5 uses a month on Free, no monthly limit on Plus."
             ],
             "tips": [
               "Ask the way you'd text a relative: \"When is Meralco due?\", \"How much did we spend on groceries this month?\", \"What's on tomorrow?\".",
@@ -1634,7 +1634,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Your plan: Kin Free and Kin Plus",
             "tags": [],
-            "what": "Free: calendar, chores, allowance, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus: Wealth, lending and savings circles, the vault, medicines and vitals, unlimited Kin AI, 50 GB.",
+            "what": "Free: calendar, chores, allowance, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus: Wealth, lending and savings circles, the vault, medicines and vitals, Kin AI with no monthly limit, 50 GB.",
             "how": "Settings → Your plan.",
             "pros": [
               "Everything a family needs every day is free."

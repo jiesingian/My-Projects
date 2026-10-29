@@ -106,7 +106,7 @@ export default async function ({ db, as, check, refused }) {
   await check("A member cannot list who is due", () => refused(() => as(BEN, "select * from due_account_deletions()")));
   await check("A member cannot finalize anyone, themselves included", () => refused(() => as(ANN, `select finalize_account_deletion('${ANN}')`)));
   await check("Signed out, nobody can finalize", () => refused(() => anon(`select finalize_account_deletion('${ANN}')`)));
-  // The sweep of tables made after the job's list (20261030100000) is the
+  // The sweep of tables made after the job's list (20261030110001) is the
   // trigger's alone: nobody can call it.
   await check("A member cannot run account_deletion_sweep_newer_tables", () => refused(() => as(ANN, "select account_deletion_sweep_newer_tables()")));
   await check("A member cannot delete a household through the job's door", () => refused(() => as(DAN, `select delete_household_for_account_deletion('${D}')`)));
@@ -200,7 +200,7 @@ export default async function ({ db, as, check, refused }) {
     ["reward_redemptions", "member_id"], ["routine_members", "member_id"], ["send_to_kin_tokens", "member_id"],
     ["sent_screenshots", "member_id"], ["sos_alerts", "member_id"],
     ["trip_travellers", "member_id"], ["vault_emergency_contacts", "member_id"], ["wealth_targets", "member_id"],
-    // Made after the job's list, swept by a trigger instead (20261030100000).
+    // Made after the job's list, swept by a trigger instead (20261030110001).
     ["alarm_picks", "member_id", { kind: "bill" }], ["waiting_snoozes", "member_id"], ["feature_votes", "member_id", { choice: "other" }],
   ];
   // Rows they wrote for others, which keep the row and lose the name: [table, name column, column naming them].

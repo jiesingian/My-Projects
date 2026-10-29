@@ -49,7 +49,7 @@ For every row below:
 | **Personal info → User IDs** | Yes | Required | App functionality, Account management | The account's id |
 | **Personal info → Phone number** | Yes | Optional | App functionality | If added to a profile or the emergency card |
 | **Personal info → Address** | Yes | Optional | App functionality | The household's addresses, if added |
-| **Personal info → Other info** | Yes | Optional | App functionality | Birthday, relationships, the family tree, emergency contacts |
+| **Personal info → Other info** | Yes | Optional | App functionality | Birthday, relationships, the family tree, emergency contacts, and SSS, PhilHealth, Pag-IBIG and TIN numbers if added |
 | **Financial info → Other financial info** | Yes | Optional | App functionality | Accounts, balances, budgets, bills, loans, savings circles the household records |
 | **Financial info → Purchase history** | **No**, for now | | | Nothing is bought in the app. Answer **Yes** (required, account management) once GCash/Maya/card payments go live on the website. |
 | **Health and fitness → Health info** | Yes | Optional | App functionality | Conditions, medicines and doses, vitals, illnesses, visits, vaccinations, the emergency card |
