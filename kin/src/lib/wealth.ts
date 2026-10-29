@@ -217,6 +217,9 @@ export function whoseOptions(members: { id: string; label: string }[], meId: str
 }
 
 export const TRANSFER_CATEGORY = "Transfer";
+/** The words on a "Match the bank" correction (matchBankBalanceAction), which
+ * Today also reads to know an account was matched lately. */
+export const MATCHED_PARTICULARS = "Matched to the bank's balance";
 export const GOAL_CATEGORY = "Goal";
 
 /** The last `count` months ending with the month containing `anchor`, oldest first. */

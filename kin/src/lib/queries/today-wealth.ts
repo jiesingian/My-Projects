@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { familyDay } from "@/lib/time";
 import { getPaluwagans, getUtang } from "@/lib/queries/utang";
 import { getAccounts } from "@/lib/queries/wealth";
-import { wealthRows, type WealthRows } from "@/lib/today-wealth";
+import { accountsToMatch, wealthRows, type WealthRows } from "@/lib/today-wealth";
+import { MATCHED_PARTICULARS } from "@/lib/wealth";
 
 /** Wealth's part of Today (23 October): what the reader may see under their
  * own policies -- the household's joint things, their own, and the other
@@ -13,7 +14,8 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   const supabase = await createClient();
   const tz = await householdZone();
   const today = familyDay(new Date(), tz);
-  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }, { data: assets }, accounts] = await Promise.all([
+  const since = new Date(Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10) - 25)).toISOString();
+  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }, { data: assets }, accounts, { data: matched }] = await Promise.all([
     getUtang(me.family_id, me.id),
     getPaluwagans(me.family_id, me.id),
     // With a schedule, or a fixed rate that ends (20261026170000).
@@ -26,14 +28,17 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
     // Credit cards with a due day, with what is owed (their balance below
     // zero): the accounts this member can see.
     getAccounts(me.family_id),
+    // Matched to the bank in the last 25 days, for the monthly row.
+    supabase.from("wealth_transactions").select("account_id").eq("family_id", me.family_id).eq("particulars", MATCHED_PARTICULARS).gte("occurred_at", since),
   ]);
+  const toMatch = Number(today.slice(8, 10)) <= 3 ? accountsToMatch(accounts, me.id, new Set((matched ?? []).map((m) => m.account_id))) : [];
   const cards = accounts
     .filter((a) => a.account_type === "credit" && a.card_due_day)
     .map((a) => ({ id: a.id, name: a.name, owed: Math.max(0, -a.balance), card_due_day: a.card_due_day, card_min_payment: a.card_min_payment == null ? null : Number(a.card_min_payment) }));
   // Investments with a maturity date (20261028130000).
   const maturities = accounts.filter((a) => (a.account_type === "investment" || a.account_type === "stocks") && a.matures_on).map((a) => ({ id: a.id, name: a.name, balance: a.balance, matures_on: a.matures_on }));
   const rows = wealthRows(
-    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards, maturities },
+    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards, maturities, toMatch },
     today,
     me.families.currency,
   );
