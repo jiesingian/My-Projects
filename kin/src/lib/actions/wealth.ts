@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccountDetail } from "@/lib/queries/wealth";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel, isTransferWords } from "@/lib/wealth";
+import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, MATCHED_PARTICULARS, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel, isTransferWords } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -751,7 +751,7 @@ export async function matchBankBalanceAction(input: { accountId: string; bankBal
     accountId: account.id,
     direction: diff > 0 ? "in" : "out",
     amount: Math.abs(diff),
-    particulars: "Matched to the bank's balance",
+    particulars: MATCHED_PARTICULARS,
     category: TRANSFER_CATEGORY,
     status: "confirmed",
   });

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { wealthRows, valuesToCheck, type AssetLike, type CardLike, type MaturityLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
+import { wealthRows, valuesToCheck, accountsToMatch, type AssetLike, type CardLike, type MaturityLike, type FundLike, type IncomeLike, type LoanLike, type PaluwaganLike, type UtangLike } from "@/lib/today-wealth";
 
 /** Wealth on Today (23 October): the rows and the week's Coming up lines,
  * from the same sums the Wealth tab shows. Friday 23 October 2026. */
@@ -123,4 +123,15 @@ test("an investment maturing: the week before in Coming up, from the day a row f
   expect(rows("2026-10-01").today).toEqual([]);
   expect(rows("2026-11-30").soon).toEqual([]);
   expect(rows(null).today).toEqual([]);
+});
+
+test("the first three days of a month: the reader's bank, e-wallet and card accounts not matched lately, in one row", () => {
+  const acct = (id: string, name: string, account_type: string, owner: string | null, joint = false) => ({ id, name, account_type, is_joint: joint, owner_member_id: owner });
+  const all = [acct("b1", "BPI Savings", "bank", "me"), acct("g1", "GCash", "ewallet", null, true), acct("c1", "Cash wallet", "cash", "me"), acct("o1", "Ana's BDO", "bank", "ana"), acct("k1", "BPI card", "credit", "me")];
+  expect(accountsToMatch(all, "me", new Set(["k1"])).map((a) => a.id)).toEqual(["b1", "g1"]);
+  const row = (day: string, toMatch = accountsToMatch(all, "me", new Set())) => wealthRows({ ...none, toMatch }, day, "PHP").today.find((r) => r.id.startsWith("match-"));
+  expect(row("2026-11-02")).toMatchObject({ id: "match-2026-10", title: "Match these to the bank", meta: "BPI Savings, GCash, BPI card · type what the bank app shows", href: "/wealth?seg=accounts" });
+  expect(row("2026-11-01", [all[0]])).toMatchObject({ title: "Match it to the bank", href: "/wealth/accounts/b1?match=1" });
+  expect(row("2026-11-04")).toBeUndefined();
+  expect(row("2026-11-01", [])).toBeUndefined();
 });

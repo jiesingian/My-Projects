@@ -43,6 +43,7 @@ export type FundLike = { id: string; title: string; target_amount: number | null
 export type MaturityLike = { id: string; name: string; balance: number; matures_on: string | null };
 export type CardLike = { id: string; name: string; owed: number; card_due_day: number | null; card_min_payment: number | null };
 export type AssetLike = { id: string; name: string; valued_on: string | null; annual_change_pct: number | string | null };
+export type MatchLike = { id: string; name: string };
 export type IncomeLike = { id: string; name: string; amount: number; next_date: string | null; status: string };
 
 const DAY_MS = 86_400_000;
@@ -60,7 +61,7 @@ function soonItem(partial: Omit<BriefItem, "whose" | "memberIds"> & { at: number
   return { ...partial, whose: "family", memberIds: [] };
 }
 
-export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[]; maturities?: MaturityLike[] }, today: string, currency: string): WealthRows {
+export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[]; maturities?: MaturityLike[]; toMatch?: MatchLike[] }, today: string, currency: string): WealthRows {
   const fmt = (n: number) => formatCurrency(n, currency);
   const todayRows: BriefItem[] = [];
   const soon: BriefItem[] = [];
@@ -220,6 +221,15 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
       const names = stale.slice(0, 3).map((a) => a.name).join(", ") + (stale.length > 3 ? ` and ${stale.length - 3} more` : "");
       todayRows.push({ id: `values-${month}`, icon: "house", tint: "money", title: stale.length === 1 ? "Check what it's worth now" : "Check what these are worth now", meta: `${names} · last set over a year ago`, href: "/wealth?seg=assets" });
     }
+
+    // And the accounts not matched to their bank lately (29 October): with
+    // no bank sync, a balance drifts by every fee and forgotten meal. One row,
+    // the same three days; matching one takes it off.
+    const toMatch = input.toMatch ?? [];
+    if (toMatch.length > 0) {
+      const names = toMatch.slice(0, 3).map((a) => a.name).join(", ") + (toMatch.length > 3 ? ` and ${toMatch.length - 3} more` : "");
+      todayRows.push({ id: `match-${month}`, icon: "banknote", tint: "money", title: toMatch.length === 1 ? "Match it to the bank" : "Match these to the bank", meta: `${names} · type what the bank app shows`, href: toMatch.length === 1 ? `/wealth/accounts/${toMatch[0].id}?match=1` : "/wealth?seg=accounts" });
+    }
   }
 
   return { today: todayRows, soon };
@@ -230,4 +240,12 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
 export function valuesToCheck<T extends AssetLike>(assets: T[], today: string): T[] {
   const yearAgo = `${Number(today.slice(0, 4)) - 1}${today.slice(4, 10)}`;
   return assets.filter((a) => !!a.valued_on && a.valued_on.slice(0, 10) <= yearAgo).sort((x, y) => (x.valued_on! < y.valued_on! ? -1 : 1));
+}
+
+/** The accounts to match to their bank this month: a bank, e-wallet or card
+ * of the reader's own or the household's (not another grown-up's), not
+ * matched in the last 25 days. Cash is left out: counting it is not a bank
+ * statement's job. */
+export function accountsToMatch<T extends MatchLike & { account_type: string; is_joint: boolean | null; owner_member_id: string | null }>(accounts: T[], meId: string, matchedLately: Set<string>): T[] {
+  return accounts.filter((a) => ["bank", "ewallet", "credit"].includes(a.account_type) && (a.is_joint || a.owner_member_id === meId) && !matchedLately.has(a.id));
 }

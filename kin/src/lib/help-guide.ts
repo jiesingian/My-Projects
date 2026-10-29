@@ -1299,7 +1299,7 @@ export const HELP_GUIDE: HelpTab[] = [
             ],
             "tips": [
               "for e-wallets, use the pending step and confirm it under Waiting on you.",
-              "match each account to its bank app once a month; the correction isn't counted as income or spending."
+              "in the first three days of each month, Today lists the accounts not matched to their bank lately; the correction isn't counted as income or spending."
             ]
           },
           {

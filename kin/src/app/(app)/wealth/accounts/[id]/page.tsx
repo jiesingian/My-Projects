@@ -21,7 +21,7 @@ import { formatCurrency, shortNames } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, categoryLabel, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, pendingRows, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 
-export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string; pay?: string }> }) {
+export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string; pay?: string; match?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
@@ -97,7 +97,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           {/* No bank sync: put the balance right from the bank's own figure (29 October). */}
           {!account.is_archived && (
             <div style={{ marginTop: "0.25rem", marginLeft: "-0.5rem" }}>
-              <MatchBankControl accountId={account.id} accountName={account.name} balance={account.balance} kind={account.account_type} currency={currency} />
+              <MatchBankControl accountId={account.id} accountName={account.name} balance={account.balance} kind={account.account_type} currency={currency} autoOpen={sp.match === "1"} />
             </div>
           )}
           {(number || qr || canNumber) && (

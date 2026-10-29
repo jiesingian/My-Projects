@@ -2142,11 +2142,12 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
 
 /** "Match the bank" on an account's page (29 October): type what the bank
  * or e-wallet app shows, see the difference, and Kin records it as one
- * entry (matchBankBalanceAction). A card asks for what is owed. */
-export function MatchBankControl({ accountId, accountName, balance, kind, currency }: { accountId: string; accountName: string; balance: number; kind: string; currency: string }) {
+ * entry (matchBankBalanceAction). A card asks for what is owed. Today's
+ * monthly row opens it straight away (`autoOpen`, ?match=1). */
+export function MatchBankControl({ accountId, accountName, balance, kind, currency, autoOpen = false }: { accountId: string; accountName: string; balance: number; kind: string; currency: string; autoOpen?: boolean }) {
   const credit = kind === "credit";
   const source = credit ? "card statement says you owe" : kind === "cash" ? "cash actually there when you count it" : "bank or e-wallet app shows";
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [typed, setTyped] = useState<number | null>(null);
   const { error, pending, run, entryId } = useMoneyAction();
   const shown = credit ? -balance : balance;
