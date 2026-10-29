@@ -68,6 +68,9 @@ export default async function MemberDetailPage({
   const { member, schedule, appointments, conditions, labs, vitals, omron, medicines, doses, missedAlerts, supply, hasListHelper, prescriptions, grownUps, illness, photoCount } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
+  // Their ID numbers, read as the viewer: only they and the household's
+  // grown-ups get a row back (20261030140000).
+  const { data: ids } = await (await createClient()).from("member_ids").select("*").eq("person_id", member.person_id).maybeSingle();
 
   // Reachable from two different hubs, not one: the Family list links here
   // (the ordinary path), but Settings also links straight to your own
@@ -258,7 +261,7 @@ export default async function MemberDetailPage({
               avatarUrl={member.avatar_url}
               initials={initials(member.full_name)}
               photos={photos}
-              initial={memberToProfileFields(member)}
+              initial={memberToProfileFields(member, ids)}
               compact
             />
               ) : (
@@ -297,7 +300,7 @@ export default async function MemberDetailPage({
                 memberId={member.id}
                 isSelf={false}
                 canEdit={me.is_organiser || (isGrownUp(me.role) && member.status === "managed")}
-                initial={memberToProfileFields(member)}
+                initial={memberToProfileFields(member, ids)}
               />
 
               {/* Your colour is yours. The one exception is a managed

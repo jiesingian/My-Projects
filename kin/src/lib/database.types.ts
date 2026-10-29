@@ -6649,6 +6649,33 @@ export type Database = {
           },
         ]
       }
+      member_ids: {
+        Row: {
+          person_id: string
+          sss_number: string | null
+          philhealth_number: string | null
+          pagibig_number: string | null
+          tin_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          person_id: string
+          sss_number?: string | null
+          philhealth_number?: string | null
+          pagibig_number?: string | null
+          tin_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          person_id?: string
+          sss_number?: string | null
+          philhealth_number?: string | null
+          pagibig_number?: string | null
+          tin_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_security: {
         Row: {
           failed_attempts: number

@@ -45,6 +45,7 @@ export async function myData(db: SupabaseClient, me: Me): Promise<{ files: ZipFi
     ["mine/personal-journal.csv", "journal_entries", "owner_person_id", me.person_id],
     ["mine/personal-goals.csv", "goals", "owner_person_id", me.person_id],
     ["mine/saved-messages.csv", "saved_messages", "person_id", me.person_id],
+    ["mine/my-id-numbers.csv", "member_ids", "person_id", me.person_id],
     // The messages they wrote outside the household chat (legal readiness,
     // 29 October): to one person, in a group, and in the linked families'
     // room. Their own words only; the other side's are theirs.
