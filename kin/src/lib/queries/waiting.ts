@@ -1,10 +1,13 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { familyDate } from "@/lib/format-family";
+import { householdZone } from "@/lib/household-zone";
 import { getAccounts, getAssetCosts, getGoalDepositsSince, getPendingEntries, type LedgerEntry } from "@/lib/queries/wealth";
 import { getMembers } from "@/lib/queries/family";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { formatCurrency, shortNames } from "@/lib/format";
-import { familyMidnight } from "@/lib/time";
+import { familyDay, familyMidnight } from "@/lib/time";
 import { actorsFor, depositProgress, insuranceGap, loanFlags, loanInsurance, loanInsuranceFund, loanOriginStatus, loanStatus, paymentsLeftForBalance, pendingRows, runningCosts, type PendingRow } from "@/lib/wealth";
 
 /** "Waiting on you", built once for every page that shows it (Jonathan, 29
@@ -19,13 +22,16 @@ export type WaitingTab = "accounts" | "cashflow" | "assets" | "goals";
 export type WaitingAction =
   | { kind: "pending"; row: PendingRow; appUrl: string | null }
   | { kind: "bill"; billId: string; amount: number; accountId: string | null; due: "today" | "overdue"; loanId: string | null }
-  | { kind: "income"; scheduleId: string; amount: number }
+  | { kind: "income"; scheduleId: string; amount: number; accountId: string | null }
   | { kind: "goal"; goalId: string; linkedAccountId: string | null; fromAccountId: string | null; fromAccount2Id: string | null; fromAmount: number | null; from2Amount: number | null }
   | { kind: "reprice"; loanId: string; balance: number; paymentsLeft: number; rate: number | null; payment: number | null }
   | { kind: "running-cost"; assetId: string; assetName: string; assetKind: string; whose: string }
   | { kind: "set-balance"; loanId: string; value: number; paymentsLeft: number | null }
   | { kind: "link"; href: string; label: string }
-  | { kind: "asset-picker"; loanId: string; assets: { id: string; name: string }[] };
+  | { kind: "asset-picker"; loanId: string; assets: { id: string; name: string }[] }
+  | { kind: "edit-goal"; goal: { id: string; title: string; note: string | null; target: number; date: string | null; yearly: boolean } }
+  | { kind: "fund-paid"; goalId: string; title: string; saved: number; target: number; linkedAccountId: string | null; repeatsYearly: boolean }
+  | { kind: "remind"; goalId: string; memberId: string; name: string };
 
 export type WaitingEntry = {
   id: string;
@@ -35,6 +41,11 @@ export type WaitingEntry = {
   tabs: WaitingTab[];
   /** A shared goal's deposits this month: who has put in and who has not. */
   people?: { name: string; done: boolean; amount: number | null }[];
+  /** Done on the row itself, without opening the sheet, when it is the
+   * one simple thing to do (29 October). */
+  quick?: WaitingAction;
+  /** "Not now" can put it away for 30 days: a flag, not money owed today. */
+  snoozable?: boolean;
   /** Said in the sheet under the title: what it is and why it waits. */
   lines: string[];
   /** What can be done about it, right in the sheet (29 October): an item
@@ -44,9 +55,14 @@ export type WaitingEntry = {
   open: { href: string; label: string; tab: WaitingTab | null };
 };
 
-export async function getWaiting(me: { id: string; family_id: string; grownUp: boolean }, today: string, tz: string, fmtDate: (d: string) => string, currency: string): Promise<WaitingEntry[]> {
-  if (!me.grownUp) return [];
-  const familyId = me.family_id;
+/** Built once per page view (29 October): the tab counts and the page's
+ * own list read the same result. Primitive arguments, so React's cache
+ * matches the two calls. */
+export const getWaiting = cache(async (memberId: string, familyId: string, grownUp: boolean, currency: string): Promise<WaitingEntry[]> => {
+  if (!grownUp) return [];
+  const me = { id: memberId, family_id: familyId };
+  const [fmtDate, tz] = await Promise.all([familyDate(), householdZone()]);
+  const today = familyDay(new Date(), tz);
   const supabase = await createClient();
   const monthStart = (familyMidnight(`${today.slice(0, 7)}-01`, tz) ?? new Date(`${today.slice(0, 7)}-01T00:00:00Z`)).toISOString();
   const [members, accounts, pending, assetCosts, deposits, { data: bills }, { data: income }, { data: liabilities }, { data: assets }, { data: goals }] = await Promise.all([
@@ -61,6 +77,8 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
     supabase.from("assets").select("id, name, kind, owner_member_id, is_joint").eq("family_id", familyId),
     supabase.from("goals").select("*").eq("family_id", familyId),
   ]);
+  const { data: snoozes } = await supabase.from("waiting_snoozes").select("item_key").eq("member_id", me.id).gt("until", today);
+  const snoozed = new Set((snoozes ?? []).map((r) => r.item_key));
 
   const people = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const short = shortNames(people.map((m) => m.full_name));
@@ -97,6 +115,7 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
         ...(legs[0]?.recordedByName ? [`Logged by ${legs[0].recorded_by === me.id ? "you" : legs[0].recordedByName}.`] : []),
       ],
       actions: [{ kind: "pending", row: r, appUrl: (appId && account(appId)?.linked_app_url) || null }],
+      quick: { kind: "pending", row: r, appUrl: (appId && account(appId)?.linked_app_url) || null },
       open: { href: `/wealth?seg=accounts`, label: "Open in Accounts", tab: "accounts" },
     });
   }
@@ -116,6 +135,7 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
       tabs,
       lines: [account(b.account_id) ? `Paid from ${account(b.account_id)!.name}.` : "Pick the account it comes out of when you pay."],
       actions: [{ kind: "bill", billId: b.id, amount: Number(b.amount), accountId: b.account_id, due, loanId: b.against_table === "liabilities" ? b.against_id : null }],
+      quick: { kind: "bill", billId: b.id, amount: Number(b.amount), accountId: b.account_id, due, loanId: b.against_table === "liabilities" ? b.against_id : null },
       open: { href: `/wealth?seg=cashflow&open=expenses&bill=${b.id}`, label: "Open in Cash Flow", tab: "cashflow" },
     });
   }
@@ -130,7 +150,8 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
       amount: Number(x.amount),
       tabs: ["cashflow"],
       lines: [account(x.account_id) ? `Into ${account(x.account_id)!.name}.` : "Pick the account it went into when you mark it received."],
-      actions: [{ kind: "income", scheduleId: x.id, amount: Number(x.amount) }],
+      actions: [{ kind: "income", scheduleId: x.id, amount: Number(x.amount), accountId: x.account_id }],
+      quick: { kind: "income", scheduleId: x.id, amount: Number(x.amount), accountId: x.account_id },
       open: { href: "/wealth?seg=cashflow", label: "Open in Cash Flow", tab: "cashflow" },
     });
   }
@@ -174,6 +195,7 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
         ...(insuranceNeeded ? [loanInsurance(l)!.what] : []),
       ],
       actions: loanActions(l, left, fixedDays, insuranceNeeded),
+      snoozable: true,
       open: look(l.id),
     });
   }
@@ -190,7 +212,12 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
       meta: "No insurance listed",
       tabs: ["assets"],
       lines: [gap],
-      actions: [{ kind: "running-cost", assetId: a.id, assetName: a.name, assetKind: a.kind, whose: a.is_joint ? "joint" : (a.owner_member_id ?? "me") }],
+      actions: [
+        { kind: "running-cost", assetId: a.id, assetName: a.name, assetKind: a.kind, whose: a.is_joint ? "joint" : (a.owner_member_id ?? "me") },
+        // Paid once a year: a fund for it, the same as a loan's insurance.
+        { kind: "link", href: `/wealth/add?${new URLSearchParams({ yearly: "1", title: `${a.name} insurance`, whose: a.is_joint ? "joint" : "me" })}`, label: "Set aside for it yearly" },
+      ],
+      snoozable: true,
       open: look(`asset-${a.id}`),
     });
   }
@@ -214,11 +241,13 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
         meta: mineToDo ? "This month's deposit · yours is still to go" : `This month's deposits · waiting on ${p.waiting.map(nameOf).join(", ")}`,
         tabs: ["assets", "goals"],
         people: contributors.map((c) => ({ name: nameOf(c.memberId), done: p.done.includes(c.memberId), amount: c.amount })),
+        quick: mineToDo ? goalAction : undefined,
         lines: [
           `This month's deposits: ${p.done.length} of ${contributors.length} put in.`,
-          mineToDo ? "Put in your share below." : `Nothing for you to do here: it waits on ${p.waiting.map(nameOf).join(" and ")}.`,
+          mineToDo ? "Put in your share below." : `It waits on ${p.waiting.map(nameOf).join(" and ")}: send a reminder if it helps.`,
         ],
-        actions: mineToDo ? [goalAction] : [],
+        // Yours to put in; and a grown-up can remind whoever else is still to.
+        actions: [...(mineToDo ? [goalAction] : []), ...(grownUps.includes(me.id) ? p.waiting.filter((id) => id !== me.id).map((id) => ({ kind: "remind" as const, goalId: g.id, memberId: id, name: nameOf(id) })) : [])],
         open: look(`goal-${g.id}`),
       });
       continue;
@@ -236,7 +265,14 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
       amount: left,
       tabs: ["assets", "goals"],
       lines: [`${days < 0 ? `Its date, ${fmtDate(g.target_date)}, has passed` : `Due ${fmtDate(g.target_date)}`}: ${Number(g.current_amount) > 0 ? `${formatCurrency(Number(g.current_amount), currency)} saved of ${formatCurrency(target, currency)}` : `nothing saved yet of ${formatCurrency(target, currency)}`}.`, "Put money in, or change its date or target from the goal."],
-      actions: [goalAction],
+      actions: [
+        goalAction,
+        // A yearly cost come round: record that it was paid, from the fund.
+        ...(g.repeats_yearly && Number(g.current_amount) > 0 ? [{ kind: "fund-paid" as const, goalId: g.id, title: g.title, saved: Number(g.current_amount), target, linkedAccountId: g.linked_account_id, repeatsYearly: !!g.repeats_yearly }] : []),
+        { kind: "edit-goal", goal: { id: g.id, title: g.title, note: g.sub_note, target, date: g.target_date, yearly: !!g.repeats_yearly } },
+      ],
+      quick: goalAction,
+      snoozable: true,
       open: look(`goal-${g.id}`),
     });
   }
@@ -253,12 +289,16 @@ export async function getWaiting(me: { id: string; family_id: string; grownUp: b
       amount: a.balance,
       tabs: ["assets", "accounts"],
       lines: ["It has matured: move the money where it went, or update the account if it rolled over."],
-      actions: [{ kind: "link", href: `/wealth/transact?mode=transfer&account=${a.id}&amount=${a.balance}`, label: "Move the money" }],
+      actions: [
+        { kind: "link", href: `/wealth/transact?mode=transfer&account=${a.id}&amount=${a.balance}`, label: "Move the money" },
+        { kind: "link", href: `/wealth/accounts/${a.id}`, label: "Rolled over: set the new date" },
+      ],
+      snoozable: true,
       open: { href: `/wealth/accounts/${a.id}`, label: "Open the account", tab: null },
     });
   }
 
-  return out;
-}
+  return out.filter((e) => !(e.snoozable && snoozed.has(e.id)));
+});
 
 

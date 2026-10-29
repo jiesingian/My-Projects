@@ -4,17 +4,20 @@ import { getWaiting, type WaitingAction, type WaitingEntry, type WaitingTab } fr
 import { getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
 import { getMembers } from "@/lib/queries/family";
 import { toPickable } from "@/lib/account-picker";
-import { familyDate, householdDateFormat } from "@/lib/format-family";
+import { householdDateFormat } from "@/lib/format-family";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { formatCurrency, shortNames } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
 import {
   AddRunningCostControl,
+  EditSavingsGoalButton,
+  FundPaidControl,
   GoalContributeControl,
   PayBillControl,
   PendingRows,
   ReceiveIncomeControl,
+  RemindButton,
   RepriceLoanControl,
   SetBalanceButton,
   WaitingRow,
@@ -27,9 +30,9 @@ import {
  * action owed on it, with a way to the thing itself on its page. `openId`
  * opens one item's sheet on arrival (Today's Confirm). */
 export async function WaitingOnYou({ me, tab, currency, openId = null }: { me: { id: string; family_id: string; grownUp: boolean }; tab: WaitingTab; currency: string; openId?: string | null }) {
-  const [fmtDate, dateFormat, tz] = await Promise.all([familyDate(), householdDateFormat(), householdZone()]);
+  const [dateFormat, tz] = await Promise.all([householdDateFormat(), householdZone()]);
   const today = familyDay(new Date(), tz);
-  const entries = (await getWaiting(me, today, tz, fmtDate, currency)).filter((e) => e.tabs.includes(tab));
+  const entries = (await getWaiting(me.id, me.family_id, me.grownUp, currency)).filter((e) => e.tabs.includes(tab));
   if (entries.length === 0) return null;
   const [accounts, targets, members] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id), getMembers(me.family_id)]);
   const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
@@ -45,7 +48,7 @@ export async function WaitingOnYou({ me, tab, currency, openId = null }: { me: {
       case "bill":
         return <PayBillControl key={key} billId={a.billId} amount={a.amount} accounts={pickable} currency={currency} defaultAccountId={a.accountId} due={a.due} loan={a.loanId ? (targets.loans.find((l) => l.id === a.loanId) ?? null) : null} />;
       case "income":
-        return <ReceiveIncomeControl key={key} scheduleId={a.scheduleId} amount={a.amount} accounts={pickable} currency={currency} />;
+        return <ReceiveIncomeControl key={key} scheduleId={a.scheduleId} amount={a.amount} accounts={pickable} currency={currency} defaultAccountId={a.accountId} />;
       case "goal":
         return <GoalContributeControl key={key} compact goalId={a.goalId} accounts={goalPickable} currency={currency} linkedAccountId={a.linkedAccountId} fromAccountId={a.fromAccountId} fromAccount2Id={a.fromAccount2Id} fromAmount={a.fromAmount} from2Amount={a.from2Amount} />;
       case "reprice":
@@ -56,6 +59,12 @@ export async function WaitingOnYou({ me, tab, currency, openId = null }: { me: {
         return <SetBalanceButton key={key} id={a.loanId} value={a.value} currency={currency} paymentsLeft={a.paymentsLeft} />;
       case "asset-picker":
         return <LoanAssetPicker key={key} liabilityId={a.loanId} assetId={null} assets={a.assets} />;
+      case "edit-goal":
+        return <EditSavingsGoalButton key={key} goal={a.goal} currency={currency} />;
+      case "fund-paid":
+        return <FundPaidControl key={key} goalId={a.goalId} title={a.title} accounts={pickable} currency={currency} saved={a.saved} target={a.target} linkedAccountId={a.linkedAccountId} repeatsYearly={a.repeatsYearly} />;
+      case "remind":
+        return <RemindButton key={key} goalId={a.goalId} memberId={a.memberId} name={a.name} />;
       case "link":
         return (
           <Link key={key} href={a.href} className="btn btn-primary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.6875rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
@@ -113,6 +122,8 @@ export async function WaitingOnYou({ me, tab, currency, openId = null }: { me: {
           badge={e.people ? `${e.people.filter((p) => p.done).length} / ${e.people.length}` : undefined}
           currency={currency}
           autoOpen={e.id === openId}
+          quick={e.quick ? act(e.quick, 0) : undefined}
+          snoozeKey={e.snoozable ? e.id : undefined}
           sheet={sheet(e)}
         />
       ))}

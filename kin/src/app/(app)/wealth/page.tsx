@@ -90,6 +90,7 @@ import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { WaitingOnYou } from "@/components/waiting-on-you";
+import { getWaiting } from "@/lib/queries/waiting";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, NetWorthMoves, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
@@ -119,8 +120,14 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
   const who = sp.who ?? "all";
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
 
-  const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg }));
   const currency = me.families.currency;
+  // How many are waiting on you on each tab, on its name (29 October). The
+  // list is built once a request (getWaiting is cached); the panes reuse it.
+  const waiting = await getWaiting(me.id, me.family_id, isGrownUp(me.role), currency);
+  const segments = SEGMENTS.map((s) => {
+    const n = waiting.filter((e) => e.tabs.includes(s)).length;
+    return { label: n ? `${SEGMENT_LABELS[s]} · ${n}` : SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg };
+  });
 
   return (
     <div>
@@ -128,7 +135,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} openPending={sp.pending?.trim() || null} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
-        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} revealLine={sp.line?.trim() || null} />}
+        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} revealLine={sp.line?.trim() || null} grownUp={isGrownUp(me.role)} />}
         {seg !== "assets" && (
           <Suspense fallback={null}>
             <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
@@ -668,7 +675,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       lead: [`Regular · ${INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually ${formatCurrency(Number(g.usual_amount), currency)}`],
       tail: g.next?.next_date ? [`next ${fmtDate(g.next.next_date)}`] : [],
       buttons: [
-        ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} />] : []),
+        ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} defaultAccountId={g.next.account_id} />] : []),
         <RemoveButton key="remove" id={g.id} kind="income_group" label={`Delete "${g.name}"`} />,
       ],
     });
@@ -698,7 +705,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       lead: [`${x.status === "pending" ? "Waiting on confirmation" : "Expected"}${x.next_date ? ` ${fmtDate(x.next_date)}` : ""} · ${formatCurrency(Number(x.amount), currency)}`],
       tail: [],
       buttons: [
-        <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} />,
+        <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} defaultAccountId={x.account_id} />,
         <RemoveButton key="remove" id={x.id} kind="income_schedule" label={`Delete "${x.name}"`} />,
       ],
     });
@@ -1204,7 +1211,7 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 /* -------------------------------------------------------------------- A&L */
 
-async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate, revealLine = null }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean; /** A line to open and scroll to: "Waiting on you"'s Look (29 October). */ revealLine?: string | null }) {
+async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate, revealLine = null, grownUp }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean; grownUp: boolean; /** A line to open and scroll to: "Waiting on you"'s Look (29 October). */ revealLine?: string | null }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts] = await Promise.all([
     getNetWorth(familyId, scope, today),
@@ -1471,7 +1478,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       <NetWorthLine points={netWorthHistory} currency={currency} periodNoun={periodNoun} />
       <NetWorthMoves points={netWorthHistory} currency={currency} />
       <EmergencyCoverLine cover={emergencyCover(cashTotal + goalTotal, monthlySpending)} liquid={cashTotal + goalTotal} currency={currency} />
-      <WaitingOnYou me={{ id: memberId, family_id: familyId, grownUp: true }} tab="assets" currency={currency} />
+      <WaitingOnYou me={{ id: memberId, family_id: familyId, grownUp }} tab="assets" currency={currency} />
       {revealLine && <ScrollIntoView key={revealLine} targetId={`line-${revealLine}`} />}
 
       <CollapsibleGroup key={`assets-${revealLine ?? ""}`} title="ASSETS" defaultOpen={ownedLines.some((l) => l.reveal)}>
