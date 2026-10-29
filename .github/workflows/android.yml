@@ -1,0 +1,73 @@
+name: Android build
+
+# Builds Kin's Android app (kin/native/android, the same Capacitor shell as
+# the iPhone's) into a debug APK, and keeps it for a week as the run's
+# artifact "kin-android-debug". Built, not published (Jonathan, 29 October):
+# Google Play costs US$25 once and nobody in the family has an Android phone
+# yet, so the APK is for sideloading if one does. Download it from the run's
+# Summary page -> Artifacts, copy it to the phone, open it, and allow "install
+# unknown apps" for the Files app when asked.
+#
+# A debug build is signed with a throwaway debug key made on the runner, so no
+# secret is needed; it installs on a phone, but a later one from another run
+# installs over it only after the old one is removed. Push (calls that ring,
+# notifications) stays off until Kin has a Firebase project: its
+# google-services.json is added as a secret then (SETUP_FOR_JONATHAN.md).
+#
+# Only for changes under kin/native or this file, like ios.yml. It posts a
+# check on pull requests, so automerge.yml lists it.
+
+on:
+  pull_request:
+    paths:
+      - "kin/native/**"
+      - ".github/workflows/android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "kin/native/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Android app builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kin/native
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/native/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - name: Copy the config into the Android project
+        run: npx cap sync android
+      - name: Firebase's config, once it exists
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "Push is on in this build."
+          else
+            echo "No GOOGLE_SERVICES_JSON secret: this build has no push (alarms work)."
+          fi
+      - name: Build the debug APK
+        working-directory: kin/native/android
+        run: ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v6
+        with:
+          name: kin-android-debug
+          path: kin/native/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+          if-no-files-found: error

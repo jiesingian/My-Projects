@@ -37,7 +37,9 @@ on:
     #
     # iOS build (29 October) runs only when kin/native changes, and on macOS
     # it is the slowest of all, so on those pull requests it finishes last.
-    workflows: [CI, Secret Scan, End-to-end, Schema check, iOS build]
+    # Android build (29 October) runs on the same changes, and a cold Gradle
+    # build can finish after it.
+    workflows: [CI, Secret Scan, End-to-end, Schema check, iOS build, Android build]
     types: [completed]
 
   # The list above will go stale again -- the next workflow anybody adds will

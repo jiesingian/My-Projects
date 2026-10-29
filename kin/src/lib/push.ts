@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { helperListWords, pushPayload, treeStoryWords } from "@/lib/push-words";
 import { reportError } from "@/lib/report-error";
 import { apnsConfigured, apnsRequest, nativeDevice, sendApns, tokenGone, type PushContent } from "@/lib/apns";
+import { fcmConfigured, fcmDevice, fcmMessage, fcmTokenGone, sendFcm } from "@/lib/fcm";
 
 /** Web Push, in the session of whoever caused it.
  *
@@ -58,7 +59,7 @@ export async function sendPush(input: {
    * after a minute -- it is kept for `ttlSeconds` (an hour if unset). */
   urgent?: boolean;
 }): Promise<number> {
-  if (!vapidReady() && !apnsConfigured()) return 0;
+  if (!vapidReady() && !apnsConfigured() && !fcmConfigured()) return 0;
   try {
     const supabase = await createClient();
     const memberIds = input.memberIds === "household" ? ((await supabase.from("members").select("id").eq("status", "active")).data ?? []).map((m) => m.id) : input.memberIds;
@@ -233,6 +234,29 @@ export async function deliver(
         } else {
           reportError("Push refused by Apple", new Error(`Push refused by APNs: ${r.status || "no status"}`), r.reason ?? "");
           result.failed.push(`apns ${r.status || ""}`.trim());
+        }
+        return;
+      }
+      // The Kin Android app's token (lib/fcm.ts) goes to Firebase.
+      const android = fcmDevice(d);
+      if (android) {
+        if (!fcmConfigured()) return;
+        let content: PushContent;
+        try {
+          content = JSON.parse(payload) as PushContent;
+        } catch {
+          return;
+        }
+        const msg = fcmMessage(android, content, { ttlSeconds: options.TTL });
+        if (!msg) return;
+        const r = await sendFcm(msg);
+        if (r.status === 200) result.sent++;
+        else if (fcmTokenGone(r)) {
+          result.gone++;
+          await forget(d.endpoint);
+        } else {
+          reportError("Push refused by Firebase", new Error(`Push refused by FCM: ${r.status || "no status"}`), r.reason ?? "");
+          result.failed.push(`fcm ${r.status || ""}`.trim());
         }
         return;
       }

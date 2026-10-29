@@ -376,3 +376,56 @@ notifications and alarms when asked, then try Settings → Notifications →
 Alarms, a test call and a test notification. BACKLOG's "Needs a real phone"
 list has the checks.
 
+
+## 10. The Android app's push (Firebase, free)
+
+**What it's for (29 October).** The Kin Android app (`kin/native/android`)
+is built on every change and kept as an APK on the run's page
+([Actions → Android build](https://github.com/jiesingian/My-Projects/actions/workflows/android.yml)
+→ newest run → Artifacts → `kin-android-debug`), for sideloading if someone
+in the family gets an Android phone. Its alarms work as they are: full
+screen, ringing through silent. **Calls ringing full screen, an SOS and every
+other notification** need Google's push (Firebase Cloud Messaging), because
+an Android web view can't take Web Push. Firebase needs a project of your
+own; a session can't make one. Only worth doing once someone has an Android
+phone.
+
+**What it costs.** Nothing: Firebase's free plan (Spark) includes Cloud
+Messaging without limit. Don't add a card or move to the Blaze plan.
+
+**What's safe.** The service-account key is a secret: it can send Kin's
+notifications, nothing else in Kin. Revoke it on the same page at any time
+and make another. Nothing here changes the web app or the iPhone app.
+
+1. **Make the project** at
+   [console.firebase.google.com → Create a project](https://console.firebase.google.com/).
+   Name it `kin-family`. Google Analytics: off. Note the **project ID**
+   under the name (often `kin-family`, sometimes with a number added); the
+   links below assume `kin-family`, so change that part if yours differs.
+2. **Add the Android app** at
+   [Project settings → General](https://console.firebase.google.com/project/kin-family/settings/general)
+   → Your apps → the Android icon. Package name `com.jiesingian.kin`,
+   nickname `Kin`, no SHA-1 needed. Register, then **Download
+   google-services.json**. Skip the remaining steps of that page (the code
+   is already done).
+3. **Let GitHub build it in.** Open the file in a text editor, copy all of
+   it, and add a repository secret named `GOOGLE_SERVICES_JSON` at
+   [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new).
+   The next Android build has push in it (its log says "Push is on in this
+   build").
+4. **Let Kin's server send.** At
+   [Project settings → Service accounts](https://console.firebase.google.com/project/kin-family/settings/serviceaccounts/adminsdk)
+   press **Generate new private key** → Generate key. A `.json` file
+   downloads. In
+   [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add, for Production and Preview: `FCM_PROJECT_ID` (the file's
+   `project_id`), `FCM_CLIENT_EMAIL` (its `client_email`) and
+   `FCM_PRIVATE_KEY` (its `private_key`, the whole value between the quotes,
+   `\n`s included). Then redeploy from the three-dot menu on the newest
+   deployment at [Deployments](https://vercel.com/jisingian/kin-family-app/deployments).
+   Then delete the downloaded file. Until these exist, Android phones are
+   skipped and everything else runs as before.
+
+**On the phone:** install the APK from step 3's next build, open Kin, sign
+in, allow notifications, and allow "Alarms & reminders" when asked. Then try
+a test call from another phone.

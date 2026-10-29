@@ -1,6 +1,6 @@
 import type { KinAlarm } from "@/lib/alarms";
 
-/** The Kin iPhone app (kin/native) is this web app inside a native shell.
+/** The Kin iPhone and Android apps (kin/native) are this web app inside a native shell.
  * Inside it, Capacitor's bridge puts `window.Capacitor` on the page, with
  * Kin's own native plugins under `Plugins`; in a browser there is none, and
  * everything here quietly does nothing. No npm dependency: the bridge is the
@@ -10,8 +10,9 @@ export type AlarmAuthorization = "authorized" | "denied" | "notDetermined";
 export type AlarmStatus = {
   /** "alarmkit" on iOS 26 and later: real alarms, full screen, sound on
    * silent. "notifications" before that: time-sensitive notifications, the
-   * most an older iPhone allows. */
-  engine: "alarmkit" | "notifications";
+   * most an older iPhone allows. "android": exact alarms that open full
+   * screen and ring on the alarm stream (kin/native/android, KinAlarms). */
+  engine: "alarmkit" | "notifications" | "android";
   authorization: AlarmAuthorization;
   scheduled: number;
 };
@@ -69,7 +70,28 @@ export function nativeEndpoint(token: string, env: ApnsEnv): string {
   return `https://${APNS_HOSTS[env]}/3/device/${token}`;
 }
 
-export type NativeToken = { channel: "alert" | "voip"; token: string; env: ApnsEnv };
+/** The Kin Android app's push token (Firebase Cloud Messaging, lib/fcm.ts)
+ * is kept under this address, with NATIVE_KEY in p256dh and "fcm" in auth.
+ * Not Google's real send address: Chrome's Web Push endpoints live on
+ * fcm.googleapis.com/fcm/send/, and this must never be read as one. */
+export const FCM_PREFIX = "https://fcm.googleapis.com/kin-android/";
+export function fcmEndpoint(token: string): string {
+  return FCM_PREFIX + token;
+}
+
+export type NativeToken = { channel: "alert" | "voip"; token: string; env: ApnsEnv } | { channel: "fcm"; token: string; env: "production" };
+
+/** Where a token from the app is kept in push_subscriptions. */
+export function tokenEndpoint(t: NativeToken): string {
+  return t.channel === "fcm" ? fcmEndpoint(t.token) : nativeEndpoint(t.token, t.env);
+}
+
+/** Whether a token from the app is one Kin can use. */
+export function usableToken(t: { channel?: unknown; token?: unknown; env?: unknown }): t is NativeToken {
+  if (typeof t.token !== "string") return false;
+  if (t.channel === "fcm") return /^[A-Za-z0-9_:-]{20,400}$/.test(t.token);
+  return (t.channel === "alert" || t.channel === "voip") && /^[0-9a-f]{32,200}$/i.test(t.token) && (t.env === "production" || t.env === "sandbox");
+}
 
 /** The app's Apple tokens, or none in a browser. */
 export async function nativePushTokens(): Promise<NativeToken[]> {
@@ -79,7 +101,7 @@ export async function nativePushTokens(): Promise<NativeToken[]> {
     const r = (cap.Plugins as { KinPush?: { tokens(): Promise<{ tokens: NativeToken[] }> } } | undefined)?.KinPush
       ? await (cap.Plugins as { KinPush: { tokens(): Promise<{ tokens: NativeToken[] }> } }).KinPush.tokens()
       : ((await cap.nativePromise?.("KinPush", "tokens", {})) as { tokens: NativeToken[] } | undefined);
-    return (r?.tokens ?? []).filter((t) => (t.channel === "alert" || t.channel === "voip") && /^[0-9a-f]{32,200}$/i.test(t.token) && (t.env === "production" || t.env === "sandbox"));
+    return (r?.tokens ?? []).filter(usableToken);
   } catch {
     return [];
   }

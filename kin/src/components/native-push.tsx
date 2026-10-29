@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { savePushSubscriptionAction } from "@/lib/actions/push";
-import { NATIVE_KEY, nativeEndpoint, nativePushTokens } from "@/lib/native";
+import { NATIVE_KEY, nativePushTokens, tokenEndpoint } from "@/lib/native";
 
 /** Inside the Kin iPhone app, saves the phone's two Apple tokens (alert and
  * VoIP) for the signed-in member, the way PushOptIn saves a browser's
@@ -17,11 +17,11 @@ export function NativePush() {
     const save = async () => {
       const tokens = await nativePushTokens();
       for (const t of tokens) {
-        await savePushSubscriptionAction({ endpoint: nativeEndpoint(t.token, t.env), keys: { p256dh: NATIVE_KEY, auth: t.channel } }).catch(() => undefined);
+        await savePushSubscriptionAction({ endpoint: tokenEndpoint(t), keys: { p256dh: NATIVE_KEY, auth: t.channel } }).catch(() => undefined);
       }
       // Apple hands the tokens over a moment after launch: look again a few
-      // times until both are there.
-      if (tokens.length < 2 && ++tries < 5) timer = setTimeout(save, 3000);
+      // times until both are there. Android has one (FCM, lib/fcm.ts).
+      if (tokens.length < 2 && !tokens.some((t) => t.channel === "fcm") && ++tries < 5) timer = setTimeout(save, 3000);
     };
     void save();
     return () => clearTimeout(timer);
