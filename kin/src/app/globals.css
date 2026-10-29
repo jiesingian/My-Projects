@@ -4991,6 +4991,17 @@ button.kin-initial:focus-visible {
 .kin-simple .kin-bill-actions :is(.btn, select) { min-height: 2.75rem !important; }
 .kin-simple .btn-icon { width: 2.75rem; height: 2.75rem; }
 .kin-simple .chip { min-height: 2.5rem; }
+/* Simple Kin's own 44px for every control (Jonathan, 29 October): the
+   segmented controls, the Planner's month button, Wealth's Income/Expenses
+   folds and Journal's share chips were 26-40px. Rows get a little taller in
+   Simple Kin only. .kin-tap marks a control whose size is set inline. */
+.kin-simple .seg > a,
+.kin-simple .seg > button { min-height: 2.75rem; display: inline-flex; align-items: center; justify-content: center; }
+.kin-simple .kin-tap { min-height: 2.75rem !important; min-width: 2.75rem !important; }
+.kin-simple .kin-entry-share .chip { min-height: 2.75rem; }
+
+/* A note on the Notes board is an arrow stop of its own (keyboard-shortcuts.tsx). */
+.kin-note-card:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .kin-simple .kin-brief-row { min-height: 3.5rem; }
 .kin-simple :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select) { min-height: 2.75rem; }
 
