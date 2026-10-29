@@ -26,7 +26,8 @@ types; if one changes, change both.
 | Health & Fitness | **Health** | Medicines and doses, vitals, conditions, illnesses, visits, vaccinations, the emergency card | Yes |
 | Health & Fitness | **Fitness** | Steps and activity, when someone connects Apple Health through the Shortcut | Yes |
 | Financial Info | **Other Financial Info** | Accounts, balances, budgets, bills, loans, goals the household enters | Yes |
-| Location | **Precise Location** | Location sharing a person switches on, and an SOS | Yes |
+| Contact Info | **Physical Address** | The household's addresses, if added (Google Play's answers tick Address too) | Yes |
+| Location | **Precise Location** | Location sharing a person switches on, an SOS, and "I've arrived" | Yes |
 | User Content | **Emails or Text Messages** | Family chat messages | Yes |
 | User Content | **Photos or Videos** | Chat, journal and profile photos | Yes |
 | User Content | **Audio Data** | Voice notes and recorded stories | Yes |
@@ -38,7 +39,7 @@ types; if one changes, change both.
 | Diagnostics | **Other Diagnostic Data** | The same error reports | **No** |
 | Other Data | **Other Data Types** | Birthdays, children's details a parent adds | Yes |
 
-**Leave unticked:** Physical Address, Other User Contact Info, Payment
+**Leave unticked:** Other User Contact Info, Payment
 Info, Credit Info, Sensitive Info, Contacts, Browsing History, Search
 History, Coarse Location, Purchases, Advertising Data, Other Usage Data,
 Performance Data, Gameplay Content, Customer Support, Environment Scanning,

@@ -57,7 +57,7 @@ PRIVATE BY DESIGN
 • Some records can be kept to the grown-ups, or to the person they're about.
 • Delete your account at any time, from the app or any browser.
 
-Kin Free covers the family's day for good. Kin Plus adds Wealth, the vault, medicines and unlimited Kin AI for the whole household; every family starts with a free trial.
+Kin Free covers the family's day, with no time limit. Kin Plus adds Wealth, the vault, medicines and Kin AI with no monthly limit for the whole household; every family starts with a free trial.
 ```
 
 **App icon**: `store/icon-512.png` (512 × 512, 32-bit PNG).
