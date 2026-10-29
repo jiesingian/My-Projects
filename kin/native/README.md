@@ -25,6 +25,8 @@ therefore wrapped as an installed app. The decisions:
   `npx cap sync ios` (CI runs it) copies the config in. Swift Package Manager,
   no CocoaPods.
 - `www/`: the page shown only if the live site cannot load the first time.
+- `ios/store/`: the App Store listing, review notes, privacy and age-rating
+  answers, and the screenshot script, ready to paste into App Store Connect.
 
 ## What the native code does
 
@@ -53,6 +55,7 @@ therefore wrapped as an installed app. The decisions:
   the widgets. Critical Alerts are added
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
+  `ios/TESTFLIGHT.md`: what the first run does and what each failure means.
 
 ## Android (built, not published)
 
@@ -71,6 +74,13 @@ internal testing (`scripts/play-upload.mjs`).
   Firebase project (`kin/docs/SETUP_FOR_JONATHAN.md`, section 10).
 - `MainActivity.java`: registers the plugins, and opens a page an alarm,
   notification or answered call asks for.
+- `store/`: what Google Play asks for, ready to paste:
+  - `LISTING.md`: the listing text, the content rating and app access;
+  - `DATA_SAFETY.md`: the Data safety answers;
+  - `POLICY.md`: the policy declarations;
+  - the icon and the feature graphic (`make-art.mjs`, which also makes the
+    launcher icons);
+  - `screenshots.mjs`, which takes the screenshots from the QA household.
 
 ## Working on it
 

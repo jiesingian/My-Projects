@@ -7567,6 +7567,7 @@ export type Database = {
           family_id: string
           id: string
           kind: string
+          milestone: number
           owner_member_id: string | null
           period: string
           points: number
@@ -7597,6 +7598,7 @@ export type Database = {
           family_id: string
           id?: string
           kind: string
+          milestone?: number
           owner_member_id?: string | null
           period?: string
           points?: number
@@ -7627,6 +7629,7 @@ export type Database = {
           family_id?: string
           id?: string
           kind?: string
+          milestone?: number
           owner_member_id?: string | null
           period?: string
           points?: number

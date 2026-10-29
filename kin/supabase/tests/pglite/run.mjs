@@ -169,6 +169,7 @@ const MIGRATIONS = [
   "20261029210000_waiting_snoozes.sql",
   "20261029233000_feature_votes.sql",
   "20261029234000_planner_goal_tracks.sql",
+  "20261029235000_planner_goal_milestone.sql",
   "20261030140000_member_ids.sql",
 ];
 

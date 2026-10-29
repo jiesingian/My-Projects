@@ -117,8 +117,10 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
           </details>
           {/* Optional since open sign-up (28 September): a new family starts
               on a 7-day Kin Plus trial by itself. A Kin code -- a gift or a
-              tester's -- is tucked away rather than asked for. */}
-          <details className="kin-code-optional" style={{ marginBottom: "0.75rem" }}>
+              tester's -- is tucked away rather than asked for. Not in the
+              iPhone app, where Kin may not unlock Plus with its own codes
+              (lib/ios-app.ts). */}
+          <details className="kin-code-optional kin-web-only" style={{ marginBottom: "0.75rem" }}>
             <summary>Have a Kin code?</summary>
             <div className="field" style={{ marginTop: "0.5rem" }}>
               <label htmlFor={`${uid}-access-code`}>Kin code (optional)</label>
@@ -130,8 +132,8 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
               <>Kin Free, as you chose, with {TRIAL_DAYS} days of the Plus extras to try first. No card, nothing to cancel.</>
             ) : (
               <>
-                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good, or Plus for{" "}
-                {pesos(PLANS.monthly.amountCents)} a month if you choose it.
+                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good
+                <span className="kin-web-only">, or Plus for {pesos(PLANS.monthly.amountCents)} a month if you choose it</span>.
               </>
             )}
           </p>
