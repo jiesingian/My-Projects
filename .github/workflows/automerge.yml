@@ -171,6 +171,24 @@ jobs:
               echo "PR #$PR is $STATE — nothing to do."; return 0
             fi
 
+            # Only a branch of this repository, opened by one of its two
+            # people (triage.yml labels nothing else; this holds even if a
+            # label is added by hand). A fork's pull request runs its own
+            # copies of the required workflows, so "they passed" proves
+            # nothing about it -- and the repository is public (review of the
+            # watched changes, 29 October).
+            ORIGIN=$(gh pr view "$PR" --repo "$REPO" --json headRepositoryOwner,headRepository,author \
+              --jq '"\(.headRepositoryOwner.login)/\(.headRepository.name) \(.author.login)"')
+            HEAD_REPO=${ORIGIN%% *}
+            AUTHOR=${ORIGIN##* }
+            if [ "${HEAD_REPO,,}" != "${REPO,,}" ]; then
+              echo "PR #$PR comes from $HEAD_REPO, not this repository — leaving it alone."; return 0
+            fi
+            case "$AUTHOR" in
+              jiesingian|jnnarenassingian-star) ;;
+              *) echo "PR #$PR was opened by $AUTHOR — leaving it alone."; return 0 ;;
+            esac
+
             # There is deliberately no "held for review" check here any more.
             # Until 10 September a "needs-jonathan" label stopped this job
             # dead, which is a manual approval gate however it is spelled, and
@@ -218,7 +236,9 @@ jobs:
             # filtered, so demanding it on a documentation change would stall
             # that change forever waiting for a run that will never start.
             gh pr diff "$PR" --repo "$REPO" --name-only > /tmp/files.txt
-            if grep -qE '^(kin/src/|kin/e2e/|kin/package(-lock)?\.json|kin/playwright\.config\.ts|\.github/workflows/e2e\.yml)' /tmp/files.txt; then
+            # The same paths as e2e.yml's pull_request filter, migrations
+            # included: a .sql-only change is tried on its private database.
+            if grep -qE '^(kin/src/|kin/e2e/|kin/package(-lock)?\.json|kin/playwright\.config\.ts|\.github/workflows/e2e\.yml|kin/supabase/migrations/|kin/scripts/migrate\.mjs)' /tmp/files.txt; then
               REQUIRED="$REQUIRED|End-to-end"
             fi
 

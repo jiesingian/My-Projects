@@ -362,9 +362,14 @@ export async function approveMemberAction(memberId: string, role: JoinRole = "ad
   // parent's consent, and a child_self row starts in kid view (20260925120000).
   if (role !== "parent" && role !== "adult" && role !== "child_self") return { error: "A member joins as a parent, an adult or a child." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId).eq("family_id", me.family_id);
+  // Only a request still waiting: without it this turned an active grown-up
+  // into a child (kid view on, which only a grown-up can turn off), past
+  // setMemberRoleAction's rules (review of the watched changes, 29 October).
+  const { data: approved, error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId).eq("family_id", me.family_id).eq("status", "pending").select("id");
   revalidatePath("/family");
-  return { error: error ? databaseError(error) : null };
+  if (error) return { error: databaseError(error) };
+  if (!approved || approved.length === 0) return { error: "That join request is no longer waiting." };
+  return { error: null };
 }
 
 /** Rejects a pending join request by removing it — RLS restricts this to

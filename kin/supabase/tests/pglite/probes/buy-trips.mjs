@@ -19,7 +19,9 @@ export default async function ({ db, as, check, refused }) {
     const other = await refused(() => as(ANN, "insert into buy_trips (family_id, created_by) values ($1, $2)", [B, ANN_M]));
     const forged = await refused(() => as(ANN, "insert into buy_trips (family_id, created_by) values ($1, $2)", [A, BEN_M]));
     const backdated = await refused(() => as(ANN, "insert into buy_trips (family_id, created_by, checked_out_at) values ($1, $2, now() - interval '3 days')", [A, ANN_M]));
-    return (other === true && forged === true && backdated === true) || { other, forged, backdated };
+    // Dated ahead, it would stay readable and never be swept (20261029235000).
+    const ahead = await refused(() => as(ANN, "insert into buy_trips (family_id, created_by, checked_out_at) values ($1, $2, now() + interval '80 years')", [A, ANN_M]));
+    return (other === true && forged === true && backdated === true && ahead === true) || { other, forged, backdated, ahead };
   });
   await check("Ben neither sees nor removes Ann's trips", async () => {
     const seen = await as(BEN, "select 1 from buy_trips where family_id = $1", [A]);
