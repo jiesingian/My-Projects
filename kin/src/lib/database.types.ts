@@ -8533,6 +8533,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_votes: {
+        Row: {
+          choice: string
+          created_at: string
+          family_id: string
+          member_id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          choice: string
+          created_at?: string
+          family_id: string
+          member_id: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          choice?: string
+          created_at?: string
+          family_id?: string
+          member_id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       alarm_picks: {
         Row: {
           created_at: string
