@@ -6214,6 +6214,13 @@ button.kin-initial:focus-visible {
 .kin-legal-operator div { display: flex; flex-wrap: wrap; gap: 0 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); padding-bottom: 0.5rem; }
 .kin-legal-operator dt { font-weight: 600; flex: 0 0 12rem; }
 .kin-legal-operator dd { margin: 0; color: var(--color-neutral-700); }
+/* The cookies page's table (legal/cookies): names break anywhere, so a phone
+   never scrolls sideways. */
+.kin-legal-table { width: 100%; border-collapse: collapse; margin: 0 0 1rem; font-size: 0.875rem; }
+.kin-legal-table th, .kin-legal-table td { text-align: left; vertical-align: top; padding: 0.5rem 0.5rem 0.5rem 0; border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); }
+.kin-legal-table th { font-weight: 600; }
+.kin-legal-table td:last-child, .kin-legal-table th:last-child { min-width: 5.5rem; padding-right: 0; }
+.kin-legal-table code { font-size: 0.8125rem; overflow-wrap: anywhere; }
 .kin-welcome-legal { display: flex; justify-content: center; gap: 1.25rem; font-size: 0.8125rem; margin-top: 0.75rem; }
 .kin-welcome-features { flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 1.25rem; }
 .kin-welcome-features a { min-height: 2rem; display: inline-flex; align-items: center; }

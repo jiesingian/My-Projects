@@ -38,7 +38,7 @@ export const KIN_AI_OFF = "Kin AI isn't switched on yet. Nothing was sent anywhe
 export const KIN_AI_PRIVACY = "What you send goes to Claude (Anthropic) only to answer you; Anthropic does not train on it.";
 
 /** What every Kin AI feature answers until this person has said yes
- * (20261030130001_kin_ai_ok.sql). A screen that knows it shows the Allow card
+ * (20261030131701_kin_ai_ok.sql). A screen that knows it shows the Allow card
  * (components/kin-ai-ask.tsx); any other shows this sentence, which says
  * where to say yes. */
 export const KIN_AI_ASK = "Kin AI needs your OK first. Allow it here or in Settings → Privacy.";
