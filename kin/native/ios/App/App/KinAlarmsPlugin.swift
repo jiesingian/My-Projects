@@ -1,6 +1,5 @@
 import Foundation
 import UIKit
-import WebKit
 import Capacitor
 import CryptoKit
 import UserNotifications
@@ -177,63 +176,31 @@ enum KinAlarmScheduler {
 ///
 /// With Kin open on screen, the page is told to sync itself, as it does when
 /// it opens (components/native-alarm-sync.tsx). Otherwise there may be no
-/// page at all -- a closed app is woken without its window -- so the app asks
-/// api/alarms itself, with the member's own session: the web view's cookies,
-/// read from its store (WKWebsiteDataStore), the one place the session lives.
-/// Not a second login or a token kept in the app: nothing new to keep safe or
-/// to go stale, the route reads through row-level security as the member
-/// exactly as the page does, and signing out in Kin ends it too. If the server
-/// refreshes the session on the way, its new cookies go back into the web
-/// view's store; otherwise the page would carry a used refresh token and be
-/// signed out. Signed out, or no signal: the alarms already set stay as they
-/// were.
+/// page at all, so the app asks api/alarms itself as the member (KinSession,
+/// KinWidgetStore.swift: the web view's own session cookies). Signed out, or
+/// no signal: the alarms already set stay as they were. The widgets are read
+/// again on the same wake.
 enum KinAlarmSync {
-    static let server = URL(string: "https://kin-family-app.vercel.app")!
-
     static func handle(_ completion: @escaping (UIBackgroundFetchResult) -> Void) {
         Task { @MainActor in
             if UIApplication.shared.applicationState == .active, let run = KinCalls.shared.run {
                 run("window.dispatchEvent(new Event('kin:alarms-changed'))")
+                await KinWidgetStore.refresh()
                 completion(.newData)
                 return
             }
-            completion(await fetchAndSet())
+            let result = await fetchAndSet()
+            await KinWidgetStore.refresh()
+            completion(result)
         }
     }
 
     @MainActor
     static func fetchAndSet() async -> UIBackgroundFetchResult {
-        let url = server.appendingPathComponent("api/alarms")
-        let host = server.host ?? ""
-        let store = WKWebsiteDataStore.default().httpCookieStore
-        let cookies = await store.allCookies().filter { c in
-            let domain = c.domain.hasPrefix(".") ? String(c.domain.dropFirst()) : c.domain
-            return host == domain || host.hasSuffix("." + domain)
-        }
-        guard !cookies.isEmpty else { return .noData }
-
-        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
-        for (name, value) in HTTPCookie.requestHeaderFields(with: cookies) {
-            request.setValue(value, forHTTPHeaderField: name)
-        }
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        // Cookies are handled by hand, against the web view's store only.
-        let config = URLSessionConfiguration.ephemeral
-        config.httpShouldSetCookies = false
-        config.httpCookieAcceptPolicy = .never
-        let session = URLSession(configuration: config)
-        defer { session.finishTasksAndInvalidate() }
-
-        guard let result = try? await session.data(for: request), let http = result.1 as? HTTPURLResponse else { return .failed }
-        let data = result.0
-        if let setCookie = http.value(forHTTPHeaderField: "Set-Cookie") {
-            for cookie in HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": setCookie], for: url) {
-                await store.setCookie(cookie)
-            }
-        }
-        guard http.statusCode == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let list = json["alarms"] as? [[String: Any]] else { return http.statusCode == 401 ? .noData : .failed }
+        guard let answer = await KinSession.get("api/alarms") else { return .noData }
+        guard answer.status == 200,
+              let json = try? JSONSerialization.jsonObject(with: answer.data) as? [String: Any],
+              let list = json["alarms"] as? [[String: Any]] else { return answer.status == 401 ? .noData : .failed }
         await KinAlarmScheduler.replace(list.compactMap(KinAlarm.init))
         return .newData
     }

@@ -8707,6 +8707,30 @@ export type Database = {
           },
         ]
       }
+      waiting_snoozes: {
+        Row: {
+          created_at: string
+          family_id: string
+          item_key: string
+          member_id: string
+          until: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          item_key: string
+          member_id: string
+          until: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          item_key?: string
+          member_id?: string
+          until?: string
+        }
+        Relationships: []
+      }
       wealth_transactions: {
         Row: {
           capital: boolean

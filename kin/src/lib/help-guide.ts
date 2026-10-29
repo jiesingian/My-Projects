@@ -1343,7 +1343,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Every bank, e-wallet, cash and credit card account, listed by whose then by type, with a combined total, a chart by owner, the cash trend and recent activity. \"Waiting on you\" is one row per transfer still pending, with Went through or Discard, shown only to whoever has to act on it: who logged it, or the owner of its account (every grown-up, for a joint one with nobody named). Cash Flow and A&L have their own: bills due and income come; a loan or holding that needs a look, a yearly fund coming due, a matured deposit, and a shared goal's \"1 / 2\" put in this month, tapped for who has and who has not; Went through lets you correct the amount, day or account first. An account can hold its QR code, shown full-screen for someone to scan and pay in. A credit card takes its due day and minimum payment, and Today reminds you. Private (Only-you) accounts are marked and can be left out of the totals. \"Match the bank\" (\"Count the cash\" on a cash account) takes the figure the bank app shows and records the difference, so Kin's balance agrees again.",
+            "what": "Every bank, e-wallet, cash and credit card account, listed by whose then by type, with a combined total, a chart by owner, the cash trend and recent activity. \"Waiting on you\" is one row per transfer still pending, with Went through or Discard, shown only to whoever has to act on it: who logged it, or the owner of its account (every grown-up, for a joint one with nobody named). Cash Flow, A&L and Planner's Goals list it too wherever it belongs (a payment into a goal on all four), with bills due, income come, a loan or holding that needs a look, a yearly fund coming due, a matured deposit and a shared goal's \"1 / 2\" put in this month. Tapped anywhere, an item opens the same sheet: what it is, who it waits on, and the action owed on it right there; Went through lets you correct the amount, day or account first. An account can hold its QR code, shown full-screen for someone to scan and pay in. A credit card takes its due day and minimum payment, and Today reminds you. Private (Only-you) accounts are marked and can be left out of the totals. \"Match the bank\" (\"Count the cash\" on a cash account) takes the figure the bank app shows and records the difference, so Kin's balance agrees again.",
             "how": "Wealth → Accounts. Add each account once with its balance.",
             "pros": [
               "All the money in one view.",
@@ -1534,7 +1534,24 @@ export const HELP_GUIDE: HelpTab[] = [
               "Needs the Kin iPhone app; in a browser the choices are kept for when it's installed."
             ],
             "tips": [
-              "open Kin once a week or so: each time it opens, it sets the next two weeks of alarms."
+              "you don't need to open Kin for them to keep coming: each day, and after a change, Kin quietly sets the next two weeks again."
+            ]
+          },
+          {
+            "name": "iPhone widgets",
+            "tags": [
+              "phone"
+            ],
+            "what": "In the Kin iPhone app: Today's next dose and next plan, and how many things are on the To-Buy list, on the Home Screen and the Lock Screen.",
+            "how": "Touch and hold the Home Screen (or the Lock Screen → Customize), tap + or Add Widgets, and pick Kin: Today or To-Buy.",
+            "pros": [
+              "The next dose at a glance, without opening Kin."
+            ],
+            "cons": [
+              "Needs the Kin iPhone app. A dose ticked on another phone shows on yours the next time Kin opens or refreshes itself."
+            ],
+            "tips": [
+              "tap a widget to open Kin on that page."
             ]
           },
           {

@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getAssetCosts, getLongerBills, getGoalDepositsSince, getPendingEntries, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getAssetCosts, getLongerBills, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -15,7 +15,6 @@ import {
   ReceiveIncomeControl,
   GoalContributeControl,
   FundPaidControl,
-  PendingRows,
   LineEntries,
   type LineEntry,
   ValueUpdateControl,
@@ -77,21 +76,21 @@ import {
   AL_SET_ASIDE,
   AL_OWNED_ORDER,
   type LoanTerms,
-  pendingRows,
   loanInsurance,
   loanInsuranceFund,
   runningCosts,
   insuranceGap,
-  actorsFor,
-  depositProgress,
+  loanFlags,
   payFirst,
   type RunningCost,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
-import { familyDay, familyMidnight } from "@/lib/time";
+import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
+import { WaitingOnYou } from "@/components/waiting-on-you";
+import { getWaiting } from "@/lib/queries/waiting";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, NetWorthMoves, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
@@ -121,8 +120,14 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
   const who = sp.who ?? "all";
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
 
-  const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg }));
   const currency = me.families.currency;
+  // How many are waiting on you on each tab, on its name (29 October). The
+  // list is built once a request (getWaiting is cached); the panes reuse it.
+  const waiting = await getWaiting(me.id, me.family_id, isGrownUp(me.role), currency);
+  const segments = SEGMENTS.map((s) => {
+    const n = waiting.filter((e) => e.tabs.includes(s)).length;
+    return { label: n ? `${SEGMENT_LABELS[s]} · ${n}` : SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg };
+  });
 
   return (
     <div>
@@ -130,7 +135,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} openPending={sp.pending?.trim() || null} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
-        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} revealLine={sp.line?.trim() || null} />}
+        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} revealLine={sp.line?.trim() || null} grownUp={isGrownUp(me.role)} />}
         {seg !== "assets" && (
           <Suspense fallback={null}>
             <NetWorthKeeper familyId={me.family_id} memberId={me.id} />
@@ -422,81 +427,6 @@ function EntryRow({ entry, currency, dateFormat, showAccount, owner }: { entry: 
   );
 }
 
-function PendingBlock({ pending, accounts, memberId, currency, dateFormat, openId }: { pending: LedgerEntry[]; accounts: Awaited<ReturnType<typeof getAccounts>>; memberId: string; currency: string; dateFormat: string; openId: string | null }) {
-  const rows = pendingRows(pending);
-  if (rows.length === 0) return null;
-  // The app to open for each row: the account the money leaves, or sits in.
-  const appUrls = Object.fromEntries(
-    rows.map((r) => {
-      const id = r.from?.id ?? r.account?.id ?? r.to?.id;
-      return [r.id, (id && accounts.find((a) => a.id === id)?.linked_app_url) || null];
-    }),
-  );
-  return (
-    <>
-      <SectionLabel>WAITING ON YOU</SectionLabel>
-      <PendingRows rows={rows} accounts={toPickable(accounts, memberId)} appUrls={appUrls} currency={currency} dateFormat={dateFormat} openId={openId} />
-      {openId && rows.some((r) => r.id === openId) && <ScrollIntoView targetId={`pending-${openId}`} />}
-    </>
-  );
-}
-
-/** "Waiting on you" on Cash Flow and A&L as on Accounts (Jonathan, 29
- * October): the same pending entries to confirm or discard, then what this
- * tab itself asks of you -- a bill due, income come, a loan or a holding
- * that needs a look -- each with its button on the right. */
-export type WaitingItem = { id: string; title: string; meta: string; amount?: number; action: React.ReactNode };
-
-function WaitingOnYou({ pending, accounts, memberId, currency, dateFormat, items }: { pending: LedgerEntry[]; accounts: Awaited<ReturnType<typeof getAccounts>>; memberId: string; currency: string; dateFormat: string; items: WaitingItem[] }) {
-  const rows = pendingRows(pending);
-  if (rows.length === 0 && items.length === 0) return null;
-  const appUrls = Object.fromEntries(
-    rows.map((r) => {
-      const id = r.from?.id ?? r.account?.id ?? r.to?.id;
-      return [r.id, (id && accounts.find((a) => a.id === id)?.linked_app_url) || null];
-    }),
-  );
-  return (
-    <>
-      <SectionLabel>WAITING ON YOU · {rows.length + items.length}</SectionLabel>
-      {rows.length > 0 && <PendingRows rows={rows} accounts={toPickable(accounts, memberId)} appUrls={appUrls} currency={currency} dateFormat={dateFormat} />}
-      {items.map((it) => (
-        <div key={it.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
-            <span style={{ fontSize: "0.875rem", display: "block" }}>{it.title}</span>
-            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{it.meta}</span>
-          </span>
-          {it.amount != null && <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(it.amount, currency)}</span>}
-          <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>{it.action}</span>
-        </div>
-      ))}
-    </>
-  );
-}
-
-/** The household's grown-ups and everyone's short name: who a "Waiting on
- * you" item falls to when it is joint with nobody named, and the names a
- * shared goal's deposits are told by (29 October). */
-async function householdPeople(familyId: string) {
-  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status));
-  const short = shortNames(members.map((m) => m.full_name));
-  return { grownUps: members.filter((m) => isGrownUp(m.role)).map((m) => m.id), names: new Map(members.map((m, i) => [m.id, short[i]])) };
-}
-
-/** The pending entries a person has to settle: the ones they logged, or
- * that move through their own account (actorsFor). */
-function pendingFor(pending: LedgerEntry[], memberId: string, grownUps: string[]): LedgerEntry[] {
-  return pending.filter((e) => actorsFor({ named: e.recorded_by, accountOwner: e.accountOwnerId, accountJoint: e.accountIsJoint }, grownUps).includes(memberId));
-}
-
-/** A small link button for a "Waiting on you" row. */
-function WaitingLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link href={href} scroll={false} className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
-      {label}
-    </Link>
-  );
-}
 
 /** What's actually coming due, not just what's unpaid -- the "upcoming" view
  * Copilot and YNAB build for exactly this question: not "here is every open
@@ -745,7 +675,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       lead: [`Regular · ${INCOME_FREQUENCY_LABELS[g.frequency] ?? g.frequency} · usually ${formatCurrency(Number(g.usual_amount), currency)}`],
       tail: g.next?.next_date ? [`next ${fmtDate(g.next.next_date)}`] : [],
       buttons: [
-        ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} />] : []),
+        ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} defaultAccountId={g.next.account_id} />] : []),
         <RemoveButton key="remove" id={g.id} kind="income_group" label={`Delete "${g.name}"`} />,
       ],
     });
@@ -775,40 +705,11 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       lead: [`${x.status === "pending" ? "Waiting on confirmation" : "Expected"}${x.next_date ? ` ${fmtDate(x.next_date)}` : ""} · ${formatCurrency(Number(x.amount), currency)}`],
       tail: [],
       buttons: [
-        <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} />,
+        <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} defaultAccountId={x.account_id} />,
         <RemoveButton key="remove" id={x.id} kind="income_schedule" label={`Delete "${x.name}"`} />,
       ],
     });
   }
-  // Cash Flow's own "Waiting on you" (29 October): bills due today or
-  // overdue, with Pay; income whose day has come, with Receive.
-  const household = await householdPeople(familyId);
-  const ownerOf = (accountId: string | null) => (accountId ? accounts.find((a) => a.id === accountId) : undefined);
-  const waitsOnMe = (x: { account_id: string | null; owner_member_id: string | null; is_joint: boolean | null }) =>
-    actorsFor({ accountOwner: ownerOf(x.account_id)?.owner_member_id, accountJoint: ownerOf(x.account_id)?.is_joint, owner: x.owner_member_id, joint: x.is_joint }, household.grownUps).includes(memberId);
-  const cashFlowWaiting: WaitingItem[] = [
-    ...cf.openBills
-      .filter((b) => b.status !== "scheduled" && b.due_date && b.due_date.slice(0, 10) <= today && waitsOnMe(b))
-      .map((b) => {
-        const due = b.due_date!.slice(0, 10) < today ? "overdue" : "today";
-        return {
-          id: `bill-${b.id}`,
-          title: b.name,
-          meta: due === "today" ? "Due today" : `Overdue since ${fmtDate(b.due_date!)}`,
-          amount: Number(b.amount),
-          action: <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} defaultAccountId={b.account_id} due={due} loan={b.against_table === "liabilities" ? (targets.loans.find((l) => l.id === b.against_id) ?? null) : null} />,
-        } satisfies WaitingItem;
-      }),
-    ...cf.expectedIncome
-      .filter((x) => x.status !== "pending" && x.next_date && x.next_date.slice(0, 10) <= today && waitsOnMe(x))
-      .map((x) => ({
-        id: `income-${x.id}`,
-        title: x.name,
-        meta: `Expected ${x.next_date!.slice(0, 10) === today ? "today" : `since ${fmtDate(x.next_date!)}`}`,
-        amount: Number(x.amount),
-        action: <ReceiveIncomeControl scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} />,
-      })),
-  ];
   // The donut and its breakdown are a report (Janine, 26 October), as on
   // Expenses: read only. Each line, with Receive, Delete and its entries to
   // edit or remove, sits under INCOME BY PERSON below it.
@@ -932,7 +833,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <RangeRow range={range} hrefFor={(r) => `/wealth?seg=cashflow&range=${r}&who=${scope}`} />
       <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} budgets={Object.fromEntries(budgetHistory)} />
 
-      <WaitingOnYou pending={pendingFor(budget.pending, memberId, household.grownUps)} accounts={accounts} memberId={memberId} currency={currency} dateFormat={dateFormat} items={cashFlowWaiting} />
+      <WaitingOnYou me={{ id: memberId, family_id: familyId, grownUp }} tab="cashflow" currency={currency} />
 
       {/* Open, above the groups: in EXPENSES they sat in a group that is
           closed unless opened, so a paid repeating bill's "Add next
@@ -1066,7 +967,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, openPending = null, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; openPending?: string | null; includePrivate: boolean; grownUp: boolean }) {
-  const [dateFormat, pane, cf, who, allArchived, viewers, allAccounts] = await Promise.all([
+  const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -1076,9 +977,6 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),
-    // Every account the viewer can see, whatever Who shows: where a pending
-    // entry can be moved to, and whose app opens to make it.
-    getAccounts(familyId),
   ]);
   const archived = allArchived.filter((a) => inScope(a, scope));
   // Whom an account of yours can be shown to: everyone else in the
@@ -1143,7 +1041,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       <CashTrendLine trend={cashTrend} currency={currency} periodNoun={periodNoun} />
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
-      <PendingBlock pending={pendingFor(pane.pending, memberId, (await householdPeople(familyId)).grownUps)} accounts={allAccounts} memberId={memberId} currency={currency} dateFormat={dateFormat} openId={openPending} />
+      <WaitingOnYou me={{ id: memberId, family_id: familyId, grownUp }} tab="accounts" currency={currency} openId={openPending ? `pending-${openPending}` : null} />
 
       <SectionLabel>{scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS" : isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (
@@ -1313,9 +1211,9 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 /* -------------------------------------------------------------------- A&L */
 
-async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate, revealLine = null }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean; /** A line to open and scroll to: "Waiting on you"'s Look (29 October). */ revealLine?: string | null }) {
-  const [fmtDate, today, dateFormat] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz)), householdDateFormat()]);
-  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts, pendingAll] = await Promise.all([
+async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate, revealLine = null, grownUp }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean; grownUp: boolean; /** A line to open and scroll to: "Waiting on you"'s Look (29 October). */ revealLine?: string | null }) {
+  const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
+  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&range=${range}&who=${w}`),
     getAccounts(familyId),
@@ -1324,8 +1222,6 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
     // The last six full months' living costs, for the emergency cover.
     getMonthlySpending(familyId, scope, 6),
     getAssetCosts(familyId, today),
-    // The pending entries, as Accounts' "Waiting on you" has them.
-    getPendingEntries(familyId),
   ]);
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
@@ -1396,7 +1292,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       pinned: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={goalPickable} />,
       actions: (
         <>
-          <GoalContributeControl goalId={g.id} accounts={goalPickable} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
+          <GoalContributeControl compact goalId={g.id} accounts={goalPickable} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
           {!!g.target_date && Number(g.current_amount) > 0 && canMarkPaid(g.target_date, today) && (
             <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={Number(g.current_amount)} target={Number(g.target_amount ?? 0)} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />
           )}
@@ -1406,7 +1302,8 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
               On Planner ›
             </Link>
           )}
-          <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
+          {/* Remove apart from the rest, at the row's end (29 October). */}
+          <span style={{ marginLeft: "auto" }}><RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} /></span>
         </>
       ),
       };
@@ -1455,7 +1352,8 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
               Record a cost
             </Link>
           )}
-          <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
+          {/* Remove apart from the rest, at the row's end (29 October). */}
+          <span style={{ marginLeft: "auto" }}><RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} /></span>
         </>
       ),
     })),
@@ -1520,7 +1418,8 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
             rateFixedUntil={l.rate_fixed_until}
           />
           <ValueUpdateControl id={l.id} current={Number(l.balance)} kind="liability" />
-          <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
+          {/* Remove apart from the rest, at the row's end (29 October). */}
+          <span style={{ marginLeft: "auto" }}><RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} /></span>
         </>
       ),
     })),
@@ -1551,82 +1450,6 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
   );
   // "Waiting on you"'s Look lands here: its line, its owner and section open.
   for (const l of [...ownedLines, ...owedLines]) if (l.id === revealLine) l.reveal = true;
-  // A&L's own "Waiting on you" (29 October): a loan or a holding flagged,
-  // a yearly fund coming due, a time deposit or MP2 that has matured.
-  const look = (lineId: string) => <WaitingLink href={`/wealth?seg=assets&line=${encodeURIComponent(lineId)}`} label="Look" />;
-  const people = await householdPeople(familyId);
-  const isMine = (x: { owner_member_id: string | null; is_joint: boolean | null }) => actorsFor({ owner: x.owner_member_id, joint: x.is_joint }, people.grownUps).includes(memberId);
-  // A goal several people pay into each month (29 October): its
-  // contributors are the owners of its From accounts with a monthly amount.
-  const goalContributors = (g: (typeof goals)[number]) => {
-    const out: { memberId: string; accountId: string | null }[] = [];
-    for (const [accountId, amount] of [[g.from_account_id, g.from_amount], [g.from_account_2_id, g.from_2_amount]] as const) {
-      const a = accountId && Number(amount ?? 0) > 0 ? allAccounts.find((x) => x.id === accountId) : undefined;
-      if (a && !a.is_joint && a.owner_member_id && !out.some((c) => c.memberId === a.owner_member_id)) out.push({ memberId: a.owner_member_id, accountId: a.id });
-    }
-    return out;
-  };
-  const deposits = await getGoalDepositsSince(familyId, (familyMidnight(`${today.slice(0, 7)}-01`, await householdZone()) ?? new Date(`${today.slice(0, 7)}-01T00:00:00Z`)).toISOString());
-  const depositRows: WaitingItem[] = goals.flatMap((g) => {
-    const contributors = goalContributors(g);
-    if (contributors.length === 0) return [];
-    const involved = contributors.some((c) => c.memberId === memberId) || people.grownUps.includes(memberId);
-    if (!involved) return [];
-    const p = depositProgress(contributors, deposits.filter((d) => d.goal_id === g.id).map((d) => ({ accountId: d.account_id, recordedBy: d.recorded_by })));
-    if (p.waiting.length === 0) return [];
-    const mineToDo = p.waiting.includes(memberId);
-    const name = (id: string) => (id === memberId ? "You" : (people.names.get(id) ?? "Someone"));
-    return [
-      {
-        id: `deposit-${g.id}`,
-        title: g.title,
-        meta: mineToDo ? "This month's deposit · yours is still to go" : `This month's deposits · waiting on ${p.waiting.map(name).join(", ")}`,
-        action: (
-          <>
-            <details className="kin-deposit-who">
-              <summary>
-                {p.done.length} / {contributors.length}
-              </summary>
-              <div className="kin-deposit-who-list">
-                {contributors.map((c) => (
-                  <div key={c.memberId}>
-                    {p.done.includes(c.memberId) ? "✓" : "○"} {name(c.memberId)}
-                    {p.done.includes(c.memberId) ? " · put in" : " · not yet"}
-                  </div>
-                ))}
-              </div>
-            </details>
-            {mineToDo && look(`goal-${g.id}`)}
-          </>
-        ),
-      },
-    ];
-  });
-  const alWaiting: WaitingItem[] = [
-    ...depositRows,
-    ...liabilities.filter(isMine).flatMap((l) => {
-      const flags = loanFlags(l, today, fmtDate, !!loanInsurance(l) && !loanInsurance(l)!.included && !loanInsuranceFund(l.name, goals) && !(l.asset_id && runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.some((c) => /insurance|\bmri\b/i.test(c.name))));
-      return flags.length ? [{ id: `loan-${l.id}`, title: l.name, meta: flags.join(" · "), action: look(l.id) }] : [];
-    }),
-    ...assets.filter(isMine).flatMap((a) => {
-      const insured = liabilities.some((l) => l.asset_id === a.id && Number(l.balance) > 0 && (loanInsurance(l)?.included || !!loanInsuranceFund(l.name, goals)));
-      const gap = !insured && insuranceGap(a.kind, runningCosts(assetCosts.billsFor.get(a.id) ?? []).costs.map((c) => c.name));
-      return gap ? [{ id: `asset-${a.id}`, title: a.name, meta: "No insurance listed", action: look(`asset-${a.id}`) }] : [];
-    }),
-    ...goals.filter((g) => isMine(g) && !goalContributors(g).length).flatMap((g) => {
-      const target = Number(g.target_amount ?? 0);
-      const left = target - Number(g.current_amount);
-      if (!g.target_date || target <= 0 || left <= 0.005) return [];
-      const days = Math.round((Date.parse(g.target_date.slice(0, 10)) - Date.parse(today)) / 86_400_000);
-      if (days > 7) return [];
-      return [{ id: `goal-${g.id}`, title: g.title, meta: `${days < 0 ? `was due ${fmtDate(g.target_date)}` : days === 0 ? "due today" : `due ${fmtDate(g.target_date)}`} · ${formatCurrency(left, currency)} to go`, action: look(`goal-${g.id}`) }];
-    }),
-    ...investmentAccounts.filter((a) => actorsFor({ accountOwner: a.owner_member_id, accountJoint: a.is_joint }, people.grownUps).includes(memberId)).flatMap((a) => {
-      const day = a.matures_on?.slice(0, 10);
-      if (!day || day > today || Date.parse(today) - Date.parse(day) > 30 * 86_400_000) return [];
-      return [{ id: `matured-${a.id}`, title: accountLabel(a), meta: `Matured ${fmtDate(day)} · record where the money went`, amount: a.balance, action: <WaitingLink href={openAccount(a.id)} label="Open" /> }];
-    }),
-  ];
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const captionParts = [
     `${formatCurrency(cashTotal + goalTotal, currency)} cash${goalTotal > 0 ? ` (${formatCurrency(goalTotal, currency)} of it set aside)` : ""}`,
@@ -1655,7 +1478,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       <NetWorthLine points={netWorthHistory} currency={currency} periodNoun={periodNoun} />
       <NetWorthMoves points={netWorthHistory} currency={currency} />
       <EmergencyCoverLine cover={emergencyCover(cashTotal + goalTotal, monthlySpending)} liquid={cashTotal + goalTotal} currency={currency} />
-      <WaitingOnYou pending={pendingFor(pendingAll, memberId, people.grownUps)} accounts={allAccounts} memberId={memberId} currency={currency} dateFormat={dateFormat} items={alWaiting} />
+      <WaitingOnYou me={{ id: memberId, family_id: familyId, grownUp }} tab="assets" currency={currency} />
       {revealLine && <ScrollIntoView key={revealLine} targetId={`line-${revealLine}`} />}
 
       <CollapsibleGroup key={`assets-${revealLine ?? ""}`} title="ASSETS" defaultOpen={ownedLines.some((l) => l.reveal)}>
@@ -1843,19 +1666,6 @@ function FlagLine({ flags }: { flags: string[] }) {
   return <div style={{ fontSize: "0.75rem", color: "var(--color-accent-700)", fontWeight: 600, marginTop: "0.25rem" }}>⚑ {flags.join(" · ")}</div>;
 }
 
-/** A loan's flags (29 October): its balance off its terms, a fixed rate
- * ending within a month or ended, and insurance nothing pays yet. */
-function loanFlags(loan: LoanTerms, today: string, fmtDate: (d: string) => string, insuranceNeeded: boolean): string[] {
-  if (!(Number(loan.balance) > 0)) return [];
-  const flags: string[] = [];
-  const origin = loanOriginStatus(loan, today);
-  if (origin && !origin.matches) flags.push("balance differs from its terms");
-  const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
-  if (fixedDays != null && fixedDays < 0) flags.push("fixed rate ended: set the new rate");
-  else if (fixedDays != null && fixedDays <= 31) flags.push(`fixed rate ends ${fmtDate(loan.rate_fixed_until!)}`);
-  if (insuranceNeeded) flags.push("yearly insurance to set aside for");
-  return flags;
-}
 
 function AssetWorthLine({
   asset,

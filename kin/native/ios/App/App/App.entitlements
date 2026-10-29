@@ -9,6 +9,12 @@
 	<!-- Through Focus for medicine, SOS and calls. -->
 	<key>com.apple.developer.usernotifications.time-sensitive</key>
 	<true/>
+	<!-- Shared with the widgets (KinWidgets), which read Today's next dose,
+	     next plan and the To-Buy count from here (KinWidgetStore). -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.jiesingian.kin</string>
+	</array>
 	<!-- Critical Alerts (SOS through silent) is added here only once Apple
 	     grants it: com.apple.developer.usernotifications.critical-alerts.
 	     Signing fails if the profile lacks it. -->
