@@ -42,7 +42,7 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
           <input type="radio" name="kin-check-plan" value="free" checked={plan === "free"} onChange={() => setPlan("free")} />
           <span>
             <strong>Just Kin Free</strong>
-            <small>The same {TRIAL_DAYS}-day trial, then Kin Free: ₱0, for good.</small>
+            <small>The same {TRIAL_DAYS}-day trial, then Kin Free: ₱0, with no time limit.</small>
           </span>
         </label>
       </fieldset>
@@ -70,7 +70,7 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
         <div className="kin-plans">
           <section className="kin-plan" aria-labelledby="kin-check-free">
             <h3 id="kin-check-free">Kin Free</h3>
-            <p className="kin-plan-price">₱0, for good</p>
+            <p className="kin-plan-price">₱0, no time limit</p>
             <ul>
               {FREE_FEATURES.map((f) => (
                 <li key={f}>

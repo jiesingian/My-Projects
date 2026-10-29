@@ -19,6 +19,9 @@ export default function GuestLayout({ children }: { children: React.ReactNode })
           Kin
         </Link>
         <Link href="/">What&rsquo;s Kin?</Link>
+        {/* A guest types their name and answer here: the notice says what
+            happens to them (Data Privacy Act, the right to be informed). */}
+        <Link href="/legal/privacy">Privacy</Link>
       </nav>
       <article className="kin-legal-body">{children}</article>
     </main>

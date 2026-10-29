@@ -110,7 +110,7 @@ const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
 /** What a 🎯 needs of its goal (29 October). */
 function markOf(t: TrackedGoal | undefined): GoalMark | null {
-  return t ? { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines } : null;
+  return t ? { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday } : null;
 }
 
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
@@ -1260,11 +1260,11 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
   };
   // A house or car: a fund to replace or upgrade it.
   const assetGoal = (a: { id: string; name: string; worth: { total: number } }, goal: GoalMark | null) => (
-    <WealthGoalButton tracks="asset" id={a.id} suggest={{ title: `Next ${a.name}`, amount: Math.max(10000, Math.ceil(a.worth.total / 10000) * 10000) }} goal={goal} currency={currency} />
+    <WealthGoalButton tracks="asset" id={a.id} suggest={{ title: `Next ${a.name}`, amount: Math.max(10000, Math.ceil(a.worth.total / 10000) * 10000) }} goal={goal} currency={currency} accounts={pickableCash.map((x) => ({ id: x.id, name: x.name }))} />
   );
   // A loan: owe nothing by its last scheduled payment, to start from.
   const loanGoal = (l: (typeof nw.liabilities)[number], goal: GoalMark | null) => (
-    <WealthGoalButton tracks="loan" id={l.id} suggest={{ title: `${l.name} paid off`, amount: 0, dueDate: loanStatus(l, today).last }} goal={goal} currency={currency} />
+    <WealthGoalButton tracks="loan" id={l.id} suggest={{ title: `${l.name} paid off`, amount: 0, dueDate: loanStatus(l, today).last }} goal={goal} currency={currency} accounts={pickableCash.map((x) => ({ id: x.id, name: x.name }))} />
   );
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the

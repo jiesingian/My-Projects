@@ -86,8 +86,29 @@ Built without the account, as a series in one session:
    - Not done for Android: the widgets and the silent daily re-sync
      (`due_alarm_wakes` sends Apple's tokens only), so an Android phone keeps
      its two weeks from the last open.
-7. **Jonathan's part:** SETUP section 9, enrol, three keys and the
-   TestFlight run. Then the phone checks under "Needs a real phone".
+7. **Ready for the App Store** (29 October, #1135, #1140, #1144 and the
+   walkthrough PR). Checked against Apple's current guidelines:
+   - privacy manifests for the app and the widgets, no export question
+     (`ITSAppUsesNonExemptEncryption`), iPhone only;
+   - inside the app no price, plan link, Kin code, referral or offer
+     (3.1.1; the app is told apart by `KinApp/iOS` in its user agent,
+     `lib/ios-app.ts`);
+   - a public `/legal/support` page for the Support URL;
+   - the listing, review notes, App Privacy and age-rating answers, and a
+     screenshot job, in `kin/native/ios/store/`;
+   - `testflight.yml` prints what was signed, and `kin/native/ios/TESTFLIGHT.md`
+     says what each failure means.
+   Open risk, Jonathan's call: Apple may want Kin Plus also sold as an
+   in-app purchase (3.1.3(b)); if review says so, StoreKit at Apple's 15%.
+8. **Jonathan's part:** SETUP section 9, in order:
+   - first, a support email (`OPERATOR.email`);
+   - enrol, then the identifiers and App Group;
+   - the API key and four secrets, then the TestFlight run;
+   - the push key in Vercel, and the phone checks;
+   - paste the listing, run the screenshots job, create the review household;
+   - submit;
+   - Critical Alerts, whenever.
+   Then the phone checks under "Needs a real phone".
 
 **Not known until a real iPhone:**
 - A call answered through CallKit opens the call in Kin's page, and WebRTC
@@ -557,16 +578,15 @@ on dev (#701).
   refusalMessage both run; an expired login and PGRST116 count as
   defects. Read the first Friday's "Errors this week" with that in mind.
 
-**Proposals, for Jonathan and Janine to decide (nothing changed):**
-- **Simple Kin's own 44px for every control.** The segmented controls,
-  the Planner's month button, Wealth's Income/Expenses headers and
-  Journal's share chips are 26–40px tall with Simple Kin on. WCAG's 24px is met, so this is Simple Kin's
-  promise, not a failure. The proposal: `min-height: 44px` on those
-  under `.kin-simple`, which makes those rows taller.
-- **The Notes board's arrows go note to note.** ↑/↓ (#864) step through
-  each note's two buttons (Edit, Delete), so a board of ten notes is
-  twenty presses. The proposal: arrows move between notes, Tab reaches a
-  note's buttons.
+**Proposals, decided 29 October:**
+- **Done (29 October, Jonathan: yes to both): Simple Kin's own 44px for
+  every control.** `min-height: 44px` under `.kin-simple` on the segmented
+  controls, the Planner's month button, Wealth's Income/Expenses folds and
+  Journal's share chips (`.kin-tap` marks a control sized inline). Simple
+  Kin only; those rows are a little taller there.
+- **Done (29 October): the Notes board's arrows go note to note.** Each
+  note is a stop of its own (`data-kin-arrow-item`, keyboard-shortcuts.tsx),
+  so ↑/↓ move between notes and Tab reaches a note's Edit and Delete.
 
 ## Final design check, 22 October (Jonathan: approved, decide and explain)
 
@@ -2640,6 +2660,9 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
      should say declined.
   5. An SOS from Janine's phone should come through Focus.
   6. Send me a test, from Settings → Notifications.
+  7. The rest of `kin/native/ios/TESTFLIGHT.md`'s last list: widgets,
+     the silent re-sync, a call hung up before it is answered, and no
+     price, "See plans" or Kin code anywhere in the app.
 
 - **Undo read out (22 October, #884):** with VoiceOver on, delete a note,
   then a To-Buy item; VoiceOver should say "Deleted" with Undo, and Undo
