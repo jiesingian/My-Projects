@@ -15,11 +15,26 @@ const initialState: ActionState = { error: null };
 
 /** `canNumber` is whether this person may set the number (the account's
  * owner, or a grown-up on a joint account); without it the field is left
- * off and the number is untouched. */
-export function AccountEditForm({ account, number, canNumber }: { account: Tables<"accounts">; number: string | null; canNumber: boolean }) {
+ * off and the number is untouched. `owners` is whose it can be moved to --
+ * you, the family, a child whose profile you keep -- offered to a grown-up
+ * when it is one of those now; null leaves the field off. */
+export function AccountEditForm({
+  account,
+  number,
+  canNumber,
+  owners,
+  currentOwner,
+}: {
+  account: Tables<"accounts">;
+  number: string | null;
+  canNumber: boolean;
+  owners: { value: string; label: string }[] | null;
+  currentOwner: string;
+}) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(updateAccountAction.bind(null, account.id), initialState);
   const [accountType, setAccountType] = useState<AccountType>(account.account_type as AccountType);
+  const [owner, setOwner] = useState(currentOwner);
 
 
   return (
@@ -33,6 +48,25 @@ export function AccountEditForm({ account, number, canNumber }: { account: Table
           <Field label="Account name">
             <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: "2.625rem" }} />
           </Field>
+          {/* Whose it is, changed without removing and adding it again
+              (Janine, 29 October): its movements come along. */}
+          {owners && (
+            <Field label="Belongs to">
+              <select className="input" name="owner" value={owner} onChange={(e) => setOwner(e.target.value)} style={{ minHeight: "2.625rem" }}>
+                {owners.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              {owner !== currentOwner && (
+                <span style={{ display: "block", fontSize: "0.78125rem", fontWeight: 400, color: "var(--color-neutral-600)", marginTop: "0.3125rem", lineHeight: 1.45 }}>
+                  Its balance and history stay. Movements that were {currentOwner === "joint" ? "the family's" : currentOwner === "me" ? "yours" : "theirs"} move with it; any tagged to someone else keep their tag.
+                  {owner !== "me" ? " It will be open to the household." : ""}
+                </span>
+              )}
+            </Field>
+          )}
           <Field label="Type">
             <select
               className="input"

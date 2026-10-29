@@ -174,6 +174,7 @@ const MIGRATIONS = [
   "20261030120000_review_fixes.sql",
   "20261030120001_deletion_sweeps_newer_tables.sql",
   "20261030130000_records_ok.sql",
+  "20261030131700_move_account_owner.sql",
 ];
 
 const only = process.argv[2];

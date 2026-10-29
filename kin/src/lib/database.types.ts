@@ -9324,6 +9324,10 @@ export type Database = {
           answered_by_name: string | null
         }[]
       }
+      move_account_owner: {
+        Args: { p_account: string; p_owner: string | null }
+        Returns: undefined
+      }
       move_to_household: {
         Args: { p_invite_code: string }
         Returns: {
