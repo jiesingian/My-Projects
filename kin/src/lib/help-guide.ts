@@ -1490,16 +1490,18 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Helper access",
             "tags": [],
-            "what": "A link for the household helper or driver, with switches for To-Buy, Meals and Family plans. No account needed.",
+            "what": "A link for the household helper or driver, with switches for To-Buy, Meals and Family plans. The helper makes a free account of their own and sees only what you switch on, never money, health or the vault.",
             "how": "Settings → Household → Helpers → make a link; print the QR for the kitchen.",
             "pros": [
               "The helper sees only what you switch on.",
               "Removing the link ends access at once."
             ],
             "cons": [
-              "Anyone with the link can open it; keep it to the helper, and remove it the day they leave."
+              "The helper needs an email to make an account; the link works once and lapses after 7 days, so make a new one if it goes unused."
             ],
-            "tips": []
+            "tips": [
+              "remove the helper the day they leave; their access ends at once."
+            ]
           },
           {
             "name": "Privacy & lock, emergency access",

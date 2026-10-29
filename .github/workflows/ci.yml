@@ -94,6 +94,27 @@ jobs:
             node scripts/check-rls-probes.mjs
           fi
 
+      - name: Help says what the screens do
+        # Settings -> Help (kin/src/lib/help-guide.ts) describes every feature.
+        # In the week to 28 October about fifty pull requests changed screens
+        # and none touched it, so Help described an app that no longer
+        # existed until #1069 caught it up by hand. A warning, never a red
+        # check: plenty of screen changes say nothing new to a family (a
+        # layout fix, a rename inside the code). It lists the screens so the
+        # author decides; the ship skill asks the same before opening.
+        #
+        # On a pull request the checkout is GitHub's merge commit, so its
+        # diff against the base branch's tip is exactly this PR's change.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE"
+          changed=$(git diff --name-only "origin/$BASE" HEAD -- 'src/app/(app)/' src/components/ | grep -E '\.tsx$' || true)
+          if [ -n "$changed" ] && git diff --quiet "origin/$BASE" HEAD -- src/lib/help-guide.ts; then
+            echo "::warning title=Help not updated::Screens changed but src/lib/help-guide.ts did not. If a family would notice the change, update its Help entry in this PR. Changed: $(echo $changed)"
+          fi
+
       - name: Build
         # Every page in Kin is server-rendered on demand, so nothing is
         # prerendered and no real database is touched here. The placeholders
