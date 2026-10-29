@@ -1634,7 +1634,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Your plan: Kin Free and Kin Plus",
             "tags": [],
-            "what": "Free: calendar, chores, allowance, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus (₱149 a month or ₱1,490 a year): Wealth, lending and savings circles, the vault, medicines and vitals, unlimited Kin AI, 50 GB.",
+            "what": "Free: calendar, chores, allowance, list and meals, chat and calls, journal (1 GB), tree, health profiles and the emergency card, 5 Kin AI uses a month. Plus: Wealth, lending and savings circles, the vault, medicines and vitals, unlimited Kin AI, 50 GB.",
             "how": "Settings → Your plan.",
             "pros": [
               "Everything a family needs every day is free."

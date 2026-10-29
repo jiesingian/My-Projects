@@ -6077,6 +6077,12 @@ button.kin-initial:focus-visible {
 .kin-quickbtn-more summary { cursor: pointer; font-weight: 600; min-height: 2.75rem; display: flex; align-items: center; }
 .kin-quickbtn-more p { margin: 0; }
 
+/* Inside the Kin iPhone app (data-ios-app on <html>, lib/ios-app.ts): no
+   prices, "See plans" links or Kin code boxes (App Review 3.1.1). A browser
+   never has the attribute, so it sees everything as before. */
+:root:not([data-ios-app]) .kin-ios-only,
+[data-ios-app] .kin-web-only { display: none !important; }
+
 /* — Kin Free and Kin Plus (28 September) —
    One quiet card for "this area is Plus" and for the trial's last days.
    The trial banner is seen a handful of times ever, so it arrives: an 8px
