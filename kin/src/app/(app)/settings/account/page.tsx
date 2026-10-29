@@ -63,6 +63,7 @@ export default async function AccountSettingsPage() {
           <Link href="/legal/privacy">Privacy</Link>
           <Link href="/legal/terms">Terms</Link>
           <Link href="/legal/refunds">Refunds</Link>
+          <Link href="/legal/support">Support</Link>
         </nav>
         <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-600)", textAlign: "center", marginTop: "0.875rem" }}>KIN 1.0.0</div>
       </div>

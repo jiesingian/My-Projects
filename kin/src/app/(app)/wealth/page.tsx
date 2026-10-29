@@ -91,6 +91,9 @@ import { CollapsibleGroup, FoldableSection } from "@/components/collapsible-grou
 import { ScrollIntoView } from "@/components/scroll-into-view";
 import { WaitingOnYou } from "@/components/waiting-on-you";
 import { getWaiting } from "@/lib/queries/waiting";
+import { getTrackedGoals, type TrackedGoal } from "@/lib/queries/wealth-goals";
+import { trackKey } from "@/lib/wealth-goals";
+import { WealthGoalButton, type GoalMark } from "@/components/wealth-goal-button";
 import { GroupedBreakdown, CashFlowChart, CashTrendLine, NetWorthLine, NetWorthMoves, SpendingByPerson, type BreakdownItem } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { LoanAssetPicker } from "@/components/loan-asset-picker";
@@ -105,6 +108,11 @@ import { canMarkPaid, cycleStart, fundPlan, STATUS_TEXT } from "@/lib/sinking-fu
    as much a part of what the household owns as anything else in there. */
 const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
+/** What a 🎯 needs of its goal (29 October). */
+function markOf(t: TrackedGoal | undefined): GoalMark | null {
+  return t ? { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday } : null;
+}
+
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
 
 export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string; open?: string; bill?: string; pending?: string; line?: string }> }) {
@@ -528,7 +536,7 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null, includePrivate }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null; includePrivate: boolean }) {
   const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [cf, budget, accounts, who, nextBills, targets, longerBills] = await Promise.all([
+  const [cf, budget, accounts, who, nextBills, targets, longerBills, tracked] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
     getAccounts(familyId),
@@ -538,6 +546,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     // What an expense already paid can be for: a loan, an asset, a goal.
     getAttributableTargets(familyId),
     getLongerBills(familyId),
+    getTrackedGoals(familyId, currency),
   ]);
   // Quarterly and yearly bills, as a month's share (28 October).
   const longer = runningCosts(longerBills);
@@ -676,6 +685,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       tail: g.next?.next_date ? [`next ${fmtDate(g.next.next_date)}`] : [],
       buttons: [
         ...(g.next ? [<ReceiveIncomeControl key="receive" scheduleId={g.next.id} amount={Number(g.next.amount)} accounts={pickable} currency={currency} defaultAccountId={g.next.account_id} />] : []),
+        <WealthGoalButton key="goal" tracks="income" id={g.id} suggest={{ title: g.name, amount: Number(g.usual_amount), watchOnTime: /salary/i.test(category) }} goal={markOf(tracked.get(trackKey("income", g.id)))} currency={currency} />,
         <RemoveButton key="remove" id={g.id} kind="income_group" label={`Delete "${g.name}"`} />,
       ],
     });
@@ -706,6 +716,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       tail: [],
       buttons: [
         <ReceiveIncomeControl key="receive" scheduleId={x.id} amount={Number(x.amount)} accounts={pickable} currency={currency} defaultAccountId={x.account_id} />,
+        <WealthGoalButton key="goal" tracks="income" id={x.id} suggest={{ title: x.name, amount: Number(x.amount), watchOnTime: /salary/i.test(category) }} goal={markOf(tracked.get(trackKey("income", x.id)))} currency={currency} />,
         <RemoveButton key="remove" id={x.id} kind="income_schedule" label={`Delete "${x.name}"`} />,
       ],
     });
@@ -804,7 +815,21 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           {p.memberId === memberId && sharing && <BudgetVisibility isPrivate={sharing.isPrivate} viewers={sharing.viewers} people={audience} />}
           {cats.length === 0 && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>Nothing spent or budgeted yet this month.</p>}
           {cats.map((c) => (
-            <CategoryBudgetRow key={c.category} whose={whoseKey} category={c.category} amount={c.amount} spent={c.spent} currency={currency} color={expenseCategoryColor(c.category)} canEdit={canEdit}>
+            <CategoryBudgetRow
+              key={c.category}
+              whose={whoseKey}
+              category={c.category}
+              amount={c.amount}
+              spent={c.spent}
+              currency={currency}
+              color={expenseCategoryColor(c.category)}
+              canEdit={canEdit}
+              goal={(() => {
+                // 🎯 on a category with a budget, or one already a goal.
+                const t = tracked.get(trackKey("expense", categoryLabel(c.category), p.memberId)) ?? tracked.get(trackKey("expense", c.category, p.memberId));
+                return t || (canEdit && c.amount > 0) ? <WealthGoalButton tracks="expense" category={c.category} whose={whoseKey} suggest={{ title: `${categoryLabel(c.category)} under ${formatCurrency(c.amount, currency)}`, amount: c.amount }} goal={markOf(t)} currency={currency} /> : null;
+              })()}
+            >
               <CategoryLines lines={linesFor(p.memberId, c.category)} currency={currency} />
             </CategoryBudgetRow>
           ))}
@@ -967,7 +992,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, openPending = null, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; openPending?: string | null; includePrivate: boolean; grownUp: boolean }) {
-  const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
+  const [dateFormat, pane, cf, who, allArchived, viewers, tracked] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -977,6 +1002,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),
+    getTrackedGoals(familyId, currency),
   ]);
   const archived = allArchived.filter((a) => inScope(a, scope));
   // Whom an account of yours can be shown to: everyone else in the
@@ -1106,6 +1132,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                     {isJoint && !a.is_joint && who.ownerOf(a.owner_member_id, false) && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{who.ownerOf(a.owner_member_id, false)}</span>
                     )}
+                    {a.account_type !== "credit_card" && (
+                      <WealthGoalButton tracks="account" id={a.id} suggest={{ title: `${a.name} to ${formatCurrency(Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000), currency)}`, amount: Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000) }} goal={markOf(tracked.get(trackKey("account", a.id)))} currency={currency} />
+                    )}
                     <AccountPrivacyToggle
                       accountId={a.id}
                       isPrivate={a.is_private}
@@ -1213,7 +1242,7 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate, revealLine = null, grownUp }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean; grownUp: boolean; /** A line to open and scroll to: "Waiting on you"'s Look (29 October). */ revealLine?: string | null }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts] = await Promise.all([
+  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts, tracked] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&range=${range}&who=${w}`),
     getAccounts(familyId),
@@ -1222,7 +1251,21 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
     // The last six full months' living costs, for the emergency cover.
     getMonthlySpending(familyId, scope, 6),
     getAssetCosts(familyId, today),
+    getTrackedGoals(familyId, currency),
   ]);
+  // 🎯 (29 October): up front once it is a goal, among the options until.
+  const goalMark = (key: string, button: (goal: GoalMark | null) => React.ReactNode) => {
+    const goal = markOf(tracked.get(key));
+    return { pinned: goal ? <div style={{ marginTop: "0.375rem" }}>{button(goal)}</div> : null, action: goal ? null : button(null) };
+  };
+  // A house or car: a fund to replace or upgrade it.
+  const assetGoal = (a: { id: string; name: string; worth: { total: number } }, goal: GoalMark | null) => (
+    <WealthGoalButton tracks="asset" id={a.id} suggest={{ title: `Next ${a.name}`, amount: Math.max(10000, Math.ceil(a.worth.total / 10000) * 10000) }} goal={goal} currency={currency} accounts={pickableCash.map((x) => ({ id: x.id, name: x.name }))} />
+  );
+  // A loan: owe nothing by its last scheduled payment, to start from.
+  const loanGoal = (l: (typeof nw.liabilities)[number], goal: GoalMark | null) => (
+    <WealthGoalButton tracks="loan" id={l.id} suggest={{ title: `${l.name} paid off`, amount: 0, dueDate: loanStatus(l, today).last }} goal={goal} currency={currency} accounts={pickableCash.map((x) => ({ id: x.id, name: x.name }))} />
+  );
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
   // Who picker is showing, but the account a contribution actually leaves
@@ -1322,7 +1365,12 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
         const perMonth = loanMonthly + runningCosts(assetCosts.billsFor.get(a.id) ?? []).perMonth;
         const insured = liabilities.some((l) => l.asset_id === a.id && Number(l.balance) > 0 && (loanInsurance(l)?.included || !!loanInsuranceFund(l.name, goals)));
         const gap = !insured && insuranceGap(a.kind, runningCosts(assetCosts.billsFor.get(a.id) ?? []).costs.map((c) => c.name));
-        return <AssetSummaryLine yours={owed > 0 ? a.worth.total - owed : null} perMonth={perMonth} flag={gap ? "No insurance listed" : null} currency={currency} />;
+        return (
+          <>
+            <AssetSummaryLine yours={owed > 0 ? a.worth.total - owed : null} perMonth={perMonth} flag={gap ? "No insurance listed" : null} currency={currency} />
+            {a.kind !== "investment" && goalMark(trackKey("asset", a.id), (goal) => assetGoal(a, goal)).pinned}
+          </>
+        );
       })(),
       detail: (
         <>
@@ -1344,6 +1392,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
             items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth, warranty_until: i.warranty_until, service_every_months: i.service_every_months, last_serviced_on: i.last_serviced_on }))}
           />
           <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
+          {a.kind !== "investment" && goalMark(trackKey("asset", a.id), (goal) => assetGoal(a, goal)).action}
           {/* What it costs to keep (28 October): a repeating cost as a bill
               against it, and a one-off as upkeep through Move money. */}
           {a.kind !== "investment" && <AddRunningCostControl assetId={a.id} assetName={a.name} kind={a.kind} whose={a.is_joint ? "joint" : (a.owner_member_id ?? "me")} currency={currency} today={today} />}
@@ -1377,6 +1426,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
         <>
           <LoanScheduleLine loan={{ ...l, monthly_payment: l.monthly_payment == null ? null : Number(l.monthly_payment), interest_rate: l.interest_rate == null ? null : Number(l.interest_rate) }} today={today} currency={currency} fmtDate={fmtDate} />
           <FlagLine flags={loanFlags(l, today, fmtDate, !!loanInsurance(l) && !loanInsurance(l)!.included && !loanInsuranceFund(l.name, goals) && !(l.asset_id && runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.some((c) => /insurance|\bmri\b/i.test(c.name))))} />
+          {goalMark(trackKey("loan", l.id), (goal) => loanGoal(l, goal)).pinned}
         </>
       ),
       detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} assetInsurance={l.asset_id ? (runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.find((c) => /insurance|\bmri\b/i.test(c.name)) ?? null) : null} />,
@@ -1397,6 +1447,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
           {/* The payment as a monthly bill (26 October): Today, the
               calendar and the reminder, with Settle paying the loan down. */}
           {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
+          {Number(l.balance) > 0 && goalMark(trackKey("loan", l.id), (goal) => loanGoal(l, goal)).action}
           {Number(l.balance) > 0 && Number(l.monthly_payment ?? 0) > 0 && (
             <ExtraPaymentControl
               balance={Number(l.balance)}

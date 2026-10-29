@@ -18,6 +18,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/privacy">Privacy</Link>
         <Link href="/legal/terms">Terms</Link>
         <Link href="/legal/refunds">Refunds</Link>
+        <Link href="/legal/support">Support</Link>
       </nav>
       <div className="kin-legal-back">
         <LegalBack />
@@ -31,6 +32,11 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           </p>
         )}
         {children}
+        {/* The licences' notices, reachable from every legal page rather than
+            crowding the nav (legal/licenses). */}
+        <p className="kin-legal-meta" style={{ marginTop: "2.5rem" }}>
+          <Link href="/legal/licenses">Credits and open-source licences</Link>
+        </p>
       </article>
     </main>
   );

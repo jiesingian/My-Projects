@@ -4,7 +4,7 @@ import { FREE_AI_PER_MONTH } from "@/lib/access";
 import { reportError } from "@/lib/report-error";
 
 /** Takes one Kin AI use -- a question to the assistant or a flyer scan --
- * from the household's month. Kin Plus is unlimited; Kin Free gets
+ * from the household's month. Kin Plus has no monthly limit; Kin Free gets
  * FREE_AI_PER_MONTH (20260928150000_kin_free_and_plus.sql, use_kin_ai()).
  *
  * Counted before the model is called, because the call is what costs money.
@@ -22,7 +22,7 @@ export async function takeKinAiUse(supabase: SupabaseClient<Database>): Promise<
   if (result?.ok === false) {
     return {
       ok: false,
-      error: `Kin Free includes ${FREE_AI_PER_MONTH} Kin AI questions and flyer scans a month, and this month's are used. They come back on the 1st, or Kin Plus makes them unlimited — see Settings → Your plan.`,
+      error: `Kin Free includes ${FREE_AI_PER_MONTH} Kin AI questions and flyer scans a month, and this month's are used. They come back on the 1st, or Kin Plus has no monthly limit — see Settings → Your plan.`,
     };
   }
   // What is left after this one, for "N of 5 left" in Ask Kin; null on Plus.

@@ -13,11 +13,11 @@ import { whoseOptions } from "@/lib/wealth";
 export default async function TransactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; note?: string; amount?: string; account?: string; against?: string }>;
+  searchParams: Promise<{ mode?: string; note?: string; amount?: string; account?: string; against?: string; to?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { mode, note, amount: rawAmount, account: fromAccount, against } = await searchParams;
+  const { mode, note, amount: rawAmount, account: fromAccount, against, to } = await searchParams;
   // From a URL, so parsed rather than trusted: a positive, finite number with
   // at most two decimals, or nothing at all.
   const parsed = Number(rawAmount);
@@ -38,6 +38,7 @@ export default async function TransactPage({
           currency={me.families.currency}
           defaultMode={mode ?? "in"}
           defaultAccountId={fromAccount}
+          defaultToAccountId={to}
           accountNumbers={Object.fromEntries(numbers)}
           assets={targets.assets}
           goals={targets.goals}
