@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LoanAssetPicker } from "@/components/loan-asset-picker";
 import { getWaiting, type WaitingAction, type WaitingEntry, type WaitingTab } from "@/lib/queries/waiting";
 import { getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
 import { getMembers } from "@/lib/queries/family";
@@ -14,14 +13,14 @@ import {
   EditSavingsGoalButton,
   FundPaidControl,
   GoalContributeControl,
+  LoanAssetPicker,
   PayBillControl,
   PendingRows,
   ReceiveIncomeControl,
-  RemindButton,
   RepriceLoanControl,
   SetBalanceButton,
-  WaitingRow,
-} from "@/components/money-actions";
+} from "@/components/waiting-actions";
+import { RemindButton, WaitingRow } from "@/components/waiting-row";
 
 /** "Waiting on you" on any of the pages it belongs on (Jonathan, 29
  * October). The list is built once (lib/queries/waiting.ts); each page shows
