@@ -22,6 +22,10 @@ const PAGES = [
   "/legal/privacy",
   "/legal/terms",
   "/legal/refunds",
+  "/legal/cookies",
+  "/legal/licenses",
+  "/legal/delete-account",
+  "/legal/support",
 ];
 
 for (const path of PAGES) {
