@@ -34,6 +34,14 @@ if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
   build "main with no earlier deployment to compare with."
 fi
 
+# The same commit again is a redeploy somebody asked for by hand, almost
+# always to pick up a new or changed environment variable (SETUP_FOR_JONATHAN.md
+# says "then redeploy" after every secret). Comparing the commit with itself
+# finds nothing, so it was skipped and the new secret never reached the app
+# (29 October, FCM_SERVICE_ACCOUNT_JSON). A push to main is always a new
+# commit, so this never builds one the rules below would skip.
+[ "$(git rev-parse HEAD)" != "$(git rev-parse "$BASE^{commit}")" ] || build "a redeploy of ${BASE:0:7}, asked for by hand (a new environment variable)."
+
 CHANGED=$(git diff --name-only "$BASE" HEAD) || build "can't compare with $BASE."
 APP=$(printf '%s\n' "$CHANGED" | grep '^kin/' | grep -Ev "$APP_SKIP" || true)
 [ -z "$APP" ] || build "app files changed since ${BASE:0:7}: $(printf '%s\n' "$APP" | head -3 | tr '\n' ' ')"
