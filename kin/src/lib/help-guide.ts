@@ -693,14 +693,15 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine.",
+            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it.",
             "how": "Tap SOS in the header. Rehearse once with a grown-up.",
             "pros": [
               "Help is one tap away.",
-              "A check-in is calmer than ten missed calls."
+              "A check-in is calmer than ten missed calls.",
+              "A text reaches a phone with notifications off or no data."
             ],
             "cons": [
-              "Alerts reach a phone only where notifications are allowed."
+              "The alert itself reaches a phone only where notifications are allowed; the text needs the grown-ups' mobile numbers in their profiles."
             ],
             "tips": [
               "rehearse it once with a grown-up."

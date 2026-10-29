@@ -11,7 +11,7 @@ type Phase =
   | { at: "hold" }
   | { at: "countdown"; left: number }
   | { at: "sending" }
-  | { at: "sent"; id: string; notified: number; grownUps: number; located: boolean }
+  | { at: "sent"; id: string; notified: number; grownUps: number; located: boolean; text: string | null }
   | { at: "safe" }
   | { at: "error"; message: string };
 
@@ -30,6 +30,18 @@ type Fix = { lat: number; lng: number; accuracy: number | null };
  * browser's permission prompt (the first time) lands in the countdown rather
  * than interrupting the hold. If the phone refuses or is slow, the alert goes
  * without a position and says so. */
+/** "Text them too" (29 October): the phone's own messages app, addressed to
+ * the household's grown-ups and already holding the words and where you
+ * are. Kin sends nothing; a text simply reaches a phone the notification
+ * could not -- notifications off, no data, Kin not installed. iPhones take
+ * several addresses only in the /open form. */
+function textHref(numbers: string[], words: string): string | null {
+  if (numbers.length === 0 || !words) return null;
+  const body = encodeURIComponent(words);
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  return ios ? `sms:/open?addresses=${numbers.join(",")}&body=${body}` : `sms:${numbers.join(",")}?body=${body}`;
+}
+
 export function SosButton({ householdName }: { householdName: string }) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
@@ -82,7 +94,7 @@ function SosFlow({ titleId, householdName, onClose }: { titleId: string; househo
     if (!fix.current && locating.current) await Promise.race([locating.current, new Promise((r) => setTimeout(r, 2500))]);
     const res = await sendSosAction(fix.current);
     if (res.error || !res.id) setPhase({ at: "error", message: res.error ?? "The alert could not be sent." });
-    else setPhase({ at: "sent", id: res.id, notified: res.notified ?? 0, grownUps: res.grownUps ?? 0, located: !!fix.current });
+    else setPhase({ at: "sent", id: res.id, notified: res.notified ?? 0, grownUps: res.grownUps ?? 0, located: !!fix.current, text: textHref(res.textTo ?? [], res.textBody ?? "") });
   }, []);
 
   const startCountdown = () => {
@@ -231,6 +243,11 @@ function Sent({ phase, titleId, onSafe, onClose }: { phase: Extract<Phase, { at:
       <Link href={`/today/sos/${phase.id}`} className="btn btn-primary btn-block" onClick={onClose}>
         Open the alert and call
       </Link>
+      {phase.text && (
+        <a href={phase.text} className="btn btn-secondary btn-block">
+          Text them too
+        </a>
+      )}
       <button
         type="button"
         className="btn btn-secondary btn-block"

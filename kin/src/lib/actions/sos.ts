@@ -23,7 +23,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  *
  * The push is awaited rather than left to after(): the count of phones it
  * reached is the one thing the sender most needs to be told. */
-export async function sendSosAction(position: { lat: number; lng: number; accuracy: number | null } | null): Promise<ActionState & { id?: string; notified?: number; grownUps?: number }> {
+export async function sendSosAction(position: { lat: number; lng: number; accuracy: number | null } | null): Promise<ActionState & { id?: string; notified?: number; grownUps?: number; textTo?: string[]; textBody?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const where = position ? cleanPosition(position.lat, position.lng, position.accuracy) : null;
@@ -40,10 +40,17 @@ export async function sendSosAction(position: { lat: number; lng: number; accura
     .limit(1)
     .maybeSingle();
 
-  const { data: household } = await supabase.from("members").select("id, role, status").eq("family_id", me.family_id);
-  const grownUps = (household ?? []).filter((m) => m.id !== me.id && m.status === "active" && (m.role === "parent" || m.role === "adult")).map((m) => m.id);
+  const { data: household } = await supabase.from("members").select("id, role, status, mobile").eq("family_id", me.family_id);
+  const others = (household ?? []).filter((m) => m.id !== me.id && m.status === "active" && (m.role === "parent" || m.role === "adult"));
+  const grownUps = others.map((m) => m.id);
+  // Their mobile numbers, for "Text them too": a text reaches a phone that
+  // has notifications off, no data, or no Kin. Only the household's own
+  // grown-ups -- the emergency contacts are a doctor or poison control.
+  const textTo = [...new Set(others.map((m) => (m.mobile ?? "").replace(/[^\d+]/g, "")).filter((n) => n.length >= 7))];
 
-  if (open) return { error: null, id: open.id, notified: open.notified, grownUps: grownUps.length };
+  const textBody = `SOS from ${me.full_name.split(" ")[0]}: I need help.${where ? ` I'm here: https://maps.google.com/?q=${where.lat.toFixed(5)},${where.lng.toFixed(5)}` : ""}`;
+
+  if (open) return { error: null, id: open.id, notified: open.notified, grownUps: grownUps.length, textTo, textBody };
 
   const { data, error } = await supabase
     .from("sos_alerts")
@@ -59,7 +66,7 @@ export async function sendSosAction(position: { lat: number; lng: number; accura
   if (notified > 0) await supabase.rpc("sos_record_notified", { p_id: data.id, p_count: notified });
 
   revalidatePath("/today");
-  return { error: null, id: data.id, notified, grownUps: grownUps.length };
+  return { error: null, id: data.id, notified, grownUps: grownUps.length, textTo, textBody };
 }
 
 /** "I'm safe" from the sender ends the alert; "I'm on it" from a grown-up
