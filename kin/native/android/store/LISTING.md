@@ -65,9 +65,14 @@ Kin Free covers the family's day for good. Kin Plus adds Wealth, the vault, medi
 **Feature graphic**: `store/feature-graphic.png` (1024 × 500, no
 transparency).
 
-**Phone screenshots**: `store/screenshots/*.png`, made by
-`store/screenshots.mjs` from the QA household (2 to 8; upload in file-name
-order). No tablet screenshots: Kin is listed for phones.
+**Phone screenshots**: `store/screenshots/01-today.png` to `04-wealth.png`
+(1080 × 2160), made by `store/screenshots.mjs` from the QA household on 29
+October. Upload them in file-name order; Google takes 2 to 8. No tablet
+screenshots: Kin is listed for phones.
+
+Shots of calls and alarms would sell the app better. They have to be
+taken on a real phone: from the review household (below), or your own with
+nothing private on screen.
 
 ## Store settings (Grow users → Store presence → Store settings)
 

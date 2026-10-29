@@ -41,15 +41,14 @@ if ((process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").includes(PRODUCTION_REF) || /ki
 }
 
 // The order is the listing's order: the first two or three are what most
-// people see.
+// people see. Not Chat or Family: the QA household's members and chats are
+// named for testing ("Tester family", "E2E live chat"). Not Settings ->
+// Alarms: outside the app it shows the browser's words.
 const SHOTS = [
   ["01-today", "/today"],
   ["02-planner", "/planner"],
   ["03-household", "/household"],
-  ["04-chat", "/chat"],
-  ["05-family", "/family"],
-  ["06-alarms", "/settings/notifications/alarms"],
-  ["07-wealth", "/wealth"],
+  ["04-wealth", "/wealth"],
 ];
 
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
