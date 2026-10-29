@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { generateKeyPairSync, verify } from "node:crypto";
-import { apnsRequest, nativeDevice, nativeEndpoint, providerToken, tokenGone, NATIVE_KEY } from "@/lib/apns";
+import { ALARM_WAKE_TTL_S, apnsConfigured, apnsRequest, apnsWakeRequest, nativeDevice, nativeEndpoint, providerToken, tokenGone, NATIVE_KEY } from "@/lib/apns";
 
 /** Apple's push for the Kin iPhone app (29 October): which of the app's two
  * tokens a push goes to, what Apple is sent, and the provider token. */
@@ -61,6 +61,40 @@ test("an ordinary push is a plain alert, kept as long as Web Push keeps it", () 
   expect(r.priority).toBe(5);
   expect(r.expiration).toBe(nowS + 600);
   expect(r.collapseId).toBe("buy");
+});
+
+test("the alarm wake is a silent background push, on the alert token only", () => {
+  const r = apnsWakeRequest({ channel: "alert" }, now)!;
+  expect(r.pushType).toBe("background");
+  expect(r.topic).toBe("com.jiesingian.kin");
+  // Apple drops a background push sent at priority 10.
+  expect(r.priority).toBe(5);
+  expect(r.expiration).toBe(nowS + ALARM_WAKE_TTL_S);
+  const b = JSON.parse(r.body);
+  // Nothing on screen, no sound: only content-available, and what to do.
+  expect(b).toEqual({ aps: { "content-available": 1 }, sync: "alarms" });
+  // The VoIP token must only ever ring.
+  expect(apnsWakeRequest({ channel: "voip" }, now)).toBeNull();
+});
+
+test("the wake is off until all three APNS_* keys exist", () => {
+  const keep = { id: process.env.APNS_KEY_ID, team: process.env.APNS_TEAM_ID, key: process.env.APNS_PRIVATE_KEY };
+  try {
+    delete process.env.APNS_KEY_ID;
+    delete process.env.APNS_TEAM_ID;
+    delete process.env.APNS_PRIVATE_KEY;
+    expect(apnsConfigured()).toBe(false);
+    process.env.APNS_KEY_ID = "ABC123DEFG";
+    process.env.APNS_TEAM_ID = "TEAM123456";
+    expect(apnsConfigured()).toBe(false);
+    process.env.APNS_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----";
+    expect(apnsConfigured()).toBe(true);
+  } finally {
+    for (const [k, v] of [["APNS_KEY_ID", keep.id], ["APNS_TEAM_ID", keep.team], ["APNS_PRIVATE_KEY", keep.key]] as const) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
 });
 
 test("Apple's 'gone' answers forget the token; others don't", () => {

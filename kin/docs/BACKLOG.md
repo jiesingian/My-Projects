@@ -39,7 +39,18 @@ Built without the account, as a series in one session:
      (`APNS_CRITICAL=1`).
    - `testflight.yml` signs with Xcode's cloud-managed signing and
      uploads, started by hand.
-4. **Jonathan's part:** SETUP section 9, enrol, three keys and the
+4. **Alarms that never run out** (29 October). The five-minute reminder job
+   sends each of the app's phones a silent push (`apns-push-type:
+   background`, `content-available: 1`, `lib/apns.ts` `apnsWakeRequest`)
+   once a day from 03:00, and within five minutes of a medicine, or a picked
+   plan, check-up or bill, changing (`due_alarm_wakes` and its
+   `alarm_wake_queue`, 20261029200000: a trigger marks the household, one
+   wake per tick however many edits). The app (`KinAlarmSync`) asks
+   `api/alarms` with the web view's own session cookies from
+   `WKWebsiteDataStore`, writes back any refreshed ones, and sets the list
+   again; with Kin on screen it tells the page to sync instead. Off until the
+   APNS_* keys exist. The two-week list stays the fallback if a push is lost.
+5. **Jonathan's part:** SETUP section 9, enrol, three keys and the
    TestFlight run. Then the phone checks under "Needs a real phone".
 
 **Not known until a real iPhone:**
@@ -47,8 +58,9 @@ Built without the account, as a series in one session:
   inside the web view then takes the audio. If the two disagree over the
   audio session, the fix is native audio handling in the shell.
 - AlarmKit has no published limit on alarms per app; Kin sets at most 60.
-- A phone where Kin isn't opened for two weeks runs out of alarms. The cure
-  is a silent push that wakes the app to re-sync, once APNs is on.
+- How often Apple lets the silent re-sync push through (below). Apple says
+  it may hold back background pushes on a phone low on battery, and sends
+  none to an app swiped away in the app switcher until it is opened again.
 
 ## Decided 28 October: Kin speaks English only (Jonathan)
 
