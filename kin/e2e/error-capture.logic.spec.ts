@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { describeThrown, errorReport, hash16, isOwnScriptError, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
+import { describeThrown, errorReport, hash16, isOwnScriptError, isReaderGone, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
 
 /** Error capture (21 October): what is kept of an error, and how repeats
  * group. No network, no database. The database scrubs the same way again
@@ -62,4 +62,15 @@ test("only Kin's own scripts are reported from window.onerror, not an in-app bro
   expect(isOwnScriptError("chrome-extension://abc/content.js", "", origin)).toBe(false);
   expect(isOwnScriptError("https://connect.facebook.net/en_US/iab.js", "", origin)).toBe(false);
   expect(isOwnScriptError("", "", origin)).toBe(false);
+});
+
+test("a reader leaving mid-page is not recorded as a server error, and nothing else is let off", () => {
+  // 28 October: 100 of these on dev's /today, all from end-to-end runs moving on.
+  expect(isReaderGone("The destination stream errored while writing data.")).toBe(true);
+  expect(isReaderGone("Error: The destination stream errored while writing data.")).toBe(true);
+  expect(isReaderGone("The destination stream closed early.")).toBe(true);
+  expect(isReaderGone("TypeError: Cannot read properties of undefined (reading 'title')")).toBe(false);
+  expect(isReaderGone("The destination stream errored while writing data. Also: the query failed")).toBe(false);
+  expect(isReaderGone("")).toBe(false);
+  expect(isReaderGone(undefined)).toBe(false);
 });

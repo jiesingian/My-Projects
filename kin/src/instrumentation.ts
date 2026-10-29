@@ -61,5 +61,7 @@ export const onRequestError: Instrumentation.onRequestError = async (err, _reque
   // React replaces a server component's message in production; the digest
   // is then the only thing that tells one error from another.
   const message = thrown.message || (digest ? `digest ${digest}` : "(no message)");
+  const { isReaderGone } = await import("@/lib/error-capture");
+  if (isReaderGone(message)) return;
   await recordError("server", `${context.routeType} ${context.routePath}`, `${thrown.name}: ${message}`, thrown.stack ?? digest);
 };
