@@ -62,7 +62,31 @@ Built without the account, as a series in one session:
    by itself; signed out, it is emptied. A tap opens `kin://open?path=...`,
    the live page. Signed by `testflight.yml`'s automatic signing, which
    registers the extension and the group (SETUP section 9, step 3).
-6. **Jonathan's part:** SETUP section 9, enrol, three keys and the
+6. **The Android app, built not published** (29 October). `npx cap add
+   android` in `kin/native`; `android.yml` builds a debug APK on every change
+   under `kin/native`, kept a week as the run's artifact, and is in
+   `automerge.yml`'s list.
+   - **Alarms:** the same `api/alarms` list, handed to `KinAlarmsPlugin`
+     (same three methods as the iPhone's). Each is an exact alarm
+     (`setAlarmClock`, `USE_EXACT_ALARM`); when it fires, a notification
+     with a full-screen intent opens `KinAlarmActivity` over the lock screen,
+     ringing on the alarm stream until Stop or Open, a minute at most. The
+     list is kept on the phone and set again after a restart.
+   - **Calls ring full screen** through FCM, not ConnectionService: a
+     data message becomes Android's own incoming-call notification
+     (`CallStyle`, full-screen intent), with Answer
+     (`/chat?answer=<id>`) and Decline (`api/calls/decline`, with the web
+     view's cookies). ConnectionService would need a calling-account set-up
+     and still needs a push to wake the app; FCM alone does both.
+   - FCM carries every notification, as an Android web view has no Web
+     Push (`lib/fcm.ts`, `deliver()`). Token kept as
+     `https://fcm.googleapis.com/kin-android/<token>`, p256dh `kin-native`,
+     auth `fcm`. Off until the free Firebase project exists (SETUP section
+     10: `GOOGLE_SERVICES_JSON` for the build, `FCM_*` in Vercel).
+   - Not done for Android: the widgets and the silent daily re-sync
+     (`due_alarm_wakes` sends Apple's tokens only), so an Android phone keeps
+     its two weeks from the last open.
+7. **Jonathan's part:** SETUP section 9, enrol, three keys and the
    TestFlight run. Then the phone checks under "Needs a real phone".
 
 **Not known until a real iPhone:**
@@ -1988,7 +2012,10 @@ work, last.
     (approved 30 September; was "Native app stage").
 - **An Android app (Google Play Console, US$25 once)**, same idea: a
   full-screen alarm notification for doses and a full-screen incoming call.
-  Lower priority while every saved device is an iPhone.
+  Lower priority while every saved device is an iPhone. **Built, not
+  published (29 October):** `kin/native/android`, an APK on every change
+  (`android.yml`); only the Play listing costs money. Its push needs the
+  free Firebase project first (SETUP section 10).
 - **No free stopgap:** the "Kin Alarms" Shortcut screen was deleted on 28
   October, as the App Store app is coming soon. Until then, the in-app alarm
   at /today/dose and the 5- and 10-minute repeats.

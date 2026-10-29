@@ -1,11 +1,12 @@
 {
   "name": "kin-native",
   "private": true,
-  "description": "Kin's iPhone app: a native shell around the web app, for what only an installed app can do (real alarms, ringing calls, SOS through silent). See README.md.",
+  "description": "Kin's iPhone and Android apps: a native shell around the web app, for what only an installed app can do (real alarms, ringing calls, SOS through silent). See README.md.",
   "scripts": {
-    "sync": "cap sync ios"
+    "sync": "cap sync"
   },
   "dependencies": {
+    "@capacitor/android": "8.6.0",
     "@capacitor/core": "8.6.0",
     "@capacitor/ios": "8.6.0"
   },

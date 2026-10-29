@@ -56,13 +56,19 @@ function Permission({ status, onChange }: { status: AlarmStatus; onChange: (s: A
   if (status.authorization === "authorized")
     return (
       <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-neutral-600)" }}>
-        {status.engine === "alarmkit" ? `Alarms are on. ${status.scheduled} set on this iPhone.` : `This iPhone is older than iOS 26, so these come as urgent notifications. ${status.scheduled} set.`}
+        {status.engine === "alarmkit"
+          ? `Alarms are on. ${status.scheduled} set on this iPhone.`
+          : status.engine === "android"
+            ? `Alarms are on. ${status.scheduled} set on this phone.`
+            : `This iPhone is older than iOS 26, so these come as urgent notifications. ${status.scheduled} set.`}
       </p>
     );
   if (status.authorization === "denied")
     return (
       <p role="alert" style={{ margin: 0, fontWeight: 600 }}>
-        Alarms are turned off for Kin. Turn them on in the iPhone&rsquo;s Settings → Apps → Kin.
+        {status.engine === "android"
+          ? "Alarms are turned off for Kin. Turn on its notifications, and Alarms & reminders, in the phone\u2019s Settings → Apps → Kin."
+          : "Alarms are turned off for Kin. Turn them on in the iPhone\u2019s Settings → Apps → Kin."}
       </p>
     );
   return (

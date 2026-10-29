@@ -1,4 +1,4 @@
-# Kin for iPhone (native shell)
+# Kin for iPhone and Android (native shell)
 
 Jonathan, 29 October: every Kin feature that needs an alarm must work
 permanently, on silent too, which a web app on an iPhone cannot do. Kin is
@@ -53,6 +53,21 @@ therefore wrapped as an installed app. The decisions:
   the widgets. Critical Alerts are added
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
+
+## Android (built, not published)
+
+`android/` is the same shell for Android, made by `npx cap add android` and
+committed (Java, package `com.jiesingian.kin`). `.github/workflows/android.yml`
+builds a debug APK on every change here and keeps it as the run's artifact.
+- `KinAlarms.java`, `KinAlarmsPlugin.java`, `KinAlarmReceiver.java`,
+  `KinAlarmActivity.java`: exact alarms that open full screen over the lock
+  screen and ring on the alarm stream; set again after a restart.
+- `KinMessagingService.java`, `KinPushPlugin.java`,
+  `KinCallDeclineReceiver.java`: push through Firebase (`lib/fcm.ts`), a call
+  as Android's full-screen incoming-call notification. Off until Kin has a
+  Firebase project (`kin/docs/SETUP_FOR_JONATHAN.md`, section 10).
+- `MainActivity.java`: registers the plugins, and opens a page an alarm,
+  notification or answered call asks for.
 
 ## Working on it
 
