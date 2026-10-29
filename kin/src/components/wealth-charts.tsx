@@ -671,6 +671,9 @@ export type BreakdownItem = {
   /** Under the line, before its actions (A&L: a goal's progress, an
    * asset's make-up, a loan's standing). The donut leaves it out. */
   detail?: React.ReactNode;
+  /** Shown even where `detail` folds away with the actions (A&L, 29
+   * October): the one line that says how the thing stands. */
+  pinned?: React.ReactNode;
   actions?: React.ReactNode;
   /** Open this line's owner and category on arrival -- a deep link to it
    * (Today's Pay lands on a bill) when the groups otherwise start folded. */

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAccountDetail } from "@/lib/queries/wealth";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import { loanPaymentSplit, loanKindFor, loanStatus, WEEKLY_REMIND_MAX, ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, parseWhose, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel, isTransferWords } from "@/lib/wealth";
@@ -723,6 +724,41 @@ export async function recordMovementAction(input: {
 
   revalidateWealth();
   return { error: null, transactionId: entry.id, appUrl: input.viaApp ? account.linked_app_url : null };
+}
+
+/** "Match the bank" (29 October). With no bank sync, an account's balance
+ * is only what was logged, and one missed fee or forgotten cash meal leaves
+ * it wrong for good. Here a person types what the bank or e-wallet app
+ * shows, and Kin records the difference as one confirmed entry today,
+ * "Matched to the bank's balance", so the balance is right from now on and
+ * the history says when and by how much it was put right. It is filed as a
+ * transfer, which every income and spending figure already leaves out: a
+ * correction is neither. A credit card's figure is what is owed, so it is
+ * entered as a positive amount and kept as the negative balance Kin uses. */
+export async function matchBankBalanceAction(input: { accountId: string; bankBalance: number; clientId?: string }): Promise<{ error: string | null; moved?: number }> {
+  const me = await requireCurrentMember();
+  if (!Number.isFinite(input.bankBalance)) return { error: "Enter the balance the bank shows." };
+  const { account } = await getAccountDetail(me.family_id, input.accountId);
+  if (!account || account.is_archived) return { error: "That account is no longer there." };
+  const target = account.account_type === "credit" ? -Math.abs(input.bankBalance) : input.bankBalance;
+  const diff = Math.round((target - account.balance) * 100) / 100;
+  if (diff === 0) return { error: null, moved: 0 };
+
+  const supabase = await createClient();
+  const clientId = input.clientId && UUID.test(input.clientId) ? input.clientId : undefined;
+  const { error } = await insertEntry(supabase, me.family_id, me.id, {
+    id: clientId,
+    accountId: account.id,
+    direction: diff > 0 ? "in" : "out",
+    amount: Math.abs(diff),
+    particulars: "Matched to the bank's balance",
+    category: TRANSFER_CATEGORY,
+    status: "confirmed",
+  });
+  if (error && clientId && error.code === "23505") return { error: null, moved: diff };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+  revalidateWealth();
+  return { error: null, moved: diff };
 }
 
 /** Moves money between two of the household's own accounts as a matched pair

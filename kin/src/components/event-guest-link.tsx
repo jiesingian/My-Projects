@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "@/components/toast";
 import { Icon } from "@/components/icons";
 import { createEventGuestLinkAction, removeEventGuestAction, revokeEventGuestLinkAction, setEventGuestLinkDrawAction } from "@/lib/actions/event-guests";
-import { guestHeadsLabel, guestInviteMessage, guestLabel, guestsLine, type GuestRow } from "@/lib/event-guests";
+import { guestHeadsLabel, guestInviteMessage, guestLabel, guestsLine, likelySameGuests, type GuestRow } from "@/lib/event-guests";
 
 /** The guest link on an event's own screen (20261020231000): a grown-up of
  * the host household makes it, shares it, points it at one of the
@@ -77,6 +77,7 @@ export function EventGuestLink({
     }
   };
   const small: React.CSSProperties = { fontSize: "0.8125rem", color: "var(--color-neutral-600)" };
+  const twins = likelySameGuests(guests);
   const btn: React.CSSProperties = { minHeight: "2.25rem", fontSize: "0.84375rem" };
 
   return (
@@ -157,11 +158,17 @@ export function EventGuestLink({
       )}
       {guests.length > 0 && (
         <ul style={{ listStyle: "none", margin: "0.375rem 0 0", padding: 0 }}>
+          {/* A relative who answered twice under two spellings (29 October). */}
           {guests.map((g) => (
             <li key={g.id} className="kin-potluck-row">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: "0.9375rem", fontWeight: 500 }}>{guestHeadsLabel(guestLabel(g.name), g.answer && g.answer !== "no" ? g.headcount : 1)}</div>
                 <div style={small}>{g.answer === "going" ? "Going" : g.answer === "maybe" ? "Maybe" : g.answer === "no" ? "Can't go" : "Hasn't said yet"}</div>
+                {twins.has(g.id) && (
+                  <div style={{ ...small, color: "var(--cal-money-ink)" }}>
+                    Same person as {twins.get(g.id)}?{canChange ? " Take one off with ×." : ""}
+                  </div>
+                )}
               </div>
               {canChange && (
                 <button type="button" className="kin-potluck-remove" aria-label={`Take ${g.name} off`} disabled={pending} onClick={() => run(() => removeEventGuestAction(g.id))}>

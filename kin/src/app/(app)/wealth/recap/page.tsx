@@ -193,6 +193,10 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
           </>
         )}
 
+        {/* The whole year (29 October). */}
+        <Link href={`/wealth/year?year=${month.slice(0, 4)}`} style={{ display: "block", marginTop: "1rem", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
+          The whole of {month.slice(0, 4)} ›
+        </Link>
         <p style={{ ...sub, marginTop: "1.25rem" }}>
           Worked out from what is recorded on Wealth, by simple rules. Only the accounts you can see count{me.wealth_include_private === false ? ", and your own private accounts are left out, as you chose for All" : ""}. Transfers between accounts are not spending; money put into a goal is savings.
         </p>

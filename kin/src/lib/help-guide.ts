@@ -693,14 +693,15 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine.",
+            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it.",
             "how": "Tap SOS in the header. Rehearse once with a grown-up.",
             "pros": [
               "Help is one tap away.",
-              "A check-in is calmer than ten missed calls."
+              "A check-in is calmer than ten missed calls.",
+              "A text reaches a phone with notifications off or no data."
             ],
             "cons": [
-              "Alerts reach a phone only where notifications are allowed."
+              "The alert itself reaches a phone only where notifications are allowed; the text needs the grown-ups' mobile numbers in their profiles."
             ],
             "tips": [
               "rehearse it once with a grown-up."
@@ -961,10 +962,10 @@ export const HELP_GUIDE: HelpTab[] = [
             "pros": [
               "Plans, headcount and the potluck in one place."
             ],
-            "cons": [
-              "Guests by link type their own names, so check for doubles."
-            ],
-            "tips": []
+            "cons": [],
+            "tips": [
+              "a guest who answered twice under two spellings is marked \"Same person as …?\"; take one off with ×."
+            ]
           },
           {
             "name": "Christmas gifts and cash gifts",
@@ -1285,7 +1286,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "plus"
             ],
-            "what": "Every bank, e-wallet, cash and credit card account, listed by whose then by type, with a combined total, a chart by owner, the cash trend and recent activity. \"Waiting on you\" is one row per transfer still pending, with Went through or Discard; Went through lets you correct the amount, day or account first. An account can hold its QR code, shown full-screen for someone to scan and pay in. A credit card takes its due day and minimum payment, and Today reminds you. Private (Only-you) accounts are marked and can be left out of the totals.",
+            "what": "Every bank, e-wallet, cash and credit card account, listed by whose then by type, with a combined total, a chart by owner, the cash trend and recent activity. \"Waiting on you\" is one row per transfer still pending, with Went through or Discard; Went through lets you correct the amount, day or account first. An account can hold its QR code, shown full-screen for someone to scan and pay in. A credit card takes its due day and minimum payment, and Today reminds you. Private (Only-you) accounts are marked and can be left out of the totals. \"Match the bank\" (\"Count the cash\" on a cash account) takes the figure the bank app shows and records the difference, so Kin's balance agrees again.",
             "how": "Wealth → Accounts. Add each account once with its balance.",
             "pros": [
               "All the money in one view.",
@@ -1293,10 +1294,11 @@ export const HELP_GUIDE: HelpTab[] = [
               "Card due days are reminded like any bill."
             ],
             "cons": [
-              "No bank sync: balances move with what is logged in Kin."
+              "No bank sync: balances move with what is logged in Kin, until you match them to the bank."
             ],
             "tips": [
-              "for e-wallets, use the pending step and confirm it under Waiting on you."
+              "for e-wallets, use the pending step and confirm it under Waiting on you.",
+              "match each account to its bank app once a month; the correction isn't counted as income or spending."
             ]
           },
           {

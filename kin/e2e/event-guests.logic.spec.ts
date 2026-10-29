@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  likelySameGuests,
   GUEST_NAME_MAX,
   cleanGuestName,
   groupGuests,
@@ -100,4 +101,16 @@ test("a guest's own state is recognised, and anything else is not", () => {
   expect(isGuestState({ name: "Tita Baby", answer: "going", headcount: 4, claims: {}, dishes: 0, in_draw: false, pick: null })).toBe(true);
   expect(isGuestState(null)).toBe(false);
   expect(isGuestState({ name: "x" })).toBe(false);
+});
+
+test("likelySameGuests flags a relative who answered twice, and leaves different people alone", () => {
+  const g = (id: string, name: string) => ({ id, name });
+  const same = likelySameGuests([g("1", "Tita Bing"), g("2", "Bing Santos"), g("3", "Marites"), g("4", "Maritess"), g("5", "Ana Cruz"), g("6", "Ana Reyes"), g("7", "ana")]);
+  expect(same.get("2")).toBe("Tita Bing");
+  expect(same.get("4")).toBe("Marites");
+  expect(same.has("5")).toBe(false);
+  expect(same.has("6")).toBe(false);
+  expect(same.get("7")).toBe("Ana Cruz");
+  expect(same.has("1")).toBe(false);
+  expect(likelySameGuests([g("a", "Joy"), g("b", "Jay")]).size).toBe(0);
 });

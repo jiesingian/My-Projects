@@ -1531,3 +1531,31 @@ export function insuranceGap(kind: string, costNames: string[]): string | null {
     ? "No insurance listed. LTO registration needs at least CTPL each year."
     : "No insurance listed. Fire insurance covers the house itself; add it if you have a policy.";
 }
+
+/* --------------------------------------------- which debt to pay first */
+
+/** A card's interest where none is recorded: the BSP's ceiling on unpaid
+ * card balances, 3% a month (Circular 1165, January 2023), which issuers
+ * mostly charge in full. */
+export const CARD_RATE_CEILING = 36;
+
+/** Where an extra peso does the most good (29 October): the debt with the
+ * highest rate, since every peso off it stops the dearest interest -- the
+ * "avalanche" order. A card with no rate is taken at the ceiling (`assumed`).
+ * Nothing to say with fewer than two debts, or none with a rate. */
+export function payFirst(debts: { name: string; balance: number; ratePct: number | null; card?: boolean }[]): { name: string; rate: number; assumed: boolean; next: { name: string; rate: number } | null } | null {
+  const rated = debts
+    .filter((d) => d.balance > 0)
+    .map((d) => ({ name: d.name, rate: d.ratePct != null && d.ratePct > 0 ? d.ratePct : d.card ? CARD_RATE_CEILING : null, assumed: (d.ratePct == null || !(d.ratePct > 0)) && !!d.card }))
+    .filter((d): d is { name: string; rate: number; assumed: boolean } => d.rate != null)
+    .sort((a, b) => b.rate - a.rate);
+  if (rated.length < 2) return null;
+  return { ...rated[0], next: { name: rated[1].name, rate: rated[1].rate } };
+}
+
+/** Whether a newer MP2 rate has likely been declared by `day` (29
+ * October): Pag-IBIG declares a year's dividend by about March of the next,
+ * so after March of the year after next, MP2_RECENT_RATE is a year old. */
+export function mp2RateStale(day: string): boolean {
+  return day.slice(0, 10) >= `${MP2_RATE_YEAR + 2}-04-01`;
+}

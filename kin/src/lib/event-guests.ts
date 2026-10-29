@@ -114,3 +114,49 @@ export type GuestState = {
 export function isGuestState(v: unknown): v is GuestState {
   return !!v && typeof v === "object" && typeof (v as GuestState).name === "string" && typeof (v as GuestState).headcount === "number";
 }
+
+/** What is left of a name for telling two guests apart: lower case, no
+ * punctuation, and no title in front -- "Tita Bing" and "bing" are one
+ * person to whoever typed them. */
+const GUEST_TITLES = new Set(["tita", "tito", "ate", "kuya", "lola", "lolo", "ninang", "ninong", "auntie", "aunt", "uncle", "mr", "mrs", "ms", "dr"]);
+function nameWords(name: string): string[] {
+  const words = guestNameKey(name)
+    .replace(/[^\p{L}\p{N} ]+/gu, " ")
+    .split(" ")
+    .filter(Boolean);
+  const bare = words.filter((w) => !GUEST_TITLES.has(w));
+  return bare.length ? bare : words;
+}
+
+function oneEditApart(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+
+/** Guests by link type their own names, so one relative can arrive twice:
+ * "Tita Bing" and "Bing Santos", "Marites" and "Maritess" (29 October). For
+ * each guest that looks like one listed before them, the earlier name -- so
+ * the household can take one off. A match needs every word of the shorter
+ * name in the longer one: "Ana" and "Ana Cruz" match, "Ana Cruz" and "Ana
+ * Reyes" do not. */
+export function likelySameGuests(guests: { id: string; name: string }[]): Map<string, string> {
+  const out = new Map<string, string>();
+  const seen: { name: string; words: string[] }[] = [];
+  for (const g of guests) {
+    const words = nameWords(g.name);
+    const twin = seen.find((s) => {
+      const [short, long] = s.words.length <= words.length ? [s.words, words] : [words, s.words];
+      if (short.length === 0) return false;
+      // Every word of the shorter name in the longer one, allowing a slip of
+      // one letter in words of four or more.
+      return short.every((w) => long.some((l) => l === w || (w.length >= 4 && l.length >= 4 && oneEditApart(w, l))));
+    });
+    if (twin) out.set(g.id, twin.name);
+    seen.push({ name: g.name, words });
+  }
+  return out;
+}
