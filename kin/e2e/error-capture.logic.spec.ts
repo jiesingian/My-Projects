@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { describeThrown, errorReport, hash16, isOwnScriptError, isReaderGone, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
+import { describeThrown, errorReport, hash16, isOwnScriptError, isReaderGone, isStaleBuild, scrubMessage, scrubRoute, stackFrames } from "@/lib/error-capture";
 
 /** Error capture (21 October): what is kept of an error, and how repeats
  * group. No network, no database. The database scrubs the same way again
@@ -73,4 +73,17 @@ test("a reader leaving mid-page is not recorded as a server error, and nothing e
   expect(isReaderGone("The destination stream errored while writing data. Also: the query failed")).toBe(false);
   expect(isReaderGone("")).toBe(false);
   expect(isReaderGone(undefined)).toBe(false);
+});
+
+test("a page from an earlier build asking for a removed file is told apart, in each browser's words", () => {
+  // As dev recorded it on /wealth, 26 October.
+  expect(isStaleBuild("ChunkLoadError: Failed to load chunk /_next/static/chunks/0-9osohsayip3.js from module [n]")).toBe(true);
+  expect(isStaleBuild("Loading chunk 482 failed.")).toBe(true);
+  expect(isStaleBuild("TypeError: Failed to fetch dynamically imported module: https://kin.app/_next/static/chunks/a.js")).toBe(true);
+  expect(isStaleBuild("TypeError: Importing a module script failed.")).toBe(true);
+  expect(isStaleBuild("TypeError: error loading dynamically imported module")).toBe(true);
+  // Anything else is a real error, and is reported.
+  expect(isStaleBuild("TypeError: Load failed")).toBe(false);
+  expect(isStaleBuild("Minified React error #418")).toBe(false);
+  expect(isStaleBuild(undefined)).toBe(false);
 });
