@@ -111,7 +111,7 @@ const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
 /** What a 🎯 needs of its goal (29 October). */
 function markOf(t: TrackedGoal | undefined): GoalMark | null {
-  return t ? { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday } : null;
+  return t ? { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday, paydayKnown: t.paydayKnown } : null;
 }
 
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
@@ -829,7 +829,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
               goal={(() => {
                 // 🎯 on a category with a budget, or one already a goal.
                 const t = tracked.get(trackKey("expense", categoryLabel(c.category), p.memberId)) ?? tracked.get(trackKey("expense", c.category, p.memberId));
-                return t || (canEdit && c.amount > 0) ? <WealthGoalButton tracks="expense" category={c.category} whose={whoseKey} suggest={{ title: `${categoryLabel(c.category)} under ${formatCurrency(c.amount, currency)}`, amount: c.amount }} goal={markOf(t)} currency={currency} /> : null;
+                return t || (canEdit && c.amount > 0) ? <WealthGoalButton tracks="expense" category={c.category} whose={whoseKey} suggest={{ title: `${categoryLabel(c.category)} limit`, amount: c.amount }} goal={markOf(t)} currency={currency} /> : null;
               })()}
             >
               <CategoryLines lines={linesFor(p.memberId, c.category)} currency={currency} />
@@ -1135,7 +1135,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{who.ownerOf(a.owner_member_id, false)}</span>
                     )}
                     {a.account_type !== "credit_card" && (
-                      <WealthGoalButton tracks="account" id={a.id} suggest={{ title: `${a.name} to ${formatCurrency(Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000), currency)}`, amount: Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000) }} goal={markOf(tracked.get(trackKey("account", a.id)))} currency={currency} />
+                      <WealthGoalButton tracks="account" id={a.id} suggest={{ title: `${a.name} savings goal`, amount: Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000) }} goal={markOf(tracked.get(trackKey("account", a.id)))} currency={currency} />
                     )}
                     <AccountPrivacyToggle
                       accountId={a.id}

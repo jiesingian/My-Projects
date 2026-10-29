@@ -28,6 +28,7 @@ export type GoalMark = {
   perMonth?: number | null;
   autoSave?: { amount: number; accountId: string | null; next: string | null } | null;
   payday?: string | null;
+  paydayKnown?: boolean;
 };
 
 const WORDS: Record<Tracks, { what: string; amount: string; hint: string; dateLabel: string }> = {
@@ -270,7 +271,7 @@ function AutoSave({ goal, tracks, accounts, currency }: { goal: GoalMark; tracks
       ) : (
         <>
           <p style={{ fontSize: "0.78125rem", margin: 0, color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
-            {formatCurrency(goal.perMonth ?? amount, currency)} a month {what}, as a monthly bill on Today{goal.payday ? ", starting payday" : ""}. Pay puts it in.
+            {formatCurrency(goal.perMonth ?? amount, currency)} a month {what}, as a monthly bill on Today{goal.paydayKnown ? ", starting payday" : ""}. Pay puts it in.
           </p>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <div className="field" style={{ flex: 1, margin: 0 }}>
