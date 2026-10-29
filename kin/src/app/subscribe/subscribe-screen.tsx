@@ -14,12 +14,12 @@ import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 
 const initialState: ActionState = { error: null };
 
-function standing(status: AccessStatus, plan: Plan, trialing: boolean, daysLeft: number | null): string {
+function standing(status: AccessStatus, plan: Plan, trialing: boolean, daysLeft: number | null, iosApp: boolean): string {
   if (status === "comped") return "Your household has Kin Plus for free, for good.";
   if (trialing) return daysLeft === 1 ? "Your Kin Plus trial ends today." : `Kin Plus trial: ${daysLeft} days left. After that you move to Kin Free, and nothing you've added is lost.`;
-  if (status === "past_due") return "The last payment didn't go through. Plus still works — update the payment to keep it that way.";
+  if (status === "past_due") return iosApp ? "The last payment didn't go through. Plus still works for now." : "The last payment didn't go through. Plus still works — update the payment to keep it that way.";
   if (plan === "plus") return daysLeft === null ? "Your household is on Kin Plus." : `Kin Plus renews in ${daysLeft} days.`;
-  return "Your household is on Kin Free. Everything you've added is still here, and Plus areas open again the moment you upgrade.";
+  return iosApp ? "Your household is on Kin Free. Everything you've added is still here." : "Your household is on Kin Free. Everything you've added is still here, and Plus areas open again the moment you upgrade.";
 }
 
 export function SubscribeScreen({
@@ -29,6 +29,7 @@ export function SubscribeScreen({
   plan,
   trialing,
   daysLeft,
+  iosApp,
 }: {
   householdName: string;
   isOrganiser: boolean;
@@ -36,6 +37,8 @@ export function SubscribeScreen({
   plan: Plan;
   trialing: boolean;
   daysLeft: number | null;
+  /** Inside the Kin iPhone app: no prices, no Kin code (lib/ios-app.ts). */
+  iosApp: boolean;
 }) {
   const [state, formAction] = useActionState(redeemCodeForHouseholdAction, initialState);
   const uid = useId();
@@ -45,7 +48,7 @@ export function SubscribeScreen({
       <Wordmark />
       <h2 style={{ fontSize: "1.875rem", margin: "24px 0 6px" }}>Your plan</h2>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 20px" }}>
-        {householdName}: {standing(status, plan, trialing, daysLeft)}
+        {householdName}: {standing(status, plan, trialing, daysLeft, iosApp)}
       </p>
 
       <div className="kin-plans">
@@ -53,7 +56,7 @@ export function SubscribeScreen({
           <h3 id={`${uid}-free`}>
             Kin Free {plan === "free" && <span className="tag tag-accent">CURRENT</span>}
           </h3>
-          <p className="kin-plan-price">₱0, for good</p>
+          <p className="kin-plan-price">{iosApp ? "Free, for good" : "₱0, for good"}</p>
           <ul>
             {FREE_FEATURES.map((f) => (
               <li key={f}>
@@ -67,9 +70,13 @@ export function SubscribeScreen({
           <h3 id={`${uid}-plus`}>
             Kin Plus {plan === "plus" && <span className="tag tag-accent">{trialing ? "TRIAL" : "CURRENT"}</span>}
           </h3>
-          <p className="kin-plan-price">
-            {pesos(PLANS.monthly.amountCents)} a month, or {pesos(PLANS.annual.amountCents)} a year ({perMonth(PLANS.annual)}/mo). One price for the whole household.
-          </p>
+          {iosApp ? (
+            <p className="kin-plan-price">One plan for the whole household.</p>
+          ) : (
+            <p className="kin-plan-price">
+              {pesos(PLANS.monthly.amountCents)} a month, or {pesos(PLANS.annual.amountCents)} a year ({perMonth(PLANS.annual)}/mo). One price for the whole household.
+            </p>
+          )}
           <ul>
             {PLUS_FEATURES.map((f) => (
               <li key={f}>
@@ -90,7 +97,8 @@ export function SubscribeScreen({
           </p>
         </Blueprint>
       ) : (
-        status !== "comped" && (
+        status !== "comped" &&
+        !iosApp && (
           <>
             <Blueprint style={{ padding: "0.875rem", marginBottom: "1.25rem", background: "var(--color-accent-100)", display: "flex", gap: "0.625rem" }}>
               <Icon name="info" size={16} className="text-[var(--color-accent-700)] mt-1" />

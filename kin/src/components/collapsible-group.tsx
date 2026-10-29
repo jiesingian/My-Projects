@@ -21,6 +21,7 @@ export function CollapsibleGroup({
     <div>
       <button
         type="button"
+        className="kin-tap"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         style={{

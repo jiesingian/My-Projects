@@ -82,6 +82,10 @@ export default function PrivacyPage() {
             <li>Vercel: hosting the app (global network).</li>
             <li>Google: only if you connect Google Calendar or Google Drive, and only what those connections sync.</li>
             <li>
+              Apple: only on the Kin iPhone app, to deliver its notifications, calls and alarm updates (the phone&rsquo;s push
+              address and the notification itself).
+            </li>
+            <li>
               Anthropic: only the question you ask Kin AI, the household records it looks up to answer it, or the photo
               you ask it to scan. Under Anthropic&rsquo;s commercial terms this is not used to train its models.
             </li>

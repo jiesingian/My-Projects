@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountProgress, limitProgress, loanPace, loanProgress, monthsUntil, onTimeRun, trackKey } from "@/lib/wealth-goals";
+import { milestoneOf, accountProgress, limitProgress, loanPace, loanProgress, monthsUntil, onTimeRun, trackKey } from "@/lib/wealth-goals";
 
 /** 🎯 "Make it a goal" on Wealth (src/lib/wealth-goals.ts): how each thing
  * followed fills its goal. */
@@ -58,4 +58,13 @@ test("months until a date, and the keys an entry and its goal meet on", () => {
   expect(trackKey("account", "a1")).toBe("account:a1");
   expect(trackKey("expense", "Dining out")).toBe("expense:family:Dining out");
   expect(trackKey("expense", "Dining out", "m1")).toBe("expense:m1:Dining out");
+});
+
+test("milestones: the highest of 25, 50, 75 and 100 passed", () => {
+  expect(milestoneOf(0.1, false)).toBe(0);
+  expect(milestoneOf(0.25, false)).toBe(25);
+  expect(milestoneOf(0.74, false)).toBe(50);
+  // Full but not reached (a rounding hair): 75 until it is.
+  expect(milestoneOf(1, false)).toBe(75);
+  expect(milestoneOf(0.4, true)).toBe(100);
 });

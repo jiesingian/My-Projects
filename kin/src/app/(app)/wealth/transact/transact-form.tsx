@@ -27,6 +27,7 @@ export function TransactForm({
   currency,
   defaultMode,
   defaultAccountId,
+  defaultToAccountId,
   accountNumbers = {},
   assets,
   goals,
@@ -43,6 +44,9 @@ export function TransactForm({
   /** The account this was opened from, chosen to start with. Ignored if it
    * isn't one of `accounts` -- archived, or not the viewer's to see. */
   defaultAccountId?: string;
+  /** A transfer's account to move into (a 🎯 balance's "Move it there
+   * now", 29 October); the from side starts on another. */
+  defaultToAccountId?: string;
   /** Numbers of the accounts the viewer may see them for, by id -- shown in
    * Transfer with Copy, to paste into the bank's app. */
   accountNumbers?: Record<string, string>;
@@ -65,9 +69,10 @@ export function TransactForm({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
-  const startId = accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId! : (accounts[0]?.id ?? "");
+  const toStart = accounts.some((a) => a.id === defaultToAccountId) ? defaultToAccountId! : null;
+  const startId = accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId! : (accounts.find((a) => a.id !== toStart)?.id ?? accounts[0]?.id ?? "");
   const [accountId, setAccountId] = useState(startId);
-  const [toAccountId, setToAccountId] = useState(accounts.find((a) => a.id !== startId)?.id ?? startId);
+  const [toAccountId, setToAccountId] = useState(toStart ?? accounts.find((a) => a.id !== startId)?.id ?? startId);
   const startLoan = defaultAgainst?.startsWith("liabilities:") ? loans.find((l) => `liabilities:${l.id}` === defaultAgainst) : undefined;
   const [amount, setAmount] = useState<number>(defaultAmount ?? startLoan?.monthlyPayment ?? 0);
   // Remounts the amount box when a loan fills it in.

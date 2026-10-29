@@ -19,7 +19,7 @@ export function LoginForm({ callbackError, deleting }: { callbackError?: string;
   return (
     <OnboardingShell>
       <Wordmark />
-      <h2 style={{ fontSize: "2rem", margin: "30px 0 20px" }}>Welcome back</h2>
+      <h1 style={{ fontSize: "2rem", margin: "30px 0 20px" }}>Welcome back</h1>
       {deleting && (
         <p role="status" style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: "0 0 1rem" }}>
           Your account will be deleted in 7 days. Changed your mind? Sign in before then and choose <strong>Keep my account</strong>.
@@ -45,6 +45,11 @@ export function LoginForm({ callbackError, deleting }: { callbackError?: string;
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         New here? <Link href="/signup">Create an account</Link>
+      </p>
+      {/* The legal pages from every public screen (App Review 5.1.1; the
+          Data Privacy Act's transparency). */}
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.75rem", textAlign: "center" }}>
+        <Link href="/legal/privacy">Privacy</Link> · <Link href="/legal/terms">Terms</Link>
       </p>
     </OnboardingShell>
   );

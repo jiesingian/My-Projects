@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { celebrateGoalMilestones } from "@/lib/goal-milestones";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountDetail } from "@/lib/queries/wealth";
 import { requireCurrentMember } from "@/lib/session";
@@ -29,6 +31,9 @@ function revalidateWealth() {
   revalidatePath("/wealth");
   revalidatePath("/household");
   revalidatePath("/today");
+  // Money moved: a 🎯 goal it carried past 25, 50, 75 or 100% says so, once
+  // the answer is on its way (lib/goal-milestones).
+  after(() => celebrateGoalMilestones().catch(() => {}));
 }
 
 /* ---------------------------------------------------------------- accounts */
