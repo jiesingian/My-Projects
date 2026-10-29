@@ -2133,8 +2133,15 @@ const doWeHave: Rule = (q, ctx) => {
       if (isError(result)) return result.error;
       const words = item.split(" ").filter((w) => w.length > 1);
       const hit = (name: string) => words.some((w) => name.toLowerCase().includes(w) || w.includes(name.toLowerCase()));
-      const pantry = rows<PantryItem>(result, "pantry").filter((p) => hit(p.name));
-      const list = rows<BuyItem>(result, "shopping_list").filter((b) => hit(b.name) && !b.checked);
+      let pantry = rows<PantryItem>(result, "pantry").filter((p) => hit(p.name));
+      let list = rows<BuyItem>(result, "shopping_list").filter((b) => hit(b.name) && !b.checked);
+      // Asked by its whole name ("do we have condensed milk"): that one, not
+      // every name sharing a word with it (29 October, as bills since #1114).
+      const whole = (name: string) => name.toLowerCase().trim() === item;
+      if (pantry.some((p) => whole(p.name)) || list.some((b) => whole(b.name))) {
+        pantry = pantry.filter((p) => whole(p.name));
+        list = list.filter((b) => whole(b.name));
+      }
       const pantryLine = pantry.map((p) => `${p.name}${formatQuantity(p.quantity, p.unit) ? ` ${formatQuantity(p.quantity, p.unit)}` : ""}${p.running_low ? t(" (running low)") : ""}`);
       if (pantry.length === 0 && list.length === 0) return t(`No ${item} in the pantry, and it isn't on the list.`);
       const parts = [

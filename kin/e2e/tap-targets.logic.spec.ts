@@ -186,6 +186,10 @@ for (const p of PALETTES) {
             out[`${c} on the ${g}`] = Math.round(ratio(rgb(`var(--cal-${c}-ink)`, `rgb(${ground.join(",")})`), ground) * 100) / 100;
           }
         }
+        // The switch's green as words: "Saved ₱…" on a To-Buy trip (29 October).
+        for (const [g, ground] of Object.entries(grounds)) {
+          out[`switch green on the ${g}`] = Math.round(ratio(rgb("var(--color-switch-on-ink)", `rgb(${ground.join(",")})`), ground) * 100) / 100;
+        }
         return out;
       });
       const short = Object.entries(ratios).filter(([, r]) => r < 4.5);
