@@ -141,9 +141,10 @@ a full-screen intent; Kin uses the full-screen intent, so there is no
   - https://support.google.com/googleplay/android-developer/answer/13821247
 - Kin sells Plus only on the website. The Android app is "consumption only": a
   household that has Plus gets it in the app.
-- Inside the Android app Kin shows **no prices, no "buy" or "upgrade"
-  button, and no link to the web checkout**. A Kin code can still be entered:
-  redeeming a code is allowed. (`inAndroidApp()`, added in this series.)
+- Inside the Android app Kin shows **no prices, no "See plans" link, no
+  Kin code box, no referral and no offer**, exactly as in the iPhone app.
+  The app adds `KinApp/Android` to its user agent, and `inStoreApp()`
+  (`lib/ios-app.ts`) leaves all of it out of either store app.
 - Re-check when GCash/Maya payments go live on the website, and if Google
   opens alternative billing to the Philippines.
 
