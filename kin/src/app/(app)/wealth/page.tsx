@@ -1259,11 +1259,11 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
     return { pinned: goal ? <div style={{ marginTop: "0.375rem" }}>{button(goal)}</div> : null, action: goal ? null : button(null) };
   };
   // A house or car: a fund to replace or upgrade it.
-  const assetGoal = (a: { id: string; name: string; worth: { total: number } }) => (goal: GoalMark | null) => (
+  const assetGoal = (a: { id: string; name: string; worth: { total: number } }, goal: GoalMark | null) => (
     <WealthGoalButton tracks="asset" id={a.id} suggest={{ title: `Next ${a.name}`, amount: Math.max(10000, Math.ceil(a.worth.total / 10000) * 10000) }} goal={goal} currency={currency} />
   );
   // A loan: owe nothing by its last scheduled payment, to start from.
-  const loanGoal = (l: (typeof nw.liabilities)[number]) => (goal: GoalMark | null) => (
+  const loanGoal = (l: (typeof nw.liabilities)[number], goal: GoalMark | null) => (
     <WealthGoalButton tracks="loan" id={l.id} suggest={{ title: `${l.name} paid off`, amount: 0, dueDate: loanStatus(l, today).last }} goal={goal} currency={currency} />
   );
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
@@ -1368,7 +1368,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
         return (
           <>
             <AssetSummaryLine yours={owed > 0 ? a.worth.total - owed : null} perMonth={perMonth} flag={gap ? "No insurance listed" : null} currency={currency} />
-            {a.kind !== "investment" && goalMark(trackKey("asset", a.id), assetGoal(a)).pinned}
+            {a.kind !== "investment" && goalMark(trackKey("asset", a.id), (goal) => assetGoal(a, goal)).pinned}
           </>
         );
       })(),
@@ -1392,7 +1392,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
             items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth, warranty_until: i.warranty_until, service_every_months: i.service_every_months, last_serviced_on: i.last_serviced_on }))}
           />
           <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
-          {a.kind !== "investment" && goalMark(trackKey("asset", a.id), assetGoal(a)).action}
+          {a.kind !== "investment" && goalMark(trackKey("asset", a.id), (goal) => assetGoal(a, goal)).action}
           {/* What it costs to keep (28 October): a repeating cost as a bill
               against it, and a one-off as upkeep through Move money. */}
           {a.kind !== "investment" && <AddRunningCostControl assetId={a.id} assetName={a.name} kind={a.kind} whose={a.is_joint ? "joint" : (a.owner_member_id ?? "me")} currency={currency} today={today} />}
@@ -1426,7 +1426,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
         <>
           <LoanScheduleLine loan={{ ...l, monthly_payment: l.monthly_payment == null ? null : Number(l.monthly_payment), interest_rate: l.interest_rate == null ? null : Number(l.interest_rate) }} today={today} currency={currency} fmtDate={fmtDate} />
           <FlagLine flags={loanFlags(l, today, fmtDate, !!loanInsurance(l) && !loanInsurance(l)!.included && !loanInsuranceFund(l.name, goals) && !(l.asset_id && runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.some((c) => /insurance|\bmri\b/i.test(c.name))))} />
-          {goalMark(trackKey("loan", l.id), loanGoal(l)).pinned}
+          {goalMark(trackKey("loan", l.id), (goal) => loanGoal(l, goal)).pinned}
         </>
       ),
       detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} assetInsurance={l.asset_id ? (runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.find((c) => /insurance|\bmri\b/i.test(c.name)) ?? null) : null} />,
@@ -1447,7 +1447,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
           {/* The payment as a monthly bill (26 October): Today, the
               calendar and the reminder, with Settle paying the loan down. */}
           {Number(l.balance) > 0 && <LoanBillButton liabilityId={l.id} hasBill={loanBills.has(l.id)} />}
-          {Number(l.balance) > 0 && goalMark(trackKey("loan", l.id), loanGoal(l)).action}
+          {Number(l.balance) > 0 && goalMark(trackKey("loan", l.id), (goal) => loanGoal(l, goal)).action}
           {Number(l.balance) > 0 && Number(l.monthly_payment ?? 0) > 0 && (
             <ExtraPaymentControl
               balance={Number(l.balance)}
