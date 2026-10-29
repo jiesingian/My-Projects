@@ -79,6 +79,14 @@ final class KinAlarms {
         return n;
     }
 
+    /** Android 14 and later let the person (or Google Play) take away the
+     * full screen: an alarm then rings as a heads-up notification instead. */
+    static boolean canUseFullScreen(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true;
+        NotificationManager nm = context.getSystemService(NotificationManager.class);
+        return nm != null && nm.canUseFullScreenIntent();
+    }
+
     static boolean canSchedule(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true;
         AlarmManager manager = context.getSystemService(AlarmManager.class);

@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { RecordsOk } from "@/components/records-ok";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
@@ -141,6 +142,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
+        {!me.money_ok_at && <RecordsOk area="money" />}
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} includePrivate={me.wealth_include_private} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} openPending={sp.pending?.trim() || null} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} range={range} includePrivate={me.wealth_include_private} revealLine={sp.line?.trim() || null} grownUp={isGrownUp(me.role)} />}

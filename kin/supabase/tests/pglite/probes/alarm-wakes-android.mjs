@@ -5,7 +5,7 @@ const A = "a0000000-0000-0000-0000-000000000000";
 const B = "b0000000-0000-0000-0000-000000000000";
 const APPLE = (c) => `https://api.push.apple.com/3/device/${c.repeat(64)}`;
 const ANDROID = (c) => `https://fcm.googleapis.com/kin-android/${c.repeat(3)}:APA91b${"x".repeat(40)}`;
-// The daily alarm re-sync reaches the Android app too (20261030130000): its
+// The daily alarm re-sync reaches the Android app too (20261030140000): its
 // Firebase token (auth 'fcm') is picked beside the iPhone's alert token; a
 // browser's Web Push -- Chrome's lives on fcm.googleapis.com too -- and the
 // iPhone's VoIP token never are.

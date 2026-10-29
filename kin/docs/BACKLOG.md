@@ -50,7 +50,7 @@ link for every step:
     household.
 - **Alarms that never run out on Android:** `due_alarm_wakes` sends the
   app a silent Firebase message daily and after a change, and
-  `KinAlarmSync` sets the alarms again (`20261030130000`). After an
+  `KinAlarmSync` sets the alarms again (`20261030140000`). After an
   update or a restart, `KinAlarmReceiver` sets them again
   (`MY_PACKAGE_REPLACED`, `BOOT_COMPLETED`).
 
@@ -140,7 +140,7 @@ Built without the account, as a series in one session:
      auth `fcm`. Off until the free Firebase project exists (SETUP section
      10: `GOOGLE_SERVICES_JSON` for the build, `FCM_*` in Vercel).
    - Not done for Android: the widgets. The silent daily re-sync reaches
-     Android since 29 October (`20261030130000`, `KinAlarmSync`; "Kin on
+     Android since 29 October (`20261030140000`, `KinAlarmSync`; "Kin on
      Google Play" above).
 7. **Ready for the App Store** (29 October, #1135, #1140, #1144 and the
    walkthrough PR). Checked against Apple's current guidelines:
