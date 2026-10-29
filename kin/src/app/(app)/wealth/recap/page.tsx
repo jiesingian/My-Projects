@@ -161,6 +161,21 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
               </div>
             ))}
 
+            {/* What the house, the car and the rest cost to keep (29 October). */}
+            {r.owning && (
+              <>
+                <div className="kin-eyebrow" style={{ margin: "1rem 0 0.375rem" }}>OWNING THINGS · {money(r.owning.spent)} ON UPKEEP</div>
+                {r.owning.lines.map((l) => (
+                  <div key={l.name} style={row}>
+                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{l.name}</span>
+                    <span style={num}>{money(l.spent)}</span>
+                  </div>
+                ))}
+                {r.owning.lines.length === 0 && <p style={sub}>Nothing spent on upkeep that month.</p>}
+                {r.owning.runningPerMonth > 0 && <p style={{ ...sub, margin: "0.375rem 0 0" }}>Their dues, tax, insurance and registration come to about {money(r.owning.runningPerMonth)} a month, yearly ones included.</p>}
+              </>
+            )}
+
             <div className="kin-eyebrow" style={{ margin: "1rem 0 0.375rem" }}>NET WORTH</div>
             {r.netWorth ? (
               <div style={row}>

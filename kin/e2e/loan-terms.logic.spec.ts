@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
+import { insuranceGap, payOrInvest, costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -240,4 +240,23 @@ test("running costs: newest bill of each name, monthly share of each repeat", ()
   expect(r.costs[1]).toMatchObject({ open: false, due: null, perMonth: 1000 });
   expect(r.perMonth).toBe(5500);
   expect(RUNNING_COST_PRESETS.vehicle.map((p) => p.name)).toContain("Car insurance");
+});
+
+/** Pay the loan down, or put the money in MP2 (29 October). */
+test("payOrInvest holds the loan's rate against MP2's last dividend", () => {
+  expect(payOrInvest(9)).toMatchObject({ better: "loan" });
+  expect(payOrInvest(6.5)).toMatchObject({ better: "mp2", gap: -0.62 });
+  expect(payOrInvest(7.2)).toMatchObject({ better: "even" });
+  expect(payOrInvest(null)).toBeNull();
+  expect(payOrInvest(0)).toBeNull();
+});
+
+/** A car or a house with no insurance among its running costs (29 October). */
+test("insuranceGap names what a car or house is missing, and nothing else", () => {
+  expect(insuranceGap("vehicle", ["LTO registration"])).toMatch(/CTPL/);
+  expect(insuranceGap("vehicle", ["Car insurance"])).toBeNull();
+  expect(insuranceGap("vehicle", ["CTPL"])).toBeNull();
+  expect(insuranceGap("property", [])).toMatch(/Fire insurance/);
+  expect(insuranceGap("property", ["Fire insurance"])).toBeNull();
+  expect(insuranceGap("valuable", [])).toBeNull();
 });

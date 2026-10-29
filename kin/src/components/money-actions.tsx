@@ -49,7 +49,7 @@ import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, costPerMonth, extraPaymentEffect, repricedPayment, RUNNING_COST_PRESETS, type RunningCostRepeat, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
+import { accountAudienceLabel, costPerMonth, extraPaymentEffect, MP2_RATE_YEAR, MP2_RECENT_RATE, payOrInvest, repricedPayment, RUNNING_COST_PRESETS, type RunningCostRepeat, categoryLabel, EXPENSE_CATEGORIES, INCOME_SOURCES, type AccountAudienceMember, type PendingRow } from "@/lib/wealth";
 import { RowButton } from "@/components/today-row";
 import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
@@ -1387,6 +1387,18 @@ export function ExtraPaymentControl({ balance, rate, payment, firstDate, currenc
             </p>
           </>
         )}
+        {/* Or MP2 instead (29 October): paying ahead earns the loan's rate,
+            certainly; MP2 its yearly dividend, locked in for five years. */}
+        {(() => {
+          const v = payOrInvest(rate);
+          if (!v) return null;
+          return (
+            <p style={{ fontSize: "0.8125rem", margin: "0.75rem 0 0", padding: "0.5rem 0.625rem", borderRadius: 8, background: "color-mix(in srgb, var(--color-text) 5%, transparent)" }}>
+              <strong>Or MP2?</strong> Paying ahead earns this loan&apos;s {rate}% for sure. Pag-IBIG MP2 paid {MP2_RECENT_RATE}% for {MP2_RATE_YEAR}, tax-free but not promised, and locked in for 5 years.{" "}
+              {v.better === "loan" ? "Paying the loan down comes out ahead." : v.better === "mp2" ? `MP2 comes out about ${Math.abs(v.gap)} points ahead, if its dividend holds.` : "The two come out about even; paying the loan is the surer one."}
+            </p>
+          );
+        })()}
         <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0" }}>
           An estimate from what is owed now and the rate. Ask the bank first: some charge a fee for paying ahead, or count extra toward later months instead of the balance.
         </p>

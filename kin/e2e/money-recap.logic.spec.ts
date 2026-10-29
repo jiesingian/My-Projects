@@ -131,3 +131,22 @@ test("net worth needs both months' snapshots", () => {
   const r = buildRecap({ month: "2026-10", today: "2026-11-01", txns: [], allocations: [], bills: [], goals: [], goalMoves: [], netWorth: { end: 1, start: null } });
   expect(r.netWorth).toBeNull();
 });
+
+/** What owning things cost (29 October): the month's upkeep by asset, and
+ * the running costs' monthly share; nothing at all when neither is there. */
+test("owning: the month's upkeep by asset, and the running costs' share", () => {
+  const base = { month: "2026-10", today: "2026-11-01", txns: [], allocations: [], bills: [], goals: [], goalMoves: [], netWorth: { end: null, start: null } };
+  const r = buildRecap({
+    ...base,
+    assetSpend: [
+      { name: "Condo", month: "2026-10", amount: 3500 },
+      { name: "Car", month: "2026-10", amount: 1200 },
+      { name: "Condo", month: "2026-10", amount: 800 },
+      { name: "Car", month: "2026-09", amount: 9000 },
+    ],
+    runningPerMonth: 6316.67,
+  });
+  expect(r.owning).toEqual({ lines: [{ name: "Condo", spent: 4300 }, { name: "Car", spent: 1200 }], spent: 5500, runningPerMonth: 6316.67 });
+  expect(buildRecap(base).owning).toBeNull();
+  expect(buildRecap({ ...base, runningPerMonth: 4500 }).owning).toEqual({ lines: [], spent: 0, runningPerMonth: 4500 });
+});

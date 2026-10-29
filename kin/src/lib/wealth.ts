@@ -1502,3 +1502,32 @@ export function runningCosts(bills: { name: string; amount: number; recurrence: 
     .sort((a, b) => b.perMonth - a.perMonth);
   return { costs, perMonth: cents(costs.reduce((t, c) => t + c.perMonth, 0)) };
 }
+
+/* ------------------------------------------- pay the loan down, or MP2? */
+
+/** Pag-IBIG MP2's dividend for 2025, declared February 2026: what the
+ * comparison below holds a loan's rate against. A year's rate is declared
+ * after the year ends and is not promised; this is updated by hand. */
+export const MP2_RECENT_RATE = 7.12;
+export const MP2_RATE_YEAR = 2025;
+
+/** Paying a loan down early "earns" its rate, certainly; the same money in
+ * MP2 earns its dividend, declared yearly and locked in for five years
+ * (Jonathan, 29 October). Within a quarter point the two are a wash. */
+export function payOrInvest(loanRatePct: number | null): { better: "loan" | "mp2" | "even"; gap: number } | null {
+  if (loanRatePct == null || !(loanRatePct > 0)) return null;
+  const gap = Math.round((loanRatePct - MP2_RECENT_RATE) * 100) / 100;
+  return { better: Math.abs(gap) < 0.25 ? "even" : gap > 0 ? "loan" : "mp2", gap };
+}
+
+/** A car or a house with no insurance among its running costs (29
+ * October): a car cannot be registered without at least CTPL, and a house
+ * without fire cover is one bad night from nothing. Null when one is
+ * there, or the asset is not one that needs it. */
+export function insuranceGap(kind: string, costNames: string[]): string | null {
+  if (kind !== "vehicle" && kind !== "property") return null;
+  if (costNames.some((n) => /insurance|\bctpl\b|\btpl\b|\bmri\b|comprehensive/i.test(n))) return null;
+  return kind === "vehicle"
+    ? "No insurance listed. LTO registration needs at least CTPL each year."
+    : "No insurance listed. Fire insurance covers the house itself; add it if you have a policy.";
+}
