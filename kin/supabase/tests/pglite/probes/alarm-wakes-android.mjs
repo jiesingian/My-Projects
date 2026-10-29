@@ -32,6 +32,9 @@ export default async function ({ db, as, check }) {
   await check("Not twice the same day", async () => (await run("2026-10-29 23:00+00")).length === 0);
   await check("A medicine changed in House A wakes its phones, Android too, and not Ben's", async () => {
     await as(U("a1"), "insert into health_medicines (family_id, member_id, name, times, start_date, visibility) values ($1, $2, 'Losartan', '{08:00}', '2026-10-01', 'family')", [A, M("a1")]);
+    // The change is stamped with the real time; pin it before the probe's
+    // frozen clock, or the check fails on any day after 29 October.
+    await db.exec("update alarm_wake_queue set changed_at = '2026-10-29 23:00+00'");
     const r = await run("2026-10-29 23:05+00");
     return who(r) === "alert:aaa:changed|fcm:ann:changed|fcm:kid:changed" || who(r);
   });
