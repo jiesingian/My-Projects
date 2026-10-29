@@ -41,7 +41,7 @@ const plusYear = pesos(PLANS.annual.amountCents);
 
 /** The free or Plus line, the same facts as the plan screen (plan-features.ts). */
 export function featurePlanLine(plan: "free" | "plus"): string {
-  if (plan === "free") return `Part of Kin Free, for good. No card, no trial clock.`;
+  if (plan === "free") return `Part of Kin Free, with no time limit. No card, no trial clock.`;
   return `Part of Kin Plus: ${plus} a month or ${plusYear} a year for the whole family. Every family starts with ${TRIAL_DAYS} days of Plus free, no card needed; do nothing and you move to Kin Free and keep everything.`;
 }
 
@@ -149,7 +149,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
     lead: "Each person’s medicines with their dose times. A reminder at the time, a tick when taken, and a word to someone if a dose is missed.",
     intro: [
       "Maintenance meds for Grandma, a week of antibiotics for the little one, vitamins for everyone: the hard part isn’t knowing, it’s remembering at 7:30 on a Tuesday, and knowing whether the other grown-up already gave it.",
-      "In Kin each person has their own list. Add a medicine with its dose and times and the day shows what is due, late or done. The phone buzzes at the time, you tick it, and the whole household sees the same tick. Running low, Kin tells you before the last tablet.",
+      "In Kin each person has their own list. Add a medicine with its dose and times and the day shows what is due, late or done. The phone buzzes at the time, you tick it, and the whole household sees the same tick. Track how many are left and Kin tells you when they run low.",
     ],
     how: [
       { title: "Per person, with times", line: "Losartan at 07:00, Metformin at 07:30 and 19:30, the syrup at 20:00 until Sunday. Each dose has its own line for the day." },
@@ -167,6 +167,7 @@ export const FEATURE_PAGES: FeaturePage[] = [
       { q: "Does it work for my parents who are not good with phones?", a: "A grown-up in the household can keep Grandma’s list and tick her doses; Simple Kin makes the buttons and text bigger on her own phone." },
       { q: "Will it remind at the right time abroad?", a: "Yes. Reminders follow the household’s time zone, and each phone gets its own push." },
       { q: "What is in Kin Free?", a: "Each person’s health profile and the emergency card (allergies, blood type, doctor, HMO) are free. Medicines with reminders are part of Kin Plus." },
+      { q: "Can I rely on it alone?", a: "Treat it as a helper, not a guarantee: a reminder only arrives if the phone lets notifications through, so keep an eye on the day’s ticks. Kin keeps track; it is not medical advice, so doses and changes are for your doctor or pharmacist." },
     ],
     related: ["family-tree", "utang"],
   },

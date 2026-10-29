@@ -139,8 +139,14 @@ function step(dir: -1 | 1, axis: "x" | "y", target: EventTarget | null): boolean
   const from = target instanceof HTMLElement ? target : null;
   const list = from?.closest<HTMLElement>("[data-kin-arrows]");
   if (list && from && (list.dataset.kinArrows === "row") === (axis === "x")) {
-    const items = [...list.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.closest("[data-kin-arrows]") === list);
-    const next = items[stepIndex(items.indexOf(from.closest<HTMLElement>(FOCUSABLE) ?? from), dir, items.length)];
+    // A list of cards with buttons in them (the Notes board) marks each card
+    // data-kin-arrow-item: the arrows go card to card, and Tab reaches a
+    // card's own buttons (Jonathan, 29 October). Otherwise every link and
+    // button in the list is a stop.
+    const cards = [...list.querySelectorAll<HTMLElement>("[data-kin-arrow-item]")].filter((el) => el.closest("[data-kin-arrows]") === list);
+    const items = cards.length ? cards : [...list.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.closest("[data-kin-arrows]") === list);
+    const current = cards.length ? from.closest<HTMLElement>("[data-kin-arrow-item]") : (from.closest<HTMLElement>(FOCUSABLE) ?? from);
+    const next = items[stepIndex(current ? items.indexOf(current) : -1, dir, items.length)];
     if (!next || next === from) return false;
     next.focus();
     next.scrollIntoView({ block: "nearest", inline: "nearest" });
