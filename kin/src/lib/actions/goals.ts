@@ -349,6 +349,8 @@ export async function deleteGoalAction(goalId: string): Promise<{ error: string 
   if (count === 0) return { error: "That goal is no longer here." };
   revalidatePath("/planner");
   revalidatePath("/today");
+  // A 🎯 goal's mark on Wealth goes with it.
+  revalidatePath("/wealth");
   return { error: null };
 }
 

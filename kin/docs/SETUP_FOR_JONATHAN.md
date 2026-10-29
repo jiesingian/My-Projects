@@ -15,7 +15,7 @@ steps switch it on. Each says what it is for and what is safe.
 | 5. Payments | Final stage (costs money), see BACKLOG |
 | 6. GIFs in the chat | Held for design finalization |
 | 7. Sign-up emails through Gmail | Done: sent from familyapp.kin@gmail.com |
-| 9. The iPhone app (real alarms, calls, SOS) | Built; waits on the Apple Developer Program, steps below |
+| 9. The iPhone app (real alarms, calls, SOS) | Built, App Store listing written; waits on the Apple Developer Program, steps below |
 
 ---
 
@@ -301,16 +301,42 @@ works:
   iOS 26 and later);
 - a Kin call rings with the iPhone's own incoming-call screen (CallKit);
 - an SOS comes through Focus, and through silent once Apple grants Critical
-  Alerts (step 6).
+  Alerts (step 12);
+- Home Screen and Lock Screen widgets show Today's next dose and plan.
 
-The code is built and merged, and every change is compiled on GitHub's Mac.
-These steps are the only part only you can do. No Mac is needed at any point.
+The code is built and merged, every change is compiled on GitHub's Mac, and
+the App Store listing is written (`kin/native/ios/store/`). These steps are
+the only part only you can do. No Mac is needed at any point.
 
-**What it costs.** The Apple Developer Program, US$99 a year. Nothing else.
+**What it costs.** The Apple Developer Program, US$99 a year. Nothing else:
+the app is free, so no tax or banking forms are needed.
 
 **What's safe.** The keys below are secrets. Each can be revoked on its page
 at any time, and a new one made. Nothing here touches the web app: it keeps
 working exactly as now, for everyone, with or without the iPhone app.
+
+### Before you pay: two answers only you can give
+
+- **A support email.** Apple asks for a Support URL that says how to reach
+  you (App Review 1.5): that page is ready at
+  [/legal/support](https://kin-family-app.vercel.app/legal/support), but
+  every contact field on it, and on the privacy page, says "Being registered"
+  until `OPERATOR.email` in `kin/src/lib/legal.ts` is set. Tell a session the
+  address (any you will read, e.g. a new Gmail for Kin); it fills it in. The
+  business name, address and registration numbers can stay "being
+  registered": enrolled as an Individual, the App Store shows your own name
+  as the seller.
+- **In-app purchase, or not.** Inside the iPhone app Kin shows no prices,
+  plan links or Kin codes (Apple forbids pointing to another way to pay,
+  3.1.1), and a household's Plus still works there. Apple's rule on honouring
+  a subscription bought elsewhere (3.1.3(b)) says it should *also* be sold
+  through Apple, so a reviewer may ask for that. The plan: submit without
+  it (step 11), with the review household already on Plus. If Apple rejects
+  under 3.1.1, the fix is Kin Plus as an Apple in-app subscription: Apple
+  keeps 15% (Small Business Program) and you set its price. That is a
+  pricing decision; say the word and a session builds it.
+
+### Steps
 
 1. **Join the Apple Developer Program** at
    [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/).
@@ -320,21 +346,26 @@ working exactly as now, for everyone, with or without the iPhone app.
 2. **Note your Team ID** at
    [developer.apple.com/account](https://developer.apple.com/account), under
    Membership details: 10 letters and numbers.
-3. **Register the app's id** at
-   [Identifiers → +](https://developer.apple.com/account/resources/identifiers/add/bundleId):
-   App IDs → App. Description `Kin`, Bundle ID **Explicit**
-   `com.jiesingian.kin`. Tick **Push Notifications**, **Time Sensitive
-   Notifications** and **App Groups**, then Register. (App Groups is how the
-   Home Screen widgets get Today's next dose from the app. The first
-   TestFlight run registers the widgets' own id, `com.jiesingian.kin.widgets`,
-   and the group `group.com.jiesingian.kin` by itself. If that run stops on
-   "App Group" or "provisioning profile", make the group by hand at
-   [Identifiers → + → App Groups](https://developer.apple.com/account/resources/identifiers/add/applicationGroup),
-   description `Kin`, identifier `group.com.jiesingian.kin`, and run it again.) Then create the app at
-   [App Store Connect → Apps → +](https://appstoreconnect.apple.com/apps) →
-   New App: iOS, name `Kin` (or `Kin Family` if Kin is taken), language
-   English, that bundle id, SKU `kin`.
-4. **Let GitHub build and upload it.**
+3. **Register the app's id and its App Group.**
+   - At [Identifiers → + → App IDs](https://developer.apple.com/account/resources/identifiers/add/bundleId):
+     App. Description `Kin`, Bundle ID **Explicit** `com.jiesingian.kin`.
+     Tick **Push Notifications**, **Time Sensitive Notifications** and
+     **App Groups**, then Continue → Register.
+   - At [Identifiers → + → App Groups](https://developer.apple.com/account/resources/identifiers/add/applicationGroup):
+     description `Kin`, identifier `group.com.jiesingian.kin`, Register.
+     (This is how the widgets get Today's next dose from the app.)
+   - Open the `com.jiesingian.kin` App ID from
+     [the list](https://developer.apple.com/account/resources/identifiers/list),
+     App Groups → Configure → tick `group.com.jiesingian.kin` → Save.
+   The widgets' own id, `com.jiesingian.kin.widgets`, is registered by the
+   first TestFlight run by itself.
+4. **Create the app in App Store Connect** at
+   [Apps → +](https://appstoreconnect.apple.com/apps) → New App: iOS; name
+   from `kin/native/ios/store/listing.md` ("Kin: Family Life, Decoded", or
+   the next one listed there if it is taken); language English (U.S.); the
+   bundle id `com.jiesingian.kin`; SKU `kin`; User Access: Full Access. The
+   upload in step 6 fails until this exists.
+5. **Let GitHub build and upload it.**
    - Make an App Store Connect API key at
      [Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api):
      **+**, name `GitHub`, access **Admin**. Admin is needed for Xcode to make
@@ -346,12 +377,18 @@ working exactly as now, for everyone, with or without the iPhone app.
      `APPLE_TEAM_ID` (step 2), `ASC_KEY_ID`, `ASC_ISSUER_ID`, and
      `ASC_KEY_P8` (open the `.p8` in a text editor and paste all of it,
      including the BEGIN and END lines).
-   - Run [Actions → TestFlight → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/testflight.yml).
-     About 15 minutes later the build shows in App Store Connect → your app →
-     TestFlight. Add yourself and Janine as internal testers there, and
+6. **The first TestFlight build.** Run
+   [Actions → TestFlight → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/testflight.yml).
+   About 15 minutes later, and 10 to 30 of Apple's processing after that, the
+   build shows in [App Store Connect → Apps](https://appstoreconnect.apple.com/apps)
+   → Kin → TestFlight. If the run stops, `kin/native/ios/TESTFLIGHT.md` has
+   each likely error and its fix; running it again is always safe.
+   - Add yourself and Janine as **internal testers** there (TestFlight →
+     Internal Testing → +; Janine must first be a user at
+     [Users and Access](https://appstoreconnect.apple.com/access/users)), and
      install it on each iPhone with Apple's TestFlight app.
-5. **Let Kin's server reach the app** (calls, SOS and every notification).
-   Make a push key at
+7. **Let Kin's server reach the app** (calls, SOS, the alarm top-up and
+   every notification). Make a push key at
    [Keys → +](https://developer.apple.com/account/resources/authkeys/add): name
    `Kin push`, tick **Apple Push Notifications service (APNs)**, choose
    **Sandbox & Production**, then Continue → Register, and download the `.p8`.
@@ -363,18 +400,60 @@ working exactly as now, for everyone, with or without the iPhone app.
    [Deployments](https://vercel.com/jisingian/kin-family-app/deployments).
    Until then, the app's phones are skipped and Web Push carries on as
    before.
-6. **Ask Apple for Critical Alerts** (an SOS through the silent switch) at
-   [the request form](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/):
-   say Kin is a family safety app whose SOS and medicine reminders must
-   reach a parent or carer on silent. Apple answers by email, often after
-   some weeks. When it's granted, tell a session: it adds the entitlement to
-   the app and `APNS_CRITICAL=1` to Vercel. Until then an SOS is
-   time-sensitive: through Focus, but not through silent.
+8. **On each iPhone:** open Kin, sign in, allow notifications and alarms
+   when asked, then try Settings → Notifications → Alarms, a test call and a
+   test notification. TESTFLIGHT.md's last section, and BACKLOG's "Needs a
+   real phone", list what to check. Tell a session what you saw.
+9. **The App Store listing.** Everything is written in
+   `kin/native/ios/store/`; paste it in
+   [App Store Connect → Apps](https://appstoreconnect.apple.com/apps) → Kin:
+   - **App Information:** subtitle, categories, content rights
+     (`listing.md`); **Age Rating** → answer as in `age-rating.md` (expected
+     9+). **Digital Services Act:** Kin is offered only in the Philippines,
+     so answer that you are **not a trader** (App Store Connect asks this of
+     every new app, even outside the EU).
+   - **Pricing and Availability:** price **Free**; availability **the
+     Philippines** only.
+   - **App Privacy:** the privacy policy URL and every answer in
+     `privacy.md`, then Publish.
+   - **The 1.0 version page:** promotional text, description, keywords,
+     support and marketing URLs, copyright, what's new (`listing.md`).
+   - **Screenshots:** run
+     [Actions → iOS build → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/ios.yml)
+     with **screenshots** ticked. When it is green, download the run's
+     `app-store-screenshots` artifact (bottom of the run page). Drag
+     `6.9-inch/` into the 6.9" iPhone slot and `6.3-inch/` into the 6.3" one.
+     After step 8, add your own shots of an alarm ringing and a widget, in the
+     sample household only (`store/README.md`).
+   - **Build:** pick the TestFlight build from step 6.
+10. **The review account.** Create the sample household for Apple exactly as
+    `kin/native/ios/store/review-notes.md` says: a new account in
+    production, the household "Rivera Family (App Review)", Plus for good by
+    a Kin code, a little invented sample data. Never your own family's
+    account. Put its sign-in, your contact details and the notes (pasted as
+    they are) under **App Review Information**, with the optional screen
+    recording.
+11. **Submit for review.** On the version page: **Add for Review** →
+    **Submit to App Review**. Under "Version Release" choose **Manually
+    release this version**, so it goes live only when you press Release.
+    Apple usually answers within one to three days, by email. If it is
+    rejected, paste the message to a session: most rejections are answered
+    in the Resolution Center without a new build.
+12. **Ask Apple for Critical Alerts** (an SOS through the silent switch),
+    any time after step 1, at
+    [the request form](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/):
+    say Kin is a family safety app whose SOS and medicine reminders must
+    reach a parent or carer on silent. Apple answers by email, often after
+    some weeks. When it's granted, tell a session: it adds the entitlement to
+    the app and `APNS_CRITICAL=1` to Vercel, and you run step 6 again. Until
+    then an SOS is time-sensitive: through Focus, but not through silent.
+    Adding it before the grant breaks signing, so never ahead of the email.
 
-**After the first install, on each iPhone:** open Kin, sign in, allow
-notifications and alarms when asked, then try Settings → Notifications →
-Alarms, a test call and a test notification. BACKLOG's "Needs a real phone"
-list has the checks.
+**Each later version:** a session changes `MARKETING_VERSION` (1.0 → 1.1)
+when the native code changes; you run step 6, then on a new version page in
+App Store Connect pick the build, fill in "What's New", and submit (step
+11). A change to the web app alone needs none of this: the app loads the
+live site.
 
 
 ## 10. The Android app's push (Firebase, free)

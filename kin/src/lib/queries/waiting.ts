@@ -4,6 +4,9 @@ import { familyDate } from "@/lib/format-family";
 import { householdZone } from "@/lib/household-zone";
 import { getAccounts, getAssetCosts, getGoalDepositsSince, getPendingEntries, type LedgerEntry } from "@/lib/queries/wealth";
 import { getMembers } from "@/lib/queries/family";
+import { getTrackedGoals } from "@/lib/queries/wealth-goals";
+import type { Tracks } from "@/lib/wealth-goals";
+import type { GoalMark } from "@/components/wealth-goal-button";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { formatCurrency, shortNames } from "@/lib/format";
@@ -31,7 +34,8 @@ export type WaitingAction =
   | { kind: "asset-picker"; loanId: string; assets: { id: string; name: string }[] }
   | { kind: "edit-goal"; goal: { id: string; title: string; note: string | null; target: number; date: string | null; yearly: boolean } }
   | { kind: "fund-paid"; goalId: string; title: string; saved: number; target: number; linkedAccountId: string | null; repeatsYearly: boolean }
-  | { kind: "remind"; goalId: string; memberId: string; name: string };
+  | { kind: "remind"; goalId: string; memberId: string; name: string }
+  | { kind: "wealth-goal"; tracks: Tracks; id: string | null; category: string | null; whose: string; mark: GoalMark };
 
 export type WaitingEntry = {
   id: string;
@@ -295,6 +299,25 @@ export const getWaiting = cache(async (memberId: string, familyId: string, grown
       ],
       snoozable: true,
       open: { href: `/wealth/accounts/${a.id}`, label: "Open the account", tab: null },
+    });
+  }
+
+  // 🎯 goals that need a look (29 October): a limit nearly or already
+  // spent, a salary late or short, a loan behind, a fund near its date.
+  // Whoever the goal is: its person, or the grown-ups for the household's.
+  const tracked = await getTrackedGoals(familyId, currency);
+  const TABS: Record<Tracks, WaitingTab[]> = { account: ["accounts", "goals"], loan: ["assets", "goals"], asset: ["assets", "goals"], income: ["cashflow", "goals"], expense: ["cashflow", "goals"] };
+  for (const t of tracked.values()) {
+    if (!t.nudge || !actorsFor({ owner: t.ownerId, joint: t.ownerId === null }, grownUps).includes(me.id)) continue;
+    out.push({
+      id: `goal-nudge-${t.id}`,
+      title: `🎯 ${t.title}`,
+      meta: t.nudge,
+      tabs: TABS[t.tracks],
+      lines: [t.caption + ".", ...t.lines],
+      actions: [{ kind: "wealth-goal", tracks: t.tracks, id: t.thingId, category: t.category, whose: t.ownerId ?? "family", mark: { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday } }],
+      snoozable: true,
+      open: { href: t.href, label: t.tracks === "income" || t.tracks === "expense" ? "Open in Cash Flow" : t.tracks === "account" ? "Open the account" : "Open in A&L", tab: t.tracks === "income" || t.tracks === "expense" ? "cashflow" : t.tracks === "account" ? null : "assets" },
     });
   }
 

@@ -598,6 +598,7 @@ export function SpendingByPerson({
               {details[key] && (
                 <button
                   type="button"
+                  className="kin-tap"
                   onClick={toggle}
                   aria-expanded={open}
                   aria-label={`${open ? "Fold" : "Open"} ${p.label}'s categories`}

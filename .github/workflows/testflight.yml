@@ -15,6 +15,11 @@ name: TestFlight
 #   ASC_KEY_P8                 the key file's contents (BEGIN PRIVATE KEY...)
 #
 # Never posts a check on a pull request, so automerge.yml does not list it.
+#
+# What each step's failure means, and what to do about it:
+# kin/native/ios/TESTFLIGHT.md. The build number is this workflow's run
+# number, so a re-run of an old run reuses its number and Apple refuses the
+# upload ("bundle version must be higher"): start a new run instead.
 
 on:
   workflow_dispatch:
@@ -75,6 +80,29 @@ jobs:
             CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' \
             archive | tail -n 80
+      # Both targets signed, by the right team, with the App Group: the
+      # widgets read Today from it, and a profile without it signs fine but
+      # leaves them empty. Printed so a wrong one is seen here, not on a phone.
+      # Only a missing widget extension stops the run.
+      - name: What was signed
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          app="$RUNNER_TEMP/Kin.xcarchive/Products/Applications/App.app"
+          ok=1
+          for t in "$app" "$app/PlugIns/KinWidgets.appex"; do
+            if [ ! -d "$t" ]; then echo "::error::$(basename "$t") is not in the archive."; ok=0; continue; fi
+            id=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$t/Info.plist")
+            ents=$(codesign -d --entitlements - --xml "$t" 2>/dev/null | plutil -convert xml1 -o - - 2>/dev/null || true)
+            echo "== $id"
+            codesign -dvv "$t" 2>&1 | grep -E "^(Authority|TeamIdentifier)=" || true
+            echo "$ents" | grep -E "<key>|<string>" | sed 's/^[[:space:]]*//'
+            # Warnings, not failures: the upload is still worth having, and
+            # TESTFLIGHT.md says what each means.
+            echo "$ents" | grep -q "group.com.jiesingian.kin" || echo "::warning::$id shows no App Group group.com.jiesingian.kin: its widgets will be empty (SETUP_FOR_JONATHAN.md section 9, step 3)."
+            codesign -dvv "$t" 2>&1 | grep -q "TeamIdentifier=$APPLE_TEAM_ID" || echo "::warning::$id is not signed by team APPLE_TEAM_ID."
+          done
+          [ "$ok" = 1 ]
       - name: Sign for the App Store and upload to TestFlight
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

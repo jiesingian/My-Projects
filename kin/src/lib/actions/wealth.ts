@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { celebrateGoalMilestones } from "@/lib/goal-milestones";
 import { createClient } from "@/lib/supabase/server";
 import { getAccountDetail } from "@/lib/queries/wealth";
 import { requireCurrentMember } from "@/lib/session";
@@ -29,6 +31,9 @@ function revalidateWealth() {
   revalidatePath("/wealth");
   revalidatePath("/household");
   revalidatePath("/today");
+  // Money moved: a 🎯 goal it carried past 25, 50, 75 or 100% says so, once
+  // the answer is on its way (lib/goal-milestones).
+  after(() => celebrateGoalMilestones().catch(() => {}));
 }
 
 /* ---------------------------------------------------------------- accounts */
@@ -876,6 +881,11 @@ export async function confirmTransactionAction(
     .eq("family_id", me.family_id)
     .maybeSingle();
   if (!entry) return { error: "Not found." };
+  // Confirmed already -- a second tap, a retry, the other phone -- is done,
+  // not done again: settling below lowers a loan by its principal each time
+  // it runs (review of the watched changes, 29 October).
+  if (entry.status === "confirmed") return { error: null };
+  if (entry.status !== "pending") return { error: "This entry isn't waiting to be confirmed." };
 
   const legs = entry.transfer_group_id
     ? ((await supabase.from("wealth_transactions").select("*").eq("transfer_group_id", entry.transfer_group_id)).data ?? [])
@@ -918,8 +928,11 @@ export async function confirmTransactionAction(
     }
   }
 
-  const { error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids);
+  // Only rows still pending: two confirms at once both read "pending" above,
+  // and only the one that moves them settles.
+  const { data: moved, error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids).eq("status", "pending").select("id");
   if (error) return { error: databaseError(error) };
+  if (!moved || moved.length === 0) return { error: null };
 
   const settled = await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
   if (settled) return { error: settled };
@@ -1347,6 +1360,13 @@ export async function payBillAction(input: {
   ]);
   if (!bill) return { error: "Bill not found." };
   if (!account) return { error: "Choose an account to pay from." };
+  // Paid already: a stale screen or the other phone would record it, and a
+  // loan bill pay the loan down, a second time. This same payment retried
+  // (its phone-made id is the bill's transaction) answers as it did.
+  if (bill.status === "paid") {
+    if (ledgerRowId(input.clientId) && bill.transaction_id === ledgerRowId(input.clientId)) return { error: null };
+    return { error: "This bill is already paid." };
+  }
 
   // A bill for a loan, an asset or a goal (20261026150000): the payment's
   // source is what the money was for, as Move money records it -- a loan
@@ -1595,6 +1615,11 @@ export async function receiveIncomeAction(input: {
   ]);
   if (!schedule) return { error: "Income schedule not found." };
   if (!account) return { error: "Choose an account to receive it into." };
+  // Received already: the same as a bill already paid, above.
+  if (schedule.status === "received") {
+    if (ledgerRowId(input.clientId) && schedule.transaction_id === ledgerRowId(input.clientId)) return { error: null };
+    return { error: "This income is already received." };
+  }
 
   const status = input.viaApp ? "pending" : "confirmed";
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
@@ -1952,6 +1977,10 @@ export async function contributeToGoalAction(input: {
   ]);
   if (!goal) return { error: "Goal not found." };
   if (!account) return { error: "Choose an account." };
+  // The goal's To account read as the caller (the embed is null when it is
+  // someone's "only me" account): a joint goal must not move money into, or
+  // out of, a private account its contributor cannot see (29 October).
+  if (goal.linked_account_id && !goal.to) return { error: "This goal's account isn't one you can see." };
   if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
 
   const status = input.viaApp ? "pending" : "confirmed";
@@ -2053,6 +2082,12 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
   ]);
   if (!goal) return { error: "Goal not found." };
   if (!account) return { error: "Choose the account it was paid from." };
+  // Money held for the goal leaves its To account below; that account must
+  // be one the caller can see, as in contributeToGoalAction.
+  if (goal.linked_account_id) {
+    const { data: held } = await supabase.from("accounts").select("id").eq("id", goal.linked_account_id).eq("family_id", me.family_id).maybeSingle();
+    if (!held) return { error: "This goal's account isn't one you can see." };
+  }
   if (!(input.amount > 0)) return { error: "Enter what was paid." };
   const category = clamp(input.category, 40) || "Other";
   let fromFund = Math.min(input.amount, Math.max(0, Number(goal.current_amount)));
