@@ -1011,6 +1011,7 @@ export function CategoryBudgetRow({
   currency,
   color,
   canEdit,
+  goal,
   children,
 }: {
   whose: string;
@@ -1020,6 +1021,8 @@ export function CategoryBudgetRow({
   currency: string;
   color: string;
   canEdit: boolean;
+  /** 🎯: its monthly limit as a goal (29 October), under the bar. */
+  goal?: React.ReactNode;
   /** Its expenses, under the bar (26 October). */
   children?: React.ReactNode;
 }) {
@@ -1070,10 +1073,12 @@ export function CategoryBudgetRow({
     </>
   );
 
+  const mark = goal ? <div style={{ display: "flex", justifyContent: "flex-end", margin: "-0.5rem 0 0.5rem" }}>{goal}</div> : null;
   if (!canEdit)
     return (
       <>
         <div style={{ marginBottom: "0.6875rem" }}>{body}</div>
+        {mark}
         {children}
       </>
     );
@@ -1091,6 +1096,7 @@ export function CategoryBudgetRow({
       >
         {body}
       </button>
+      {mark}
       {children}
       <FormSheet open={open} onClose={() => setOpen(false)} title={`${label} budget`}>
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>

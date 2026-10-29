@@ -1,0 +1,133 @@
+name: Google Play release
+
+# Builds Kin's Android app (kin/native/android) as a signed release AAB, the
+# file Google Play takes, and keeps it as the run's artifact "kin-android-aab"
+# for a month. If the Play service account's secret exists, it also uploads
+# it to Google Play's internal-testing track (kin/native/scripts/
+# play-upload.mjs). Started by hand (Actions -> Google Play release -> Run
+# workflow), never on a push: each upload is a new build for testers, like
+# testflight.yml.
+#
+# Signing: the AAB is signed with Kin's UPLOAD key. Google Play then signs
+# what it ships to phones with its own app-signing key (Play App Signing,
+# required for every new app), so the upload key only proves an upload is
+# Jonathan's; if it is ever lost or leaked, Google resets it on request.
+# Jonathan makes the key once (SETUP_FOR_JONATHAN.md, "The Android app on
+# Google Play") and adds:
+#   ANDROID_UPLOAD_KEYSTORE_B64     the .jks file, base64 on one line
+#   ANDROID_UPLOAD_KEYSTORE_PASSWORD
+#   ANDROID_UPLOAD_KEY_ALIAS        "upload" if he used the command given
+#   ANDROID_UPLOAD_KEY_PASSWORD     the same as the store's, with that command
+# and, for the automatic upload only (off until it exists):
+#   PLAY_SERVICE_ACCOUNT_JSON       a Google Cloud service account's JSON key,
+#                                   invited in the Play Console
+# Push needs GOOGLE_SERVICES_JSON as in android.yml; without it the build
+# runs without push and says so.
+#
+# versionCode is this workflow's run number: Google Play refuses an upload
+# whose versionCode is not higher than every earlier one, and the run number
+# only ever grows. Renaming this file restarts it at 1 -- don't.
+#
+# The very first AAB of a new app must be uploaded by hand in the Play
+# Console (Google's rule; the API has no app to upload to until then), so the
+# first run's upload is expected to fail with "no app" if the secret is
+# already set: download the artifact and upload it by hand.
+#
+# Never posts a check on a pull request, so automerge.yml does not list it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Also upload to Google Play's internal-testing track (needs PLAY_SERVICE_ACCOUNT_JSON)"
+        type: boolean
+        default: true
+
+jobs:
+  release:
+    name: Build, sign and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kin/native
+    steps:
+      - name: The signing secrets are there
+        env:
+          ANDROID_UPLOAD_KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ANDROID_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        working-directory: .
+        run: |
+          missing=""
+          for s in ANDROID_UPLOAD_KEYSTORE_B64 ANDROID_UPLOAD_KEYSTORE_PASSWORD ANDROID_UPLOAD_KEY_ALIAS ANDROID_UPLOAD_KEY_PASSWORD; do
+            [ -n "${!s}" ] || missing="$missing $s"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. See kin/docs/SETUP_FOR_JONATHAN.md, 'The Android app on Google Play'."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/native/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # No setup-android step, as in android.yml: the runner has the SDK.
+      - run: npm ci
+      - run: npx cap sync android
+      - name: Firebase's config, once it exists
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+            echo "Push is on in this build."
+          else
+            echo "::warning::No GOOGLE_SERVICES_JSON secret: this build has no push (calls won't ring, no notifications). Alarms work."
+          fi
+      - name: The upload key, on the runner only
+        env:
+          ANDROID_UPLOAD_KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+        run: |
+          printf '%s' "$ANDROID_UPLOAD_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          if [ ! -s "$RUNNER_TEMP/upload.jks" ]; then
+            echo "::error::ANDROID_UPLOAD_KEYSTORE_B64 did not decode to a file. Make it with: base64 -w 0 kin-upload.jks"
+            exit 1
+          fi
+      - name: Build the signed AAB
+        working-directory: kin/native/android
+        env:
+          KIN_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload.jks
+          KIN_UPLOAD_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KIN_UPLOAD_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          KIN_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon bundleRelease \
+            -PkinVersionCode=${{ github.run_number }} \
+            -PkinVersionName="1.0.${{ github.run_number }}"
+          echo "Built versionCode ${{ github.run_number }} (1.0.${{ github.run_number }})."
+      - name: Forget the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: kin-android-aab
+          path: kin/native/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload to Google Play (internal testing)
+        if: inputs.upload
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "No PLAY_SERVICE_ACCOUNT_JSON secret: download the artifact kin-android-aab above and upload it in the Play Console by hand."
+            exit 0
+          fi
+          node scripts/play-upload.mjs android/app/build/outputs/bundle/release/app-release.aab internal
