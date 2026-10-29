@@ -3,7 +3,7 @@ import { paletteCss, PALETTE_NEW_MEMBER } from "@/lib/palettes";
 import { OPERATOR, LEGAL_UPDATED } from "@/lib/legal";
 import { LegalBack } from "@/app/legal/legal-back";
 
-/** The privacy notice, terms and refund policy. Public, like the home page,
+/** The privacy notice, terms, refund policy and cookies page. Public, like the home page,
  * because people read them before they have an account -- and an app store
  * reviewer reads them without one at all. Kin Coral, the public look. */
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +18,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/privacy">Privacy</Link>
         <Link href="/legal/terms">Terms</Link>
         <Link href="/legal/refunds">Refunds</Link>
+        <Link href="/legal/cookies">Cookies</Link>
       </nav>
       <div className="kin-legal-back">
         <LegalBack />
