@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { insuranceGap, payOrInvest, costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
+import { mp2RateStale, payFirst, insuranceGap, payOrInvest, costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -259,4 +259,25 @@ test("insuranceGap names what a car or house is missing, and nothing else", () =
   expect(insuranceGap("property", [])).toMatch(/Fire insurance/);
   expect(insuranceGap("property", ["Fire insurance"])).toBeNull();
   expect(insuranceGap("valuable", [])).toBeNull();
+});
+
+/** Which debt an extra peso should go to (29 October): the dearest. */
+test("payFirst picks the highest rate, a card at the BSP ceiling when its rate is unknown", () => {
+  const r = payFirst([
+    { name: "Housing loan", balance: 4_200_000, ratePct: 7.5 },
+    { name: "Car loan", balance: 310_000, ratePct: 8.5 },
+    { name: "BPI Visa", balance: 31_000, ratePct: null, card: true },
+  ]);
+  expect(r).toEqual({ name: "BPI Visa", rate: 36, assumed: true, next: { name: "Car loan", rate: 8.5 } });
+  // Paid off, or one debt alone: nothing to choose between.
+  expect(payFirst([{ name: "Car loan", balance: 0, ratePct: 8.5 }, { name: "Housing loan", balance: 1, ratePct: 7 }])).toBeNull();
+  expect(payFirst([{ name: "Loan", balance: 5, ratePct: null }, { name: "Other", balance: 5, ratePct: 4 }])).toBeNull();
+});
+
+test("mp2RateStale: a year's rate is current until the next is declared, about March", () => {
+  // 2025's rate, declared February 2026, holds through March 2027.
+  expect(mp2RateStale("2026-10-29")).toBe(false);
+  expect(mp2RateStale("2027-03-31")).toBe(false);
+  expect(mp2RateStale("2027-04-01")).toBe(true);
+  expect(mp2RateStale("2028-01-15")).toBe(true);
 });
