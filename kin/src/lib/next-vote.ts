@@ -1,4 +1,4 @@
-/** "What should Kin do next?" (20261029210000_feature_votes.sql): the
+/** "What should Kin do next?" (20261029233000_feature_votes.sql): the
  * choices, in the order they are shown. */
 export const NEXT_CHOICES = [
   { id: "live_alerts", label: "Typhoon and class-suspension alerts by themselves" },
