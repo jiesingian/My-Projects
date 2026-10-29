@@ -228,21 +228,6 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     const numberError = await saveAccountNumber(supabase, me.family_id, me.id, accountId, numbered.number);
     if (numberError) return { error: numberError };
   }
-  // Whose it is (Janine, 29 October: two MP2s added under a parent's name
-  // that were the children's). Only sent by a form that offered the field;
-  // the database checks who may move it to whom, moves the movements that
-  // were simply the old owner's with it, and does nothing if it is already
-  // there.
-  if (formData.has("owner")) {
-    const pick = String(formData.get("owner"));
-    const owner = pick === "joint" ? null : pick === "me" ? me.id : UUID.test(pick) ? pick : undefined;
-    if (owner === undefined) return { error: "Choose yourself, the family, or a child whose profile you keep." };
-    const { error: moveError } = await supabase.rpc("move_account_owner", { p_account: accountId, p_owner: owner });
-    if (moveError) {
-      revalidateWealth();
-      return { error: `The rest was saved, but not whose account it is: ${databaseError(moveError)}` };
-    }
-  }
 
   revalidateWealth();
   redirect(`/wealth/accounts/${accountId}`);

@@ -48,13 +48,6 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const people = others.map((m, i) => ({ id: m.id, label: otherNames[i], grownUp: isGrownUp(m.role), hasLogin: m.role !== "child_managed" }));
   const number = numbers.get(account.id) ?? null;
   const canNumber = account.is_joint ? isGrownUp(me.role) : account.owner_member_id === me.id;
-  // Whose it can be moved to, as the Add form offers (you, the family, a
-  // child whose profile you keep), when a grown-up looks at one that is one
-  // of those now; move_account_owner checks the same.
-  const managed = others.flatMap((m, i) => (m.role === "child_managed" ? [{ value: m.id, label: `${otherNames[i]} (managed)` }] : []));
-  const currentOwner = account.is_joint ? "joint" : account.owner_member_id === me.id ? "me" : (account.owner_member_id ?? "");
-  const canMove = isGrownUp(me.role) && (currentOwner === "joint" || currentOwner === "me" || managed.some((m) => m.value === currentOwner));
-  const owners = canMove ? [{ value: "me", label: "Mine" }, { value: "joint", label: "Family (joint)" }, ...managed] : null;
   // The Accounts tab's cash trend, for this account alone: the same line,
   // walked back from this account's balance instead of the combined total.
   const trend = cashBalanceTrend(history, account.balance);
@@ -212,7 +205,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           </div>
         ))}
 
-        <AccountEditForm account={account} number={number} canNumber={canNumber} owners={owners} currentOwner={currentOwner} />
+        <AccountEditForm account={account} number={number} canNumber={canNumber} />
         {/* Delete Account, the same width as Edit account. Archive is one of
             its choices, not a button of its own: archiving is a rare,
             deliberate step, not an everyday one. */}
