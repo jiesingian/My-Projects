@@ -166,8 +166,7 @@ const MIGRATIONS = [
   "20261029170000_pets.sql",
   "20261029130000_bill_pushes_to_who_pays.sql",
   "20261029200000_alarm_wakes.sql",
-  "20261029160000_waiting_snoozes.sql",
-  "20261029180000_waiting_snoozes.sql",
+  "20261029210000_waiting_snoozes.sql",
 ];
 
 const only = process.argv[2];
