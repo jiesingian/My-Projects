@@ -7,8 +7,11 @@ android {
         applicationId "com.jiesingian.kin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Google Play takes each upload only with a higher versionCode than
+        // the last, so play-release.yml passes its run number
+        // (-PkinVersionCode); a local or debug build is 1.
+        versionCode((project.findProperty("kinVersionCode") ?: "1") as Integer)
+        versionName((project.findProperty("kinVersionName") ?: "1.0") as String)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +19,27 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // The upload key (play-release.yml): Google Play re-signs what it
+    // ships with its own app-signing key (Play App Signing), so this key only
+    // proves an upload is Jonathan's, and Google can reset it if it is lost.
+    // Read from the environment, never from a file in the repository; without
+    // it a release build is simply unsigned (android.yml builds one that way
+    // to prove the release build compiles).
+    signingConfigs {
+        if (System.getenv("KIN_UPLOAD_STORE_FILE")) {
+            upload {
+                storeFile file(System.getenv("KIN_UPLOAD_STORE_FILE"))
+                storePassword System.getenv("KIN_UPLOAD_STORE_PASSWORD")
+                keyAlias System.getenv("KIN_UPLOAD_KEY_ALIAS")
+                keyPassword System.getenv("KIN_UPLOAD_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("KIN_UPLOAD_STORE_FILE")) {
+                signingConfig signingConfigs.upload
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
