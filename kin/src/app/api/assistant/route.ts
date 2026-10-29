@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       const toolUses = response.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
 
       if (toolUses.length === 0) {
-        return NextResponse.json({ reply: textOf(response.content) || "Done.", actions, source: "model" });
+        return NextResponse.json({ reply: textOf(response.content) || "Done.", actions, source: "model", left: allowance.left });
       }
 
       messages.push({ role: "assistant", content: response.content });
