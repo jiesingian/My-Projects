@@ -1047,7 +1047,7 @@ export function CategoryBudgetRow({
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.84375rem", marginBottom: "0.25rem" }}>
         <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block", marginRight: "0.0625rem", flex: "none" }} />
         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
-        {!budgeted && <span style={{ fontSize: "0.75rem", color: canEdit ? "var(--color-switch-on)" : "var(--color-neutral-600)", flex: "none" }}>{canEdit ? "set budget" : "no budget"}</span>}
+        {!budgeted && <span style={{ fontSize: "0.75rem", color: canEdit ? "var(--color-switch-on-ink)" : "var(--color-neutral-600)", flex: "none" }}>{canEdit ? "set budget" : "no budget"}</span>}
         {/* Never cut off (26 October): the amount keeps its width and the
             name gives way. */}
         <span style={{ marginLeft: "auto", flex: "none", whiteSpace: "nowrap", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", paddingLeft: "0.5rem" }}>

@@ -847,6 +847,15 @@ test("where is: the matching records by kind; do we have: the pantry and the lis
   expect(said("do we have any eggs left", household)).toBe("No eggs in the pantry, and it isn't on the list.");
 });
 
+test("do we have, asked by an item's whole name: that item, not every name sharing a word", () => {
+  // 29 October, weekly check: "do we have E2E-RULES milk" beside the
+  // household's "Condensed milk" listed both.
+  const two = { shopping_list: [{ name: "Condensed milk", quantity: null, unit: null, section: "Dairy", checked: false }, { name: "E2E-RULES milk", quantity: null, unit: null, section: "Dairy", checked: false }], still_to_buy: 2, meals_this_week: [], pantry: [] };
+  expect(said("do we have E2E-RULES milk", two)).toBe("None in the pantry; on the list: E2E-RULES milk.");
+  // A word that is neither's whole name still finds both.
+  expect(said("do we have milk", two)).toBe("None in the pantry; on the list: Condensed milk, E2E-RULES milk.");
+});
+
 /* ------------------------------------------------------------- the marks */
 
 test("a bill paid with no account named: the bills are read, then which account is asked, with 'outside Kin' as a choice", () => {

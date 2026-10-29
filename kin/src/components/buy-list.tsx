@@ -367,7 +367,7 @@ export function BuyList({
             {
               label: summary.savings < 0 ? "Over" : "Savings",
               value: formatCurrency(Math.abs(summary.savings), currency),
-              tone: summary.savings < 0 ? "var(--cal-money)" : summary.savings > 0 ? "var(--color-switch-on)" : "var(--color-text)",
+              tone: summary.savings < 0 ? "var(--cal-money)" : summary.savings > 0 ? "var(--color-switch-on-ink)" : "var(--color-text)",
             },
           ].map((f) => (
             <div key={f.label} style={{ display: "grid", gap: "0.1875rem", minWidth: 0 }}>
@@ -1203,7 +1203,7 @@ function PastTrips({ trips, currency }: { trips: RecentTrip[]; currency: string 
               <span style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", font: "400 0.78125rem/1.3 var(--font-numeric)", color: "var(--color-neutral-700)" }}>
                 <span>Budget {formatCurrency(t.budget, currency)}</span>
                 <span>Actual {formatCurrency(t.actual, currency)}</span>
-                <span style={{ color: t.savings < 0 ? "var(--cal-money)" : t.savings > 0 ? "var(--color-switch-on)" : undefined, fontWeight: 600 }}>
+                <span style={{ color: t.savings < 0 ? "var(--cal-money)" : t.savings > 0 ? "var(--color-switch-on-ink)" : undefined, fontWeight: 600 }}>
                   {t.savings < 0 ? `Over ${formatCurrency(-t.savings, currency)}` : `Saved ${formatCurrency(t.savings, currency)}`}
                 </span>
                 {t.paid != null && Math.abs(t.paid - t.actual) >= 0.01 && <span>Paid {formatCurrency(t.paid, currency)}</span>}
