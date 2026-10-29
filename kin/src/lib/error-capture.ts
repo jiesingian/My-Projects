@@ -136,6 +136,16 @@ export function isReaderGone(message: unknown): boolean {
   return /^(Error: )?The destination stream (errored while writing data|closed early)\.?$/.test(String(message ?? "").trim());
 }
 
+/** Whether a browser error is a page from an earlier build asking for a
+ * file the newest deploy no longer has (29 October): "ChunkLoadError:
+ * Failed to load chunk ..." four times on dev's /wealth in a week, each
+ * right after a deploy. Nothing is broken but the page in hand; loading it
+ * again fetches the new build. Chrome, Safari and Firefox word a failed
+ * dynamic import differently; all three are here. */
+export function isStaleBuild(message: unknown): boolean {
+  return /ChunkLoadError|Loading chunk [\w-]+ failed|Failed to load chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(String(message ?? ""));
+}
+
 /** What is recorded for an error a server action or route handler caught
  * (lib/report-error.ts): `where` is a fixed label, scrubbed again in case an
  * id or a name was put in it; `page` the page it came from, as a pattern.

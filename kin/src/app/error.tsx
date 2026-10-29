@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { reportClientError } from "@/components/error-reporter";
+import { reloadForNewBuild, reportClientError } from "@/components/error-reporter";
 
 /** Root error boundary. Without this, an unhandled error anywhere below it
  * falls through to Next's default screen -- a stack trace or a blank page
@@ -14,6 +14,9 @@ import { reportClientError } from "@/components/error-reporter";
  * that doesn't depend on the broken segment at all. */
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    // A page from before the latest deploy: load it again rather than say
+    // something went wrong (isStaleBuild, 29 October).
+    if (reloadForNewBuild(error)) return;
     console.error(error);
     reportClientError(error);
   }, [error]);

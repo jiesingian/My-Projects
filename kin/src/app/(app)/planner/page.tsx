@@ -21,7 +21,7 @@ import {
 } from "@/lib/queries/planner";
 import { splitDoneToday, weekRest } from "@/lib/week-done";
 import { getMembers } from "@/lib/queries/family";
-import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
+import { syncCalendarsIfStale } from "@/lib/calendar-sync-core";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
@@ -95,7 +95,10 @@ export default async function PlannerPage({
   // API calls before seeing a single day. after() runs it once the response is
   // already on its way: the same five-minute rhythm, nobody waiting on it. It
   // already swallows its own errors.
-  after(() => syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000));
+  // The client is made here, not in the callback: a page may not read
+  // cookies inside after(), and making one does (Next refuses, 29 October).
+  const calendarClient = await createClient();
+  after(() => syncCalendarsIfStale(calendarClient, me.family_id, 5 * 60 * 1000));
 
   const segments = SEGMENTS.map((s) => ({
     // "Tasks" reads far better than "Routines" to the people actually using
