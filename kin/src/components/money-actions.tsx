@@ -44,6 +44,7 @@ import {
   setAccountVisibilityAction,
   postHubExpenseAction,
   deleteRemittanceAction,
+  matchBankBalanceAction,
 } from "@/lib/actions/wealth";
 import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
@@ -2133,6 +2134,52 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
           onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp, clientIds: { out: entryId("card-out"), in: entryId("card-in") } }), () => setOpen(false))}
         >
           {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
+        </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Match the bank" on an account's page (29 October): type what the bank
+ * or e-wallet app shows, see the difference, and Kin records it as one
+ * entry (matchBankBalanceAction). A card asks for what is owed. */
+export function MatchBankControl({ accountId, accountName, balance, kind, currency }: { accountId: string; accountName: string; balance: number; kind: string; currency: string }) {
+  const credit = kind === "credit";
+  const source = credit ? "card statement says you owe" : kind === "cash" ? "cash actually there when you count it" : "bank or e-wallet app shows";
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState<number | null>(null);
+  const { error, pending, run, entryId } = useMoneyAction();
+  const shown = credit ? -balance : balance;
+  const target = typed === null ? null : credit ? -Math.abs(typed) : typed;
+  const diff = target === null ? null : Math.round((target - balance) * 100) / 100;
+  return (
+    <>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.5rem" }} onClick={() => setOpen(true)}>
+        {kind === "cash" ? "Count the cash" : "Match the bank"}
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`Match ${accountName} to the bank`}>
+        <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 0.625rem" }}>
+          Kin shows {formatCurrency(shown, currency)}{credit ? " owed" : ""}. Type what the {source}, and Kin records the difference so the two agree from today.
+        </p>
+        <AmountInput ariaLabel={credit ? "What the card says you owe" : "What the bank shows"} onValueChange={setTyped} style={{ minHeight: "2.5rem", width: "100%" }} />
+        {diff !== null && (
+          <p role="status" style={{ fontSize: "0.8125rem", margin: "0.5rem 0 0", color: "var(--color-neutral-700)" }}>
+            {diff === 0 ? "They already agree." : `${diff > 0 ? "Adds" : "Takes off"} ${formatCurrency(Math.abs(diff), currency)}, recorded today as "Matched to the bank's balance". It is not counted as income or spending.`}
+          </p>
+        )}
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || typed === null || diff === 0}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() => typed !== null && run(() => matchBankBalanceAction({ accountId, bankBalance: typed, clientId: entryId("match") }), () => setOpen(false))}
+        >
+          {pending ? "…" : "Match it"}
         </button>
       </FormSheet>
     </>

@@ -13,7 +13,7 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingRows, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle, PayCardControl } from "@/components/money-actions";
+import { PendingRows, DeleteEntryButton, EditEntryButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle, PayCardControl, MatchBankControl } from "@/components/money-actions";
 import { entryFor } from "@/lib/entry-for";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
@@ -94,6 +94,12 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
             Opened at {formatCurrency(Number(account.opening_balance), currency)} · {confirmed.length} movement{confirmed.length === 1 ? "" : "s"} since
           </div>
+          {/* No bank sync: put the balance right from the bank's own figure (29 October). */}
+          {!account.is_archived && (
+            <div style={{ marginTop: "0.25rem", marginLeft: "-0.5rem" }}>
+              <MatchBankControl accountId={account.id} accountName={account.name} balance={account.balance} kind={account.account_type} currency={currency} />
+            </div>
+          )}
           {(number || qr || canNumber) && (
             <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
               {number && <AccountNumber number={number} />}
