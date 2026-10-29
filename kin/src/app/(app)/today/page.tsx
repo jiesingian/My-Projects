@@ -45,6 +45,7 @@ import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
 import { ChristmasOnToday } from "@/components/christmas-on-today";
+import { TyphoonOnToday } from "@/components/typhoon-on-today";
 import { WhosWhere } from "@/components/whos-where";
 import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
@@ -179,6 +180,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       {/* Someone's SOS, until it is resolved: above everything (23 October). */}
       <SosOpenBanner alerts={family.sos} />
+      {/* A storm or long brownout coming (components/typhoon-on-today). */}
+      <TyphoonOnToday />
 
       {/* 1 December to 1 January: sleeps to Noche Buena, the Noche Buena plan, the
           gift list and the monito-monita (lib/christmas.ts); a household switch. */}

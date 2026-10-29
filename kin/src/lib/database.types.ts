@@ -3002,6 +3002,7 @@ export type Database = {
           name: string
           remember_the_departed: boolean
           christmas_on_today: boolean
+          typhoon_mode_since: string | null
           share_with_relatives: boolean
           time_zone: string
           week_start: string
@@ -3027,6 +3028,7 @@ export type Database = {
           name: string
           remember_the_departed?: boolean
           christmas_on_today?: boolean
+          typhoon_mode_since?: string | null
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
@@ -3052,6 +3054,7 @@ export type Database = {
           name?: string
           remember_the_departed?: boolean
           christmas_on_today?: boolean
+          typhoon_mode_since?: string | null
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
@@ -8443,6 +8446,39 @@ export type Database = {
         }
         Relationships: []
       }
+      ready_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          done_by: string | null
+          family_id: string
+          id: string
+          label: string
+          sort: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          family_id: string
+          id?: string
+          label: string
+          sort?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          family_id?: string
+          id?: string
+          label?: string
+          sort?: number
+        }
+        Relationships: []
+      }
       alarm_picks: {
         Row: {
           created_at: string
@@ -9258,6 +9294,7 @@ export type Database = {
         }
       }
       use_kin_ai: { Args: never; Returns: Json }
+      set_typhoon_mode: { Args: { p_on: boolean }; Returns: string | null }
       family_storage_bytes: { Args: never; Returns: number }
       expired_highlights: {
         Args: never

@@ -381,6 +381,28 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": []
           }
         ]
+      },
+      {
+        "title": "Get ready",
+        "features": [
+          {
+            "name": "Typhoon mode and the go-bag checklist",
+            "tags": [],
+            "what": "For typhoons and long brownouts: a checklist the whole household ticks together (water, food, light, power banks, medicines, papers in a waterproof bag, cash), and Typhoon mode, which puts the checklist, the emergency card and \"Ask everyone if they're okay\" at the top of Today until it passes.",
+            "how": "Family → Get ready for typhoons. Start the checklist and make it fit your home; a grown-up switches Typhoon mode on when a storm is coming and off when it has passed.",
+            "pros": [
+              "Everyone sees what is still missing, and who ticked what.",
+              "One tap asks everyone with Kin on a phone if they're okay.",
+              "A brownout goes on the calendar from the same page."
+            ],
+            "cons": [
+              "Switched on by hand: Kin doesn't read PAGASA signals or class suspensions yet."
+            ],
+            "tips": [
+              "get the checklist done at the start of the rainy season, not the night before a storm."
+            ]
+          }
+        ]
       }
     ]
   },

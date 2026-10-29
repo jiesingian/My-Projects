@@ -80,7 +80,7 @@ export default async function FamilyPage({
     <div>
       <HubHeader n="01" title="Family" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
+        {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} myTyphoon={!!me.families.typhoon_mode_since} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && !readAccess(me.families).plus && <PlusNote area="The vault" />}
         {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}
@@ -91,7 +91,7 @@ export default async function FamilyPage({
   );
 }
 
-async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string }) {
+async function ProfilePane({ familyId, isOrganiser, myRole, myTyphoon }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string; myTyphoon: boolean }) {
   // Matches add_managed_child, which lets any parent or adult add one.
   const canAddChild = myRole === "parent" || myRole === "adult";
   const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }, asking] = await Promise.all([
@@ -176,6 +176,18 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
             <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>People you can message one to one, in the family or outside it</span>
           </span>
           {asking > 0 && <Tag variant="accent">{asking} ASKING</Tag>}
+        </Blueprint>
+      </Link>
+
+      {/* Typhoons and long brownouts (29 October): the checklist and Typhoon mode. */}
+      <Link href="/family/ready" style={{ textDecoration: "none", color: "inherit", display: "block", marginTop: "0.625rem" }}>
+        <Blueprint style={{ padding: "0.8125rem 0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <Icon name="cloudSun" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>Get ready for typhoons</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>The go-bag checklist, Typhoon mode, and checking on everyone</span>
+          </span>
+          {myTyphoon && <Tag variant="accent">ON</Tag>}
         </Blueprint>
       </Link>
 
