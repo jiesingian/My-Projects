@@ -13,6 +13,9 @@ export function trackKey(tracks: Tracks, idOrCategory: string, owner: string | n
   return tracks === "expense" ? `expense:${owner ?? "family"}:${idOrCategory}` : `${tracks}:${idOrCategory}`;
 }
 
+/** An auto-save loan bill's name begins so: "Extra on Car loan". */
+export const EXTRA_PREFIX = "Extra on ";
+
 export const clamp01 = (n: number) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
 
 /** A savings account up to a balance. */
@@ -81,4 +84,10 @@ export function monthsUntil(today: string, date: string): number {
   const [y1, m1, d1] = today.slice(0, 10).split("-").map(Number);
   const [y2, m2, d2] = date.slice(0, 10).split("-").map(Number);
   return Math.max(0, (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0));
+}
+
+/** The highest of 25, 50, 75 and 100 a goal has passed. */
+export function milestoneOf(fraction: number, reached: boolean): 0 | 25 | 50 | 75 | 100 {
+  if (reached) return 100;
+  return (Math.min(3, Math.floor(Math.max(0, fraction) * 4)) * 25) as 0 | 25 | 50 | 75;
 }
