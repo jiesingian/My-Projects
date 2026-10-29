@@ -59,10 +59,12 @@ export default async function AccountSettingsPage() {
             <DeleteAccountButton householdNote={planSentence(plan, toName)} lastGrownUp={plan.kind === "last_grown_up"} />
           )}
         </div>
-        <nav aria-label="Legal" style={{ display: "flex", justifyContent: "center", gap: "1.25rem", marginTop: "1.25rem", fontSize: "0.84375rem" }}>
+        <nav aria-label="Legal" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.5rem 1.25rem", marginTop: "1.25rem", fontSize: "0.84375rem" }}>
           <Link href="/legal/privacy">Privacy</Link>
           <Link href="/legal/terms">Terms</Link>
           <Link href="/legal/refunds">Refunds</Link>
+          <Link href="/legal/cookies">Cookies</Link>
+          <Link href="/legal/licenses">Licences</Link>
           <Link href="/legal/support">Support</Link>
         </nav>
         <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-600)", textAlign: "center", marginTop: "0.875rem" }}>KIN 1.0.0</div>

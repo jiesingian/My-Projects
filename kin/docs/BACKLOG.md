@@ -3,6 +3,69 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Legal readiness before launch, 29 October (Jonathan)
+
+A check of Kin against the Data Privacy Act and the NPC's circulars, the
+Consumer, E-Commerce and Internet Transactions Acts, GDPR and COPPA where
+they reach, Apple and Google's rules, and WCAG 2.2 AA. It is not legal
+advice: everything below is for a Philippine lawyer to read before launch.
+
+**Done, without changing a feature:** public pages pass axe (#1142, every
+legal page since the follow-up); unsupported claims removed (#1148, #1160);
+terms and refunds (#1150); the privacy notice rewritten against the code,
+and a cookies page with no banner because nothing tracks (#1147); licence
+notices (#1149); store text matches the app (#1159).
+
+**Approved and built:**
+- Sign-up: a box the person ticks, and the version agreed recorded (#1153);
+  "Are you 18 or older?", under 18 joins a household only (#1161).
+- Kin AI asks each person once before anything goes to Anthropic (#1155).
+- One OK per person before health or money records (#1156).
+- Deleting an account sweeps two newer tables and withdraws Google access
+  at Google (#1151).
+- Download my data has every area, and the messages a person sent (#1154).
+- An SOS alert's position is cleared after 30 days (#1152).
+- Government ID numbers in their own table: the person and the household's
+  grown-ups only (#1157).
+- The notice says what all of these do, and that Kin is a service for
+  families in the Philippines (the follow-up PR).
+
+**Only Jonathan can do these** (each costs money or is a filing in his
+name; the URLs are from the audit, and privacy.gov.ph could not be opened
+from the session):
+1. Register the business name with DTI: https://bnrs.dti.gov.ph/
+2. Register with the BIR: https://orus.bir.gov.ph/
+3. The DTI E-Commerce Trustmark before Kin Plus is sold (DAO 25-12; its
+   deadline has passed): https://trustmark.dti.gov.ph/ — keep payments off
+   until then, as they are.
+4. Name a Data Protection Officer and file with the NPC (register at 1,000
+   people with health data, Circular 2022-04; below that, the exemption
+   declaration): https://privacy.gov.ph/?p=41669
+5. A support address. Then any session fills `OPERATOR` in
+   `src/lib/legal.ts` (name, address, email, DPO, registration, TIN), which
+   the legal pages already show.
+6. A lawyer's read, and the providers' data terms on file:
+   https://supabase.com/legal/dpa, https://vercel.com/legal/dpa,
+   https://www.anthropic.com/legal/commercial-terms,
+   https://firebase.google.com/terms/data-processing-terms
+7. The stores say 18+ while children can have their own logins: decide
+   the age rating in App Store Connect and Play's target audience with the
+   lawyer.
+
+**For the lawyer:** whether consent by adding plus one OK per area is
+enough for health and money (s.13, Circular 2023-04); whether an organizer
+who isn't a child's parent can approve the child; whether the sign-up
+record in the account's metadata is enough evidence or needs its own
+table; whether OFW families make Kin "offer services" in the EU; the
+refund windows and the 7- and 15-day replies; a written 72-hour breach
+plan.
+
+**Not verified:** the official texts on privacy.gov.ph, lawphil.net and
+Play's help pages (blocked from the session; law-firm summaries used); the
+new screens in a browser as the QA household (dev's sign-in was timing
+out; their database rules are covered by probes); Download my data end to
+end.
+
 ## Decided 29 October: Kin on Google Play (Jonathan)
 
 Jonathan will publish the Android app on Google Play. Everything a session
@@ -50,7 +113,7 @@ link for every step:
     household.
 - **Alarms that never run out on Android:** `due_alarm_wakes` sends the
   app a silent Firebase message daily and after a change, and
-  `KinAlarmSync` sets the alarms again (`20261030140000`). After an
+  `KinAlarmSync` sets the alarms again (`20261030153700`). After an
   update or a restart, `KinAlarmReceiver` sets them again
   (`MY_PACKAGE_REPLACED`, `BOOT_COMPLETED`).
 
@@ -140,7 +203,7 @@ Built without the account, as a series in one session:
      auth `fcm`. Off until the free Firebase project exists (SETUP section
      10: `GOOGLE_SERVICES_JSON` for the build, `FCM_*` in Vercel).
    - Not done for Android: the widgets. The silent daily re-sync reaches
-     Android since 29 October (`20261030140000`, `KinAlarmSync`; "Kin on
+     Android since 29 October (`20261030153700`, `KinAlarmSync`; "Kin on
      Google Play" above).
 7. **Ready for the App Store** (29 October, #1135, #1140, #1144 and the
    walkthrough PR). Checked against Apple's current guidelines:

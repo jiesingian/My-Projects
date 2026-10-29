@@ -52,10 +52,18 @@ export type TrackedGoal = {
    * one is suggested for. */
   autoSave: { amount: number; accountId: string | null; next: string | null } | null;
   payday: string | null;
+  /** Whether `payday` is an expected income's day, or just next month's 1st. */
+  paydayKnown: boolean;
 };
 
 /** Every tracked goal of the household the viewer can see, by trackKey.
  * Built once a request (Wealth's tabs and Planner share it). */
+/** The 1st of the month after `today` (YYYY-MM-DD). */
+function firstOfNextMonth(today: string): string {
+  const [y, m] = today.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+}
+
 /** Days after today to the month's end. */
 function daysLeftInMonth(today: string): number {
   const [y, m, d] = today.split("-").map(Number);
@@ -102,7 +110,11 @@ export const getTrackedGoals = cache(async (familyId: string, currency: string):
       : none,
     supabase.from("income_schedules").select("next_date").eq("family_id", familyId).eq("status", "expected").gte("next_date", today).order("next_date", { ascending: true }).limit(1),
   ]);
-  const payday = paydays?.[0]?.next_date?.slice(0, 10) ?? null;
+  // With no income expected (none set up yet), the 1st of next month: the
+  // first auto-save still has a day, and the button isn't left greyed out.
+  const nextIncome = paydays?.[0]?.next_date?.slice(0, 10) ?? null;
+  const payday = nextIncome ?? firstOfNextMonth(today);
+  const paydayKnown = nextIncome !== null;
   const autoSaveFor = (table: "goals" | "liabilities", id: string | null) => {
     const b = (saveBills ?? []).find((x) => x.against_table === table && x.against_id === id && (table === "goals" ? x.category === GOAL_CATEGORY : x.name.startsWith(EXTRA_PREFIX)));
     return b ? { amount: Number(b.amount), accountId: b.account_id, next: b.due_date?.slice(0, 10) ?? null } : null;
@@ -114,7 +126,7 @@ export const getTrackedGoals = cache(async (familyId: string, currency: string):
   for (const g of goals) {
     const tracks = g.tracks as Tracks;
     const setTo = Number(g.target);
-    const base = { id: g.id, title: g.title, tracks, ownerId: g.owner_member_id, period: g.period, dueDate: g.due_date, setTo, watchOnTime: g.watch_on_time, over: false, lines: [] as string[], thingId: g.tracks_id, category: g.tracks_category, nudge: null as string | null, perMonth: null as number | null, autoSave: null as TrackedGoal["autoSave"], payday };
+    const base = { id: g.id, title: g.title, tracks, ownerId: g.owner_member_id, period: g.period, dueDate: g.due_date, setTo, watchOnTime: g.watch_on_time, over: false, lines: [] as string[], thingId: g.tracks_id, category: g.tracks_category, nudge: null as string | null, perMonth: null as number | null, autoSave: null as TrackedGoal["autoSave"], payday, paydayKnown };
     const by = g.due_date ? ` by ${fmtDate(g.due_date)}` : "";
     const left = g.due_date ? monthsUntil(today, g.due_date) : null;
     // A fund or balance near its date (two months) or past it, not there.

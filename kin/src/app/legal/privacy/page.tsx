@@ -33,7 +33,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Your account:</strong> your email address and a password. The password is stored only as a one-way hash
           by our sign-in provider, never as text. The sign-in provider also records the network address and browser of
-          each sign-in, to keep accounts secure.
+          each sign-in, to keep accounts secure. At sign-up we also keep whether you said you are 18 or older, and that you
+          agreed to the terms and read this notice: which version, and when.
         </li>
         <li>
           <strong>Your profile:</strong> your name, and whatever else you choose to fill in: birthday, place of birth, sex,
@@ -114,8 +115,9 @@ export default function PrivacyPage() {
         </li>
         <li>
           Sensitive personal information (health, money, ID numbers, children&rsquo;s details) is processed on the basis of
-          your consent (section 13), which you give by adding it for that purpose. You can withdraw it at any time by
-          deleting the information or your account.
+          your consent (section 13). Kin asks for it the first time each person opens Family → Health or Wealth, and you
+          give it by adding the information for that purpose. You can withdraw it at any time by deleting the
+          information or your account.
         </li>
         <li>Information about others you add is processed on your behalf, for your household&rsquo;s own use.</li>
       </ul>
@@ -129,7 +131,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Your household.</strong> Records belong to your household and are walled off from every other household
           by the database&rsquo;s own access rules. Inside the household, some records can be limited to grown-ups or to
-          the person they are about. The vault can be locked with a PIN, Face ID or a fingerprint. The lock is optional
+          the person they are about. Government ID numbers can be seen only by the person they belong to and the
+          household&rsquo;s grown-ups. The vault can be locked with a PIN, Face ID or a fingerprint. The lock is optional
           and guards the screen; it is not separate encryption.
         </li>
         <li>
@@ -146,7 +149,8 @@ export default function PrivacyPage() {
             <li>
               Anthropic (Kin AI): the question you ask and the household records it looks up to answer it; a photo or
               bank statement you ask it to read; and, when you ask for a catch-up on a chat you missed, the messages in
-              that chat, including other people&rsquo;s.
+              that chat, including other people&rsquo;s. Kin asks each person once before anything of theirs is sent, and
+              sends nothing for someone who has not said yes. You can stop it in Settings → Privacy.
             </li>
             <li>
               Google: only if you connect Google Calendar or Google Drive, what those connections sync. Notifications to
@@ -244,8 +248,8 @@ export default function PrivacyPage() {
       <p>
         Kin is for families, and is meant to be used by children only with a parent or guardian. A parent or guardian
         adds a child as a managed profile and decides what is recorded about them. A child can also have their own
-        login: they sign up and ask to join with the household&rsquo;s invite code, and the household&rsquo;s organizer
-        approves them as a child. A child&rsquo;s login starts in kid view, which keeps money, the vault and health
+        login: sign-up asks whether they are 18 or older, someone under 18 can only ask to join a household with its
+        invite code (never start one), and the household&rsquo;s organizer approves them as a child. A child&rsquo;s login starts in kid view, which keeps money, the vault and health
         records out of reach, and a child cannot connect with anyone outside the household without a parent&rsquo;s yes.
         A parent or guardian can ask us to see, correct or delete what Kin holds about their child, using the contact
         below.
@@ -282,8 +286,8 @@ export default function PrivacyPage() {
         within 15 days.
       </p>
       <p>
-        If you live outside the Philippines, Kin is still run from the Philippines under Philippine law, and you can use
-        all the rights above.
+        Kin is a service for families in the Philippines, run from the Philippines under Philippine law. If you use it
+        from another country, this notice and the rights above still apply to you.
       </p>
 
       <h2>Changes</h2>

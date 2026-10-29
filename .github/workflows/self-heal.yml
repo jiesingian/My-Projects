@@ -194,8 +194,11 @@ jobs:
             case "$HOUR" in *"*"*) continue ;; esac   # hourly/other: no fixed hour to check
 
             NAME=$(grep -m1 '^name:' "$F" | sed 's/^name: *//')
+            # created_at is when the schedule fired. run_started_at moves to
+            # the latest attempt, so a run re-run by hand on Monday read as
+            # 1116 minutes late (#1138) when the schedule itself was not.
             LAST=$(gh api "repos/$REPO/actions/workflows/$(basename "$F")/runs?event=schedule&per_page=5" \
-                    --jq '[.workflow_runs[].run_started_at] | @tsv' 2>/dev/null || echo "")
+                    --jq '[.workflow_runs[].created_at] | @tsv' 2>/dev/null || echo "")
             [ -n "$LAST" ] || continue
 
             echo "### $NAME (asks for ${HOUR}:${MIN} UTC)" >> "$GITHUB_STEP_SUMMARY"

@@ -315,7 +315,7 @@ export const getWaiting = cache(async (memberId: string, familyId: string, grown
       meta: t.nudge,
       tabs: TABS[t.tracks],
       lines: [t.caption + ".", ...t.lines],
-      actions: [{ kind: "wealth-goal", tracks: t.tracks, id: t.thingId, category: t.category, whose: t.ownerId ?? "family", mark: { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday } }],
+      actions: [{ kind: "wealth-goal", tracks: t.tracks, id: t.thingId, category: t.category, whose: t.ownerId ?? "family", mark: { id: t.id, title: t.title, setTo: t.setTo, dueDate: t.dueDate, watchOnTime: t.watchOnTime, fraction: t.fraction, reached: t.reached, over: t.over, caption: t.caption, lines: t.lines, perMonth: t.perMonth, autoSave: t.autoSave, payday: t.payday, paydayKnown: t.paydayKnown } }],
       snoozable: true,
       open: { href: t.href, label: t.tracks === "income" || t.tracks === "expense" ? "Open in Cash Flow" : t.tracks === "account" ? "Open the account" : "Open in A&L", tab: t.tracks === "income" || t.tracks === "expense" ? "cashflow" : t.tracks === "account" ? null : "assets" },
     });

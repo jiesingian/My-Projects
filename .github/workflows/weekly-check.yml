@@ -45,6 +45,11 @@ name: Weekly check
 # says so; there is no queue to jump and no setting to change. Expect the
 # same kind of drift here -- some time Friday evening rather than exactly
 # 5pm -- and do not plan an evening around the hour in this comment.
+# Measured here from 25 September to 23 October: the schedule fired between
+# 13:38 and 15:41 UTC, 21:38 to 23:41 Friday in Manila, four and a half to
+# seven hours late (#1138). Nobody waits on the hour -- the issue it opens
+# is read whenever it lands -- so the cron line says "late is fine" and
+# self-heal.yml's stale-claims check leaves it alone.
 #
 # WHAT IT RUNS, restored to the full suite 18 September. Between 18 September
 # and this change it ran a narrower smoke.spec.ts + regressions.spec.ts pair,
@@ -55,7 +60,7 @@ name: Weekly check
 # so it runs everything, the way it did before 18 September's first pass.
 on:
   schedule:
-    - cron: "0 9 * * 5"
+    - cron: "0 9 * * 5" # late is fine
   workflow_dispatch:
 
 permissions:

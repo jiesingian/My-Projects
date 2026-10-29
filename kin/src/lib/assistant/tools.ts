@@ -591,7 +591,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const today = familyDay(new Date(), tz);
       const since = (days: number) => addDays(today, -days) ?? today;
       const [member, medicines, conditions, vitals, illness, labs, checks, questions, contacts] = await Promise.all([
-        supabase.from("members").select("full_name, role, dob, blood_type, allergies, physician_name, insurance_info, philhealth_number, mobile").eq("id", targetId).eq("family_id", familyId).maybeSingle(),
+        supabase.from("members").select("full_name, role, dob, blood_type, allergies, physician_name, insurance_info, mobile, person_id").eq("id", targetId).eq("family_id", familyId).maybeSingle(),
         supabase.from("health_medicines").select("name, dose, times, start_date, end_date, notes").eq("member_id", targetId).order("name"),
         supabase.from("health_conditions").select("name, status, meta_note, health_condition_entries(entry_date)").eq("member_id", targetId),
         supabase.from("health_vitals").select("vital_type, reading_date, value_text, unit").eq("member_id", targetId).gte("reading_date", since(90)),
@@ -602,6 +602,8 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         supabase.from("emergency_contacts").select("name, relationship, phone").eq("family_id", familyId).order("name"),
       ]);
       if (!member.data) return fail("That person's profile could not be read.");
+      // PhilHealth lives in member_ids (20261030140000), read as the asker.
+      const { data: ids } = await supabase.from("member_ids").select("philhealth_number").eq("person_id", member.data.person_id).maybeSingle();
 
       // The other grown-ups with a number first, as on the emergency card.
       const { data: grownUps } = await supabase.from("members").select("id, full_name, relationship, role, mobile, status").eq("family_id", familyId);
@@ -614,7 +616,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
 
       return done(
         healthAnswer({
-          member: member.data,
+          member: { ...member.data, philhealth_number: ids?.philhealth_number ?? null },
           medicines: medicines.data ?? [],
           conditions: conditions.data ?? [],
           vitals: vitals.data ?? [],

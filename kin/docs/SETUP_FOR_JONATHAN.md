@@ -419,13 +419,16 @@ working exactly as now, for everyone, with or without the iPhone app.
      `privacy.md`, then Publish.
    - **The 1.0 version page:** promotional text, description, keywords,
      support and marketing URLs, copyright, what's new (`listing.md`).
-   - **Screenshots:** run
-     [Actions → iOS build → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/ios.yml)
-     with **screenshots** ticked. When it is green, download the run's
-     `app-store-screenshots` artifact (bottom of the run page). Drag
-     `6.9-inch/` into the 6.9" iPhone slot and `6.3-inch/` into the 6.3" one.
-     After step 8, add your own shots of an alarm ringing and a widget, in the
-     sample household only (`store/README.md`).
+   - **Screenshots:** take them on your iPhone in the review household
+     (step 10), after step 8: side button + volume up. Five to seven: Today,
+     the Planner, Chat, a person's health, an alarm ringing on the Lock
+     Screen, the incoming-call screen, a widget. Only that invented household
+     is ever on screen, never your own family's. A 6.9" iPhone (Pro Max) gives
+     the 6.9" slot's size and a 6.3" one (Pro) the 6.3" slot's; Apple needs a
+     set in each, so if you have one size, tell a session and it scales them
+     to the other (`store/README.md`). The `ios.yml` screenshots job is only
+     a layout check: its pictures are of the QA test household, whose test
+     names ("Tester", "E2E ...") must not go on the store page.
    - **Build:** pick the TestFlight build from step 6.
 10. **The review account.** Create the sample household for Apple exactly as
     `kin/native/ios/store/review-notes.md` says: a new account in

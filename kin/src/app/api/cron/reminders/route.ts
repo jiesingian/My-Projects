@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 }
 
 /** The Kin apps' silent re-sync (due_alarm_wakes, 20261029200000; Android
- * since 20261030140000): each app phone once a day, and within a tick of a
+ * since 20261030153700): each app phone once a day, and within a tick of a
  * medicine, picked plan, check-up or bill changing, so its two weeks of
  * alarms never run out. An iPhone gets Apple's background push, an Android
  * phone Firebase's data message `sync: alarms`. Not even asked until the
