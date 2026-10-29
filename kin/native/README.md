@@ -53,6 +53,7 @@ therefore wrapped as an installed app. The decisions:
   the widgets. Critical Alerts are added
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
+  `ios/TESTFLIGHT.md`: what the first run does and what each failure means.
 
 ## Android (built, not published)
 
