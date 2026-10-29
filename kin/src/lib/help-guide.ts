@@ -1442,7 +1442,9 @@ export const HELP_GUIDE: HelpTab[] = [
             "cons": [
               "On iPhone they work once Kin is on the Home Screen."
             ],
-            "tips": []
+            "tips": [
+              "if this phone can't get reminders, Today says so with a Fix button."
+            ]
           },
           {
             "name": "Alarms",

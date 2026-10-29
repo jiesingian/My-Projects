@@ -50,6 +50,7 @@ import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 import { GuidedTour } from "@/components/guided-tour";
+import { PushNudge } from "@/components/push-nudge";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { getNextBillOffers } from "@/lib/queries/wealth";
 
@@ -219,6 +220,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           header's "Eating today". On a quiet day it is one line. */}
       {/* A public holiday today or this week (lib/holidays). */}
       <HolidayLine />
+      {/* This phone can't hear from Kin yet (components/push-nudge). */}
+      <PushNudge />
 
       {entries.length === 0 ? (
         <p className="kin-allclear">
