@@ -41,6 +41,13 @@ on:
       - "kin/package-lock.json"
       - "kin/playwright.config.ts"
       - ".github/workflows/e2e.yml"
+      # A migration on its own changes what every page reads, and
+      # smoke-private-db is the one job that applies a pull request's
+      # migrations and opens the pages; without these a .sql-only pull
+      # request merged and reached production untried (29 October). Not on
+      # push: main's run could start before migrate.yml has applied it.
+      - "kin/supabase/migrations/**"
+      - "kin/scripts/migrate.mjs"
   push:
     branches: [main]
     paths:
