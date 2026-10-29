@@ -500,6 +500,17 @@ function billMatches(bill: Bill, wanted: string): boolean {
   return !!group && group.some((w) => name.includes(w));
 }
 
+/** The bills a name answers to. One named exactly that is the one meant:
+ * "when is Maynilad Water due" beside a bill called just "Water" is not a
+ * question of which (the weekly check, 29 October), and mark_bill_paid
+ * already reads names this way (marks.ts, pickByName). Otherwise, every bill
+ * billMatches. */
+function billsNamed<T extends Bill>(bills: T[], wanted: string): T[] {
+  const w = wanted.toLowerCase().trim();
+  const exact = bills.filter((b) => b.name.toLowerCase() === w);
+  return exact.length > 0 ? exact : bills.filter((b) => billMatches(b, wanted));
+}
+
 /* ------------------------------------------------------------------ rules */
 
 type Rule = (q: Query, ctx: RuleContext) => RuleOutcome | null;
@@ -557,8 +568,8 @@ function billDueMatch(name: string, lang: Lang, ctx: RuleContext, exact: string 
     lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      const bills = rows<Bill>(result, "unpaid_bills")
-        .filter((b) => (exact ? b.name.toLowerCase() === exact.toLowerCase() : billMatches(b, name)))
+      const unpaid = rows<Bill>(result, "unpaid_bills");
+      const bills = (exact ? unpaid.filter((b) => b.name.toLowerCase() === exact.toLowerCase()) : billsNamed(unpaid, name))
         .sort((a, b) => a.due_date.localeCompare(b.due_date));
       if (bills.length === 0) {
         return t(`No unpaid bill called "${name}" in Kin. Paid and other bills are under Wealth → Expenses.`);
@@ -2204,7 +2215,7 @@ const markPaid: Rule = (q, ctx) => {
     lang: q.lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      const bills = rows<Bill>(result, "unpaid_bills").filter((b) => billMatches(b, bill)).sort((a, b) => a.due_date.localeCompare(b.due_date));
+      const bills = billsNamed(rows<Bill>(result, "unpaid_bills"), bill).sort((a, b) => a.due_date.localeCompare(b.due_date));
       if (bills.length === 0) return t(`No unpaid bill called "${bill}". To record money out that isn't a bill, use Wealth → Move money.`);
       const names = [...new Set(bills.map((b) => b.name))];
       if (names.length > 1) return { ask: t(`Which one: ${names.join(" or ")}?`), choices: names, pending: { rule: "mark.paid.which", slots: { ...(amount ? { amount } : {}) }, lang: q.lang, asked: 1 } };
@@ -2382,7 +2393,7 @@ const paidStatus: Rule = (q, ctx) => {
     lang: q.lang,
     say: (result) => {
       if (isError(result)) return result.error;
-      const bills = rows<Bill>(result, "bills").filter((b) => billMatches(b, name)).sort((a, b) => b.due_date.localeCompare(a.due_date));
+      const bills = billsNamed(rows<Bill>(result, "bills"), name).sort((a, b) => b.due_date.localeCompare(a.due_date));
       if (bills.length === 0) return t(`No bill called "${name}" in Kin.`);
       const paid = bills.filter((b) => b.status === "paid")[0];
       const open = bills.filter((b) => b.status !== "paid").sort((a, b) => a.due_date.localeCompare(b.due_date))[0];

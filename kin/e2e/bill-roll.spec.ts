@@ -225,7 +225,7 @@ for (const simple of [false, true]) {
           const fields = await card.locator("input").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().right));
           for (const right of fields) expect(right, `a field runs off the card on ${path}`).toBeLessThanOrEqual(box!.x + box!.width + 0.5);
           const tall = await card.locator("button").evaluateAll((els) => els.map((e) => [e.textContent?.trim(), e.getBoundingClientRect().height] as const));
-          for (const [label, height] of tall) expect(height, `"${label}" on ${path}`).toBeGreaterThanOrEqual(simple ? 44 : 40);
+          for (const [label, height] of tall) expect(height, `"${label}" on ${path}`).toBeGreaterThanOrEqual(simple ? 43.99 : 39.99);
           if (path.startsWith("/wealth")) {
             await expandAllCollapsedGroups(page);
             // The open bill's own row: Settle, the reminder and Remove.
@@ -234,7 +234,7 @@ for (const simple of [false, true]) {
             const controls = await row.locator(":is(button, select)").evaluateAll((els) => els.map((e) => [e.textContent?.trim().slice(0, 20), e.getBoundingClientRect().right, e.getBoundingClientRect().height] as const));
             for (const [label, right, height] of controls) {
               expect(right, `"${label}" runs off the phone`).toBeLessThanOrEqual(width);
-              if (simple) expect(height, `"${label}" in Simple Kin`).toBeGreaterThanOrEqual(44);
+              if (simple) expect(height, `"${label}" in Simple Kin`).toBeGreaterThanOrEqual(43.99);
             }
           }
         }
@@ -273,7 +273,8 @@ test("the question sheet fits 320px with Simple Kin on", async ({ page }) => {
     }
     for (const label of ["Add", "Not now"]) {
       const box = (await sheet.getByRole("button", { name: label, exact: true }).boundingBox())!;
-      expect(box.height, `"${label}"`).toBeGreaterThanOrEqual(44);
+      // A hundredth spare, as welcome.spec says: 2.75rem can lay out at 43.99994px.
+      expect(box.height, `"${label}"`).toBeGreaterThanOrEqual(43.99);
     }
     await sheet.getByRole("button", { name: "Not now" }).click();
     await expect(sheet).toBeHidden();

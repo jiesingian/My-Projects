@@ -458,6 +458,18 @@ test("two bills answering to one word: which one is asked, and the chip's answer
   expect(said("when is globe due", moneyResult)).toContain("Globe Fiber (₱1,299)");
 });
 
+test("a bill asked for by its whole name is that bill, even beside a shorter one inside it", () => {
+  // 29 October, weekly check: "when is E2E-RULES water due" beside the
+  // household's "Water" asked "Which one: Water or E2E-RULES water?".
+  const both = { ...moneyResult, unpaid_bills: [...unpaid, { name: "Water", amount: 890, due_date: "2026-11-05", status: "unpaid" }, { name: "Maynilad Water", amount: 640, due_date: "2026-11-09", status: "unpaid" }] };
+  expect(said("when is Maynilad Water due", both)).toContain("Maynilad Water (₱640) is due");
+  expect(said("when is maynilad water due", both)).toContain("Maynilad Water (₱640) is due");
+  // The short name is exact too, so it is that bill, not a question. A word
+  // that is neither bill's whole name still asks (Globe, the test above).
+  expect(said("when is Water due", both)).toContain("Water (₱890) is due");
+  expect(said("is Maynilad Water paid", { bills: both.unpaid_bills })).toMatch(/^Maynilad Water is not paid yet: ₱640/);
+});
+
 test("plain adds confirm in a few words", () => {
   expect(said("Add dentist on Friday at 3pm", { added: "activity" })).toBe("Added Dentist, Fri 30 Oct 15:00 (Ana).");
   expect(said("add dinner adobo tomorrow", { added: "meal plan" })).toBe("Planned Adobo for Thu 29 Oct.");

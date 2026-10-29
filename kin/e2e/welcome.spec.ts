@@ -5,10 +5,12 @@ import { test, expect, type Page } from "@playwright/test";
 test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 390, height: 844 } });
 
 /** Every button and link a thumb can reach on screen is at least 44px tall:
- * the check-up has to work inside Facebook's in-app browser. */
+ * the check-up has to work inside Facebook's in-app browser. A hundredth of
+ * a pixel spare: a 2.75rem button sometimes lays out at 43.99994px (weekly
+ * check, 29 October, "Share your result"), which is 44 to any thumb. */
 async function expectTapTargets(page: Page) {
   const small = await page.locator("main button:visible, main a.btn:visible, header a:visible").evaluateAll((els) =>
-    els.filter((el) => el.getBoundingClientRect().height < 44).map((el) => el.textContent?.trim() || el.outerHTML.slice(0, 60)),
+    els.filter((el) => el.getBoundingClientRect().height < 43.99).map((el) => `${el.textContent?.trim() || el.outerHTML.slice(0, 60)} (${el.getBoundingClientRect().height}px)`),
   );
   expect(small).toEqual([]);
 }
