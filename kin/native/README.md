@@ -58,7 +58,10 @@ therefore wrapped as an installed app. The decisions:
 
 `android/` is the same shell for Android, made by `npx cap add android` and
 committed (Java, package `com.jiesingian.kin`). `.github/workflows/android.yml`
-builds a debug APK on every change here and keeps it as the run's artifact.
+builds a debug APK on every change here and keeps it as the run's artifact,
+and checks the release bundle builds. `.github/workflows/play-release.yml`,
+started by hand, builds the signed AAB for Google Play and can upload it to
+internal testing (`scripts/play-upload.mjs`).
 - `KinAlarms.java`, `KinAlarmsPlugin.java`, `KinAlarmReceiver.java`,
   `KinAlarmActivity.java`: exact alarms that open full screen over the lock
   screen and ring on the alarm stream; set again after a restart.
