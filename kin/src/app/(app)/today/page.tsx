@@ -53,6 +53,7 @@ import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 import { GuidedTour } from "@/components/guided-tour";
+import { NextVoteOnToday } from "@/components/next-vote-on-today";
 import { PushNudge } from "@/components/push-nudge";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { getNextBillOffers } from "@/lib/queries/wealth";
@@ -253,6 +254,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           )}
         </TodayFold>
       )}
+
+      {/* One question for the grown-ups: what Kin should do next (29 October). */}
+      <NextVoteOnToday />
 
       {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Next bills to add" />}
 
