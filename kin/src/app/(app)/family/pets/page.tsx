@@ -19,7 +19,7 @@ export default async function PetsPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <p style={{ fontSize: "0.9375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 0.875rem" }}>
           Vaccines and vet visits are reminded on Today the week before. For feeding,{" "}
-          <Link href="/planner/routines/new" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>
+          <Link href="/planner/routines/new?template=feed" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>
             add a daily chore
           </Link>{" "}
           and let everyone take turns.

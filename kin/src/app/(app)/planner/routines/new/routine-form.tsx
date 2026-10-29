@@ -45,6 +45,8 @@ type Template = {
   duration?: string;
   /** Taking turns among the grown-ups (a pickup rota). */
   grownUpsTakeTurns?: boolean;
+  /** Taking turns among everyone in the household (feeding the pets). */
+  everyoneTakesTurns?: boolean;
 };
 
 const TEMPLATES: Template[] = [
@@ -57,6 +59,7 @@ const TEMPLATES: Template[] = [
   // School life (29 October): a child's class days on the calendar, and who
   // brings them home, taking turns. "No classes today" on Today skips both.
   { id: "class", label: "Class days", kind: "school", title: "Class", freq: "weekly", byweekday: [1, 2, 3, 4, 5], time: "07:00", reminder: "30", duration: "480" },
+  { id: "feed", label: "Feed the pets, taking turns", kind: "chore", title: "Feed the pets", freq: "daily", byweekday: [0, 1, 2, 3, 4, 5, 6], time: "07:00", reminder: "", everyoneTakesTurns: true },
   { id: "pickup", label: "School pickup, taking turns", kind: "school", title: "School pickup", freq: "weekly", byweekday: [1, 2, 3, 4, 5], time: "16:00", reminder: "30", grownUpsTakeTurns: true },
 ];
 
@@ -178,8 +181,8 @@ export function RoutineForm({
     setTime(t.time);
     setReminder(t.reminder);
     if (t.duration) setDuration(t.duration);
-    if (t.grownUpsTakeTurns) {
-      const grownUps = members.filter((m) => m.role === "parent" || m.role === "adult").map((m) => m.id);
+    if (t.grownUpsTakeTurns || t.everyoneTakesTurns) {
+      const grownUps = members.filter((m) => t.everyoneTakesTurns || m.role === "parent" || m.role === "adult").map((m) => m.id);
       setWholeFamily(false);
       setWho(grownUps);
       setRotate(grownUps.length >= 2);
