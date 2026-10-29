@@ -58,6 +58,23 @@ export function fcmMessage(device: Pick<FcmDevice, "token">, p: PushContent, opt
   };
 }
 
+/** The silent message that has the Android app set its alarms again (Jonathan,
+ * 29 October; due_alarm_wakes, 20261030153700), as apnsWakeRequest does for
+ * the iPhone: once a day, and after a change that moves an alarm. Nothing is
+ * shown: KinMessagingService fetches api/alarms with the web view's session
+ * and sets them. Normal priority, which Android may hold until the phone
+ * wakes from Doze: a re-sync can wait; the alarms already set ring on time.
+ * A day to arrive, and a newer one replaces one still waiting. */
+export function fcmWakeMessage(device: Pick<FcmDevice, "token">): { message: Record<string, unknown> } {
+  return {
+    message: {
+      token: device.token,
+      data: { sync: "alarms" },
+      android: { priority: "normal", ttl: `${24 * 3600}s`, collapse_key: "kin-alarm-sync" },
+    },
+  };
+}
+
 const b64url = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 
 /** The service account's signed request for an access token (RS256). */

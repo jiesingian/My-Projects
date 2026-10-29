@@ -75,6 +75,9 @@ internal testing (`scripts/play-upload.mjs`).
 - `KinAlarms.java`, `KinAlarmsPlugin.java`, `KinAlarmReceiver.java`,
   `KinAlarmActivity.java`: exact alarms that open full screen over the lock
   screen and ring on the alarm stream; set again after a restart.
+- `KinAlarmSync.java`: the daily re-sync, as on the iPhone. A silent Firebase
+  data message `sync: alarms` (once a day, and after a change) has it fetch
+  `api/alarms` with the web view's session cookies and set them again.
 - `KinMessagingService.java`, `KinPushPlugin.java`,
   `KinCallDeclineReceiver.java`: push through Firebase (`lib/fcm.ts`), a call
   as Android's full-screen incoming-call notification. Off until Kin has a
