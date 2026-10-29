@@ -397,7 +397,7 @@ function SendToKin({ initialOn, plus }: { initialOn: boolean; plus: boolean }) {
         </p>
       )}
       <p className="kin-quickbtn-note">
-        What is sent: the one screenshot, to Kin, then to Claude (Anthropic) only to read the dates off it, and never used to train AI. It is deleted once read, or after a day.
+        What is sent: the one screenshot, to Kin, then to Claude (Anthropic) only to read the dates off it; Anthropic does not train on it. It is deleted once read, or after a day.
       </p>
 
       <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
