@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SetupForm } from "./setup-form";
 import { createClient } from "@/lib/supabase/server";
 import { HELPER_INVITE_COOKIE, helperLanding } from "@/lib/helper-access";
+import { saidUnder18 } from "@/lib/age";
 
 /** The one setup screen after sign-up (agreed 13 October): your name and your
  * family's, then Today. Arriving by an invite link puts joining first, with
@@ -18,12 +19,15 @@ import { HELPER_INVITE_COOKIE, helperLanding } from "@/lib/helper-access";
 export default async function SetupPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const jar = await cookies();
   const invite = jar.get("kin-invite")?.value ?? "";
+  const supabase = await createClient();
+  // Under 18 at sign-up: joining only (createFamilyAction refuses the rest).
+  const { data: auth } = await supabase.auth.getUser();
+  const minor = saidUnder18(auth.user?.user_metadata);
   if (!invite && (await searchParams).own !== "1") {
-    const supabase = await createClient();
     const { data: helps } = await supabase.rpc("my_helper_households");
     const where = helperLanding({ hasInviteCookie: !!jar.get(HELPER_INVITE_COOKIE)?.value, helps: helps?.length ?? 0 });
     if (where === "accept") redirect("/helper/accept");
     if (where === "helper") redirect("/helper");
   }
-  return <SetupForm inviteCode={invite} />;
+  return <SetupForm inviteCode={invite} minor={minor} />;
 }

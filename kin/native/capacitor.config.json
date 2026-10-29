@@ -4,10 +4,13 @@
   "webDir": "www",
   "server": {
     "url": "https://kin-family-app.vercel.app/today",
-    "allowNavigation": ["kin-family-app.vercel.app"]
+    "allowNavigation": [
+      "kin-family-app.vercel.app"
+    ]
   },
   "ios": {
     "contentInset": "never",
-    "limitsNavigationsToAppBoundDomains": true
+    "limitsNavigationsToAppBoundDomains": true,
+    "appendUserAgent": "KinApp/iOS"
   }
 }

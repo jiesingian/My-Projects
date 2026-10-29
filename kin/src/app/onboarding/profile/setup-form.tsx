@@ -30,7 +30,7 @@ const numericCode = {
  *
  * The name box sits above both forms and rides into whichever is sent, so
  * joining with an invite code asks for nothing else. */
-export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
+export function SetupForm({ inviteCode = "", minor = false }: { inviteCode?: string; minor?: boolean }) {
   const [createState, createAction] = useActionState(createFamilyAction, initialState);
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
   const [fullName, setFullName] = useState("");
@@ -51,7 +51,7 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
         <Icon name="keyRound" size={22} className="text-[var(--color-accent-700)]" />
         <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>Join your family</span>
         <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", display: "block", marginBottom: "0.875rem" }}>
-          You were invited. The code is filled in; tap Join.
+          {inviteCode ? "You were invited. The code is filled in; tap Join." : "Enter the six-character invite code your parent gives you."}
         </span>
         <ErrorText message={joinState.error} />
         <div style={{ display: "flex", gap: "0.5625rem" }}>
@@ -86,8 +86,16 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
         />
       </div>
 
-      {inviteCode && joinForm}
+      {minor && (
+        <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", margin: "0 0 0.875rem" }}>
+          A household is started by someone 18 or older. Ask a parent for your family&apos;s invite code and join it; they approve you from their phone.
+        </p>
+      )}
 
+      {(inviteCode || minor) && joinForm}
+
+      {/* Under 18 at sign-up: joining only (createFamilyAction refuses too). */}
+      {!minor && (
       <form action={createAction}>
         <input type="hidden" name="full_name" value={fullName} />
         <input type="hidden" name="chosen_plan" value={plan ?? ""} />
@@ -132,7 +140,7 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
               <>Kin Free, as you chose, with {TRIAL_DAYS} days of the Plus extras to try first. No card, nothing to cancel.</>
             ) : (
               <>
-                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good
+                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free with no time limit
                 <span className="kin-web-only">, or Plus for {pesos(PLANS.monthly.amountCents)} a month if you choose it</span>.
               </>
             )}
@@ -143,10 +151,11 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
           </SubmitButton>
         </Blueprint>
       </form>
+      )}
 
       {/* Without an invite link, joining is the rarer case: tucked away like
           the Kin code, one tap to open. */}
-      {!inviteCode && (
+      {!inviteCode && !minor && (
         <details className="kin-code-optional">
           <summary>Joining a family? Enter its invite code</summary>
           <form action={joinAction} style={{ marginTop: "0.5rem" }}>

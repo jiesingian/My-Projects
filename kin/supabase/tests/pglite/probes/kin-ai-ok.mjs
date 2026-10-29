@@ -1,4 +1,4 @@
-// Kin AI asks each person once (20261030120000): nobody has said yes until
+// Kin AI asks each person once (20261030120002): nobody has said yes until
 // they do; saying yes or taking it back changes only the caller's own rows;
 // someone signed out can do neither.
 const ANN = "10000000-0000-0000-0000-0000000000a1";
