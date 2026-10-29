@@ -12,7 +12,15 @@ const TOKEN = (c) => `https://api.push.apple.com/3/device/${c.repeat(64)}`;
 // zone, and within a tick of a change that moves an alarm -- only the app's
 // alert token, never its VoIP one, never a browser.
 export default async function ({ db, as, check, refused }) {
-  const run = async (at, secret = SECRET) => (await db.query("select * from due_alarm_wakes($1, $2)", [secret, at])).rows;
+  // A change is stamped with the real clock (alarm_wake_mark: now()), and a
+  // tick only takes changes made before it. The ticks below are fixed dates,
+  // so a change queued during the test counts as made before the tick it is
+  // asked at; else the probe failed once the real clock passed those dates
+  // (29 October, 23:05 UTC).
+  const run = async (at, secret = SECRET) => {
+    await db.query("update alarm_wake_queue set changed_at = $1 where changed_at > $1", [at]);
+    return (await db.query("select * from due_alarm_wakes($1, $2)", [secret, at])).rows;
+  };
   const who = (rows) => rows.map((r) => `${r.endpoint.slice(-3)}:${r.reason}`).sort().join("|");
   const queued = async () => (await db.query("select family_id from alarm_wake_queue order by family_id")).rows.map((r) => r.family_id).join("|");
 
