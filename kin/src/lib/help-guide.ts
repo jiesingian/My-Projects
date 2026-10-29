@@ -961,10 +961,10 @@ export const HELP_GUIDE: HelpTab[] = [
             "pros": [
               "Plans, headcount and the potluck in one place."
             ],
-            "cons": [
-              "Guests by link type their own names, so check for doubles."
-            ],
-            "tips": []
+            "cons": [],
+            "tips": [
+              "a guest who answered twice under two spellings is marked \"Same person as …?\"; take one off with ×."
+            ]
           },
           {
             "name": "Christmas gifts and cash gifts",
