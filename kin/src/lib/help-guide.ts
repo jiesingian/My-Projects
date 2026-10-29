@@ -897,7 +897,9 @@ export const HELP_GUIDE: HelpTab[] = [
             "cons": [
               "Reading dates from a photo uses Kin AI; without it, the photo is kept and you type the dates."
             ],
-            "tips": []
+            "tips": [
+              "on Kin Free, the line under the scanner says how many Kin AI uses are left this month."
+            ]
           },
           {
             "name": "Google Calendar sync and calendar subscription",
