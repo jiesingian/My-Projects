@@ -48,7 +48,11 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      # No setup-android step: GitHub's Ubuntu runner already has the Android
+      # SDK, with ANDROID_HOME set and its licences accepted, and Gradle
+      # fetches the platform it needs. android-actions/setup-android@v3
+      # failed on its first run here (29 October): it asks sdkmanager for the
+      # long-removed "tools" package and stops before anything is built.
       - run: npm ci
       - name: Copy the config into the Android project
         run: npx cap sync android
