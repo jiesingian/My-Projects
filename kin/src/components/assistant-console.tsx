@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { KinAiAsk, isKinAiAsk } from "@/components/kin-ai-ask";
 import { useRouter } from "next/navigation";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -244,7 +245,11 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
         </div>
       )}
 
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 9px" }}>{error}</p>}
+      {isKinAiAsk(error) ? (
+        <KinAiAsk onDone={() => setError(null)} />
+      ) : (
+        error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 9px" }}>{error}</p>
+      )}
 
       {start === "voice" && canHear && turns.length === 0 && (
         <button

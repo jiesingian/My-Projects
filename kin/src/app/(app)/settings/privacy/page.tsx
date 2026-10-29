@@ -13,6 +13,8 @@ import { householdZone } from "@/lib/household-zone";
 import { getEmergencyOwnerView, getEmergencyTrustedView } from "@/lib/queries/vault-emergency";
 import { VaultEmergencySettings } from "@/components/vault-emergency-settings";
 import { VaultEmergencyTrusted } from "@/components/vault-emergency-trusted";
+import { KinAiSetting } from "@/components/kin-ai-ask";
+import { createClient } from "@/lib/supabase/server";
 import { householdPhrase, openedLine, ownerStatusLine, trustedStatusLine } from "@/lib/vault-emergency";
 
 /** The lock on the family's documents, reachable from Settings as well as
@@ -38,9 +40,12 @@ export default async function PrivacySettingsPage() {
   const lock = await getLockState(me.id);
   const grownUp = isGrownUp(me.role);
   const tz = await householdZone();
-  const [owner, trusted] = await Promise.all([
+  const supabase = await createClient();
+  const [owner, trusted, kinAi] = await Promise.all([
     grownUp ? getEmergencyOwnerView(me.family_id, lock.unlocked) : Promise.resolve(null),
     grownUp ? getEmergencyTrustedView(me.id) : Promise.resolve(null),
+    // Whether this person has said yes to Kin AI (20261030131701).
+    supabase.rpc("kin_ai_ok"),
   ]);
 
   const dates = (r: { opensAt: string; endsAt: string }) => ({ opensAt: new Date(r.opensAt), endsAt: new Date(r.endsAt) });
@@ -63,6 +68,8 @@ export default async function PrivacySettingsPage() {
             <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />
           </div>
         )}
+
+        <KinAiSetting allowed={kinAi.data === true} />
 
         {owner && (
           <VaultEmergencySettings

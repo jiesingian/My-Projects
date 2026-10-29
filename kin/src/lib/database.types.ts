@@ -9429,6 +9429,8 @@ export type Database = {
         }
       }
       use_kin_ai: { Args: never; Returns: Json }
+      kin_ai_ok: { Args: never; Returns: boolean }
+      set_kin_ai_ok: { Args: { p_ok: boolean }; Returns: undefined }
       set_records_ok: { Args: { p_area: string }; Returns: undefined }
       set_typhoon_mode: { Args: { p_on: boolean }; Returns: string | null }
       family_storage_bytes: { Args: never; Returns: number }

@@ -35,7 +35,13 @@ export const KIN_AI_MIN_TOKENS = 2048;
 export const KIN_AI_OFF = "Kin AI isn't switched on yet. Nothing was sent anywhere.";
 
 /** The one line under anything that sends family records to the model. */
-export const KIN_AI_PRIVACY = "What you send goes to Claude (Anthropic) only to answer you, and is never used to train AI.";
+export const KIN_AI_PRIVACY = "What you send goes to Claude (Anthropic) only to answer you; Anthropic does not train on it.";
+
+/** What every Kin AI feature answers until this person has said yes
+ * (20261030131701_kin_ai_ok.sql). A screen that knows it shows the Allow card
+ * (components/kin-ai-ask.tsx); any other shows this sentence, which says
+ * where to say yes. */
+export const KIN_AI_ASK = "Kin AI needs your OK first. Allow it here or in Settings → Privacy.";
 
 /** Whether the server has a key. Read at call time, not import time, so a
  * key added to Vercel is seen by the next request without a rebuild. */
