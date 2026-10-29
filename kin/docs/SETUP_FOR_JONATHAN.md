@@ -16,6 +16,7 @@ steps switch it on. Each says what it is for and what is safe.
 | 6. GIFs in the chat | Held for design finalization |
 | 7. Sign-up emails through Gmail | Done: sent from familyapp.kin@gmail.com |
 | 9. The iPhone app (real alarms, calls, SOS) | Built; waits on the Apple Developer Program, steps below |
+| 10–11. The Android app on Google Play | Built and prepared; waits on Firebase (free) and Google Play (US$25 once), steps below |
 
 ---
 
@@ -387,8 +388,8 @@ in the family gets an Android phone. Its alarms work as they are: full
 screen, ringing through silent. **Calls ringing full screen, an SOS and every
 other notification** need Google's push (Firebase Cloud Messaging), because
 an Android web view can't take Web Push. Firebase needs a project of your
-own; a session can't make one. Only worth doing once someone has an Android
-phone.
+own; a session can't make one. Needed before Google Play (section 11), or
+once someone has an Android phone.
 
 **What it costs.** Nothing: Firebase's free plan (Spark) includes Cloud
 Messaging without limit. Don't add a card or move to the Blaze plan.
@@ -429,3 +430,188 @@ and make another. Nothing here changes the web app or the iPhone app.
 **On the phone:** install the APK from step 3's next build, open Kin, sign
 in, allow notifications, and allow "Alarms & reminders" when asked. Then try
 a test call from another phone.
+
+
+## 11. The Android app on Google Play
+
+**What it's for (29 October).** This publishes the Kin Android app
+(`kin/native/android`) on Google Play, so anyone with an Android phone can
+install it like any other app. Everything that can be done without you is
+done and merged:
+- a workflow that builds the signed app and can upload it to Google Play;
+- the policy changes Google asks for;
+- the account-deletion page;
+- the listing text, Data safety answers, content rating, icons and art.
+
+Your part is the accounts, the keys, and pressing the buttons. The answers to
+paste are in `kin/native/android/store/`:
+- `LISTING.md`, the listing;
+- `DATA_SAFETY.md`, the Data safety form;
+- `POLICY.md`, the declarations and why.
+
+**What it costs.** US$25 once, for the Google Play developer account (paid
+by card at registration, never refunded). Nothing else. Firebase stays on
+its free plan.
+
+**How long it takes.** Google makes a new personal account test the app
+with **at least 12 people for 14 days in a row** before it may go public.
+Allow three weeks from registration to the public listing:
+- a few days for Google to check your identity;
+- the 14-day test;
+- a few days for review.
+
+**What's safe.**
+- **The upload key.** It only proves an upload is yours. Google signs what
+  it ships to phones with its own key (Play App Signing), so if the upload
+  key is ever lost or leaked, Google resets it on request. Keep it private
+  all the same.
+- **The service account.** It can only upload Kin's releases. Remove it in
+  the Play Console at any time.
+- **The app itself.** Nothing until "Production" changes anything for anyone
+  outside your testers. Nothing here changes the website or the iPhone app.
+
+1. **Firebase first (free).** Do **section 10**, steps 1 to 4. It is what
+   makes calls ring, SOS and every notification reach an Android phone.
+   Google's reviewers expect more than a website in a frame, and without
+   push the app has only its alarms. Done when the
+   [Android build](https://github.com/jiesingian/My-Projects/actions/workflows/android.yml)
+   log says "Push is on in this build".
+2. **Register as a Google Play developer (US$25).**
+   - Open [play.google.com/console/signup](https://play.google.com/console/signup)
+     with the Google account that should own Kin. `familyapp.kin@gmail.com`
+     keeps it beside Kin's email.
+   - Choose **Yourself** (a personal account). An organisation account needs
+     a D-U-N-S number, which needs the business registration first. The app
+     can be moved to an organisation account later.
+   - Pay the US$25. Verify your identity with a government ID.
+   - Verify your phone number, and your Android phone, through the **Play
+     Console app** Google asks you to install.
+   - Google emails when you are verified, usually within a few days.
+3. **Create the app.**
+   - At [play.google.com/console](https://play.google.com/console), press
+     **Create app**.
+   - App name `Kin: Family Organizer`, default language English (United
+     States), **App**, **Free**. Tick the two declarations, then **Create
+     app**.
+   - The package name, `com.jiesingian.kin`, is fixed by the first upload
+     (step 5), and can never change after it.
+4. **Make the upload key and give it to GitHub** (once; about 10 minutes).
+   - Open [Google Cloud Shell](https://shell.cloud.google.com/?show=terminal),
+     a free terminal in the browser with Java already installed. Sign in with
+     the same Google account. Paste:
+     ```
+     keytool -genkeypair -v -keystore kin-upload.jks -alias upload -keyalg RSA -keysize 4096 -validity 10000 -storetype PKCS12 -dname "CN=Kin, O=Kin, C=PH"
+     ```
+   - It asks for a password twice. Make a long one and save it in your
+     password manager **now**, as "Kin Android upload key".
+   - Then paste:
+     ```
+     base64 -w 0 kin-upload.jks > kin-upload.b64 && cloudshell download kin-upload.jks && cat kin-upload.b64
+     ```
+     - Your browser downloads `kin-upload.jks`. Keep that file with the
+       password: in the password manager as an attachment, or in a private
+       folder.
+     - The terminal prints one long line: that is the key as text, for
+       GitHub.
+   - Add four repository secrets at
+     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new),
+     one at a time:
+     - `ANDROID_UPLOAD_KEYSTORE_B64`: the long line, all of it;
+     - `ANDROID_UPLOAD_KEYSTORE_PASSWORD`: the password;
+     - `ANDROID_UPLOAD_KEY_ALIAS`: `upload`;
+     - `ANDROID_UPLOAD_KEY_PASSWORD`: the same password. With that command
+       the key and the store share one.
+   - Back in Cloud Shell, clean up: `rm kin-upload.jks kin-upload.b64`.
+5. **Build the app and upload the first one by hand.** Google allows only
+   the first upload of a new app by hand.
+   - Run [Actions → Google Play release → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/play-release.yml)
+     (leave the box ticked). About 10 minutes later, open the run and
+     download the artifact **kin-android-aab**. It is a zip; inside is
+     `app-release.aab`.
+   - In the Play Console, open your app → **Test and release → Testing →
+     Internal testing** → **Create new release**.
+   - Google offers **Play App Signing** with a key Google generates: accept
+     it (the default).
+   - Upload `app-release.aab`. Release name: leave Google's. Release notes:
+     "First test build." Then **Next → Save and publish**.
+   - **Testers** tab: create an email list, "Kin family", with your and
+     Janine's Google account emails. Copy the **join link**, open it on your
+     Android phone, accept, and install Kin from Google Play.
+6. **Let GitHub upload the next ones itself** (optional; saves step 5's
+   download and upload each time).
+   - Turn on the Google Play Android Developer API for the Firebase project
+     at
+     [this page](https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=kin-family)
+     → **Enable**. (Change `kin-family` in the link if your Firebase project
+     ID differs, as in section 10.)
+   - Make a service account at
+     [Service accounts → Create](https://console.cloud.google.com/iam-admin/serviceaccounts/create?project=kin-family):
+     name `play-upload`, then **Done**, with no roles.
+   - Open it from the
+     [list](https://console.cloud.google.com/iam-admin/serviceaccounts?project=kin-family)
+     → **Keys → Add key → Create new key → JSON**. A `.json` file downloads.
+   - In the Play Console, open **Users and permissions** from the left-hand
+     menu of
+     [play.google.com/console](https://play.google.com/console) → **Invite
+     new users**. Enter the service account's email (in the file, as
+     `client_email`). Under **App permissions** add Kin, tick **Release to
+     testing tracks** and **Release apps to production**. **Invite user**.
+   - Add a repository secret `PLAY_SERVICE_ACCOUNT_JSON` at
+     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new):
+     the whole file's contents. Then delete the downloaded file.
+   - From now on,
+     [Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/play-release.yml)
+     builds a new version and puts it on internal testing by itself. Testers
+     get it as an update.
+7. **Fill in the store pages** (about an hour; the answers are written out).
+   In the Play Console, the app's **Dashboard** lists each task.
+   - **Main store listing:** paste from `store/LISTING.md`. Upload
+     `store/icon-512.png`, `store/feature-graphic.png` and the phone
+     screenshots in `store/screenshots/`. If that folder is empty, ask a
+     session to run `store/screenshots.mjs`. It takes them from the QA
+     household on dev, never a real family.
+   - **Store settings:** category Lifestyle, and your contact email.
+   - **App content:** each line of `LISTING.md`'s table:
+     - privacy policy;
+     - ads: none;
+     - app access;
+     - content rating: the IARC answers;
+     - target audience: 18 and over;
+     - Data safety: `store/DATA_SAFETY.md`;
+     - financial features;
+     - health apps;
+     - full-screen intent.
+   - **App access** needs the reviewers' sample household. Make it as
+     `LISTING.md` says, under "App access: the review login": made-up people
+     on production, under `familyapp.kin+review@gmail.com`.
+   - **Account deletion:** the delete account URL is
+     `https://kin-family-app.vercel.app/legal/delete-account`. It sends people
+     who can't sign in to your contact email. Tell a session which email to
+     put in `OPERATOR.email` (`lib/legal.ts`) to show it there directly.
+8. **The 14-day closed test (Google's rule for new personal accounts).**
+   - Open **Testing → Closed testing** → **Create track**, or use "Alpha".
+   - **Promote** the internal release to it: Internal testing → the
+     release's menu → Promote release → Closed testing.
+   - Under **Testers**, make an email list of **at least 12 people** with
+     Android phones: family and friends. Each opens the join link on their
+     phone, accepts, and installs Kin. They must **stay opted in for 14 days
+     in a row**, and using Kin now and then helps: Google checks the test
+     was real.
+   - Google's rule:
+     [support.google.com/googleplay/android-developer/answer/14151465](https://support.google.com/googleplay/android-developer/answer/14151465).
+9. **Production.**
+   - After the 14 days, the Dashboard offers **Apply for production**.
+     Answer its questions about the test honestly (who tested, what changed).
+     Google answers within about a week.
+   - Then **Production → Create new release → Add from library** (the
+     tested build).
+   - **Countries:** Philippines, and any others you want. **Review release
+     → Start rollout to Production**.
+   - Google reviews it (a few days for a first app) and emails the result. A
+     rejection names the policy. Paste it to a session: the answers are in
+     `store/POLICY.md`.
+
+**After the first install, on an Android phone:** BACKLOG's "Needs a real
+phone" has the Android checks: alarms, calls, the re-sync, and the full
+screen being taken away.
+
