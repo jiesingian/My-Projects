@@ -2629,6 +2629,9 @@ export async function logRemittanceAction(input: {
   note: string;
   isPrivate: boolean;
   allocations: { purpose: string; amount: number; category: string | null }[];
+  /** Made on the phone and kept until this saves (20261029030000): the
+   * remittance's own id, so a retry after a lost answer logs it once. */
+  clientId?: string;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   // The row-level policy is the lock; this is the sentence a child would
@@ -2654,7 +2657,7 @@ export async function logRemittanceAction(input: {
 
   const rate = await pesoRate(currency, input.sentOn);
   const supabase = await createClient();
-  const { error } = await supabase.rpc("log_remittance", {
+  const args = {
     p_sender_member_id: input.senderMemberId,
     p_sender_name: input.senderMemberId ? null : senderName,
     p_receiver_member_id: input.receiverMemberId,
@@ -2671,7 +2674,14 @@ export async function logRemittanceAction(input: {
     p_note: clamp(input.note, 1000) || null,
     p_is_private: input.isPrivate,
     p_allocations: allocations,
-  });
+  };
+  const clientId = input.clientId && UUID.test(input.clientId) ? input.clientId : undefined;
+  let { error } = await supabase.rpc("log_remittance", clientId ? { ...args, p_client_id: clientId } : args);
+  // The app can be live a few minutes before 20261029030000 reaches the
+  // database, which then has no p_client_id (PGRST202): sent as before.
+  if (error?.code === "PGRST202" && clientId) ({ error } = await supabase.rpc("log_remittance", args));
+  // Two tries at once: the second meets the first at the primary key.
+  if (error && clientId && error.code === "23505") return { error: null };
   if (error) {
     if (/row-level security/i.test(error.message) && input.accountId) {
       return {

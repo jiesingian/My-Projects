@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logRemittanceAction, lookupRemittanceRateAction } from "@/lib/actions/wealth";
 import { REMITTANCE_CHANNELS, REMITTANCE_CHANNEL_LABELS, type RemittanceChannel } from "@/lib/wealth";
 import { formatCurrency } from "@/lib/format";
 import { ErrorText } from "@/components/form";
-import { failedSaveMessage } from "@/lib/offline/live";
+import { failedSaveMessage, newOpId } from "@/lib/offline/live";
 import { DateInput } from "@/components/date-input";
 import type { PesoRate } from "@/lib/fx";
 import type { PickableAccount } from "@/lib/account-picker";
@@ -76,12 +76,15 @@ export function RemittanceForm({
   const allocated = allocations.reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
   const selectedAccount = accounts.find((a) => a.id === accountId);
 
+  // The remittance's id, made at the first try and kept until it saves
+  // (20261029030000): a retry after "Load failed" finds the first instead
+  // of logging the money twice.
+  const clientId = useRef<string | null>(null);
+
   function submit() {
     setError(null);
     startTransition(async () => {
       // A weak signal throws rather than answering; the form stays filled.
-      // It may have saved, and a second try would log it again, so the
-      // message says to look first (29 October).
       const res = await logRemittanceAction({
         senderMemberId: sender === SOMEONE_ELSE ? null : sender,
         senderName: sender === SOMEONE_ELSE ? senderName : "",
@@ -96,11 +99,13 @@ export function RemittanceForm({
         note,
         isPrivate: justMe,
         allocations: allocations.map((a) => ({ purpose: a.purpose, amount: Number(a.amount) || 0, category: a.category || null })),
-      }).catch((e: unknown) => ({ error: failedSaveMessage(e, false) }));
+        clientId: (clientId.current ??= newOpId()),
+      }).catch((e: unknown) => ({ error: failedSaveMessage(e, true) }));
       if (res.error) {
         setError(res.error);
         return;
       }
+      clientId.current = null;
       router.push("/wealth/remittances");
       router.refresh();
     });

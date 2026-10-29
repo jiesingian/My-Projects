@@ -9782,6 +9782,7 @@ export type Database = {
           p_amount: number
           p_channel: string
           p_channel_name: string | null
+          p_client_id?: string
           p_currency: string
           p_ecb_rate: number | null
           p_ecb_rate_date: string | null
