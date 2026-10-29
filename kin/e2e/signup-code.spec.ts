@@ -29,6 +29,16 @@ test("agreeing to the terms is a box the person ticks: unticked, and required", 
   await expect(box).toHaveAttribute("required", "");
 });
 
+test("sign-up asks whether you are 18 or older, with nothing chosen for you", async ({ page }) => {
+  await page.goto("/signup");
+  const group = page.getByRole("group", { name: "Are you 18 or older?" });
+  for (const name of [/^Yes$/, /under 18/]) {
+    const radio = group.getByRole("radio", { name });
+    await expect(radio).not.toBeChecked();
+    await expect(radio).toHaveAttribute("required", "");
+  }
+});
+
 test("the code screen takes the code and refuses one of the wrong shape without asking Supabase", async ({ page }) => {
   await page.goto(`/verify?email=${encodeURIComponent(NOBODY)}`);
   await expect(page.getByText(NOBODY)).toBeVisible();
