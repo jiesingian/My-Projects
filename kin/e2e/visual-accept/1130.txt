@@ -1,1 +1,2 @@
 planner-simple-on
+today-simple-off
