@@ -82,6 +82,7 @@ import {
   loanInsuranceFund,
   runningCosts,
   insuranceGap,
+  payFirst,
   type RunningCost,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
@@ -1300,7 +1301,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       category: AL_CASH,
       ...who.sliceOwner(g.owner_member_id, g.is_joint),
       sub: `${AL_SET_ASIDE}${route ? ` · ${route}` : ""}${inTo > 0 ? ` · ${formatCurrency(inTo, currency)} of it kept in ${toName ?? "its account"}` : ""}${g.sub_note ? ` · ${g.sub_note}` : ""}${onPlanner.has(g.id) ? " · a ring on Planner fills from it" : ""}`,
-      detail: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={goalPickable} />,
+      pinned: <GoalProgress goal={g} today={today} currency={currency} fmtDate={fmtDate} accounts={goalPickable} />,
       actions: (
         <>
           <GoalContributeControl goalId={g.id} accounts={goalPickable} currency={currency} linkedAccountId={g.linked_account_id} fromAccountId={g.from_account_id} fromAccount2Id={g.from_account_2_id} fromAmount={g.from_amount == null ? null : Number(g.from_amount)} from2Amount={g.from_2_amount == null ? null : Number(g.from_2_amount)} />
@@ -1326,13 +1327,20 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       category: assetGroup(a.kind),
       ...who.sliceOwner(a.owner_member_id, a.is_joint),
       sub: [ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind, a.acquired_on ? `since ${fmtDate(a.acquired_on)}` : null, a.note, a.updated_at ? `updated ${timeSinceLabel(a.updated_at)}` : null].filter(Boolean).join(" · "),
+      pinned: (() => {
+        const owed = owedOn.get(a.id) ?? 0;
+        const loanMonthly = liabilities.filter((l) => l.asset_id === a.id && Number(l.balance) > 0).reduce((t, l) => t + Number(l.monthly_payment ?? 0), 0);
+        const perMonth = loanMonthly + runningCosts(assetCosts.billsFor.get(a.id) ?? []).perMonth;
+        const insured = liabilities.some((l) => l.asset_id === a.id && Number(l.balance) > 0 && (loanInsurance(l)?.included || !!loanInsuranceFund(l.name, goals)));
+        const gap = !insured && insuranceGap(a.kind, runningCosts(assetCosts.billsFor.get(a.id) ?? []).costs.map((c) => c.name));
+        return <AssetSummaryLine yours={owed > 0 ? a.worth.total - owed : null} perMonth={perMonth} flag={gap ? "No insurance listed" : null} currency={currency} />;
+      })(),
       detail: (
         <>
           <AssetWorthLine asset={a} currency={currency} />
           {(owedOn.get(a.id) ?? 0) > 0 && (
             <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)} · yours after the loan:{" "}
-              <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
+              Still owed on it {formatCurrency(owedOn.get(a.id)!, currency)}.
             </div>
           )}
           <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} loanMonthly={liabilities.filter((l) => l.asset_id === a.id && Number(l.balance) > 0).reduce((t, l) => t + Number(l.monthly_payment ?? 0), 0)} kind={a.kind} insuredByLoan={liabilities.some((l) => l.asset_id === a.id && Number(l.balance) > 0 && (loanInsurance(l)?.included || !!loanInsuranceFund(l.name, goals)))} currency={currency} fmtDate={fmtDate} />
@@ -1375,6 +1383,12 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ]
         .filter(Boolean)
         .join(" · ") || undefined,
+      pinned: (
+        <>
+          <LoanScheduleLine loan={{ ...l, monthly_payment: l.monthly_payment == null ? null : Number(l.monthly_payment), interest_rate: l.interest_rate == null ? null : Number(l.interest_rate) }} today={today} currency={currency} fmtDate={fmtDate} />
+          <FlagLine flags={loanFlags(l, today, fmtDate, !!loanInsurance(l) && !loanInsurance(l)!.included && !loanInsuranceFund(l.name, goals) && !(l.asset_id && runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.some((c) => /insurance|\bmri\b/i.test(c.name))))} />
+        </>
+      ),
       detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} assetInsurance={l.asset_id ? (runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.find((c) => /insurance|\bmri\b/i.test(c.name)) ?? null) : null} />,
       actions: (
         <>
@@ -1530,7 +1544,22 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       {owedLines.length === 0 && payables === 0 ? (
         <Empty icon={<Icon name="check" size={26} />} title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       ) : (
+        <>
+        {/* Which debt an extra peso should go to (29 October). */}
+        {(() => {
+          const first = payFirst([
+            ...liabilities.map((l) => ({ name: l.name, balance: Number(l.balance), ratePct: l.interest_rate == null ? null : Number(l.interest_rate), card: l.kind === "credit_card" })),
+            ...creditAccounts.map((a) => ({ name: accountLabel(a), balance: a.owed, ratePct: null, card: true })),
+          ]);
+          if (!first) return null;
+          return (
+            <p style={{ fontSize: "0.8125rem", margin: "0 0 0.75rem", padding: "0.5rem 0.625rem", borderRadius: 8, background: "color-mix(in srgb, var(--color-text) 5%, transparent)" }}>
+              <strong>Paying extra?</strong> Put it on <strong>{first.name}</strong> first: at {first.rate}% a year{first.assumed ? " (the BSP ceiling of 3% a month; its own rate isn't recorded)" : ""} it costs the most, against {first.next!.rate}% on {first.next!.name}. Keep paying the minimum on the rest.
+            </p>
+          );
+        })()}
         <LinesByPerson lines={owedLines} currency={currency} categoryOrder={LIABILITY_KINDS.map((k) => LIABILITY_KIND_LABELS[k])} noun="debt" storageKey="kin-al-liabilities" always />
+        </>
       )}
       <Link scroll={false} href="/wealth/assets/new?kind=liability" className="btn btn-primary btn-block" style={{ ...addButton, marginTop: "0.25rem" }}>
         + LIABILITY
@@ -1620,6 +1649,42 @@ function GoalProgress({ goal: g, today, currency, fmtDate, accounts }: { goal: A
 /** Under an asset's name: how its total splits between the place itself and
  * what is in it, and which way time has moved it (against everything put in,
  * fees included). Nothing for an asset with no breakdown and no yearly change. */
+/** An asset's one line on A&L when its details are folded (29 October):
+ * what is yours after the loan, what it costs a month, and a flag. */
+function AssetSummaryLine({ yours, perMonth, flag, currency }: { yours: number | null; perMonth: number; flag: string | null; currency: string }) {
+  const parts: React.ReactNode[] = [];
+  const strong = { fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 } as const;
+  if (yours != null) parts.push(<span key="y">Yours after the loan <span style={strong}>{formatCurrency(yours, currency)}</span></span>);
+  if (perMonth > 0) parts.push(<span key="m">{yours != null ? "costs" : "Costs"} about <span style={strong}>{formatCurrency(perMonth, currency)}</span> a month</span>);
+  if (parts.length === 0 && !flag) return null;
+  return (
+    <>
+      {parts.length > 0 && <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>{parts.flatMap((p, i) => (i ? [" · ", p] : [p]))}</div>}
+      <FlagLine flags={flag ? [flag] : []} />
+    </>
+  );
+}
+
+/** What on a line needs a look, said in a few words above the fold. */
+function FlagLine({ flags }: { flags: string[] }) {
+  if (flags.length === 0) return null;
+  return <div style={{ fontSize: "0.75rem", color: "var(--color-accent-700)", fontWeight: 600, marginTop: "0.25rem" }}>⚑ {flags.join(" · ")}</div>;
+}
+
+/** A loan's flags (29 October): its balance off its terms, a fixed rate
+ * ending within a month or ended, and insurance nothing pays yet. */
+function loanFlags(loan: LoanTerms, today: string, fmtDate: (d: string) => string, insuranceNeeded: boolean): string[] {
+  if (!(Number(loan.balance) > 0)) return [];
+  const flags: string[] = [];
+  const origin = loanOriginStatus(loan, today);
+  if (origin && !origin.matches) flags.push("balance differs from its terms");
+  const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
+  if (fixedDays != null && fixedDays < 0) flags.push("fixed rate ended: set the new rate");
+  else if (fixedDays != null && fixedDays <= 31) flags.push(`fixed rate ends ${fmtDate(loan.rate_fixed_until!)}`);
+  if (insuranceNeeded) flags.push("yearly insurance to set aside for");
+  return flags;
+}
+
 function AssetWorthLine({
   asset,
   currency,
@@ -1708,7 +1773,6 @@ function LoanLines({
   const fixedDays = loan.rate_fixed_until ? Math.round((Date.parse(loan.rate_fixed_until.slice(0, 10)) - Date.parse(today.slice(0, 10))) / 86_400_000) : null;
   return (
     <>
-      <LoanScheduleLine loan={{ ...loan, monthly_payment: monthly, interest_rate: rate }} today={today} currency={currency} fmtDate={fmtDate} />
       {split && (
         <div style={muted}>
           Of the next {formatCurrency(monthly!, currency)}, about {formatCurrency(split.interest, currency)} is interest and {formatCurrency(split.principal, currency)} pays the loan down.
@@ -1842,15 +1906,19 @@ function CategoryLines({ lines, currency, noun = "expense", open, always = false
         <span style={{ marginLeft: "auto", flex: "none", fontFamily: "var(--font-numeric)" }}>{l.amount > 0 ? formatCurrency(l.amount, currency) : "—"}</span>
       </div>
       {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
-      {l.detail}
+      {l.pinned}
+      {!always && l.detail}
+      {always && (l.detail || l.actions) ? (
+        // A&L: the details and the buttons fold behind one chip (28-29
+        // October); what is pinned stays above it.
+        <details className="kin-row-actions">
+          <summary>{l.detail ? "Details & options" : "Options"}</summary>
+          {l.detail}
+          {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
+        </details>
+      ) : null}
       {l.actions &&
-        (always ? (
-          // A&L: the buttons fold behind one "Options" chip (28 October).
-          <details className="kin-row-actions">
-            <summary>Options</summary>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
-          </details>
-        ) : (
+        (always ? null : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
         ))}
     </div>
