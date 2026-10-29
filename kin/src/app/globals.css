@@ -8926,3 +8926,36 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-row-actions > summary::-webkit-details-marker { display: none; }
 .kin-row-actions > summary::after { content: "▾"; font-size: 0.6875rem; }
 .kin-row-actions[open] > summary::after { content: "▴"; }
+
+/* A shared goal's "1 / 2" in "Waiting on you" (29 October): tapped, it
+   says who has put in this month and who has not. */
+.kin-deposit-who { position: relative; }
+.kin-deposit-who > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0 0.625rem;
+  border-radius: 999px;
+  font: 600 0.78125rem/1 var(--font-numeric);
+  color: var(--color-accent-700);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  cursor: pointer;
+}
+.kin-deposit-who > summary::-webkit-details-marker { display: none; }
+.kin-deposit-who > summary::after { content: " ▾"; font-size: 0.6875rem; white-space: pre; }
+.kin-deposit-who[open] > summary::after { content: " ▴"; }
+.kin-deposit-who-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 5;
+  min-width: 11rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 10px;
+  background: var(--color-surface, var(--color-bg));
+  border: 1px solid var(--color-divider);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-text) 14%, transparent);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}

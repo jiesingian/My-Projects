@@ -1,3 +1,4 @@
+import { actorsFor } from "@/lib/wealth";
 import { cache } from "react";
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
@@ -171,6 +172,23 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
  * Six sources, one shape, one order: anything overdue or due today first,
  * then whatever happens at a time of day in the order it happens, then the
  * things that are simply true all day. */
+/** Whether a money row waits on `me` (29 October): only the person who has
+ * to act on it hears of it -- who logged it, the owner of the account it
+ * moves through, its owner, or every grown-up when it is joint with nobody
+ * named (actorsFor). */
+async function moneyWaitsOn(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, meId: string) {
+  const [{ data: members }, { data: accounts }] = await Promise.all([
+    supabase.from("members").select("id, role, status").eq("family_id", familyId),
+    supabase.from("accounts").select("id, owner_member_id, is_joint").eq("family_id", familyId),
+  ]);
+  const grownUps = (members ?? []).filter((m) => m.status === "active" && isGrownUp(m.role)).map((m) => m.id);
+  const acct = new Map((accounts ?? []).map((a) => [a.id, a]));
+  return (x: { named?: string | null; account_id?: string | null; owner_member_id?: string | null; is_joint?: boolean | null }) => {
+    const a = x.account_id ? acct.get(x.account_id) : undefined;
+    return actorsFor({ named: x.named, accountOwner: a?.owner_member_id, accountJoint: a?.is_joint, owner: x.owner_member_id, joint: x.is_joint }, grownUps).includes(meId);
+  };
+}
+
 export async function getTodayBriefing(familyId: string, currency: string, me: Viewer): Promise<BriefItem[]> {
   const tz = await householdZone();
   const supabase = await createClient();
@@ -211,14 +229,16 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .or(`event_date.eq.${today},recurs_yearly.eq.true,and(event_date.lte.${today},end_date.gte.${today})`),
     supabase
       .from("bills")
-      .select("id, name, amount, due_date, status")
+      .select("id, name, amount, due_date, status, account_id, owner_member_id, is_joint")
       .eq("family_id", familyId)
       // Scheduled: paid in another app and waiting on its confirmation in
       // Accounts (23 October) -- it was pushed as due and hidden here.
       .in("status", ["unpaid", "overdue", "scheduled"])
       .lte("due_date", today)
       .order("due_date", { ascending: true })
-      .limit(4),
+      // Read past four, since some are someone else's to act on and are
+      // left out below (29 October); four still reach Today.
+      .limit(20),
     supabase
       // Today's: due by today (or with no date), a check-up booked for today
       // or missed, and one given today (marked here). Without the date
@@ -261,7 +281,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   // only whoever opened Accounts saw these. Grown-ups', as money is; the
   // database returns only the accounts the reader may see.
   const pendingTx = isGrownUp(me.role)
-    ? await supabase.from("wealth_transactions").select("id, transfer_group_id, direction, amount, occurred_at, particulars, account_id, accounts(name)").eq("family_id", familyId).eq("status", "pending").order("occurred_at", { ascending: false })
+    ? await supabase.from("wealth_transactions").select("id, transfer_group_id, direction, amount, occurred_at, particulars, account_id, recorded_by, accounts(name)").eq("family_id", familyId).eq("status", "pending").order("occurred_at", { ascending: false })
     : { data: [] };
 
   const items: BriefItem[] = [];
@@ -343,11 +363,12 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
 
   // One row per pending transfer (both legs are confirmed together) or
   // entry; Confirm opens its sheet under Accounts, "Waiting on you".
-  for (const p of pendingBriefItems(pendingRows((pendingTx.data ?? []).map((t) => ({ ...t, accountName: (t.accounts as { name: string } | null)?.name ?? "" }))), currency)) {
+  const waitsOnMe = await moneyWaitsOn(supabase, familyId, me.id);
+  for (const p of pendingBriefItems(pendingRows((pendingTx.data ?? []).filter((t) => waitsOnMe({ named: t.recorded_by, account_id: t.account_id })).map((t) => ({ ...t, accountName: (t.accounts as { name: string } | null)?.name ?? "" }))), currency)) {
     items.push({ ...p, action: "confirm", mark: marked.get(p.id), icon: "wallet", tint: "money" });
   }
 
-  for (const b of bills.data ?? []) {
+  for (const b of (bills.data ?? []).filter((b) => waitsOnMe(b)).slice(0, 4)) {
     // lte already excludes nulls, but the column is nullable and the type
     // says so; a bill without a date is treated as not yet overdue.
     const overdue = !!b.due_date && b.due_date < today;
@@ -627,7 +648,9 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   // The household's own potluck this week that still needs things.
   await addPotluckNeeds(supabase, familyId, me, items, "soon-event-");
 
+  const waitsOnMe = await moneyWaitsOn(supabase, familyId, me.id);
   const billsInWindow = (bills.data ?? [])
+    .filter((b) => waitsOnMe(b))
     .map((b) => ({ ...b, inDays: Math.round((Date.parse(b.due_date!) - Date.parse(today)) / 86_400_000) }))
     .filter((b) => b.inDays <= (b.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS))
     .slice(0, 3);

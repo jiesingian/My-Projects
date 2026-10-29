@@ -1562,3 +1562,40 @@ export function payFirst(debts: { name: string; balance: number; ratePct: number
 export function mp2RateStale(day: string): boolean {
   return day.slice(0, 10) >= `${MP2_RATE_YEAR + 2}-04-01`;
 }
+
+/* ------------------------------------------- who a thing is waiting on */
+
+/** Who has to act on a money thing (Jonathan, 29 October): not everybody.
+ * In order: the person named for it (who logged a payment made in their
+ * bank app); else the owner of the account it moves through, unless that
+ * account is joint; else the person it belongs to, unless it is joint;
+ * else, joint with nobody named, every grown-up. "Waiting on you" and
+ * Today show it only to them. */
+export function actorsFor(
+  x: { named?: string | null; accountOwner?: string | null; accountJoint?: boolean | null; owner?: string | null; joint?: boolean | null },
+  grownUps: string[],
+): string[] {
+  if (x.named) return [x.named];
+  if (x.accountOwner && !x.accountJoint) return [x.accountOwner];
+  if (x.owner && !x.joint) return [x.owner];
+  return grownUps;
+}
+
+/** A goal several people pay into each month (29 October): who has put in
+ * this month and who has not, as "1 / 2" and the names behind it. A
+ * contributor is the owner of one of the goal's From accounts; a deposit
+ * counts for the owner of the account it left, or -- from any other
+ * account -- for whoever recorded it. */
+export function depositProgress(contributors: { memberId: string; accountId: string | null }[], deposits: { accountId: string | null; recordedBy: string | null }[]): { done: string[]; waiting: string[] } {
+  const done: string[] = [];
+  const waiting: string[] = [];
+  // A deposit is its account owner's; only one from an account no
+  // contributor pays from (a joint one) is whoever recorded it -- so
+  // logging a partner's deposit does not mark your own as made.
+  const theirs = new Set(contributors.map((c) => c.accountId).filter(Boolean));
+  for (const c of contributors) {
+    const paid = deposits.some((d) => (c.accountId && d.accountId === c.accountId) || (!(d.accountId && theirs.has(d.accountId)) && d.recordedBy === c.memberId));
+    (paid ? done : waiting).push(c.memberId);
+  }
+  return { done, waiting };
+}
