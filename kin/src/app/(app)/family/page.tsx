@@ -191,6 +191,17 @@ async function ProfilePane({ familyId, isOrganiser, myRole, myTyphoon }: { famil
         </Blueprint>
       </Link>
 
+      {/* Pets (29 October): vaccines, vet visits and food. */}
+      <Link href="/family/pets" style={{ textDecoration: "none", color: "inherit", display: "block", marginTop: "0.625rem" }}>
+        <Blueprint style={{ padding: "0.8125rem 0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <Icon name="activity" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>Pets</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Vaccines and vet visits reminded on Today, and their food on To-Buy</span>
+          </span>
+        </Blueprint>
+      </Link>
+
       {/* Siblings sharing a parent's costs across linked households
           (19 October). Grown-ups only, as the pots themselves are. */}
       {isGrownUp(myRole) && (

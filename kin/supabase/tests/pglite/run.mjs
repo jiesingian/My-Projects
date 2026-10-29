@@ -163,6 +163,7 @@ const MIGRATIONS = [
   "20261028150000_drop_dose_alarm_link.sql",
   "20261029100000_alarm_picks.sql",
   "20261029150000_typhoon_ready.sql",
+  "20261029170000_pets.sql",
   "20261029130000_bill_pushes_to_who_pays.sql",
 ];
 

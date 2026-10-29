@@ -110,6 +110,22 @@ export const HELP_GUIDE: HelpTab[] = [
               "Someone outside the household has to accept first. Grown-ups in your own household are connected already."
             ],
             "tips": []
+          },
+          {
+            "name": "Pets",
+            "tags": [],
+            "what": "Each pet with its kind, birthday, vet, food, and when its next vaccine and vet visit are due. Today reminds from a week before, and keeps saying so once it is overdue.",
+            "how": "Family → Pets → Add a pet. Food to To-Buy puts its food on the list; for feeding, add a daily chore in Planner and let everyone take turns.",
+            "pros": [
+              "Vaccines and vet visits stop being missed.",
+              "Anyone in the household, children too, can keep a pet's card up to date."
+            ],
+            "cons": [
+              "Set the next vaccine and vet dates after each visit; Kin doesn't work out a vaccine schedule."
+            ],
+            "tips": [
+              "write the brand and size under Food, so the To-Buy line is exactly what to buy."
+            ]
           }
         ]
       },
