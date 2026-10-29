@@ -18,7 +18,13 @@ export function AlarmSettings({ dosesOn, plans, checkups, bills }: { dosesOn: bo
   const native = useSyncExternalStore(noSubscribe, inNativeApp, () => false);
   const [status, setStatus] = useState<AlarmStatus | null>(null);
   useEffect(() => {
-    void nativeAlarms()?.status().then(setStatus, () => setStatus(null));
+    const read = () => void nativeAlarms()?.status().then(setStatus, () => setStatus(null));
+    read();
+    // Back from the phone's Settings (Android: Alarms & reminders, full
+    // screen), the switch may have changed.
+    const onShow = () => document.visibilityState === "visible" && read();
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
   }, []);
 
   return (
@@ -53,29 +59,47 @@ export function AlarmSettings({ dosesOn, plans, checkups, bills }: { dosesOn: bo
 }
 
 function Permission({ status, onChange }: { status: AlarmStatus; onChange: (s: AlarmStatus) => void }) {
-  if (status.authorization === "authorized")
-    return (
-      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-neutral-600)" }}>
-        {status.engine === "alarmkit"
-          ? `Alarms are on. ${status.scheduled} set on this iPhone.`
-          : status.engine === "android"
-            ? `Alarms are on. ${status.scheduled} set on this phone.`
-            : `This iPhone is older than iOS 26, so these come as urgent notifications. ${status.scheduled} set.`}
-      </p>
-    );
-  if (status.authorization === "denied")
-    return (
-      <p role="alert" style={{ margin: 0, fontWeight: 600 }}>
-        {status.engine === "android"
-          ? "Alarms are turned off for Kin. Turn on its notifications, and Alarms & reminders, in the phone\u2019s Settings → Apps → Kin."
-          : "Alarms are turned off for Kin. Turn them on in the iPhone\u2019s Settings → Apps → Kin."}
-      </p>
-    );
-  return (
+  // On Android, authorize() opens the one settings page still needed
+  // (notifications, then Alarms & reminders, then full screen).
+  const ask = (label: string) => (
     <button type="button" className="btn btn-primary" onClick={() => void nativeAlarms()?.authorize().then(onChange)}>
-      Allow Kin to set alarms
+      {label}
     </button>
   );
+  if (status.authorization === "authorized")
+    return (
+      <>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-neutral-600)" }}>
+          {status.engine === "alarmkit"
+            ? `Alarms are on. ${status.scheduled} set on this iPhone.`
+            : status.engine === "android"
+              ? `Alarms are on. ${status.scheduled} set on this phone.`
+              : `This iPhone is older than iOS 26, so these come as urgent notifications. ${status.scheduled} set.`}
+        </p>
+        {status.engine === "android" && status.fullScreen === false && (
+          <>
+            <p role="alert" style={{ margin: 0, fontWeight: 600 }}>
+              They ring as a notification, not full screen over the lock screen, until Kin may use the full screen.
+            </p>
+            {ask("Allow full screen")}
+          </>
+        )}
+      </>
+    );
+  if (status.authorization === "denied")
+    return status.engine === "android" ? (
+      <>
+        <p role="alert" style={{ margin: 0, fontWeight: 600 }}>
+          Alarms are turned off for Kin. Allow its notifications, and Alarms & reminders, in the phone’s Settings.
+        </p>
+        {ask("Open Settings")}
+      </>
+    ) : (
+      <p role="alert" style={{ margin: 0, fontWeight: 600 }}>
+        Alarms are turned off for Kin. Turn them on in the iPhone’s Settings → Apps → Kin.
+      </p>
+    );
+  return ask("Allow Kin to set alarms");
 }
 
 function Group({ id, heading, lead, items, empty }: { id: string; heading: string; lead: string; items: AlarmChoice[]; empty: string }) {

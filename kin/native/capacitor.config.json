@@ -12,5 +12,8 @@
     "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": true,
     "appendUserAgent": "KinApp/iOS"
+  },
+  "android": {
+    "appendUserAgent": "KinApp/Android"
   }
 }

@@ -3,6 +3,62 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 29 October: Kin on Google Play (Jonathan)
+
+Jonathan will publish the Android app on Google Play. Everything a session
+can do is done. What's left is his, in order, in SETUP section 11, with a
+link for every step:
+1. Firebase (section 10, free).
+2. Register on Play (US$25).
+3. Create the app.
+4. The upload key and its four secrets.
+5. The first internal-testing upload, by hand.
+6. Optionally, the service account for automatic uploads.
+7. The listing, Data safety and content rating, pasted from
+   `kin/native/android/store/`.
+8. The 12-tester, 14-day closed test.
+9. Production.
+
+**Built for it:**
+- **Release builds.** `play-release.yml`, started by hand, signs the AAB
+  with the upload key. versionCode is the run number. It uploads to
+  internal testing once `PLAY_SERVICE_ACCOUNT_JSON` exists. Play App
+  Signing re-signs the AAB. `android.yml` checks the release bundle builds
+  on every change. Target API 36, as Play has required since 31 August
+  2026.
+- **Policy** (`store/POLICY.md`):
+  - `SCHEDULE_EXACT_ALARM`, not `USE_EXACT_ALARM`. Kin isn't an
+    alarm-clock app; Settings → Alarms opens the switch.
+  - Full-screen intent, declared for calls and alarms. If it's taken away,
+    Kin says so and offers the switch.
+  - Foreground location for SOS.
+  - No foreground services.
+  - Health apps: medication management.
+  - Target audience 18+, so the Families policy doesn't apply.
+- **Account deletion:** in the app, plus the public
+  `/legal/delete-account` page.
+- **Payments:** Kin Plus is sold only on the website. Inside the store
+  apps, no prices or links to it. The iPhone's version is #1140; the
+  Android app's follows once that has merged, on the same switch.
+- **Listing** (`store/LISTING.md`, `store/DATA_SAFETY.md`):
+  - text, category, the IARC answers;
+  - the review login plan: a made-up household on production, created by
+    Jonathan;
+  - the icon and feature graphic;
+  - adaptive launcher icons, and a one-colour notification icon;
+  - `store/screenshots.mjs` for the phone screenshots, from the QA
+    household.
+- **Alarms that never run out on Android:** `due_alarm_wakes` sends the
+  app a silent Firebase message daily and after a change, and
+  `KinAlarmSync` sets the alarms again (`20261030130000`). After an
+  update or a restart, `KinAlarmReceiver` sets them again
+  (`MY_PACKAGE_REPLACED`, `BOOT_COMPLETED`).
+
+**Left, and why:**
+- **Android widgets:** not small, and not needed for Play.
+- **Screenshots:** a session can take them once dev answers. On 29
+  October dev's Auth was timing out.
+
 ## Decided 29 October: the Kin iPhone app, for every alarm (Jonathan)
 
 "all features that needs alarms shall be working perfectly (not only
@@ -83,9 +139,9 @@ Built without the account, as a series in one session:
      `https://fcm.googleapis.com/kin-android/<token>`, p256dh `kin-native`,
      auth `fcm`. Off until the free Firebase project exists (SETUP section
      10: `GOOGLE_SERVICES_JSON` for the build, `FCM_*` in Vercel).
-   - Not done for Android: the widgets and the silent daily re-sync
-     (`due_alarm_wakes` sends Apple's tokens only), so an Android phone keeps
-     its two weeks from the last open.
+   - Not done for Android: the widgets. The silent daily re-sync reaches
+     Android since 29 October (`20261030130000`, `KinAlarmSync`; "Kin on
+     Google Play" above).
 7. **Ready for the App Store** (29 October, #1135, #1140, #1144 and the
    walkthrough PR). Checked against Apple's current guidelines:
    - privacy manifests for the app and the widgets, no export question
@@ -2646,6 +2702,39 @@ Decided against in the same review: revising Journal (item 6) and Planner
 ## Needs a real phone
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
+
+- **The Kin Android app (29 October), once it's on internal testing (SETUP
+  section 11), on an Android phone (Android 14 or later if possible):**
+  1. **Alarms.** Settings → Notifications → Alarms → **Allow Kin to set
+     alarms**:
+     - allow notifications;
+     - tap again: Android's "Alarms & reminders" page should open; allow it;
+     - back in Kin, the page should say "Alarms are on".
+  2. **A ringing dose.** A medicine dose a few minutes ahead, phone locked
+     and on silent: it should ring full screen over the lock screen, on the
+     alarm sound, until Stop.
+  3. **Full screen taken away.** In Android's Settings → Apps → Kin, turn
+     off "full screen notifications" (the name varies by phone):
+     - Kin's Alarms page should say they ring as a notification, and its
+       button should open that switch;
+     - a dose should still ring, as a heads-up.
+  4. **A call.** Janine calls with Kin closed and the phone locked:
+     - Android's incoming-call screen should ring;
+     - Answer opens the call, with audio and video both ways;
+     - Decline tells her.
+  5. **SOS.** An SOS from Janine should come through Do Not Disturb.
+  6. **The silent re-sync.** Add a medicine on another phone; within about
+     ten minutes, without opening Kin, this phone's Alarms count should go
+     up. The next day you should still be signed in: the re-sync keeps the
+     session's cookies.
+  7. **Restart and update.** Restart the phone, and install a newer build
+     from Play: the alarms should still ring.
+  8. **No price.** Settings → Your plan should show no price, once the
+     Android switch is merged.
+  9. **Location.** SOS and "I've arrived" should ask for location once,
+     and then share it.
+  10. **Icons.** The launcher icon is Kin's house on any launcher shape,
+      and the status bar shows a white house.
 
 - **The Kin iPhone app (29 October), once it's on TestFlight (SETUP section
   9):**

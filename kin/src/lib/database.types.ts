@@ -6858,6 +6858,8 @@ export type Database = {
           sss_number: string | null
           status: string
           calendar_feed_hash: string | null
+          health_ok_at: string | null
+          money_ok_at: string | null
           palette: string
           quick_actions: Json
           look_offer_answered_at: string | null
@@ -6913,6 +6915,8 @@ export type Database = {
           sss_number?: string | null
           status?: string
           calendar_feed_hash?: string | null
+          health_ok_at?: string | null
+          money_ok_at?: string | null
           palette?: string
           quick_actions?: Json
           look_offer_answered_at?: string | null
@@ -6968,6 +6972,8 @@ export type Database = {
           sss_number?: string | null
           status?: string
           calendar_feed_hash?: string | null
+          health_ok_at?: string | null
+          money_ok_at?: string | null
           palette?: string
           quick_actions?: Json
           look_offer_answered_at?: string | null
@@ -9446,6 +9452,7 @@ export type Database = {
         }
       }
       use_kin_ai: { Args: never; Returns: Json }
+      set_records_ok: { Args: { p_area: string }; Returns: undefined }
       set_typhoon_mode: { Args: { p_on: boolean }; Returns: string | null }
       family_storage_bytes: { Args: never; Returns: number }
       expired_highlights: {

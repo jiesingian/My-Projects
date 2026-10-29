@@ -6096,8 +6096,9 @@ button.kin-initial:focus-visible {
 .kin-quickbtn-more summary { cursor: pointer; font-weight: 600; min-height: 2.75rem; display: flex; align-items: center; }
 .kin-quickbtn-more p { margin: 0; }
 
-/* Inside the Kin iPhone app (data-ios-app on <html>, lib/ios-app.ts): no
-   prices, "See plans" links or Kin code boxes (App Review 3.1.1). A browser
+/* Inside the Kin iPhone or Android app (data-ios-app on <html>, set for
+   either store app, lib/ios-app.ts): no prices, "See plans" links or Kin
+   code boxes (App Review 3.1.1; Google Play's payments policy). A browser
    never has the attribute, so it sees everything as before. */
 :root:not([data-ios-app]) .kin-ios-only,
 [data-ios-app] .kin-web-only { display: none !important; }
@@ -8989,3 +8990,9 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   font-size: 0.8125rem;
   line-height: 1.7;
 }
+
+/* One OK before health or money records (components/records-ok.tsx). */
+.kin-records-ok { border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent); border-radius: var(--radius-card, 1rem); padding: 0.75rem 1rem; margin: 0 0 0.875rem; }
+.kin-records-ok p { font-size: 0.84375rem; line-height: 1.5; margin: 0 0 0.5rem; color: var(--color-neutral-700); }
+.kin-records-ok a { text-decoration: underline; }
+.kin-records-ok-buttons .btn { min-height: 2.75rem; min-width: 5rem; }

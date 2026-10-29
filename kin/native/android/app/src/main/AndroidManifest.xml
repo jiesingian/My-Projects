@@ -66,10 +66,16 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Notifications, real alarms and calls that ring full screen. -->
+    <!-- Notifications, real alarms and calls that ring full screen.
+         Exact alarms are SCHEDULE_EXACT_ALARM, the one the person allows in
+         Settings (Alarms & reminders; KinAlarmsPlugin.authorize opens it),
+         not USE_EXACT_ALARM: Google Play keeps that for apps whose core is
+         an alarm clock or a calendar, and Kin is a family organiser
+         (store/POLICY.md). USE_FULL_SCREEN_INTENT is Play-declared for calls
+         and alarms; where it is refused, alarms and calls still ring as
+         heads-up notifications, and Settings -> Alarms offers to allow it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -78,4 +84,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- SOS, "I've arrived" and the family's places share where you are, only
+         while Kin is open and only when you press them (the iPhone app's
+         NSLocationWhenInUseUsageDescription). Capacitor's web view asks for
+         it the first time the page does. Never in the background. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>
