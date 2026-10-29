@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { approveMemberAction, rejectMemberAction, type MemberRole } from "@/lib/actions/family";
+import { approveMemberAction, rejectMemberAction, type JoinRole } from "@/lib/actions/family";
 import { confirm } from "@/components/confirm-sheet";
 import { toast } from "@/components/toast";
 
@@ -17,9 +17,11 @@ import { toast } from "@/components/toast";
  *
  * Adult is the default because approving without reading is the common case,
  * and the quieter answer should be the one that gives you. */
-export function PendingMemberActions({ memberId, fullName }: { memberId: string; fullName: string }) {
+export function PendingMemberActions({ memberId, fullName, requestedRole }: { memberId: string; fullName: string; requestedRole?: string }) {
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
-  const [role, setRole] = useState<MemberRole>("adult");
+  // Someone who said at sign-up they are under 18 asks as a child (lib/age.ts);
+  // the organizer starts from that, and can still change it.
+  const [role, setRole] = useState<JoinRole>(requestedRole === "child_self" ? "child_self" : "adult");
   const router = useRouter();
 
   async function run(action: "approve" | "reject") {
@@ -40,7 +42,7 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
         className="input"
         aria-label={`Join ${fullName} as`}
         value={role}
-        onChange={(e) => setRole(e.target.value as MemberRole)}
+        onChange={(e) => setRole(e.target.value as JoinRole)}
         disabled={!!busy}
         style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.375rem" }}
       >

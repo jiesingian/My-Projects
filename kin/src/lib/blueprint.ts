@@ -48,7 +48,7 @@ export const FEATURES: Record<FeatureId, Feature> = {
   health: { id: "health", title: "Health profiles", line: "Allergies, blood type, doctor, PhilHealth and insurance on each person’s profile.", for: ["health", "emergency"] },
   medicines: { id: "medicines", title: "Medicines and readings", line: "Medicines with dose reminders, the illness log and vitals, kept per person.", plus: true, for: ["health"] },
   emergency: { id: "emergency", title: "The emergency card", line: "Emergency contacts, blood type and allergies on one screen that reads at arm’s length.", for: ["emergency", "health"] },
-  vault: { id: "vault", title: "The document vault", line: "Birth certificates, passports and policies, behind Face ID or a PIN.", plus: true, for: ["documents"] },
+  vault: { id: "vault", title: "The document vault", line: "Birth certificates, passports and policies, with a Face ID or PIN lock.", plus: true, for: ["documents"] },
   chat: { id: "chat", title: "Family chat", line: "Messages, polls, and voice and video calls, right beside the plans they’re about.", for: ["together"] },
   location: { id: "location", title: "Location sharing", line: "Each person switches it on for themselves, so you can see who’s home without calling.", for: ["kids"] },
   journal: { id: "journal", title: "The family journal", line: "Photos, milestones and first days, shared with the relatives you choose.", for: ["memories", "travel"] },

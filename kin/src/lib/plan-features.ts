@@ -21,7 +21,7 @@ export const PLUS_FEATURES: string[] = [
   "Everything in Kin Free",
   "Wealth: accounts, budgets, bills and reminders, net worth",
   "Lending and savings circles, with reminders you send yourself",
-  "The vault: documents and passwords behind Face ID",
+  "The vault: documents and passwords, with a Face ID or PIN lock",
   "Medicines with dose reminders, the illness log, vitals, growth charts, Apple Health",
   "Kin AI and flyer scans without a monthly limit",
   "50 GB for photos and files",

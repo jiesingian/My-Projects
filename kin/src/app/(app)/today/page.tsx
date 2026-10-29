@@ -57,6 +57,7 @@ import { NextVoteOnToday } from "@/components/next-vote-on-today";
 import { PushNudge } from "@/components/push-nudge";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { getNextBillOffers } from "@/lib/queries/wealth";
+import { inIosApp } from "@/lib/ios-app";
 
 export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string; arrived?: string }> }) {
   const tz = await householdZone();
@@ -69,6 +70,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   if (inSimpleMode(me)) return <SimpleToday me={me} arrivedNow={arrivedNow} />;
   // Settings -> Show me around replays the guided tour.
   const replayTour = params.tour === "1";
+  const iosApp = await inIosApp();
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, doses, goals, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([
@@ -209,12 +211,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       {startHere && <StartHere steps={startHere.steps} bonus={startHere.bonus} inviteCode={me.families.invite_code} />}
 
-      {/* A new household's first two weeks: who invited it, once. */}
-      {isGrownUp(me.role) && canNameReferrer(me.families) && <ReferralEntry />}
+      {/* A new household's first two weeks: who invited it, once. Neither
+          this nor the offers below is in the iPhone app: both give days of
+          Plus, and an app may not unlock features by its own codes or
+          rewards outside Apple's in-app purchase (lib/ios-app.ts). */}
+      {!iosApp && isGrownUp(me.role) && canNameReferrer(me.families) && <ReferralEntry />}
 
       {/* Kin's own offers: days of Plus for trying something new, one at a
           time (20260929020000_kin_offers.sql). */}
-      <KinOfferCard state={kinOffer} plus={readAccess(me.families).plus} comped={readAccess(me.families).status === "comped"} referralCode={me.families.referral_code} householdName={me.families.name} />
+      {!iosApp && <KinOfferCard state={kinOffer} plus={readAccess(me.families).plus} comped={readAccess(me.families).status === "comped"} referralCode={me.families.referral_code} householdName={me.families.name} />}
 
       {/* Today, as one list (Jonathan, 28 September: "shouldn't they be the
           same and prioritized at the top?"). What used to be "Needs you

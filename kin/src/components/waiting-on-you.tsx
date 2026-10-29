@@ -19,6 +19,7 @@ import {
   ReceiveIncomeControl,
   RepriceLoanControl,
   SetBalanceButton,
+  WealthGoalButton,
 } from "@/components/waiting-actions";
 import { RemindButton, WaitingRow } from "@/components/waiting-row";
 
@@ -64,6 +65,9 @@ export async function WaitingOnYou({ me, tab, currency, openId = null }: { me: {
         return <FundPaidControl key={key} goalId={a.goalId} title={a.title} accounts={pickable} currency={currency} saved={a.saved} target={a.target} linkedAccountId={a.linkedAccountId} repeatsYearly={a.repeatsYearly} />;
       case "remind":
         return <RemindButton key={key} goalId={a.goalId} memberId={a.memberId} name={a.name} />;
+      case "wealth-goal":
+        // The goal's own 🎯: where it stands, and its number to change.
+        return <WealthGoalButton key={key} tracks={a.tracks} id={a.id} category={a.category} whose={a.whose} suggest={{ title: a.mark.title, amount: a.mark.setTo }} goal={a.mark} currency={currency} accounts={pickable.map((x) => ({ id: x.id, name: x.name }))} />;
       case "link":
         return (
           <Link key={key} href={a.href} className="btn btn-primary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.6875rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>

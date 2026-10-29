@@ -59,7 +59,7 @@ export function fcmMessage(device: Pick<FcmDevice, "token">, p: PushContent, opt
 }
 
 /** The silent message that has the Android app set its alarms again (Jonathan,
- * 29 October; due_alarm_wakes, 20261030000000), as apnsWakeRequest does for
+ * 29 October; due_alarm_wakes, 20261030130000), as apnsWakeRequest does for
  * the iPhone: once a day, and after a change that moves an alarm. Nothing is
  * shown: KinMessagingService fetches api/alarms with the web view's session
  * and sets them. Normal priority, which Android may hold until the phone

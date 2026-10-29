@@ -5,10 +5,13 @@ import { getEmergencyContacts } from "@/lib/queries/family";
 import { DetailHeader } from "@/components/hub-header";
 import { SosAlertActions } from "@/components/sos-alert-actions";
 import { FAMILY_TZ } from "@/lib/time";
-import { clockIn, isTimeZone, mapLink, sinceLabel, zoneCity } from "@/lib/member-card";
+import { clockIn, isTimeZone, mapLink, olderThanDays, sinceLabel, zoneCity } from "@/lib/member-card";
 import { isGone } from "@/lib/member-status";
 
 export const dynamic = "force-dynamic";
+
+/** How long an SOS alert keeps its position (20261030110000). */
+const SOS_POSITION_DAYS = 30;
 
 /** Where an SOS push lands (approved 30 September): who, when, where if their
  * phone allowed, who is dealing with it, and every number worth calling.
@@ -57,6 +60,9 @@ export default async function SosAlertPage({ params }: { params: Promise<{ id: s
         <a href={mapLink(alert.lat, alert.lng)} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
           Open in Maps{alert.accuracy_m ? ` · within about ${alert.accuracy_m < 1000 ? `${alert.accuracy_m} m` : `${Math.round(alert.accuracy_m / 1000)} km`}` : ""} ›
         </a>
+      ) : olderThanDays(alert.created_at, SOS_POSITION_DAYS) ? (
+        // Blanked by clear_old_sos_positions (20261030110000).
+        `Not kept after ${SOS_POSITION_DAYS} days`
       ) : (
         "Their phone didn't share a location"
       ),
