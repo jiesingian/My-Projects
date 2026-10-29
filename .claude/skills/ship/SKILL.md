@@ -10,6 +10,7 @@ when the PR has merged -- not when it is opened (Jonathan, 19 October).
 
 1. **Branch.** Never commit to `main`. `git fetch origin main && git rebase origin/main`.
 2. **Checks, from the project folder** (e.g. `kin/`): `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm run test:logic` (no app, no database). Database changes: `npm run test:rls` (PGlite, no credentials needed). Never the full `npm run e2e`: dev is shared and CI's smoke run is the browser gate (root `CLAUDE.md`, "Dev is shared"); one spec at most, and say so in the PR body.
+2a. **Help.** A change a family would notice (a new button, a renamed screen, a new limit) updates its entry in `kin/src/lib/help-guide.ts` in the same PR: Settings → Help reads it, and so does the feature guide. CI warns, without failing, when screens change and Help does not.
 3. **Migrations.** A new `.sql` in `<project>/supabase/migrations/` must be named later than main's newest:
    `git ls-tree --name-only origin/main <project>/supabase/migrations/ | tail -2`.
    Automerge holds a PR whose migration is older and comments the exact `git mv`.
