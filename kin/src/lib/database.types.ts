@@ -7553,8 +7553,12 @@ export type Database = {
           start_value: number | null
           target: number
           title: string
+          tracks: string | null
+          tracks_category: string | null
+          tracks_id: string | null
           unit: string | null
           visibility: string
+          watch_on_time: boolean
           xp: number
         }
         Insert: {
@@ -7579,8 +7583,12 @@ export type Database = {
           start_value?: number | null
           target: number
           title: string
+          tracks?: string | null
+          tracks_category?: string | null
+          tracks_id?: string | null
           unit?: string | null
           visibility?: string
+          watch_on_time?: boolean
           xp?: number
         }
         Update: {
@@ -7605,8 +7613,12 @@ export type Database = {
           start_value?: number | null
           target?: number
           title?: string
+          tracks?: string | null
+          tracks_category?: string | null
+          tracks_id?: string | null
           unit?: string | null
           visibility?: string
+          watch_on_time?: boolean
           xp?: number
         }
         Relationships: []

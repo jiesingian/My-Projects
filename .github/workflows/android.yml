@@ -69,6 +69,13 @@ jobs:
       - name: Build the debug APK
         working-directory: kin/native/android
         run: ./gradlew --no-daemon assembleDebug
+      # The release AAB too, unsigned (no upload key here): it runs checks a
+      # debug build skips (lintVitalRelease), so a change that would stop
+      # play-release.yml fails here first, not on Jonathan's run. Only the
+      # debug APK is kept.
+      - name: The release bundle builds
+        working-directory: kin/native/android
+        run: ./gradlew --no-daemon bundleRelease
       - uses: actions/upload-artifact@v6
         with:
           name: kin-android-debug
