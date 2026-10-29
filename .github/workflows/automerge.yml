@@ -34,7 +34,10 @@ on:
     # workflow_run carries the base branch's SHA rather than the pull
     # request's, and this job would look up the wrong commit. It is also the
     # fastest thing in the repository and has never finished last.
-    workflows: [CI, Secret Scan, End-to-end, Schema check]
+    #
+    # iOS build (29 October) runs only when kin/native changes, and on macOS
+    # it is the slowest of all, so on those pull requests it finishes last.
+    workflows: [CI, Secret Scan, End-to-end, Schema check, iOS build]
     types: [completed]
 
   # The list above will go stale again -- the next workflow anybody adds will
