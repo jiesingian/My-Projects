@@ -185,6 +185,10 @@ jobs:
           for F in .github/workflows/*.yml; do
             CRON=$(grep -oE '^\s*- cron: "[^"]+"' "$F" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
             [ -n "$CRON" ] || continue
+            # A schedule nobody waits on says so on its cron line ("# late
+            # is fine", graphify-deploy.yml, #98): its hour is a request, not
+            # a claim anyone plans around, so there is nothing to check.
+            grep -qE '^\s*- cron: "[^"]+" *# late is fine' "$F" && continue
             MIN=$(echo "$CRON" | awk '{print $1}')
             HOUR=$(echo "$CRON" | awk '{print $2}')
             case "$HOUR" in *"*"*) continue ;; esac   # hourly/other: no fixed hour to check

@@ -24,9 +24,15 @@ name: Build Projects Graph
 # for a person who wants one without cloning, which does not need to be
 # rebuilt on every one of several merges a day. Weekly plus on-demand is
 # still fresher than anyone has asked for it.
+#
+# 03:00 UTC Sunday is when it is asked for, not when it runs: GitHub's
+# scheduled runs are best-effort, and this one has fired up to five hours
+# late (#98). Nobody waits on it -- the artifact is fresh whenever on Sunday
+# it lands -- so the cron line says so, and self-heal.yml's stale-claims
+# check leaves it alone.
 on:
   schedule:
-    - cron: "0 3 * * 0"
+    - cron: "0 3 * * 0" # late is fine
   workflow_dispatch:
 
 # Read-only: nothing is published, so nothing needs write access.
