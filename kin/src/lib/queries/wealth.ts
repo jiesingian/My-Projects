@@ -968,3 +968,24 @@ export async function getLongerBills(familyId: string) {
   const { data } = await supabase.from("bills").select("name, amount, recurrence, due_date, status").eq("family_id", familyId).in("recurrence", ["quarterly", "yearly"]);
   return data ?? [];
 }
+
+/** Money put into goals since `since` (an instant), confirmed or waiting:
+ * what a shared goal's "x / total this month" counts (29 October). */
+export async function getGoalDepositsSince(familyId: string, since: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("wealth_transactions").select("goal_id, account_id, recorded_by").eq("family_id", familyId).eq("direction", "out").not("goal_id", "is", null).in("status", ["confirmed", "pending"]).gte("occurred_at", since);
+  return data ?? [];
+}
+
+/** Only the entries still waiting on "it went through" (29 October): what
+ * A&L's "Waiting on you" needs, without reading the whole ledger. */
+export async function getPendingEntries(familyId: string): Promise<LedgerEntry[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("wealth_transactions")
+    .select("*, accounts(name, owner_member_id, is_joint, is_archived, deleted_at), members:recorded_by(full_name)")
+    .eq("family_id", familyId)
+    .eq("status", "pending")
+    .order("occurred_at", { ascending: false });
+  return (data ?? []).map(toLedgerEntry);
+}

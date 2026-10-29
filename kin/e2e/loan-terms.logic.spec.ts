@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mp2RateStale, payFirst, insuranceGap, payOrInvest, costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
+import { actorsFor, depositProgress, mp2RateStale, payFirst, insuranceGap, payOrInvest, costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -280,4 +280,23 @@ test("mp2RateStale: a year's rate is current until the next is declared, about M
   expect(mp2RateStale("2027-03-31")).toBe(false);
   expect(mp2RateStale("2027-04-01")).toBe(true);
   expect(mp2RateStale("2028-01-15")).toBe(true);
+});
+
+/** Who a money thing waits on (29 October): not everybody. */
+test("actorsFor: the named person, then the account's owner, then the owner, then the grown-ups", () => {
+  const grownUps = ["jon", "jan"];
+  expect(actorsFor({ named: "jan", accountOwner: "jon" }, grownUps)).toEqual(["jan"]);
+  expect(actorsFor({ accountOwner: "jon", accountJoint: false, owner: "jan" }, grownUps)).toEqual(["jon"]);
+  expect(actorsFor({ accountOwner: "jon", accountJoint: true, owner: "jan", joint: false }, grownUps)).toEqual(["jan"]);
+  expect(actorsFor({ owner: "jan", joint: true }, grownUps)).toEqual(grownUps);
+  expect(actorsFor({}, grownUps)).toEqual(grownUps);
+});
+
+test("depositProgress: who has put into a shared goal this month, by account or by who recorded it", () => {
+  const contributors = [{ memberId: "jon", accountId: "bpi" }, { memberId: "jan", accountId: "gcash" }, { memberId: "pat", accountId: null }];
+  // Jan logging Jon's deposit from Jon's account marks Jon, not Jan.
+  expect(depositProgress(contributors, [{ accountId: "bpi", recordedBy: "jan" }])).toEqual({ done: ["jon"], waiting: ["jan", "pat"] });
+  // From an account no contributor pays from: whoever recorded it.
+  expect(depositProgress(contributors, [{ accountId: "joint", recordedBy: "pat" }])).toEqual({ done: ["pat"], waiting: ["jon", "jan"] });
+  expect(depositProgress(contributors, [])).toEqual({ done: [], waiting: ["jon", "jan", "pat"] });
 });
