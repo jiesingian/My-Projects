@@ -32,6 +32,11 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           </p>
         )}
         {children}
+        {/* The licences' notices, reachable from every legal page rather than
+            crowding the nav (legal/licenses). */}
+        <p className="kin-legal-meta" style={{ marginTop: "2.5rem" }}>
+          <Link href="/legal/licenses">Credits and open-source licences</Link>
+        </p>
       </article>
     </main>
   );
