@@ -327,7 +327,7 @@ export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }>
   emergency: { line: "the emergency card: blood type, allergies, doctor and insurance on one screen that reads at arm’s length." },
   kids: { line: "location sharing, which each person switches on for themselves, beside the family calendar." },
   money: { line: "Wealth: accounts, budgets and bills with reminders, and who’s paying what.", plus: true },
-  documents: { line: "the vault: PSA certificates, passports and policies, behind Face ID or a PIN.", plus: true },
+  documents: { line: "the vault: PSA certificates, passports and policies, with a Face ID or PIN lock.", plus: true },
   plans: { line: "one family calendar, synced with Google Calendar, with appointments, routines and chores the kids earn stars for." },
   travel: { line: "trips in the planner: who’s going, a packing list, and the budget beside what was spent." },
   memories: { line: "the family journal: photos, milestones and first days, shared with relatives." },
@@ -337,7 +337,7 @@ export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }>
 
 /** Shown when question 9 is "Curious but privacy first": the promise as
  * /legal/privacy makes it. */
-export const PRIVACY_LINE = "Private to your family. Nothing is sold, and your records never train AI.";
+export const PRIVACY_LINE = "Private to your family. Nothing is sold, and Kin AI’s provider does not train on your records.";
 
 export function wantsPrivacyFirst(answers: Answers): boolean {
   return answers.ai?.[0] === "privacy";
@@ -374,7 +374,7 @@ const CHAT_TIPS: Record<string, Tip> = {
   journal: { line: PRIORITY_IN_KIN.memories.line },
   polls: { line: "polls in the family chat, to settle dinner or the weekend in a minute." },
   calls: { line: "voice and video calls, built into the family chat." },
-  ai: { line: "Kin AI, which answers from your own family’s calendar, lists and records. Your records never train AI." },
+  ai: { line: "Kin AI, which answers from your own family’s calendar, lists and records. Its provider does not train on your records." },
   nothing: { line: "a family chat that’s there when you want it, next to the calendar and lists it talks about." },
 };
 
@@ -403,10 +403,10 @@ export function answerTip(id: string, answers: Answers): Tip | null {
         : { line: "Each person’s allergies, medicines, blood type, doctor and HMO card on their health profile, and an emergency card that shows it all on one screen." };
     case "papers":
       if (first === "safe" || first === "folder")
-        return { line: "Keep the originals where they are. A copy in the vault, behind Face ID or a PIN, is there when you’re away from home.", plus: true };
+        return { line: "Keep the originals where they are. A copy in the vault, with a Face ID or PIN lock, is there when you’re away from home.", plus: true };
       if (first === "photos") return { line: "Instead of searching someone’s camera roll, keep each document in the vault, named, with whose it is.", plus: true };
-      if (first === "cloud") return { line: "The vault keeps them beside the rest of the family’s life, behind Face ID or a PIN.", plus: true };
-      return { line: "Start with one: add a document to the vault and it’s there for whoever needs it, behind Face ID or a PIN.", plus: true };
+      if (first === "cloud") return { line: "The vault keeps them beside the rest of the family’s life, with a Face ID or PIN lock.", plus: true };
+      return { line: "Start with one: add a document to the vault and it’s there for whoever needs it, with a Face ID or PIN lock.", plus: true };
     case "kids":
       return first === "app"
         ? { line: "Kin’s location sharing sits next to the family calendar and chat, so that’s one app less." }
@@ -422,7 +422,7 @@ export function answerTip(id: string, answers: Answers): Tip | null {
     case "ai":
       if (first === "privacy") return { line: PRIVACY_LINE };
       if (first === "no") return { line: "That’s fine. Everything in Kin works without AI, and Kin AI only answers when someone asks it." };
-      return { line: "Kin AI answers from your own family’s calendar, lists and records, and can read a school flyer for you. Your records never train AI." };
+      return { line: "Kin AI answers from your own family’s calendar, lists and records, and can read a school flyer for you. Its provider does not train on your records." };
   }
   return null;
 }

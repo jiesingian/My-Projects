@@ -23,7 +23,7 @@ export default function SignupPage() {
     <OnboardingShell step={sentTo ? "STEP 02 / 03" : "STEP 01 / 03"} backHref="/login">
       {sentTo && <CodeEntry key={sentTo} email={sentTo} onChangeEmail={() => setChanging(true)} />}
       <div hidden={!!sentTo}>
-      <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
+      <h1 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h1>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
         Your own account first: every member signs in with their own verified email. Next you start your
         family or join one with its invite code. A child can join the same way; a parent approves them, and they start in kid view.
