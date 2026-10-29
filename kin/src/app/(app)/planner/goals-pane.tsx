@@ -138,6 +138,7 @@ export function caption(goal: GoalView, currency: string): string {
     const from = goal.start !== null ? `from ${goalNumber(goal.start)} ` : "";
     return `${goalNumber(goal.current)} kg now · ${from}to ${goalNumber(goal.target)} kg`;
   }
+  if (goal.tracked) return goal.tracked.caption;
   if (goal.kind === "money") return `${formatCurrency(goal.current, currency)} of ${formatCurrency(goal.target, currency)} ${PERIOD_NOW[goal.period]}`;
   // The unit once, after the target: "9 of 12 books so far".
   const unit = unitFor(goal, goal.target);
@@ -150,8 +151,9 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
   const pct = Math.round(goal.fraction * 100);
   // A money goal filled from a savings goal on Wealth is the one kind that
   // only fills itself: money goes in on Wealth.
-  const logs = !goal.savingsTitle;
-  const ringColour = colour ?? "var(--color-accent-700)";
+  const logs = !goal.savingsTitle && !goal.tracked;
+  // 🎯 a spending limit gone past reads as such.
+  const ringColour = goal.tracked?.over ? "var(--cal-occasion)" : (colour ?? "var(--color-accent-700)");
   const left = daysLeftText(goal.dueDate, today);
 
   return (
@@ -211,8 +213,10 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
           <span />
         )}
         <span style={{ display: "inline-flex", alignItems: "center" }}>
-          <Link href={`/planner/goals/${goal.id}/edit`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}>
-            Edit
+          {/* 🎯 goals change where they live, on Wealth: its number means
+              something there (a loan's is what is to be owed). */}
+          <Link href={goal.tracked ? goal.tracked.href : `/planner/goals/${goal.id}/edit`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}>
+            {goal.tracked ? "Edit on Wealth" : "Edit"}
           </Link>
           <GoalDeleteButton goalId={goal.id} title={goal.title} />
         </span>
@@ -224,6 +228,20 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
 /** Where the goal fills from, and a way to connect Apple Health when the
  * owner hasn't. */
 export function SourceLine({ goal, meId, appleHealth }: { goal: GoalView; meId: string; appleHealth: AppleHealthLink }) {
+  if (goal.tracked) {
+    return (
+      <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>
+        {goal.tracked.lines.map((l) => (
+          <div key={l}>{l}</div>
+        ))}
+        🎯 Fills from{" "}
+        <Link href={goal.tracked.href} style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>
+          {goal.tracked.thing ? `${goal.tracked.thing} on Wealth` : "Wealth"}
+        </Link>
+        {goal.tracked.thing ? "." : ": what it followed is gone."}
+      </div>
+    );
+  }
   const { text, connect } = goalSource(goal.kind, { savingsTitle: goal.savingsTitle, mine: goal.ownerId === meId, ownerFirst: goal.ownerName?.split(" ")[0] ?? null, appleHealth });
   return (
     <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>
