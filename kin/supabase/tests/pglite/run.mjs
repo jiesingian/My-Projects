@@ -170,6 +170,9 @@ const MIGRATIONS = [
   "20261029233000_feature_votes.sql",
   "20261029234000_planner_goal_tracks.sql",
   "20261029235000_planner_goal_milestone.sql",
+  "20261030110000_sos_position_kept_30_days.sql",
+  "20261030120000_review_fixes.sql",
+  "20261030120001_deletion_sweeps_newer_tables.sql",
   "20261030130000_records_ok.sql",
 ];
 

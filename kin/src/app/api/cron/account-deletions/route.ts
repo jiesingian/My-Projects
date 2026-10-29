@@ -1,6 +1,7 @@
 import { constantTimeEquals } from "@/lib/security/crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { HOUSEHOLD_BUCKETS, removeFolder, removePaths } from "@/lib/storage-sweep";
+import { revokeGoogleToken } from "@/lib/google-revoke";
 import { reportError } from "@/lib/report-error";
 
 /** Once a day (kin-account-deletions, 20261021020000_delete_my_account.sql):
@@ -37,11 +38,20 @@ export async function POST(request: Request) {
 
   let done = 0;
   for (const userId of (due ?? []) as string[]) {
+    // Their Google Calendar keys, read before the database deletes them, so
+    // Kin's access can be taken back at Google too once the deletion holds.
+    const { data: mine } = await admin.from("members").select("id").eq("auth_user_id", userId);
+    const memberIds = (mine ?? []).map((m: { id: string }) => m.id);
+    const { data: calendarTokens } = memberIds.length
+      ? await admin.from("calendar_tokens").select("refresh_token, access_token").in("member_id", memberIds)
+      : { data: [] };
+
     const { data, error: finalizeError } = await admin.rpc("finalize_account_deletion", { p_user: userId });
     if (finalizeError) {
       reportError("Account deletion did not finish", finalizeError, userId);
       continue;
     }
+    for (const token of calendarTokens ?? []) await revokeGoogleToken(token);
     const result = (data ?? {}) as {
       person_id?: string | null;
       files?: { bucket: string; path: string }[];
@@ -64,6 +74,9 @@ export async function POST(request: Request) {
     }
 
     for (const familyId of result.delete_families ?? []) {
+      // Drive is one connection for the whole household, so it is taken back
+      // at Google only when the household itself goes.
+      const { data: driveToken } = await admin.from("drive_tokens").select("refresh_token, access_token").eq("family_id", familyId).maybeSingle();
       const { data: healthFiles, error: householdError } = await admin.rpc("delete_household_for_account_deletion", { p_family: familyId });
       if (householdError) {
         // A grown-up is still there (another one also leaving, say): the
@@ -72,6 +85,7 @@ export async function POST(request: Request) {
         else reportError("A household was not deleted after an account deletion", householdError, familyId);
         continue;
       }
+      await revokeGoogleToken(driveToken);
       const left = await removePaths(admin, "journal", (healthFiles ?? []) as string[]);
       if (left.length > 0) reportError("Health photo files were left behind while deleting a household", new Error("Health photo files were left behind while deleting a household"), left.length, familyId);
       for (const bucket of HOUSEHOLD_BUCKETS) {

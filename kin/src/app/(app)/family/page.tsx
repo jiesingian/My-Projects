@@ -126,7 +126,7 @@ async function ProfilePane({ familyId, isOrganiser, myRole, myTyphoon }: { famil
                   {formatAge(m.dob)} · wants to join as {roleLabel(m.role)}
                 </span>
               </span>
-              <PendingMemberActions memberId={m.id} fullName={m.full_name} />
+              <PendingMemberActions memberId={m.id} fullName={m.full_name} requestedRole={m.role} />
             </Blueprint>
           ))}
           <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 16px" }} />

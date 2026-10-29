@@ -4,7 +4,7 @@ import { FREE_AI_PER_MONTH } from "@/lib/access";
 import { reportError } from "@/lib/report-error";
 
 /** Takes one Kin AI use -- a question to the assistant or a flyer scan --
- * from the household's month. Kin Plus is unlimited; Kin Free gets
+ * from the household's month. Kin Plus has no monthly limit; Kin Free gets
  * FREE_AI_PER_MONTH (20260928150000_kin_free_and_plus.sql, use_kin_ai()).
  *
  * Counted before the model is called, because the call is what costs money.

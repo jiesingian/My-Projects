@@ -55,6 +55,7 @@ playwright-report/
 test-results/
 /public/mediapipe/
 /public/pdfjs/
+/public/legal/third-party-notices.txt
 
 # visual.spec.ts: main's screenshots (downloaded by e2e.yml) and this run's
 /e2e/visual-baseline/
