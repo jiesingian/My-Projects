@@ -18,7 +18,7 @@ function revalidateWaiting() {
 const KEY = /^[a-z-]{3,20}-[0-9a-f-]{8,80}$/;
 
 /** "Not now" (Jonathan, 29 October): put one of your own "Waiting on you"
- * items away for 30 days (waiting_snoozes, 20261029160000). The key is the
+ * items away for 30 days (waiting_snoozes, 20261029180000). The key is the
  * list's own; one for something gone matches nothing. */
 export async function snoozeWaitingAction(itemKey: string): Promise<ActionState> {
   if (!KEY.test(itemKey)) return { error: "That isn't something on your list." };
