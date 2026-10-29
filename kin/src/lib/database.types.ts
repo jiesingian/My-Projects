@@ -8443,6 +8443,30 @@ export type Database = {
         }
         Relationships: []
       }
+      alarm_picks: {
+        Row: {
+          created_at: string
+          family_id: string
+          item_id: string
+          kind: string
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          item_id: string
+          kind: string
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          item_id?: string
+          kind?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
       push_tests: {
         Row: {
           id: number

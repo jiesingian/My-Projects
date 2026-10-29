@@ -1,5 +1,6 @@
 import { PushKeepAlive } from "@/components/push-opt-in";
 import { DoseAlarmListener } from "@/components/dose-alarm";
+import { NativeAlarmSync } from "@/components/native-alarm-sync";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { HouseholdZoneProvider } from "@/components/household-zone";
@@ -65,6 +66,8 @@ export default async function AppLayout({ children, modal }: { children: React.R
     <div className={inSimpleMode(member) ? "kin-shell kin-simple" : "kin-shell"}>
       <PushKeepAlive />
       <DoseAlarmListener />
+      {/* Inside the Kin iPhone app only: real alarms (lib/alarms.ts). */}
+      <NativeAlarmSync />
       {/* The member's text size, and the three layout switches that have to
           answer it -- see text-scale.ts for why they are generated rather than
           written in globals.css.
