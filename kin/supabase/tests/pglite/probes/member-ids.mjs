@@ -35,6 +35,19 @@ export default async function ({ db, as, check, refused }) {
       await db.query(`update members set sss_number = '1' where id = '${P("a1")}'`);
     }),
   );
+  await check("can_read_member_ids says no to a child for a grown-up, yes to the parent for the child", async () => {
+    const kid = (await as(KID, `select can_read_member_ids('${P("a1")}') ok`))[0].ok;
+    const ann = (await as(ANN, `select can_read_member_ids('${P("a2")}') ok`))[0].ok;
+    return (kid === false && ann === true) || { kid, ann };
+  });
+  await check("can_write_member_ids says no to another household", async () => (await as(BEN, `select can_write_member_ids('${P("a1")}') ok`))[0].ok === false);
+  await check("member_ids_sweep_former_member: a deleted account's numbers go", async () => {
+    await db.exec("reset role");
+    await db.query(`update members set auth_user_id = null, status = 'removed' where id = '${P("a2")}'`);
+    const left = (await db.query(`select 1 from member_ids where person_id = '${P("a2")}'`)).rows.length;
+    await db.query(`update members set auth_user_id = '${KID}', status = 'active' where id = '${P("a2")}'`);
+    return left === 0 || left;
+  });
   await db.exec("reset role");
   await db.exec(`delete from member_ids; update members set status = 'active' where id = '${P("a3")}'`);
 }
