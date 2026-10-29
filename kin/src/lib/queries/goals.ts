@@ -1,5 +1,6 @@
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
+import { getTrackedGoals, type TrackedGoal } from "@/lib/queries/wealth-goals";
 import { familyDay } from "@/lib/time";
 import { claimStreak, clamp01, daysBefore, isGoalKind, isGoalPeriod, stepsForDay, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
 
@@ -53,6 +54,10 @@ export type GoalView = {
   reached: boolean;
   /** Money: filled from this savings goal rather than from entries. */
   savingsTitle: string | null;
+  /** 🎯 (29 October): a money goal that follows something on Wealth and
+   * fills from it -- an account's balance, a loan paid down, an income, a
+   * category's limit, a fund to replace a house or car. */
+  tracked: { thing: string | null; href: string; caption: string; lines: string[]; over: boolean } | null;
   /** Nothing to read yet (a weight goal with no reading, say). */
   noData: boolean;
   reward: GoalRewardView | null;
@@ -158,6 +163,16 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
   const readings = readingsRes.data ?? [];
   const todaySteps = todayStepsRes.data ?? [];
   const savings = new Map((savingsRes.data ?? []).map((s) => [s.id, s]));
+  // 🎯 goals fill from Wealth, the same figures its 🎯 shows.
+  const trackedGoals = withWindow.some((g) => g.tracks)
+    ? await supabase
+        .from("families")
+        .select("currency")
+        .eq("id", familyId)
+        .maybeSingle()
+        .then(({ data }) => getTrackedGoals(familyId, data?.currency ?? "PHP"))
+    : new Map<string, TrackedGoal>();
+  const trackedById = new Map([...trackedGoals.values()].map((t) => [t.id, t]));
   const claimState = (goalId: string, period: GoalPeriod, from: string) => {
     if (period === "total") return { claim: null, streak: 0 };
     const mine = claims.filter((c) => c.goal_id === goalId);
@@ -176,10 +191,14 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     let fraction = 0;
     let noData = false;
     let savingsTitle: string | null = null;
+    const followed = trackedById.get(g.id) ?? null;
     let autoToday: number | null = null;
     let manualToday: number | null = null;
 
-    if (g.kind === "water") {
+    if (followed) {
+      current = followed.current;
+      fraction = followed.fraction;
+    } else if (g.kind === "water") {
       current = water.filter((w) => w.log_date >= g.from && counts(w.member_id)).reduce((sum, w) => sum + w.glasses, 0);
     } else if (g.kind === "steps") {
       current = readings.filter((r) => r.goal_id === g.id && r.reading_date >= g.from).reduce((sum, r) => sum + Number(r.value), 0);
@@ -207,7 +226,7 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     } else {
       current = entries.filter((e) => e.goal_id === g.id && e.entry_date >= g.from).reduce((sum, e) => sum + Number(e.amount), 0);
     }
-    if (g.kind !== "weight") fraction = clamp01(current / g.target);
+    if (g.kind !== "weight" && !followed) fraction = clamp01(current / g.target);
 
     const r = rewardOf.get(g.id);
     const c = changeOf.get(g.id);
@@ -219,7 +238,7 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       title: g.title,
       kind: g.kind,
       period: g.period,
-      target: Number(g.target),
+      target: followed ? followed.target : Number(g.target),
       unit: g.unit,
       ownerId: g.owner_member_id,
       ownerName: g.owner_member_id ? (nameOf.get(g.owner_member_id) ?? null) : null,
@@ -228,8 +247,9 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       current,
       start,
       fraction,
-      reached: fraction >= 1,
+      reached: followed ? followed.reached : fraction >= 1,
       savingsTitle,
+      tracked: followed ? { thing: followed.thing, href: followed.href, caption: followed.caption, lines: followed.lines, over: followed.over } : null,
       noData,
       reward: r
         ? {
