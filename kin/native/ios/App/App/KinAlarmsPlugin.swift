@@ -23,7 +23,7 @@ import SwiftUI
 /// alarms for apps, so they come as time-sensitive notifications: through
 /// Focus, but not through the silent switch.
 @objc(KinAlarmsPlugin)
-public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin, UNUserNotificationCenterDelegate {
+public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "KinAlarmsPlugin"
     public let jsName = "KinAlarms"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -36,10 +36,6 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin, UNUserNotificationCen
     /// `replaceAll` only ever removes its own.
     static let notificationPrefix = "kin-alarm:"
     static let maxAlarms = 60
-
-    public override func load() {
-        UNUserNotificationCenter.current().delegate = self
-    }
 
     // MARK: - Methods called from the page
 
@@ -157,24 +153,8 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin, UNUserNotificationCen
         }
     }
 
-    // MARK: - Opening the alarm's page
-
-    public func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .sound, .list]
-    }
-
-    public func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        guard let path = response.notification.request.content.userInfo["url"] as? String else { return }
-        await MainActor.run { self.open(path) }
-    }
-
-    /// Opens a Kin page (a path such as /today/dose?...) in the app's web view.
-    @MainActor
-    func open(_ path: String) {
-        guard path.hasPrefix("/"), let base = bridge?.config.serverURL,
-              let url = URL(string: path, relativeTo: base) else { return }
-        bridge?.webView?.load(URLRequest(url: url))
-    }
+    // Tapping one of these opens its page: KinCalls (KinPushPlugin.swift)
+    // is the notification delegate for the whole app, set at launch.
 }
 
 /// What a Kin alarm carries back when it rings (AlarmKit), for opening its page.

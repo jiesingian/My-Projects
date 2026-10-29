@@ -51,6 +51,20 @@
 	<array>
 		<string>arm64</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>voip</string>
+		<string>remote-notification</string>
+		<string>audio</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Kin uses the camera for video calls with your family, and for photos you add.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Kin uses the microphone for calls with your family and for recorded stories.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kin shares where you are with your family only when you choose to, and with an SOS.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Kin saves the videos and pictures you make to your photos.</string>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Kin rings your medicine doses, and the plans, check-ups and bills you choose, like an alarm clock, even when the phone is on silent.</string>
 	<key>WKAppBoundDomains</key>

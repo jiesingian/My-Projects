@@ -1,0 +1,94 @@
+name: TestFlight
+
+# Builds Kin's iPhone app (kin/native), signs it and uploads it to
+# TestFlight, from GitHub's macOS runner -- no Mac needed. Started by hand
+# (Actions -> TestFlight -> Run workflow), never on a push: each upload is a
+# new build for testers, and Apple reviews the first one.
+#
+# Signing is Xcode's own cloud-managed signing: with an App Store Connect
+# API key, xcodebuild makes and renews the certificate and the profiles
+# itself (-allowProvisioningUpdates). So the repository holds no certificate
+# and no profile. The secrets (Jonathan adds them; SETUP_FOR_JONATHAN.md,
+# "The iPhone app"):
+#   APPLE_TEAM_ID              the 10-character Team ID
+#   ASC_KEY_ID, ASC_ISSUER_ID  the App Store Connect API key's ids
+#   ASC_KEY_P8                 the key file's contents (BEGIN PRIVATE KEY...)
+#
+# Never posts a check on a pull request, so automerge.yml does not list it.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    name: Build, sign and upload
+    runs-on: macos-26
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: kin/native
+    steps:
+      - name: The secrets are there
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        working-directory: .
+        run: |
+          missing=""
+          for s in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            [ -n "${!s}" ] || missing="$missing $s"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. See kin/docs/SETUP_FOR_JONATHAN.md, 'The iPhone app'."
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/native/package-lock.json
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: The API key, for signing and the upload
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+      - name: Archive
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Kin.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' \
+            archive | tail -n 80
+      - name: Sign for the App Store and upload to TestFlight
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" ios/App/ExportOptions.plist
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Kin.xcarchive" \
+            -exportOptionsPlist ios/App/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -n 40
+          echo "Uploaded build ${{ github.run_number }}. It shows in App Store Connect -> TestFlight once Apple has processed it (usually 10-30 minutes)."
+      - name: Forget the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"

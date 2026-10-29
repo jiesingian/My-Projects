@@ -3,6 +3,53 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 29 October: the Kin iPhone app, for every alarm (Jonathan)
+
+"all features that needs alarms shall be working perfectly (not only
+medicine) and permanently, therefore, soon i shall be subscribing to apple
+developer to make permanent fix." The Shortcut route is dropped for good
+(#1084, #1086) and is not to be offered again. His choices:
+- **Real alarms** for medicine doses; for plans, check-ups and bills (per
+  item, off by default); and for SOS and incoming calls. Birthdays and
+  occasions stay ordinary notifications.
+- **Wrap the web app** (Capacitor), don't rewrite it.
+- **No Mac:** GitHub's macOS runner builds, signs and uploads it.
+
+Built without the account, as a series in one session:
+1. **#1094: the shell** (`kin/native`, Capacitor 8, Swift Package Manager)
+   loads the live site; `ios.yml` compiles it on every change under
+   `kin/native`.
+2. **#1101: real alarms.** `lib/alarms.ts` decides what rings and when:
+   - doses at their time, for the same people as the dose reminder, under
+     Health reminders;
+   - a picked plan 30 minutes before, a check-up an hour before, a bill at
+     09:00 on its day.
+   Picks are kept per person in `alarm_picks`. `api/alarms` sends the list,
+   and `NativeAlarmSync` hands the next 14 days to `KinAlarmsPlugin` each
+   time Kin opens. That's AlarmKit on iOS 26 and later, time-sensitive
+   notifications before. The screen is Settings → Notifications → Alarms.
+3. **Calls and SOS.** The app's two Apple tokens (alert and VoIP) are saved in
+   `push_subscriptions` under Apple's device address (`lib/apns.ts`,
+   `components/native-push.tsx`), so `push_targets()` decides who gets what
+   with its usual rules, and `deliver()` sends them to Apple.
+   - A ring goes only on VoIP, and `KinCalls` hands it to CallKit (the
+     iPhone's own incoming-call screen, closed app and silent too). Answer
+     opens `/chat?answer=<id>`; Decline posts `/api/calls/decline`.
+   - An SOS is time-sensitive, or critical once Apple grants it
+     (`APNS_CRITICAL=1`).
+   - `testflight.yml` signs with Xcode's cloud-managed signing and
+     uploads, started by hand.
+4. **Jonathan's part:** SETUP section 9, enrol, three keys and the
+   TestFlight run. Then the phone checks under "Needs a real phone".
+
+**Not known until a real iPhone:**
+- A call answered through CallKit opens the call in Kin's page, and WebRTC
+  inside the web view then takes the audio. If the two disagree over the
+  audio session, the fix is native audio handling in the shell.
+- AlarmKit has no published limit on alarms per app; Kin sets at most 60.
+- A phone where Kin isn't opened for two weeks runs out of alarms. The cure
+  is a silent push that wakes the app to re-sync, once APNs is on.
+
 ## Decided 28 October: Kin speaks English only (Jonathan)
 
 Done the same day. Every Ask Kin reply is in English, whatever language the
@@ -1896,6 +1943,10 @@ work, last.
   decides" above, and needs the registered business name.
 - **A native iPhone app (Apple Developer Program, US$99 a year)**, added to
   this list 22 October (Jonathan: "do it on the last part of the project").
+  **Built 29 October except what needs the account** (see "Decided 29
+  October: the Kin iPhone app" at the top): the shell, real alarms, calls
+  and SOS. What's left is Jonathan's SETUP section 9 (enrol, keys,
+  TestFlight), then the phone checks. Widgets are still to build.
   A web app on an iPhone gets one ordinary banner: no full screen, no sound
   on silent, and no "Time Sensitive Notifications" switch -- Apple gives
   that only to App Store apps (see "Medicine reminders ring like an alarm"
@@ -2524,6 +2575,20 @@ Decided against in the same review: revising Journal (item 6) and Planner
 ## Needs a real phone
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
+
+- **The Kin iPhone app (29 October), once it's on TestFlight (SETUP section
+  9):**
+  1. Allow notifications and alarms when asked.
+  2. A medicine dose a few minutes ahead, with the phone on silent, should
+     ring full screen.
+  3. Settings → Notifications → Alarms: switch on a plan starting within the
+     hour. It should ring 30 minutes before.
+  4. Have Janine call you with Kin closed and the phone locked. The iPhone's
+     own call screen should ring; Answer should open the call, and audio and
+     video should work both ways. Then call again and Decline: her phone
+     should say declined.
+  5. An SOS from Janine's phone should come through Focus.
+  6. Send me a test, from Settings → Notifications.
 
 - **Undo read out (22 October, #884):** with VoiceOver on, delete a note,
   then a To-Buy item; VoiceOver should say "Deleted" with Undo, and Undo

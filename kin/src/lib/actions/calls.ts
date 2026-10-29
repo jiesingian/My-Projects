@@ -52,6 +52,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
         ring: true,
         icon: household?.find((m) => m.id === me.id)?.avatar_url ?? null,
         call: { id: callId, from: me.id, video },
+        again,
       }),
       watchers.length > 0 &&
         sendPush({

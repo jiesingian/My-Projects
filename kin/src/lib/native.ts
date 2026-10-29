@@ -55,6 +55,36 @@ export function nativeAlarms(): KinAlarmsPlugin | null {
   };
 }
 
+/** Apple's push for the app (lib/apns.ts): its tokens are saved in
+ * push_subscriptions under Apple's real device address, with this in the
+ * p256dh column and the channel ("alert" or "voip") in auth. Here, not in
+ * lib/apns.ts, because the page that saves them must not pull in the server's
+ * HTTP/2 sender. */
+export const NATIVE_KEY = "kin-native";
+export const APNS_HOSTS = { production: "api.push.apple.com", sandbox: "api.sandbox.push.apple.com" } as const;
+export type ApnsEnv = keyof typeof APNS_HOSTS;
+
+/** The address the app's token is kept under. */
+export function nativeEndpoint(token: string, env: ApnsEnv): string {
+  return `https://${APNS_HOSTS[env]}/3/device/${token}`;
+}
+
+export type NativeToken = { channel: "alert" | "voip"; token: string; env: ApnsEnv };
+
+/** The app's Apple tokens, or none in a browser. */
+export async function nativePushTokens(): Promise<NativeToken[]> {
+  const cap = bridge();
+  if (!cap) return [];
+  try {
+    const r = (cap.Plugins as { KinPush?: { tokens(): Promise<{ tokens: NativeToken[] }> } } | undefined)?.KinPush
+      ? await (cap.Plugins as { KinPush: { tokens(): Promise<{ tokens: NativeToken[] }> } }).KinPush.tokens()
+      : ((await cap.nativePromise?.("KinPush", "tokens", {})) as { tokens: NativeToken[] } | undefined);
+    return (r?.tokens ?? []).filter((t) => (t.channel === "alert" || t.channel === "voip") && /^[0-9a-f]{32,200}$/i.test(t.token) && (t.env === "production" || t.env === "sandbox"));
+  } catch {
+    return [];
+  }
+}
+
 /** The event the Alarms screen fires after a change, so the app re-sends
  * the list at once rather than at the next open. */
 export const ALARMS_CHANGED = "kin:alarms-changed";
