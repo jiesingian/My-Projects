@@ -72,6 +72,13 @@ internal testing (`scripts/play-upload.mjs`).
   Firebase project (`kin/docs/SETUP_FOR_JONATHAN.md`, section 10).
 - `MainActivity.java`: registers the plugins, and opens a page an alarm,
   notification or answered call asks for.
+- `store/`: what Google Play asks for, ready to paste:
+  - `LISTING.md`: the listing text, the content rating and app access;
+  - `DATA_SAFETY.md`: the Data safety answers;
+  - `POLICY.md`: the policy declarations;
+  - the icon and the feature graphic (`make-art.mjs`, which also makes the
+    launcher icons);
+  - `screenshots.mjs`, which takes the screenshots from the QA household.
 
 ## Working on it
 
