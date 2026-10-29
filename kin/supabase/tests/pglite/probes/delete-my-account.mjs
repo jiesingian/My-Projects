@@ -106,6 +106,9 @@ export default async function ({ db, as, check, refused }) {
   await check("A member cannot list who is due", () => refused(() => as(BEN, "select * from due_account_deletions()")));
   await check("A member cannot finalize anyone, themselves included", () => refused(() => as(ANN, `select finalize_account_deletion('${ANN}')`)));
   await check("Signed out, nobody can finalize", () => refused(() => anon(`select finalize_account_deletion('${ANN}')`)));
+  // The sweep of tables made after the job's list (20261030100000) is the
+  // trigger's alone: nobody can call it.
+  await check("A member cannot run account_deletion_sweep_newer_tables", () => refused(() => as(ANN, "select account_deletion_sweep_newer_tables()")));
   await check("A member cannot delete a household through the job's door", () => refused(() => as(DAN, `select delete_household_for_account_deletion('${D}')`)));
   await check("A member cannot read another's plan by id", () => refused(() => as(BEN, `select account_handover_plan('${M("a1")}')`)));
   await check("Nothing is due before 7 days", async () => (await svc("select * from due_account_deletions()")).length === 0);
