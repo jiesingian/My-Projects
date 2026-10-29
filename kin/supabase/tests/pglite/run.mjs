@@ -172,6 +172,7 @@ const MIGRATIONS = [
   "20261029235000_planner_goal_milestone.sql",
   "20261030110000_sos_position_kept_30_days.sql",
   "20261030120000_review_fixes.sql",
+  "20261030120001_deletion_sweeps_newer_tables.sql",
   "20261030130000_alarm_wakes_android.sql",
 ];
 

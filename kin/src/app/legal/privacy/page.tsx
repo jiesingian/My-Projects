@@ -126,8 +126,8 @@ export default function PrivacyPage() {
 
       <h2>How long we keep it</h2>
       <p>
-        For as long as your account and household exist. Deleting your account (Settings → Account) takes effect after 7
-        days, in case you change your mind: then your sign-in, your personal space, the health records about you and
+        For as long as your account and household exist. Deleting your account (Settings → Account, or{" "}
+        <Link href="/legal/delete-account">from any browser</Link>) takes effect after 7 days, in case you change your mind: then your sign-in, your personal space, the health records about you and
         your details are deleted, and what you added for the household stays under &ldquo;Former member&rdquo;. When no
         grown-up is left, the household and everything in it, including its files, is deleted. Providers&rsquo; backups can keep a copy for a short time after that before it is
         overwritten.
