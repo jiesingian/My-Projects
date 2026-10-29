@@ -44,6 +44,7 @@ import { getStartHere } from "@/lib/queries/start-here";
 import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
+import { NoClassesToday } from "@/components/no-classes-today";
 import { ChristmasOnToday } from "@/components/christmas-on-today";
 import { TyphoonOnToday } from "@/components/typhoon-on-today";
 import { WhosWhere } from "@/components/whos-where";
@@ -223,6 +224,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           header's "Eating today". On a quiet day it is one line. */}
       {/* A public holiday today or this week (lib/holidays). */}
       <HolidayLine />
+      {/* A school day: "No classes today" skips its classes and pickups. */}
+      <NoClassesToday />
       {/* This phone can't hear from Kin yet (components/push-nudge). */}
       <PushNudge />
 

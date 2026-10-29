@@ -19,8 +19,12 @@ import {
   toRRule,
   toISODate,
   type Busy,
+  type RoutineFreq,
   type RoutineRule,
 } from "@/lib/routines";
+import { openSchoolToday } from "@/lib/school";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
 import { databaseError, reportError, refusalMessage } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 
@@ -599,4 +603,33 @@ export async function deleteRoutineFileAction(fileId: string): Promise<ActionSta
 
   revalidatePath("/planner");
   return { error: null };
+}
+
+/** "No classes today" (29 October): a class suspension, a holiday the
+ * calendar didn't know, a sick day for everyone. Skips every school routine
+ * (class days, pickups) that falls today and nobody has marked yet, with the
+ * reason as the note. A grown-up; the day is the household's. */
+export async function noClassesTodayAction(): Promise<ActionState & { skipped?: number }> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "A grown-up marks a day with no classes." };
+  const supabase = await createClient();
+  const day = familyDay(new Date(), await householdZone());
+  const [{ data: routines }, { data: logs }] = await Promise.all([
+    supabase.from("routines").select("id, title, kind, freq, repeat_interval, byweekday, bymonthday, start_date, end_date").eq("family_id", me.family_id).eq("kind", "school"),
+    supabase.from("routine_log").select("routine_id").eq("family_id", me.family_id).eq("occurrence_date", day),
+  ]);
+  const open = openSchoolToday(
+    (routines ?? []).map((r) => ({ ...r, freq: r.freq as RoutineFreq, byweekday: r.byweekday ?? [] })),
+    new Set((logs ?? []).map((l) => l.routine_id)),
+    day,
+  );
+  if (open.length === 0) return { error: null, skipped: 0 };
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("routine_log").insert(
+    open.map((r) => ({ routine_id: r.id, family_id: me.family_id, occurrence_date: day, status: "skipped", member_id: me.id, amount: null, note: "No classes today", approval: "not_required", logged_by: me.id, logged_at: now })),
+  );
+  if (error) return { error: databaseError(error) };
+  revalidatePath("/today");
+  revalidatePath("/planner");
+  return { error: null, skipped: open.length };
 }

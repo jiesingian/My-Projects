@@ -9,15 +9,15 @@ import { getRoutineAttachments, type RoutineAttachment } from "@/lib/queries/rou
 import { RoutineForm, type EditRoutine } from "./routine-form";
 import { isGone } from "@/lib/member-status";
 
-export default async function RoutinePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+export default async function RoutinePage({ searchParams }: { searchParams: Promise<{ id?: string; template?: string; member?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { id } = await searchParams;
+  const { id, template, member } = await searchParams;
 
   const [members, accounts] = await Promise.all([getMembers(me.family_id), getAccounts(me.family_id)]);
   const activeMembers = members
     .filter((m) => m.status !== "pending" && !isGone(m.status))
-    .map((m) => ({ id: m.id, full_name: m.full_name }));
+    .map((m) => ({ id: m.id, full_name: m.full_name, role: m.role }));
 
   let edit: EditRoutine | null = null;
   let attachments: RoutineAttachment[] = [];
@@ -48,6 +48,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
       edit={edit}
       attachments={attachments}
       today={toISODate(new Date())}
+      start={template ? { template, memberId: member ?? null } : null}
     />
   );
 }
