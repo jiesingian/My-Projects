@@ -46,6 +46,12 @@ export async function myData(db: SupabaseClient, me: Me): Promise<{ files: ZipFi
     ["mine/personal-goals.csv", "goals", "owner_person_id", me.person_id],
     ["mine/saved-messages.csv", "saved_messages", "person_id", me.person_id],
     ["mine/my-id-numbers.csv", "member_ids", "person_id", me.person_id],
+    // The messages they wrote outside the household chat (legal readiness,
+    // 29 October): to one person, in a group, and in the linked families'
+    // room. Their own words only; the other side's are theirs.
+    ["mine/direct-messages-sent.csv", "direct_messages", "sender_person_id", me.person_id],
+    ["mine/group-messages-sent.csv", "chat_group_messages", "sender_person_id", me.person_id],
+    ["mine/family-room-messages-sent.csv", "family_tree_messages", "member_id", me.id],
   ];
   for (const [file, table, column, value] of tables) {
     const { data, error } = await db.from(table).select("*").eq(column, value).limit(10_000);

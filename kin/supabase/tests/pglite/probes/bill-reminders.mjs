@@ -13,6 +13,7 @@ export default async function ({ db, check, refused }) {
       ($1, 'PLDT', 1700, '2026-10-10', 5, 'unpaid'),
       ($1, 'Rent', 20000, '2026-10-08', 1, 'unpaid'),
       ($1, 'Paid already', 100, '2026-10-10', 3, 'paid'),
+      ($1, 'Paid in the app', 100, '2026-10-10', 3, 'scheduled'),
       ($2, 'Dan power', 900, '2026-10-10', 3, 'unpaid')`,
     [A, D],
   );

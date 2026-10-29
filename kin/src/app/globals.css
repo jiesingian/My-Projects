@@ -5193,6 +5193,14 @@ button.kin-initial:focus-visible {
    at least 44px tall: it has to work under a thumb inside Facebook's in-app
    browser, which is where the ads will land. */
 .kin-check-signin { min-height: 2.75rem; }
+/* Sign-up's "I agree" box: the whole line is the target, 44px tall. */
+/* Sign-up's age question: two answers, each a 44px row. */
+.kin-age { border: 0; padding: 0; margin: 0 0 0.75rem; display: grid; gap: 0.125rem; }
+.kin-age legend { font-size: 0.875rem; font-weight: 600; padding: 0; margin-bottom: 0.25rem; }
+.kin-age label { display: flex; align-items: center; gap: 0.625rem; min-height: 2.75rem; font-size: 0.875rem; cursor: pointer; }
+.kin-age input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--color-accent); }
+.kin-agree { display: flex; gap: 0.625rem; align-items: center; min-height: 2.75rem; margin: 0 0 1rem; font-size: 0.8125rem; line-height: 1.45; color: var(--color-neutral-700); cursor: pointer; }
+.kin-agree input { width: 1.25rem; height: 1.25rem; flex: none; accent-color: var(--color-accent); margin: 0; }
 .kin-check-secondary { min-height: 2.75rem; align-self: center; }
 .kin-check-join { width: 100%; text-align: left; }
 .kin-check-join .btn { min-height: 2.75rem; }

@@ -33,7 +33,7 @@ export function TrialBanner({ daysLeft, isOrganiser }: { daysLeft: number; isOrg
     <p>
       <strong>{when} of your Kin Plus trial.</strong>{" "}
       {isOrganiser
-        ? "After that the household moves to Kin Free: calendar, lists and chat stay free for good."
+        ? "After that the household moves to Kin Free: calendar, lists and chat stay free, with no time limit."
         : "After that the household moves to Kin Free."}
       {!isOrganiser && <span className="kin-web-only"> The organizer can keep Plus.</span>}
     </p>

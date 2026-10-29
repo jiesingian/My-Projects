@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN, PASSWORD_TOO_SHORT } from "@/lib/password";
 import { humanAuthError, isEmailRateLimit, isRateLimit, REQUEST_RATE_LIMITED } from "@/lib/auth-errors";
 import { signupCode } from "@/lib/signup-code";
+import { LEGAL_UPDATED } from "@/lib/legal";
 import { reportError, refusalMessage } from "@/lib/report-error";
 
 export type ActionState = { error: string | null };
@@ -51,6 +52,13 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
   if (!email || tooLong(email) || password.length < PASSWORD_MIN) {
     return { error: `Enter a valid email and a password of at least ${PASSWORD_MIN} characters.` };
   }
+  // The box on the form is required there; this is the rule itself.
+  if (formData.get("accept_terms") !== "on") {
+    return { error: "Tick the box to agree to the terms and the privacy notice." };
+  }
+  // Yes or no, nothing else (lib/age.ts).
+  const over18 = formData.get("over_18");
+  if (over18 !== "yes" && over18 !== "no") return { error: "Say whether you are 18 or older." };
 
   // Open sign-up (Jonathan, 28 September): an account is a person, before it
   // is part of any family. Codes come after registration -- a family's invite
@@ -66,7 +74,13 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
     // {{ .Token }} in it; until then it carries only this link, which still
     // works exactly as before. Kept after the switch too, for the person who
     // reads the email on the same phone and would rather tap.
-    options: { emailRedirectTo: `${origin}/auth/callback` },
+    // The record of what was agreed to and when (legal readiness, 29
+    // October): kept with the account by the sign-in provider, written here
+    // on the server, never taken from the form.
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: { accepted_terms_version: LEGAL_UPDATED, accepted_terms_at: new Date().toISOString(), over_18: over18 === "yes" },
+    },
   });
   // A sign-up whose confirmation email could not be sent is rolled back by
   // GoTrue -- no account is left behind -- so the same email and password
