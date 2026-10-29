@@ -1575,9 +1575,12 @@ export function actorsFor(
   x: { named?: string | null; accountOwner?: string | null; accountJoint?: boolean | null; owner?: string | null; joint?: boolean | null },
   grownUps: string[],
 ): string[] {
-  if (x.named) return [x.named];
-  if (x.accountOwner && !x.accountJoint) return [x.accountOwner];
-  if (x.owner && !x.joint) return [x.owner];
+  // A child, or someone no longer in the household, is not who pays: the
+  // grown-ups are (as the bill pushes, 20261029130000).
+  const adult = (id: string | null | undefined): id is string => !!id && grownUps.includes(id);
+  if (adult(x.named)) return [x.named];
+  if (!x.accountJoint && adult(x.accountOwner)) return [x.accountOwner];
+  if (!x.joint && adult(x.owner)) return [x.owner];
   return grownUps;
 }
 

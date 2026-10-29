@@ -290,6 +290,9 @@ test("actorsFor: the named person, then the account's owner, then the owner, the
   expect(actorsFor({ accountOwner: "jon", accountJoint: true, owner: "jan", joint: false }, grownUps)).toEqual(["jan"]);
   expect(actorsFor({ owner: "jan", joint: true }, grownUps)).toEqual(grownUps);
   expect(actorsFor({}, grownUps)).toEqual(grownUps);
+  // A child's, or someone gone: the grown-ups.
+  expect(actorsFor({ owner: "kid", joint: false }, grownUps)).toEqual(grownUps);
+  expect(actorsFor({ accountOwner: "gone", accountJoint: false }, grownUps)).toEqual(grownUps);
 });
 
 test("depositProgress: who has put into a shared goal this month, by account or by who recorded it", () => {
