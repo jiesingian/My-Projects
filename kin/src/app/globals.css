@@ -6096,8 +6096,9 @@ button.kin-initial:focus-visible {
 .kin-quickbtn-more summary { cursor: pointer; font-weight: 600; min-height: 2.75rem; display: flex; align-items: center; }
 .kin-quickbtn-more p { margin: 0; }
 
-/* Inside the Kin iPhone app (data-ios-app on <html>, lib/ios-app.ts): no
-   prices, "See plans" links or Kin code boxes (App Review 3.1.1). A browser
+/* Inside the Kin iPhone or Android app (data-ios-app on <html>, set for
+   either store app, lib/ios-app.ts): no prices, "See plans" links or Kin
+   code boxes (App Review 3.1.1; Google Play's payments policy). A browser
    never has the attribute, so it sees everything as before. */
 :root:not([data-ios-app]) .kin-ios-only,
 [data-ios-app] .kin-web-only { display: none !important; }
