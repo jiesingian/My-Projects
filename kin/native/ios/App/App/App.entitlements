@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Apple's push, for notifications, rings and SOS (KinPushPlugin.swift).
+	     TestFlight and the App Store sign with production. -->
+	<key>aps-environment</key>
+	<string>production</string>
+	<!-- Through Focus for medicine, SOS and calls. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
+	<!-- Critical Alerts (SOS through silent) is added here only once Apple
+	     grants it: com.apple.developer.usernotifications.critical-alerts.
+	     Signing fails if the profile lacks it. -->
+</dict>
+</plist>

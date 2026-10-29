@@ -2,6 +2,7 @@ import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
 import { helperListWords, pushPayload, treeStoryWords } from "@/lib/push-words";
 import { reportError } from "@/lib/report-error";
+import { apnsConfigured, apnsRequest, nativeDevice, sendApns, tokenGone, type PushContent } from "@/lib/apns";
 
 /** Web Push, in the session of whoever caused it.
  *
@@ -50,11 +51,14 @@ export async function sendPush(input: {
   icon?: string | null;
   /** A ringing call: lets the notification answer or decline it. */
   call?: { id: string; from: string; video: boolean };
+  /** A repeat of a ring already sent. The iPhone app takes only the first
+   * (lib/apns.ts): each VoIP push is a new incoming call on the phone. */
+  again?: boolean;
   /** An SOS: sent as urgent and kept on screen like a ring, but not dropped
    * after a minute -- it is kept for `ttlSeconds` (an hour if unset). */
   urgent?: boolean;
 }): Promise<number> {
-  if (!vapidReady()) return 0;
+  if (!vapidReady() && !apnsConfigured()) return 0;
   try {
     const supabase = await createClient();
     const memberIds = input.memberIds === "household" ? ((await supabase.from("members").select("id").eq("status", "active")).data ?? []).map((m) => m.id) : input.memberIds;
@@ -69,6 +73,7 @@ export async function sendPush(input: {
       urgent: input.urgent || undefined,
       icon: input.icon && /^(https:\/\/|\/[^/])/.test(input.icon) ? input.icon : undefined,
       call: input.call,
+      again: input.again || undefined,
     });
     const options = input.ring
       ? { TTL: 60, urgency: "high" as const }
@@ -207,6 +212,31 @@ export async function deliver(
   const result = { sent: 0, gone: 0, failed: [] as string[] };
   await Promise.all(
     devices.map(async (d) => {
+      // The Kin iPhone app's tokens (lib/apns.ts) go to Apple, not to a
+      // Web Push service.
+      const native = nativeDevice(d);
+      if (native) {
+        if (!apnsConfigured()) return;
+        let content: PushContent;
+        try {
+          content = JSON.parse(payload) as PushContent;
+        } catch {
+          return;
+        }
+        const req = apnsRequest(native, content, new Date(), { critical: process.env.APNS_CRITICAL === "1", ttlSeconds: options.TTL });
+        if (!req) return;
+        const r = await sendApns(native, req);
+        if (r.status === 200) result.sent++;
+        else if (tokenGone(r)) {
+          result.gone++;
+          await forget(d.endpoint);
+        } else {
+          reportError("Push refused by Apple", new Error(`Push refused by APNs: ${r.status || "no status"}`), r.reason ?? "");
+          result.failed.push(`apns ${r.status || ""}`.trim());
+        }
+        return;
+      }
+      if (!pushConfigured()) return;
       try {
         await webpush.sendNotification({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } }, payload, options);
         result.sent++;

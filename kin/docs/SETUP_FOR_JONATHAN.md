@@ -15,6 +15,7 @@ steps switch it on. Each says what it is for and what is safe.
 | 5. Payments | Final stage (costs money), see BACKLOG |
 | 6. GIFs in the chat | Held for design finalization |
 | 7. Sign-up emails through Gmail | Done: sent from familyapp.kin@gmail.com |
+| 9. The iPhone app (real alarms, calls, SOS) | Built; waits on the Apple Developer Program, steps below |
 
 ---
 
@@ -286,3 +287,86 @@ What's safe: a preview is a separate copy with its own link, built with the
 Preview environment variables in Vercel; it never replaces the live site. A
 preview that fails shows red on its pull request and automerge waits; fix it
 and ask again, or close the pull request.
+
+---
+
+## 9. The iPhone app: real alarms, calls that ring, SOS through silent
+
+**What it's for (29 October).** A web app on an iPhone can't ring through
+silent, fill the screen or ring like a phone call. The Kin iPhone app
+(`kin/native`) is the same Kin inside an installed app, so all of that
+works:
+- medicine doses, and the plans, check-ups and bills each person switches on
+  (Settings → Notifications → Alarms), ring like the Clock app (AlarmKit,
+  iOS 26 and later);
+- a Kin call rings with the iPhone's own incoming-call screen (CallKit);
+- an SOS comes through Focus, and through silent once Apple grants Critical
+  Alerts (step 6).
+
+The code is built and merged, and every change is compiled on GitHub's Mac.
+These steps are the only part only you can do. No Mac is needed at any point.
+
+**What it costs.** The Apple Developer Program, US$99 a year. Nothing else.
+
+**What's safe.** The keys below are secrets. Each can be revoked on its page
+at any time, and a new one made. Nothing here touches the web app: it keeps
+working exactly as now, for everyone, with or without the iPhone app.
+
+1. **Join the Apple Developer Program** at
+   [developer.apple.com/programs/enroll](https://developer.apple.com/programs/enroll/).
+   Enrol as an **Individual**. A company enrolment needs a D-U-N-S number,
+   which needs the business registration first. The app can be moved to the
+   company later. Approval takes from a few hours to two days.
+2. **Note your Team ID** at
+   [developer.apple.com/account](https://developer.apple.com/account), under
+   Membership details: 10 letters and numbers.
+3. **Register the app's id** at
+   [Identifiers → +](https://developer.apple.com/account/resources/identifiers/add/bundleId):
+   App IDs → App. Description `Kin`, Bundle ID **Explicit**
+   `com.jiesingian.kin`. Tick **Push Notifications** and **Time Sensitive
+   Notifications**, then Register. Then create the app at
+   [App Store Connect → Apps → +](https://appstoreconnect.apple.com/apps) →
+   New App: iOS, name `Kin` (or `Kin Family` if Kin is taken), language
+   English, that bundle id, SKU `kin`.
+4. **Let GitHub build and upload it.**
+   - Make an App Store Connect API key at
+     [Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api):
+     **+**, name `GitHub`, access **Admin**. Admin is needed for Xcode to make
+     the signing certificate itself. Download the `.p8` file; Apple lets you
+     download it only once. Note the **Key ID** and the **Issuer ID** at the
+     top of the page.
+   - Add four repository secrets at
+     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new):
+     `APPLE_TEAM_ID` (step 2), `ASC_KEY_ID`, `ASC_ISSUER_ID`, and
+     `ASC_KEY_P8` (open the `.p8` in a text editor and paste all of it,
+     including the BEGIN and END lines).
+   - Run [Actions → TestFlight → Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/testflight.yml).
+     About 15 minutes later the build shows in App Store Connect → your app →
+     TestFlight. Add yourself and Janine as internal testers there, and
+     install it on each iPhone with Apple's TestFlight app.
+5. **Let Kin's server reach the app** (calls, SOS and every notification).
+   Make a push key at
+   [Keys → +](https://developer.apple.com/account/resources/authkeys/add): name
+   `Kin push`, tick **Apple Push Notifications service (APNs)**, choose
+   **Sandbox & Production**, then Continue → Register, and download the `.p8`.
+   In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add, for Production and Preview: `APNS_KEY_ID` (the key's id),
+   `APNS_TEAM_ID` (step 2), and `APNS_PRIVATE_KEY` (the whole `.p8`, BEGIN
+   and END lines included). Then redeploy, from the three-dot menu on the
+   newest deployment at
+   [Deployments](https://vercel.com/jisingian/kin-family-app/deployments).
+   Until then, the app's phones are skipped and Web Push carries on as
+   before.
+6. **Ask Apple for Critical Alerts** (an SOS through the silent switch) at
+   [the request form](https://developer.apple.com/contact/request/notifications-critical-alerts-entitlement/):
+   say Kin is a family safety app whose SOS and medicine reminders must
+   reach a parent or carer on silent. Apple answers by email, often after
+   some weeks. When it's granted, tell a session: it adds the entitlement to
+   the app and `APNS_CRITICAL=1` to Vercel. Until then an SOS is
+   time-sensitive: through Focus, but not through silent.
+
+**After the first install, on each iPhone:** open Kin, sign in, allow
+notifications and alarms when asked, then try Settings → Notifications →
+Alarms, a test call and a test notification. BACKLOG's "Needs a real phone"
+list has the checks.
+

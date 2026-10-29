@@ -26,6 +26,21 @@ therefore wrapped as an installed app. The decisions:
   no CocoaPods.
 - `www/`: the page shown only if the live site cannot load the first time.
 
+## What the native code does
+
+- `KinAlarmsPlugin.swift`: the page hands it the next two weeks of alarms
+  (`api/alarms`, `lib/alarms.ts`) each time Kin opens. On iOS 26 and later
+  they're AlarmKit alarms; on older iPhones, time-sensitive notifications.
+- `KinPushPlugin.swift`:
+  - `KinCalls` is set up at launch. It holds the two Apple tokens (alert and
+    VoIP), which the page saves (`components/native-push.tsx`).
+  - It hands a VoIP ring to CallKit, and opens a tapped notification's page.
+  - The server side is `lib/apns.ts`.
+- `KinBridgeViewController.swift`: registers both plugins with Capacitor.
+- `App.entitlements`: push, and Time Sensitive. Critical Alerts are added
+  once Apple grants them.
+- `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
+
 ## Working on it
 
 From `kin/native`: `npm ci`, then `npx cap sync ios`. Without a Mac, push and

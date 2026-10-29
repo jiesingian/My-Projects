@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { savePushSubscriptionAction, removePushSubscriptionAction, sendTestPushAction } from "@/lib/actions/push";
+import { inNativeApp } from "@/lib/native";
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 /** Set when someone taps "Turn off for this device"; cleared when they turn
@@ -20,13 +21,15 @@ function keyBytes(b64: string): Uint8Array {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-export type PushState = "unsupported" | "needs-install" | "not-set-up" | "off" | "on" | "blocked";
+export type PushState = "unsupported" | "needs-install" | "not-set-up" | "off" | "on" | "blocked" | "app";
 type State = PushState;
 
 /** Whether this device can hear from Kin, and if not, why. Settings ->
  * Notifications shows it with its button; Today's PushNudge shows it only
  * when something can be done about it. */
 export async function readPushState(): Promise<PushState> {
+  // The Kin iPhone app has its own notifications (components/native-push).
+  if (inNativeApp()) return "app";
   if (!KEY) return "not-set-up";
   const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -108,6 +111,7 @@ export function PushOptIn() {
     off: "Get a notification on this device when something happens in the family.",
     on: "Notifications are on for this device.",
     blocked: "Notifications are blocked for Kin in this browser's settings. Allow them there, then come back.",
+    app: "The Kin app sends this iPhone's notifications. If they stopped, allow them in the iPhone's Settings → Apps → Kin.",
   };
   return (
     <div className="kin-push">
@@ -115,6 +119,11 @@ export function PushOptIn() {
       {state === "off" && (
         <button type="button" className="btn btn-primary btn-block" disabled={pending} onClick={turnOn}>
           {pending ? "Turning on…" : "Turn on notifications on this device"}
+        </button>
+      )}
+      {state === "app" && (
+        <button type="button" className="btn btn-secondary btn-block" disabled={pending} onClick={test}>
+          {pending ? "Sending…" : "Send a test notification"}
         </button>
       )}
       {state === "on" && (

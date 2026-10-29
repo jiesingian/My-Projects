@@ -6,5 +6,6 @@ import Capacitor
 class KinBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(KinAlarmsPlugin())
+        bridge?.registerPluginInstance(KinPushPlugin())
     }
 }
