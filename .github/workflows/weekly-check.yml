@@ -89,34 +89,21 @@ jobs:
     timeout-minutes: 45
     permissions:
       actions: read
+      contents: read
     steps:
+      # Sparse: the wait script is all this job needs from the repository.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          sparse-checkout: .github/scripts
       - name: Wait for a turn on dev
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          deadline=$(( $(date +%s) + 40 * 60 ))
-          while :; do
-            # in_progress AND queued: a pull request's run waiting on the
-            # e2e-dev group reads "queued", and it would go before us.
-            busy=$(for status in in_progress queued; do
-                gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[]'
-              done | jq -s 'unique_by(.id) | length')
-            if [ "$busy" -eq 0 ]; then
-              echo "Dev is free: no End-to-end run queued or going."
-              break
-            fi
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "::warning::Waited 40 minutes for dev ($busy End-to-end runs still queued or going); taking the e2e-dev slot as it comes."
-              break
-            fi
-            echo "$busy End-to-end run(s) on dev; waiting."
-            sleep 30
-          done
+        run: .github/scripts/wait-for-dev.sh
 
   check:
-    name: the whole setup, against main
+    name: the whole setup, against main (suite part 1 of 2)
     needs: turn
     runs-on: ubuntu-latest
     # Fifty, not thirty (25 October). The whole suite took 21 minutes on 19
@@ -125,7 +112,31 @@ jobs:
     # the week went unchecked without anyone being told. Once a week, fifty is
     # still nowhere near a hung browser's six hours. If it creeps towards
     # fifty, split the suite rather than raise this again.
+    #
+    # Split 29 October, as that said. A run dispatched by hand that morning
+    # (40813064660) was still in the suite at 47 minutes, against 32.6 the
+    # day before, and was cut off at fifty -- and a job cut off at its limit
+    # runs nothing after the step it was in: the report upload and "Say what
+    # broke" stayed "pending", so again no issue and no report. Now the suite
+    # runs in two halves (the browser specs, split by Playwright's --shard by
+    # spec file; the logic specs run whole in this half), this job and
+    # `check-2`, one after the other: they share the QA household and dev's
+    # one e2e-dev slot, so never side by side. Each half's suite step has its
+    # own limit, under the job's, so running out of time fails that step and
+    # what follows it still runs. The issue is written by `report`, its own
+    # job, which runs whatever happened to these two.
     timeout-minutes: 50
+    # What `report` needs to say what happened, read from the steps. A job
+    # cut off at its limit may leave these empty; `report` reads empty as
+    # "not reached".
+    outputs:
+      tsc: ${{ steps.tsc.outcome }}
+      lint: ${{ steps.lint.outcome }}
+      build: ${{ steps.build.outcome }}
+      schema: ${{ steps.schema.outcome }}
+      logic: ${{ steps.logic.outcome }}
+      e2e: ${{ steps.e2e.outcome }}
+      prod_count: ${{ steps.errors.outputs.prod_count }}
     # The slot e2e.yml's runs take turns on: while this holds it, a pull
     # request's End-to-end waits (and if it is cancelled as an older waiter,
     # automerge.yml re-runs it). `turn` above means this almost never has
@@ -299,9 +310,27 @@ jobs:
       # deleting a household takes its rows with it. That is the one spec
       # standing between a cascade bug and somebody's records surviving their
       # own deletion, and it exists nowhere else in the suite.
-      - name: The suite (everything -- the only place it still runs whole)
+      # The function-only specs (no browser, no server) on their own, so the
+      # two halves below can split what takes the time: Playwright shards in
+      # project order, so a plain --shard=1/2 gave part 1 all 920 logic tests
+      # (a minute's work) and part 2 every one of the 279 browser tests.
+      - name: Logic specs
+        id: logic
+        if: always()
+        # About a minute; five, so setup + this + the suite's forty stays
+        # under the job's fifty and the uploads below always get to run.
+        timeout-minutes: 5
+        working-directory: kin
+        run: |
+          set -o pipefail
+          npm run test:logic 2>&1 | tee /tmp/logic-output.log
+
+      - name: The suite, part 1 of 2 (the only place it still runs whole)
         id: e2e
         if: always()
+        # Under the job's fifty, so a half that runs long fails here, and the
+        # report and the log below still go up (see the job's comment).
+        timeout-minutes: 40
         working-directory: kin
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -327,31 +356,235 @@ jobs:
         # not `-o pipefail`, so it has to be said here.
         run: |
           set -o pipefail
-          npm run e2e 2>&1 | tee /tmp/e2e-output.log
+          npm run e2e -- --project=chromium --shard=1/2 2>&1 | tee /tmp/e2e-output.log
 
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: weekly-playwright-report
+          name: weekly-playwright-report-1
           path: kin/playwright-report/
           retention-days: 7
           if-no-files-found: ignore
+
+      # What the suite printed and the week's errors, for `report` to quote.
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: weekly-notes-1
+          path: |
+            /tmp/logic-output.log
+            /tmp/e2e-output.log
+            /tmp/errors.md
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The second half's own turn on dev, for the same reason as `turn`: when
+  # `check` lets go of the e2e-dev slot, a post-merge End-to-end run is often
+  # already waiting, and `check-2` queued behind it would be the older waiter
+  # the next one cancels. `!cancelled()`, not `always()`: a half cut off at
+  # its limit still lets the other half run, but a run somebody cancelled on
+  # purpose stops here.
+  turn-2:
+    needs: check
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          sparse-checkout: .github/scripts
+      - name: Wait for a turn on dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/wait-for-dev.sh
+
+  # The suite's second half: `check`'s comment says why it is split. Only
+  # what the suite needs is repeated here -- typecheck, lint, schema and the
+  # week's errors were judged once, in `check`. The build is repeated because
+  # the app has to run on this runner too.
+  check-2:
+    name: the whole setup, against main (suite part 2 of 2)
+    needs: turn-2
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    concurrency:
+      group: e2e-dev
+      cancel-in-progress: false
+    outputs:
+      build: ${{ steps.build.outcome }}
+      e2e: ${{ steps.e2e.outcome }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
+
+      - run: npm ci
+        working-directory: kin
+
+      # NEXT_PUBLIC_* inlined at build time, as in `check`.
+      - name: Build
+        id: build
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      - name: Playwright version
+        id: pw-version
+        working-directory: kin
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
+      - name: Install the browser
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: kin
+        run: npx playwright install --with-deps chromium
+
+      - name: Install just the OS packages the cached browser still needs
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: kin
+        run: npx playwright install-deps chromium
+
+      - name: Start the app
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000/login --timeout 120000
+
+      # The same secrets as part 1, for the same reasons (see `check`'s
+      # suite step): without them the specs that talk to PostgREST skip and
+      # the run goes green having checked none of them. pipefail likewise.
+      - name: The suite, part 2 of 2
+        id: e2e
+        timeout-minutes: 40
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
+          E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
+          E2E_PARTNER_EMAIL: ${{ secrets.E2E_PARTNER_EMAIL }}
+          E2E_PARTNER_PASSWORD: ${{ secrets.E2E_PARTNER_PASSWORD }}
+        run: |
+          set -o pipefail
+          npm run e2e -- --project=chromium --shard=2/2 2>&1 | tee /tmp/e2e-output.log
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: weekly-playwright-report-2
+          path: kin/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: weekly-notes-2
+          path: /tmp/e2e-output.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The week's one word, from both halves. Its own job so that it runs
+  # whatever became of them -- `always()`, cancelled included: on 23 and 29
+  # October a half was cut off at its limit and, with the issue written
+  # inside that job, nobody heard. Anything short of every check passing is
+  # an issue now, and a half that never finished says so in as many words.
+  report:
+    needs: [check, check-2]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Each half's printed output and the week's errors; a half that died
+      # before uploading simply has none.
+      - uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          pattern: weekly-notes-*
+          path: /tmp/notes
+
+      - name: Work out the week
+        id: verdict
+        env:
+          R1: ${{ needs.check.result }}
+          R2: ${{ needs.check-2.result }}
+          TSC: ${{ needs.check.outputs.tsc }}
+          LINT: ${{ needs.check.outputs.lint }}
+          BUILD: ${{ needs.check.outputs.build }}
+          SCHEMA: ${{ needs.check.outputs.schema }}
+          LOGIC: ${{ needs.check.outputs.logic }}
+          E2E1: ${{ needs.check.outputs.e2e }}
+          BUILD2: ${{ needs.check-2.outputs.build }}
+          E2E2: ${{ needs.check-2.outputs.e2e }}
+        run: |
+          set -euo pipefail
+          # A step a half never reached has no outcome. Say why: its job was
+          # cut off or cancelled, or it was never started.
+          said() {
+            local outcome="$1" job="$2"
+            if [ -n "$outcome" ]; then echo "$outcome"
+            elif [ "$job" = "cancelled" ]; then echo "cut off before it finished"
+            elif [ "$job" = "skipped" ]; then echo "not run"
+            else echo "not reached ($job)"; fi
+          }
+          {
+            echo "tsc=$(said "$TSC" "$R1")"
+            echo "lint=$(said "$LINT" "$R1")"
+            echo "build=$(said "$BUILD" "$R1")"
+            echo "schema=$(said "$SCHEMA" "$R1")"
+            echo "logic=$(said "$LOGIC" "$R1")"
+            echo "e2e1=$(said "$E2E1" "$R1")"
+            echo "build2=$(said "$BUILD2" "$R2")"
+            echo "e2e2=$(said "$E2E2" "$R2")"
+          } >> "$GITHUB_OUTPUT"
+          if [ "$R1" = "success" ] && [ "$R2" = "success" ]; then
+            echo "green=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "green=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # Silence on a good week is the point. Nobody wants an issue every
       # Friday saying nothing happened -- that is the notification everybody
       # learns to swipe away, and then the one that matters goes with it.
       # A green run leaves its green tick in Actions and says nothing.
       - name: Say what broke
-        if: failure()
+        if: steps.verdict.outputs.green != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TSC: ${{ steps.tsc.outcome }}
-          LINT: ${{ steps.lint.outcome }}
-          BUILD: ${{ steps.build.outcome }}
-          SCHEMA: ${{ steps.schema.outcome }}
-          E2E: ${{ steps.e2e.outcome }}
+          TSC: ${{ steps.verdict.outputs.tsc }}
+          LINT: ${{ steps.verdict.outputs.lint }}
+          BUILD: ${{ steps.verdict.outputs.build }}
+          SCHEMA: ${{ steps.verdict.outputs.schema }}
+          LOGIC: ${{ steps.verdict.outputs.logic }}
+          E2E1: ${{ steps.verdict.outputs.e2e1 }}
+          BUILD2: ${{ steps.verdict.outputs.build2 }}
+          E2E2: ${{ steps.verdict.outputs.e2e2 }}
         run: |
           set -euo pipefail
           TODAY=$(TZ=Asia/Manila date +%Y-%m-%d)
@@ -369,23 +602,58 @@ jobs:
             echo "| Lint | $LINT |"
             echo "| Build | $BUILD |"
             echo "| Schema | $SCHEMA |"
-            echo "| End-to-end (the full suite) | $E2E |"
+            echo "| Logic specs | $LOGIC |"
+            echo "| End-to-end, part 1 of 2 | $E2E1 |"
+            echo "| Build for part 2 | $BUILD2 |"
+            echo "| End-to-end, part 2 of 2 | $E2E2 |"
             echo
-            echo "[The run, with the logs and the Playwright report]($RUN_URL)"
+            echo "[The run, with the logs and the Playwright reports]($RUN_URL)"
             echo
 
-            if [ "$E2E" = "failure" ] && [ -s /tmp/e2e-output.log ]; then
-              echo "<details><summary>What the suite said</summary>"
+            case "$E2E1 $E2E2" in
+              *"cut off"*|*"not reached"*|*"not run"*)
+                echo "**Part of the suite did not finish**, so whatever it had still to run"
+                echo "was not checked this week. A half that ran out of its own 40 minutes"
+                echo "reads \`failure\` above, with its output below; one cut off whole"
+                echo "reads \"cut off before it finished\" and left nothing to quote. Re-run"
+                echo "the workflow once dev is quiet; if the same half runs long again, it is"
+                echo "a spec waiting on something, not a slow day."
+                echo
+                ;;
+            esac
+
+            for n in 1 2; do
+              v="E2E$n"; outcome="${!v}"
+              log="/tmp/notes/weekly-notes-$n/e2e-output.log"
+              if [ "$outcome" != "success" ] && [ -s "$log" ]; then
+                # Playwright ends every finished run with "N passed" or "N
+                # failed"; a log without it was stopped mid-suite.
+                if ! grep -Eq '^ +[0-9]+ (passed|failed)' "$log"; then
+                  echo "Part $n ran out of time before it finished: the last test in its output is where it was."
+                  echo
+                fi
+                echo "<details><summary>What part $n of the suite said</summary>"
+                echo
+                echo '```'
+                tail -c 20000 "$log"
+                echo '```'
+                echo "</details>"
+                echo
+              fi
+            done
+
+            if [ "$LOGIC" = "failure" ] && [ -s /tmp/notes/weekly-notes-1/logic-output.log ]; then
+              echo "<details><summary>What the logic specs said</summary>"
               echo
               echo '```'
-              tail -c 20000 /tmp/e2e-output.log
+              tail -c 20000 /tmp/notes/weekly-notes-1/logic-output.log
               echo '```'
               echo "</details>"
               echo
             fi
 
-            if [ -s /tmp/errors.md ]; then
-              cat /tmp/errors.md
+            if [ -s /tmp/notes/weekly-notes-1/errors.md ]; then
+              cat /tmp/notes/weekly-notes-1/errors.md
               echo
             fi
 
@@ -417,7 +685,7 @@ jobs:
           fi
 
       - name: Errors in production on a green week
-        if: success() && steps.errors.outputs.prod_count != '' && steps.errors.outputs.prod_count != '0'
+        if: steps.verdict.outputs.green == 'true' && needs.check.outputs.prod_count != '' && needs.check.outputs.prod_count != '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
@@ -430,7 +698,7 @@ jobs:
             echo "Each row is one fingerprint (the same message and stack), with how"
             echo "many times it happened; nothing personal is kept. [The run]($RUN_URL)"
             echo
-            cat /tmp/errors.md
+            cat /tmp/notes/weekly-notes-1/errors.md
             echo
             echo "---"
             echo "_Generated by [Claude Code](https://claude.ai/code)_"
