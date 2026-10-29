@@ -25,6 +25,8 @@ therefore wrapped as an installed app. The decisions:
   `npx cap sync ios` (CI runs it) copies the config in. Swift Package Manager,
   no CocoaPods.
 - `www/`: the page shown only if the live site cannot load the first time.
+- `ios/store/`: the App Store listing, review notes, privacy and age-rating
+  answers, and the screenshot script, ready to paste into App Store Connect.
 
 ## What the native code does
 
