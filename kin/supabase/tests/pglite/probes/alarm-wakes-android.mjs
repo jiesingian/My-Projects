@@ -10,7 +10,15 @@ const ANDROID = (c) => `https://fcm.googleapis.com/kin-android/${c.repeat(3)}:AP
 // browser's Web Push -- Chrome's lives on fcm.googleapis.com too -- and the
 // iPhone's VoIP token never are.
 export default async function ({ db, as, check }) {
-  const run = async (at, secret = SECRET) => (await db.query("select * from due_alarm_wakes($1, $2)", [secret, at])).rows;
+  // A change is stamped with the real clock (alarm_wake_mark: now()), and a
+  // tick only takes changes made before it. The ticks below are fixed dates,
+  // so a change queued during the test counts as made before the tick it is
+  // asked at; else the probe failed once the real clock passed those dates
+  // (29 October, 23:05 UTC).
+  const run = async (at, secret = SECRET) => {
+    await db.query("update alarm_wake_queue set changed_at = $1 where changed_at > $1", [at]);
+    return (await db.query("select * from due_alarm_wakes($1, $2)", [secret, at])).rows;
+  };
   const who = (rows) => rows.map((r) => `${r.auth}:${r.endpoint.slice(-3)}:${r.reason}`).sort().join("|");
 
   // Ann has an iPhone (alert + voip), an Android phone, and Chrome; Kid has
