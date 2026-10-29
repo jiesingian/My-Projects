@@ -50,7 +50,19 @@ Built without the account, as a series in one session:
    `WKWebsiteDataStore`, writes back any refreshed ones, and sets the list
    again; with Kin on screen it tells the page to sync instead. Off until the
    APNS_* keys exist. The two-week list stays the fallback if a push is lost.
-5. **Jonathan's part:** SETUP section 9, enrol, three keys and the
+5. **Home Screen and Lock Screen widgets** (approved 30 September; 29
+   October). `KinWidgets`, a WidgetKit extension in `kin/native`: "Today"
+   (next dose and next plan; small, medium and the three Lock Screen sizes)
+   and "To-Buy" (the count). A widget can't sign in, so the app reads
+   `api/widget` as the member through RLS (Today's own queries,
+   `lib/widget.ts`) with the web view's cookies (`KinSession`), when Kin
+   opens, when it goes to the background and on the silent alarm push, and
+   leaves it in the App Group `group.com.jiesingian.kin` (`KinWidgetStore`).
+   The rest of the day's doses and plans ride along, so the widget steps on
+   by itself; signed out, it is emptied. A tap opens `kin://open?path=...`,
+   the live page. Signed by `testflight.yml`'s automatic signing, which
+   registers the extension and the group (SETUP section 9, step 3).
+6. **Jonathan's part:** SETUP section 9, enrol, three keys and the
    TestFlight run. Then the phone checks under "Needs a real phone".
 
 **Not known until a real iPhone:**
@@ -1958,7 +1970,7 @@ work, last.
   **Built 29 October except what needs the account** (see "Decided 29
   October: the Kin iPhone app" at the top): the shell, real alarms, calls
   and SOS. What's left is Jonathan's SETUP section 9 (enrol, keys,
-  TestFlight), then the phone checks. Widgets are still to build.
+  TestFlight), then the phone checks. Widgets built 29 October (below).
   A web app on an iPhone gets one ordinary banner: no full screen, no sound
   on silent, and no "Time Sensitive Notifications" switch -- Apple gives
   that only to App Store apps (see "Medicine reminders ring like an alarm"

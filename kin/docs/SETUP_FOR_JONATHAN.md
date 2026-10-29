@@ -323,8 +323,14 @@ working exactly as now, for everyone, with or without the iPhone app.
 3. **Register the app's id** at
    [Identifiers → +](https://developer.apple.com/account/resources/identifiers/add/bundleId):
    App IDs → App. Description `Kin`, Bundle ID **Explicit**
-   `com.jiesingian.kin`. Tick **Push Notifications** and **Time Sensitive
-   Notifications**, then Register. Then create the app at
+   `com.jiesingian.kin`. Tick **Push Notifications**, **Time Sensitive
+   Notifications** and **App Groups**, then Register. (App Groups is how the
+   Home Screen widgets get Today's next dose from the app. The first
+   TestFlight run registers the widgets' own id, `com.jiesingian.kin.widgets`,
+   and the group `group.com.jiesingian.kin` by itself. If that run stops on
+   "App Group" or "provisioning profile", make the group by hand at
+   [Identifiers → + → App Groups](https://developer.apple.com/account/resources/identifiers/add/applicationGroup),
+   description `Kin`, identifier `group.com.jiesingian.kin`, and run it again.) Then create the app at
    [App Store Connect → Apps → +](https://appstoreconnect.apple.com/apps) →
    New App: iOS, name `Kin` (or `Kin Family` if Kin is taken), language
    English, that bundle id, SKU `kin`.

@@ -42,8 +42,15 @@ therefore wrapped as an installed app. The decisions:
     VoIP), which the page saves (`components/native-push.tsx`).
   - It hands a VoIP ring to CallKit, and opens a tapped notification's page.
   - The server side is `lib/apns.ts`.
+- `KinWidgetStore.swift`: `KinSession`, a request to Kin as the member with
+  the web view's own cookies (used by the alarm sync and the widgets), and
+  `KinWidgetStore`, which leaves `api/widget`'s answer in the App Group.
+- `KinWidgets/`: the WidgetKit extension (Today: next dose and next plan;
+  To-Buy: the count), reading only the App Group. A tap opens
+  `kin://open?path=...`, handled in `SceneDelegate.swift`.
 - `KinBridgeViewController.swift`: registers both plugins with Capacitor.
-- `App.entitlements`: push, and Time Sensitive. Critical Alerts are added
+- `App.entitlements`: push, Time Sensitive, and the App Group shared with
+  the widgets. Critical Alerts are added
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
 
