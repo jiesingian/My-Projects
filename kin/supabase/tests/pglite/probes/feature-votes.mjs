@@ -2,7 +2,7 @@ const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const M = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
 const D = "d0000000-0000-0000-0000-000000000000";
-// "What should Kin do next?" answers (20261029180000).
+// "What should Kin do next?" answers (20261029210000).
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), abe = U("a4"), dan = U("d1"), stranger = U("ff");
   const vote = (who, member, family, choice = "phone_app") =>
