@@ -8,6 +8,8 @@ import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type 
 import { scrollBehavior } from "@/lib/motion";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import { RULES_NOTE, type Pending } from "@/lib/assistant/rules";
+import { kinAiLeftAction } from "@/lib/actions/kin-ai-left";
+import { FREE_AI_PER_MONTH } from "@/lib/access";
 
 /** `source` is where an answer came from (api/assistant): "rules" read the
  * household's own records and sent nothing anywhere; "model" went to Claude;
@@ -40,6 +42,15 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
   const [pending, setPending] = useState<Pending | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  // Kin AI uses left this month on Kin Free (null on Plus, or not known):
+  // asked once when the sheet opens, then taken from each model answer.
+  const [left, setLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!aiReady) return;
+    kinAiLeftAction()
+      .then(setLeft)
+      .catch(() => {});
+  }, [aiReady]);
 
   // Voice is an input method, not a mode: what it produces goes through the
   // same send() as typing, so the assistant's tools, permissions and
@@ -87,7 +98,7 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
           ...(pending ? { pending } : {}),
         }),
       });
-      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string; source?: "rules" | "model" | "off"; choices?: string[]; pending?: Pending };
+      const data = (await res.json()) as { reply?: string; actions?: string[]; error?: string; source?: "rules" | "model" | "off"; choices?: string[]; pending?: Pending; left?: number | null };
 
       if (!res.ok || data.error) {
         setError(data.error ?? "The assistant couldn't answer that.");
@@ -95,6 +106,7 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
       }
 
       const reply = data.reply ?? "Done.";
+      if (typeof data.left === "number") setLeft(data.left);
       setPending(data.pending ?? null);
       setTurns((prev) => [...prev, { role: "assistant", content: reply, source: data.source, choices: data.choices }]);
       // Only read back what was asked by voice. A typed question answered
@@ -307,6 +319,12 @@ export function AssistantConsole({ memberName, start, aiReady = true }: { member
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>
         {aiReady ? KIN_AI_PRIVACY : "Kin answers what your household's records hold: bills, spending, the schedule, the list, the family. Nothing is sent anywhere."}
       </p>
+      {/* So the Free limit is never a surprise (29 October). */}
+      {aiReady && left !== null && (
+        <p style={{ fontSize: "0.75rem", color: left === 0 ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "4px 0 0", lineHeight: 1.45 }}>
+          {left} of {FREE_AI_PER_MONTH} Kin AI questions left this month. Questions your records answer are free and don&rsquo;t count.
+        </p>
+      )}
 
       {/* Said once, the first time somebody presses it, because "the browser
           did the transcribing" is not the same as "nothing left the room"

@@ -839,7 +839,8 @@ export const HELP_GUIDE: HelpTab[] = [
               "Kin AI, for everything the records alone can't answer: 5 uses a month on Free, unlimited on Plus."
             ],
             "tips": [
-              "Ask the way you'd text a relative: \"When is Meralco due?\", \"How much did we spend on groceries this month?\", \"What's on tomorrow?\"."
+              "Ask the way you'd text a relative: \"When is Meralco due?\", \"How much did we spend on groceries this month?\", \"What's on tomorrow?\".",
+              "on Kin Free, the line under the box says how many Kin AI questions are left this month."
             ]
           },
           {
