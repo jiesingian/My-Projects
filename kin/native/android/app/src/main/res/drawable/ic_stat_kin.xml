@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kin's house, one colour, for the status bar: Android shows a
+     notification's small icon as a white silhouette, so the full-colour
+     launcher icon there was a plain square. From public/icon.svg; the heart
+     and the family are cut out of the house. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M662,280a18,18 0,0 1,18 -18h30a18,18 0,0 1,18 18v94l-66,-55z M512,214c14,0 28,5 39,14l238,200c16,13 25,33 25,54v268c0,39 -31,70 -70,70H280c-39,0 -70,-31 -70,-70V482c0,-21 9,-41 25,-54l238,-200c11,-9 25,-14 39,-14z M512,424c-30,-21 -48,-37 -48,-57 0,-14 11,-24 24,-24 10,0 19,6 24,15 5,-9 14,-15 24,-15 13,0 24,10 24,24 0,20 -18,36 -48,57z M404,488a60,60 0,1 1,0 120a60,60 0,1 1,0 -120z M620,488a60,60 0,1 1,0 120a60,60 0,1 1,0 -120z M314,820v-120c0,-50 40,-90 90,-90s90,40 90,90v120z M530,820v-120c0,-50 40,-90 90,-90s90,40 90,90v120z" />
+</vector>

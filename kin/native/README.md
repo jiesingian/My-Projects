@@ -27,6 +27,8 @@ therefore wrapped as an installed app. The decisions:
   `npx cap sync ios` (CI runs it) copies the config in. Swift Package Manager,
   no CocoaPods.
 - `www/`: the page shown only if the live site cannot load the first time.
+- `ios/store/`: the App Store listing, review notes, privacy and age-rating
+  answers, and the screenshot script, ready to paste into App Store Connect.
 
 ## What the native code does
 
@@ -55,6 +57,7 @@ therefore wrapped as an installed app. The decisions:
   the widgets. Critical Alerts are added
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
+  `ios/TESTFLIGHT.md`: what the first run does and what each failure means.
 - `PrivacyInfo.xcprivacy` (app and widgets): Apple's privacy manifest, the
   App Group `UserDefaults` reason. `Info.plist` says Kin uses no non-exempt
   encryption (so builds skip the export question) and why each background
@@ -65,7 +68,10 @@ therefore wrapped as an installed app. The decisions:
 
 `android/` is the same shell for Android, made by `npx cap add android` and
 committed (Java, package `com.jiesingian.kin`). `.github/workflows/android.yml`
-builds a debug APK on every change here and keeps it as the run's artifact.
+builds a debug APK on every change here and keeps it as the run's artifact,
+and checks the release bundle builds. `.github/workflows/play-release.yml`,
+started by hand, builds the signed AAB for Google Play and can upload it to
+internal testing (`scripts/play-upload.mjs`).
 - `KinAlarms.java`, `KinAlarmsPlugin.java`, `KinAlarmReceiver.java`,
   `KinAlarmActivity.java`: exact alarms that open full screen over the lock
   screen and ring on the alarm stream; set again after a restart.
@@ -75,6 +81,13 @@ builds a debug APK on every change here and keeps it as the run's artifact.
   Firebase project (`kin/docs/SETUP_FOR_JONATHAN.md`, section 10).
 - `MainActivity.java`: registers the plugins, and opens a page an alarm,
   notification or answered call asks for.
+- `store/`: what Google Play asks for, ready to paste:
+  - `LISTING.md`: the listing text, the content rating and app access;
+  - `DATA_SAFETY.md`: the Data safety answers;
+  - `POLICY.md`: the policy declarations;
+  - the icon and the feature graphic (`make-art.mjs`, which also makes the
+    launcher icons);
+  - `screenshots.mjs`, which takes the screenshots from the QA household.
 
 ## Working on it
 

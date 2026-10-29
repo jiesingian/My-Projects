@@ -23,7 +23,7 @@ export default function SignupPage() {
     <OnboardingShell step={sentTo ? "STEP 02 / 03" : "STEP 01 / 03"} backHref="/login">
       {sentTo && <CodeEntry key={sentTo} email={sentTo} onChangeEmail={() => setChanging(true)} />}
       <div hidden={!!sentTo}>
-      <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
+      <h1 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h1>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
         Your own account first: every member signs in with their own verified email. Next you start your
         family or join one with its invite code. A child can join the same way; a parent approves them, and they start in kid view.
@@ -61,13 +61,19 @@ export default function SignupPage() {
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
           <span>Your household is walled off from every other one. Connect Google Drive and your documents and photos are kept there.</span>
         </div>
+        {/* Ticked by the person, never for them (E-Commerce Act; NPC Circular
+            2023-04: no pre-ticked consent). signUp refuses without it and
+            records which version was agreed to, and when. */}
+        <label className="kin-agree">
+          <input type="checkbox" name="accept_terms" required />
+          <span>
+            I agree to the <Link href="/legal/terms">terms</Link> and have read the{" "}
+            <Link href="/legal/privacy">privacy notice</Link>.
+          </span>
+        </label>
         <SubmitButton pending={pending} style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
           Send verification code
         </SubmitButton>
-        <p style={{ fontSize: "0.78125rem", lineHeight: 1.5, color: "var(--color-neutral-600)", margin: "0.75rem 0 0", textAlign: "center" }}>
-          By creating an account you agree to the <Link href="/legal/terms">terms</Link> and have read the{" "}
-          <Link href="/legal/privacy">privacy notice</Link>.
-        </p>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         Already have an account? <Link href="/login">Sign in</Link>

@@ -84,6 +84,31 @@ const SECTIONS: [file: string, table: string][] = [
   ["vault-passwords-list.csv", "family_vault_items"],
   ["locations.csv", "member_locations"],
   ["saved-places.csv", "household_places"],
+  // Added for the legal-readiness check (29 October): areas made after the
+  // export, which the privacy notice had to say were missing. Row-level
+  // security still decides each row. Gift-draw picks stay out: nobody may see
+  // more than their own pick, and the draw shows that one in the app.
+  ["account-numbers.csv", "account_numbers"],
+  ["account-qr-codes.csv", "account_qr_codes"],
+  ["loyalty-cards.csv", "loyalty_cards"],
+  ["remittances.csv", "remittances"],
+  ["utang.csv", "utang_entries"],
+  ["utang-payments.csv", "utang_payments"],
+  ["paluwagan.csv", "paluwagan_groups"],
+  ["paluwagan-members.csv", "paluwagan_members"],
+  ["paluwagan-payments.csv", "paluwagan_payments"],
+  ["alkansya.csv", "alkansya_plans"],
+  ["alkansya-entries.csv", "alkansya_entries"],
+  ["health-visit-questions.csv", "health_visit_questions"],
+  ["pets.csv", "pets"],
+  ["typhoon-ready.csv", "ready_items"],
+  ["event-guests.csv", "event_guests"],
+  ["gift-list-people.csv", "gift_list_people"],
+  ["gift-list-items.csv", "gift_list_items"],
+  ["time-capsules.csv", "time_capsules"],
+  ["tree-stories.csv", "tree_person_stories"],
+  ["sos-alerts.csv", "sos_alerts"],
+  ["check-ins.csv", "member_checkins"],
 ];
 
 const PAGE = 1000;
@@ -129,7 +154,7 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
   // which accounts those are, read as them.
   const { data: seenAccounts } = await db.from("accounts").select("id").eq("family_id", me.family_id);
   const canSee = new Set(((seenAccounts ?? []) as { id: string }[]).map((a) => a.id));
-  const tiedTo: Record<string, string> = { bills: "paid_from_account_id", income_schedules: "account_id" };
+  const tiedTo: Record<string, string> = { bills: "paid_from_account_id", income_schedules: "account_id", account_numbers: "account_id", account_qr_codes: "account_id" };
 
   for (const [file, table] of grownUp ? SECTIONS : []) {
     let rows: Record<string, unknown>[] = [];

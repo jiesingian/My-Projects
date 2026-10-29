@@ -7540,6 +7540,7 @@ export type Database = {
           family_id: string
           id: string
           kind: string
+          milestone: number
           owner_member_id: string | null
           period: string
           points: number
@@ -7547,8 +7548,12 @@ export type Database = {
           start_value: number | null
           target: number
           title: string
+          tracks: string | null
+          tracks_category: string | null
+          tracks_id: string | null
           unit: string | null
           visibility: string
+          watch_on_time: boolean
           xp: number
         }
         Insert: {
@@ -7566,6 +7571,7 @@ export type Database = {
           family_id: string
           id?: string
           kind: string
+          milestone?: number
           owner_member_id?: string | null
           period?: string
           points?: number
@@ -7573,8 +7579,12 @@ export type Database = {
           start_value?: number | null
           target: number
           title: string
+          tracks?: string | null
+          tracks_category?: string | null
+          tracks_id?: string | null
           unit?: string | null
           visibility?: string
+          watch_on_time?: boolean
           xp?: number
         }
         Update: {
@@ -7592,6 +7602,7 @@ export type Database = {
           family_id?: string
           id?: string
           kind?: string
+          milestone?: number
           owner_member_id?: string | null
           period?: string
           points?: number
@@ -7599,8 +7610,12 @@ export type Database = {
           start_value?: number | null
           target?: number
           title?: string
+          tracks?: string | null
+          tracks_category?: string | null
+          tracks_id?: string | null
           unit?: string | null
           visibility?: string
+          watch_on_time?: boolean
           xp?: number
         }
         Relationships: []
