@@ -638,7 +638,9 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       icon: "wallet",
       tint: "money",
       title: b.name,
-      meta: `${formatCurrency(Number(b.amount), currency)} · due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`}`,
+      // A policy renewal (28 October): the premium is half of it; a lender
+      // wants the new policy before the old one ends, or it buys one itself.
+      meta: `${formatCurrency(Number(b.amount), currency)} · due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`}${b.recurrence === "yearly" && /insurance|\bmri\b/i.test(b.name) ? " · renew, send the bank a copy" : ""}`,
       href: "/wealth",
       at: inDays,
     });

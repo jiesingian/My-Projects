@@ -958,3 +958,13 @@ export async function getAssetCosts(familyId: string, today: string) {
   for (const t of spent ?? []) if (t.source_id) upkeep.set(t.source_id, (upkeep.get(t.source_id) ?? 0) + Number(t.amount));
   return { billsFor, upkeep };
 }
+
+/** The household's bills that come round every three months or every year
+ * (28 October): amilyar, insurance, registration, tuition. Cash Flow sets
+ * their monthly share beside the month's spending, so a yearly bill is
+ * planned for rather than landing all at once. */
+export async function getLongerBills(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("bills").select("name, amount, recurrence, due_date, status").eq("family_id", familyId).in("recurrence", ["quarterly", "yearly"]);
+  return data ?? [];
+}
