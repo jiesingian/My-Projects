@@ -8,6 +8,7 @@ import { ErrorText } from "@/components/form";
 import { formatCurrency } from "@/lib/format";
 import { importStatementAction } from "@/lib/actions/statement-import";
 import { mapStatementTextAction } from "@/lib/actions/statement-ai";
+import { KinAiAsk, isKinAiAsk } from "@/components/kin-ai-ask";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import {
   BANKS,
@@ -180,7 +181,7 @@ export function StatementImporter({ accountId, existing, currency, aiReady }: { 
 
   return (
     <div>
-      <ErrorText message={error} />
+      {isKinAiAsk(error) ? <KinAiAsk onDone={() => setError(null)} /> : <ErrorText message={error} />}
 
       {step === "pick" && (
         <Blueprint style={{ padding: "0.875rem" }}>

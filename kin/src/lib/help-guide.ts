@@ -867,7 +867,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "ai"
             ],
-            "what": "The floating button on every screen. Ask to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan. The household's own questions Kin answers by itself from its records: when a bill is due, what's due this week, what was spent on groceries this month, what's left in the budget, an account's balance, what's on today or tomorrow, what's for dinner, what's on the list, who is in the family, a birthday, and (for a grown-up) someone's allergy or medicines; also a goal's progress, loans and lending, subscriptions, a document's expiry, the day's chores and whose turn it is, a child's piggy bank and points, who is coming to an event, any past month's spending, the journal on this day, where something is, and whether something is in the pantry; adds too: \"Add milk to the list\", \"Add Lia dentist tomorrow 9am\", \"Add dinner adobo tomorrow\", \"Add Meralco bill 3200 due Nov 15\". Marks too: \"paid Meralco from GCash\", \"bought milk\", \"Lia did the dishes\". A detail missing, Kin asks for just that one. Those cost nothing and send nothing anywhere. Anything else goes to Kin AI. Kin always replies in English.",
+            "what": "The floating button on every screen. Ask to find something, see the schedule or money, or add a task, bill, event, goal, entry or meal plan. The household's own questions Kin answers by itself from its records: when a bill is due, what's due this week, what was spent on groceries this month, what's left in the budget, an account's balance, what's on today or tomorrow, what's for dinner, what's on the list, who is in the family, a birthday, and (for a grown-up) someone's allergy or medicines; also a goal's progress, loans and lending, subscriptions, a document's expiry, the day's chores and whose turn it is, a child's piggy bank and points, who is coming to an event, any past month's spending, the journal on this day, where something is, and whether something is in the pantry; adds too: \"Add milk to the list\", \"Add Lia dentist tomorrow 9am\", \"Add dinner adobo tomorrow\", \"Add Meralco bill 3200 due Nov 15\". Marks too: \"paid Meralco from GCash\", \"bought milk\", \"Lia did the dishes\". A detail missing, Kin asks for just that one. Those cost nothing and send nothing anywhere. Anything else goes to Kin AI, which asks you once, the first time, before it sends anything of yours to Anthropic. Kin always replies in English.",
             "how": "Tap the button and type or speak.",
             "pros": [
               "Adding something takes one sentence.",
@@ -1621,7 +1621,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "The vault PIN or Face ID, and emergency access: someone you trust can ask to read the vault after a wait you choose (1, 3 or 7 days). Drive documents are not included.",
+            "what": "The vault PIN or Face ID, and emergency access: someone you trust can ask to read the vault after a wait you choose (1, 3 or 7 days). Drive documents are not included. Also whether Kin AI may send what it needs to Anthropic; you can allow it or stop it here.",
             "how": "Settings → Privacy & lock.",
             "pros": [
               "The family can reach the papers if something happens to you."

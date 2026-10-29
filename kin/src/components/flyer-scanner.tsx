@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { scanFlyerAction, addScannedItemsAction, scanSentScreenshotAction } from "@/lib/actions/flyer";
+import { KinAiAsk, isKinAiAsk } from "@/components/kin-ai-ask";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import { KinAiLeft } from "@/components/kin-ai-left";
 import type { ScannedItem } from "@/lib/flyer-scan";
@@ -185,10 +186,14 @@ export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: str
           <span className="kin-skeleton" />
         </div>
       )}
-      {error && (
-        <p role="alert" className="kin-scan-error">
-          {error}
-        </p>
+      {isKinAiAsk(error) ? (
+        <KinAiAsk onDone={() => setError(null)} />
+      ) : (
+        error && (
+          <p role="alert" className="kin-scan-error">
+            {error}
+          </p>
+        )
       )}
       {done && (
         <p role="status" className="kin-scan-done">

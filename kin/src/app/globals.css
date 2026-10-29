@@ -8964,3 +8964,12 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   font-size: 0.8125rem;
   line-height: 1.7;
 }
+
+/* Kin AI's one question before anything goes to Anthropic
+   (components/kin-ai-ask.tsx). */
+.kin-ai-ask { border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent); border-radius: var(--radius-card, 1rem); padding: 0.875rem 1rem; margin: 0 0 0.75rem; background: var(--color-surface, var(--color-bg)); }
+.kin-ai-ask h3 { font-size: 1rem; margin: 0 0 0.375rem; }
+.kin-ai-ask p { font-size: 0.84375rem; line-height: 1.5; margin: 0 0 0.5rem; color: var(--color-neutral-700); }
+.kin-ai-ask-more a { text-decoration: underline; }
+.kin-ai-ask-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.kin-ai-ask-buttons .btn { min-height: 2.75rem; }
