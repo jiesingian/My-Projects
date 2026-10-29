@@ -15,15 +15,12 @@ import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
 import { RequiredMark } from "@/components/form";
 import { AccountNumber } from "@/components/account-number";
-import { isNetworkFailure, newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
+import { failedSaveMessage, newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 import type { QueuedOp } from "@/lib/offline/types";
 
 const MODES = ["in", "out", "transfer"] as const;
 type Mode = (typeof MODES)[number];
 const MODE_LABELS: Record<Mode, string> = { in: "Money in", out: "Money out", transfer: "Transfer" };
-// Said when the answer never came: it may have saved, so a second try is
-// safe rather than a second entry (the ids below).
-const NO_SIGNAL = "No signal — this may not have saved. Try again when you have one; it won’t be recorded twice.";
 
 export function TransactForm({
   accounts,
@@ -177,7 +174,8 @@ export function TransactForm({
         try {
           res = await send();
         } catch (e) {
-          setError(isNetworkFailure(e) ? NO_SIGNAL : "That didn't save. Try again.");
+          // It may have saved; a second try is safe (the ids above).
+          setError(failedSaveMessage(e, true));
           return;
         }
         if (res.error) {

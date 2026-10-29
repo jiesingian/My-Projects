@@ -34,6 +34,18 @@ export function isNetworkFailure(e: unknown): boolean {
   return isOffline() || e instanceof TypeError || /failed to fetch|load failed|networkerror|network request failed/i.test(String(e));
 }
 
+/** What a money form says when its save threw instead of answering (29
+ * October): with no signal it may or may not have reached the server.
+ * `once` when a second try cannot record it twice (the save carries ids
+ * made on the phone, lib/ledger-ids); otherwise the person is told to look
+ * before trying again. Anything else that threw is a plain failure. */
+export function failedSaveMessage(e: unknown, once: boolean): string {
+  if (!isNetworkFailure(e)) return "That didn't save. Try again.";
+  return once
+    ? "No signal — this may not have saved. Try again when you have one; it won’t be recorded twice."
+    : "No signal — this may not have saved. Check before trying again, so it isn’t recorded twice.";
+}
+
 export function newOpId(): string {
   return crypto.randomUUID();
 }

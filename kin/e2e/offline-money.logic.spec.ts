@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { moneyIds, moneyVerdict, offlineLine, toggleTarget } from "@/lib/offline/rules";
+import { moneyIds, moneyRetry, moneyVerdict, offlineLine, toggleTarget } from "@/lib/offline/rules";
 
 /** Money saved on Move money with no signal (28 October): Safari's "Load
  * failed" lost five entries in production in a week. Now they wait on the
@@ -40,4 +40,16 @@ test("Move money says offline that entries wait, and that a banking app needs a 
   expect(offlineLine("/wealth/transact")).toMatch(/wait here/);
   expect(offlineLine("/wealth/transact")).toMatch(/banking app need a signal/);
   expect(offlineLine("/wealth")).toBe("Offline — changes on this screen won’t save.");
+});
+
+test("an entry the database did not answer for stays queued; a refusal is said and dropped", () => {
+  expect(moneyRetry("TypeError: fetch failed")).toBe(true);
+  expect(moneyRetry("canceling statement due to statement timeout")).toBe(true);
+  expect(moneyRetry("Connection terminated unexpectedly")).toBe(true);
+  // Would refuse again.
+  expect(moneyRetry("That pays down more than is still owed on the loan.")).toBe(false);
+  expect(moneyRetry("Choose an account.")).toBe(false);
+  // Part of it went in: going again would call it done and hide the rest.
+  expect(moneyRetry("The payment was recorded, but the loan's balance was not lowered. fetch failed")).toBe(false);
+  expect(moneyRetry("The money moved, but the goal total was not brought up to date. statement timeout")).toBe(false);
 });

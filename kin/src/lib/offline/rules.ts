@@ -60,6 +60,19 @@ export function moneyVerdict(op: { kind: string; id: string; inId?: string }, re
   return moneyIds(op).some((id) => recorded.includes(id)) ? ALREADY : APPLY;
 }
 
+/** Whether a money entry the replay could not record should stay queued
+ * and go again, rather than be dropped with a note (29 October). Only when
+ * the database did not answer -- a timeout, a dropped connection -- which
+ * the next sync may get past; a second go cannot record it twice (its ids,
+ * moneyVerdict). A refusal (an account archived, a loan already paid down)
+ * would refuse again, and is said and dropped. Nor one that says part of it
+ * was recorded: the next go would find it there and call it done, and the
+ * person would never hear what was left undone. */
+export function moneyRetry(note: string): boolean {
+  if (/recorded, but|moved, but|came out of the goal, but|part of this was recorded/i.test(note)) return false;
+  return /fetch failed|aborterror|econnreset|etimedout|eai_again|socket hang up|network ?error|timed? ?out|statement timeout|canceling statement|connection (refused|terminated|reset)|too many connections|service unavailable|bad gateway|gateway time/i.test(note);
+}
+
 /** What a tick is a tick of, for changes where only the last one matters: a
  * list item, one dose, or one day of a chore. A second tick on the same thing
  * replaces the first in the queue (lib/offline/store). Null for everything

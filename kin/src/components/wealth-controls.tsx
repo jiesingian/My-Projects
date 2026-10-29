@@ -9,7 +9,8 @@ import { ForSelect, type ExpenseTargets } from "@/components/for-select";
 import { sortByUse, type PickableAccount } from "@/lib/account-picker";
 import { confirm } from "@/components/confirm-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
-import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
+import { cloneElement, isValidElement, useActionState, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { failedSaveMessage, newOpId } from "@/lib/offline/live";
 import { useRouter } from "next/navigation";
 import {
   addAccountAction,
@@ -510,9 +511,23 @@ const LOAN_SPLIT_NOTE = "Kin splits it into interest and the part that pays the 
  * an error keeps it open with the message at the top. */
 function PaidExpenseForm({ whose, accounts, currency, today, targets, onDone, onCancel }: { whose: WhoseOption[]; accounts: PickableAccount[]; currency: string; today: string; targets: ExpenseTargets; onDone: () => void; onCancel: () => void }) {
   const sym = useCurrencySymbol();
+  // The entry's id, made at the first try and kept until it saves
+  // (lib/ledger-ids, 29 October): a retry after "Load failed" finds the
+  // expense already recorded instead of recording it twice.
+  const clientId = useRef<string | null>(null);
   const [state, formAction] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const res = await addPaidExpenseAction(prev, fd);
-    if (!res.error) onDone();
+    fd.set("client_id", (clientId.current ??= newOpId()));
+    let res: ActionState;
+    try {
+      res = await addPaidExpenseAction(prev, fd);
+    } catch (e) {
+      // A weak signal: the sheet stays open and says so.
+      return { error: failedSaveMessage(e, true) };
+    }
+    if (!res.error) {
+      clientId.current = null;
+      onDone();
+    }
     return res;
   }, initialState);
   const [category, setCategory] = useState<string>("Groceries");

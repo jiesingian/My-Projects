@@ -9,6 +9,7 @@ import { REMITTANCE_CHANNELS, REMITTANCE_CHANNEL_LABELS, type RemittanceChannel 
 import { REMITTANCE_CURRENCIES } from "@/lib/fx";
 import { formatCurrency } from "@/lib/format";
 import { ErrorText } from "@/components/form";
+import { failedSaveMessage } from "@/lib/offline/live";
 import { DateInput } from "@/components/date-input";
 
 /* The two categories of Add income with more to say than an amount
@@ -82,7 +83,8 @@ export function RemittanceFields({ accounts, onDone }: { accounts: { id: string;
             note: "",
             isPrivate: false,
             allocations: [],
-          });
+            // A weak signal: kept as typed, and told to look before a retry.
+          }).catch((e: unknown) => ({ error: failedSaveMessage(e, false) }));
           setError(res.error);
           if (res.error) return;
           router.refresh();

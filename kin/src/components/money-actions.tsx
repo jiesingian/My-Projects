@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { FormSheet } from "@/components/form-sheet";
-import { useId, useState, useSyncExternalStore, useTransition } from "react";
+import { useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
 
 /** For useSyncExternalStore where only the server/client difference matters. */
 const subscribeNever = () => () => {};
@@ -63,6 +63,7 @@ import { AccountOptions } from "@/components/account-options";
 import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
 import { ForSelect, type ExpenseTargets } from "@/components/for-select";
 import { raiseNextBill } from "@/components/next-bill-offer";
+import { failedSaveMessage, newOpId } from "@/lib/offline/live";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
  * they come back and confirm — so nothing is counted as moved until it
@@ -71,19 +72,43 @@ function useMoneyAction() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  // An id per save, made at its first try and kept until one succeeds
+  // (lib/ledger-ids, 29 October): a retry after "Load failed" then finds
+  // the money already recorded instead of recording it twice. By scope, so
+  // a Pay that failed does not lend its id to a different save.
+  const ids = useRef(new Map<string, string>());
+  const named = useRef(false);
+  function entryId(scope: string): string {
+    named.current = true;
+    const known = ids.current.get(scope);
+    if (known) return known;
+    const id = newOpId();
+    ids.current.set(scope, id);
+    return id;
+  }
 
   function run<R extends { error: string | null; appUrl?: string | null }>(fn: () => Promise<R>, onDone?: (res: R) => void) {
     startTransition(async () => {
-      const res = await fn();
+      named.current = false;
+      let res: R;
+      try {
+        res = await fn();
+      } catch (e) {
+        // A weak signal ("Load failed"): the sheet stays as it was, with
+        // what was typed, instead of the page falling over.
+        setError(failedSaveMessage(e, named.current));
+        return;
+      }
       setError(res.error);
       if (res.error) return;
+      ids.current.clear();
       if (res.appUrl) window.open(res.appUrl, "_blank", "noopener,noreferrer");
       onDone?.(res);
       router.refresh();
     });
   }
 
-  return { error, pending, run };
+  return { error, pending, run, entryId };
 }
 
 function AccountSelect({
@@ -162,7 +187,7 @@ export function PayBillControl({
   // The principal the person typed, null to follow Kin's split.
   const [principalOverride, setPrincipalOverride] = useState<number | null>(null);
   const [viaApp, setViaApp] = useState(true);
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
   const uid = useId();
 
@@ -209,7 +234,7 @@ export function PayBillControl({
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url, principal: loan ? principalOverride : null }), (res) => { setOpen(false); raiseNextBill(res.next); })}
+              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url, principal: loan ? principalOverride : null, clientId: entryId("pay") }), (res) => { setOpen(false); raiseNextBill(res.next); })}
             >
               {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark paid"}
             </button>
@@ -239,7 +264,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [receiveAmount, setReceiveAmount] = useState(amount);
   const [viaApp, setViaApp] = useState(true);
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
   const uid = useId();
 
@@ -273,7 +298,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
               onClick={() =>
                 run(
-                  () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url }),
+                  () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url, clientId: entryId("receive") }),
                   () => setOpen(false),
                 )
               }
@@ -329,7 +354,7 @@ export function GoalContributeControl({
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [amount, setAmount] = useState(0);
   const [viaApp, setViaApp] = useState(true);
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
   const uid = useId();
   // Both sources at once (26 October): each its own transfer, its own amount.
@@ -348,16 +373,16 @@ export function GoalContributeControl({
           // One after the other: a failure on the second leaves the first
           // done, and says so.
           if (amount1 > 0) {
-            const first = await contributeToGoalAction({ goalId, accountId: source1.id, amount: amount1, viaApp: false });
+            const first = await contributeToGoalAction({ goalId, accountId: source1.id, amount: amount1, viaApp: false, clientId: entryId("goal-1") });
             if (first.error) return first;
           }
           if (amount2 > 0) {
-            const second = await contributeToGoalAction({ goalId, accountId: source2.id, amount: amount2, viaApp: false });
+            const second = await contributeToGoalAction({ goalId, accountId: source2.id, amount: amount2, viaApp: false, clientId: entryId("goal-2") });
             if (second.error) return { error: amount1 > 0 ? `${source1.name}'s part went in; ${source2.name}'s did not. ${second.error}` : second.error };
           }
           return { error: amount1 > 0 || amount2 > 0 ? null : "Enter an amount for at least one account." };
         }, () => setOpen(false))
-      : run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false));
+      : run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url, clientId: entryId("goal") }), () => setOpen(false));
 
   return (
     <>
@@ -457,7 +482,7 @@ export function FundPaidControl({
   const [accountId, setAccountId] = useState(defaultAccountId);
   const [amount, setAmount] = useState(Math.min(saved, target) || target);
   const [category, setCategory] = useState<string>(fundCategory(title));
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const uid = useId();
 
   if (accounts.length === 0) return null;
@@ -500,7 +525,7 @@ export function FundPaidControl({
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => payFromFundAction({ goalId, accountId, amount, category }), () => setOpen(false))}
+              onClick={() => run(() => payFromFundAction({ goalId, accountId, amount, category, clientId: entryId("fund") }), () => setOpen(false))}
             >
               {pending ? "…" : "Record payment"}
             </button>
@@ -539,7 +564,7 @@ export function LogSpendControl({
   const [open, setOpen] = useState(false);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [amount, setAmount] = useState(suggested ?? 0);
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const uid = useId();
 
   if (accounts.length === 0) return null;
@@ -569,7 +594,7 @@ export function LogSpendControl({
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }}
-              onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId }), () => setOpen(false))}
+              onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId, clientId: entryId("hub") }), () => setOpen(false))}
             >
               {pending ? "…" : "Record it"}
             </button>
@@ -2048,7 +2073,7 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
   const [other, setOther] = useState(owed);
   const [accountId, setAccountId] = useState(from[0]?.id ?? "");
   const [viaApp, setViaApp] = useState(true);
-  const { error, pending, run } = useMoneyAction();
+  const { error, pending, run, entryId } = useMoneyAction();
   const amount = choice === "owed" ? owed : choice === "minimum" && minimum ? minimum : other;
   const radio = { display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.875rem", minHeight: "2rem" } as const;
   return (
@@ -2093,7 +2118,7 @@ export function PayCardControl({ cardId, cardName, owed, minimum, accounts, curr
           className="btn btn-primary"
           disabled={pending || !accountId || !(amount > 0)}
           style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
-          onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp }), () => setOpen(false))}
+          onClick={() => run(() => transferAction({ fromAccountId: accountId, toAccountId: cardId, amount, note: `Paid ${cardName}`, occurredAt: null, viaApp, clientIds: { out: entryId("card-out"), in: entryId("card-in") } }), () => setOpen(false))}
         >
           {pending ? "…" : `Pay ${formatCurrency(amount > 0 ? amount : 0, currency)}`}
         </button>
