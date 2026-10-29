@@ -44,7 +44,7 @@ export default async function PrivacySettingsPage() {
   const [owner, trusted, kinAi] = await Promise.all([
     grownUp ? getEmergencyOwnerView(me.family_id, lock.unlocked) : Promise.resolve(null),
     grownUp ? getEmergencyTrustedView(me.id) : Promise.resolve(null),
-    // Whether this person has said yes to Kin AI (20261030120002).
+    // Whether this person has said yes to Kin AI (20261030130001).
     supabase.rpc("kin_ai_ok"),
   ]);
 

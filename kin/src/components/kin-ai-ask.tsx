@@ -6,7 +6,7 @@ import { setKinAiOkAction } from "@/lib/actions/kin-ai-ok";
 import { KIN_AI_ASK } from "@/lib/kin-ai";
 
 /** Kin AI asks once, before anything of this person's goes to Anthropic
- * (Jonathan, 29 October; App Review 5.1.2(i); 20261030120002_kin_ai_ok.sql).
+ * (Jonathan, 29 October; App Review 5.1.2(i); 20261030130001_kin_ai_ok.sql).
  * Every Kin AI feature answers KIN_AI_ASK until they say yes; its screen
  * shows this in place of the error. Allow saves the yes and clears the
  * error, so they ask or scan again; Not now just clears it. Settings →

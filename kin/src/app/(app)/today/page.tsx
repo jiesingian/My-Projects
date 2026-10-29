@@ -57,7 +57,7 @@ import { NextVoteOnToday } from "@/components/next-vote-on-today";
 import { PushNudge } from "@/components/push-nudge";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { getNextBillOffers } from "@/lib/queries/wealth";
-import { inIosApp } from "@/lib/ios-app";
+import { inStoreApp } from "@/lib/ios-app";
 
 export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string; arrived?: string }> }) {
   const tz = await householdZone();
@@ -70,7 +70,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   if (inSimpleMode(me)) return <SimpleToday me={me} arrivedNow={arrivedNow} />;
   // Settings -> Show me around replays the guided tour.
   const replayTour = params.tour === "1";
-  const iosApp = await inIosApp();
+  const iosApp = await inStoreApp();
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, doses, goals, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills, wealth, family] = await Promise.all([

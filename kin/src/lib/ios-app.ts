@@ -22,3 +22,24 @@ export function isIosAppUserAgent(ua: string | null | undefined): boolean {
 export async function inIosApp(): Promise<boolean> {
   return isIosAppUserAgent((await headers()).get("user-agent"));
 }
+
+/** The Kin Android app's mark (capacitor.config.json, android.appendUserAgent).
+ * Google Play's rule is the same as Apple's here: no price, buy link, code or
+ * reward for Kin Plus inside an app it distributes, and the Philippines has
+ * no alternative-billing programme (kin/native/android/store/POLICY.md). */
+export const ANDROID_APP_UA = "KinApp/Android";
+
+export function isAndroidAppUserAgent(ua: string | null | undefined): boolean {
+  return Boolean(ua && ua.includes(ANDROID_APP_UA));
+}
+
+/** Either store app, iPhone or Android: every Kin Plus purchase path is left
+ * out of both, so the layout's `data-ios-app` (and the pages that ask) mean
+ * "a store app", not only the iPhone. */
+export function isStoreAppUserAgent(ua: string | null | undefined): boolean {
+  return isIosAppUserAgent(ua) || isAndroidAppUserAgent(ua);
+}
+
+export async function inStoreApp(): Promise<boolean> {
+  return isStoreAppUserAgent((await headers()).get("user-agent"));
+}

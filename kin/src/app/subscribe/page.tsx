@@ -3,7 +3,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { paletteCss } from "@/lib/palettes";
 import { SubscribeScreen } from "./subscribe-screen";
-import { inIosApp } from "@/lib/ios-app";
+import { inStoreApp } from "@/lib/ios-app";
 
 /** The plan screen: Kin Free beside Kin Plus, where the household stands, and
  * (for the organizer) how to get Plus. It used to be the paywall a lapsed
@@ -28,7 +28,7 @@ export default async function SubscribePage() {
         plan={access.plan}
         trialing={access.trialing}
         daysLeft={access.daysLeft}
-        iosApp={await inIosApp()}
+        iosApp={await inStoreApp()}
       />
     </>
   );

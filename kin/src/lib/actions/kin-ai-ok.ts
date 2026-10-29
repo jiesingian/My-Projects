@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { reportError } from "@/lib/report-error";
 
-/** This person says yes to Kin AI, or takes it back (20261030120002). Only
+/** This person says yes to Kin AI, or takes it back (20261030130001). Only
  * their own rows change; the database function decides that, not this. */
 export async function setKinAiOkAction(ok: boolean): Promise<{ error: string | null }> {
   const supabase = await createClient();

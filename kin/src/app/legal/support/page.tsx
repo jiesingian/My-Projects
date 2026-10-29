@@ -47,7 +47,8 @@ export default function SupportPage() {
 
       <h2>Deleting your account</h2>
       <p>
-        In Kin, go to Settings → Account → Delete my account. Nothing is removed for 7 days, in case you change your mind;
+        In Kin, go to Settings → Account → Delete my account, or follow{" "}
+        <Link href="/legal/delete-account">these steps from any browser</Link>. Nothing is removed for 7 days, in case you change your mind;
         signing in during them offers to keep the account. The <Link href="/legal/privacy">privacy notice</Link> says what is
         deleted and what stays with the household.
       </p>

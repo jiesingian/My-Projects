@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { IOS_APP_UA, isIosAppUserAgent } from "@/lib/ios-app";
+import { ANDROID_APP_UA, IOS_APP_UA, isAndroidAppUserAgent, isIosAppUserAgent, isStoreAppUserAgent } from "@/lib/ios-app";
 
 /** The iPhone app is told apart by the token its web view adds to the user
  * agent (kin/native/capacitor.config.json, ios.appendUserAgent). Inside it,
@@ -16,4 +16,15 @@ test("Safari, the installed web app and Android are not the iPhone app", () => {
   expect(isIosAppUserAgent("Mozilla/5.0 (Linux; Android 15; Pixel 9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0 Mobile Safari/537.36")).toBe(false);
   expect(isIosAppUserAgent(null)).toBe(false);
   expect(isIosAppUserAgent("")).toBe(false);
+});
+
+test("the Android app is a store app too; Chrome on Android is not", () => {
+  const webView = "Mozilla/5.0 (Linux; Android 15; Pixel 9; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/131.0 Mobile Safari/537.36";
+  expect(isAndroidAppUserAgent(`${webView} ${ANDROID_APP_UA}`)).toBe(true);
+  expect(isStoreAppUserAgent(`${webView} ${ANDROID_APP_UA}`)).toBe(true);
+  expect(isStoreAppUserAgent(`Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ${IOS_APP_UA}`)).toBe(true);
+  // The website in a phone's own browser keeps its prices.
+  expect(isStoreAppUserAgent(webView.replace("; wv", ""))).toBe(false);
+  expect(isAndroidAppUserAgent(webView)).toBe(false);
+  expect(isStoreAppUserAgent(null)).toBe(false);
 });
