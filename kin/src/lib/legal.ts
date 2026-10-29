@@ -26,7 +26,7 @@ export const OPERATOR: {
 };
 
 /** The date the current wording took effect. Change it whenever the words do. */
-export const LEGAL_UPDATED = "21 October 2026";
+export const LEGAL_UPDATED = "29 October 2026";
 
 /** The ad stage (Jonathan, 21 October): one switch for the consent banner on
  * the public pages (components/consent-banner.tsx) and the privacy notice's

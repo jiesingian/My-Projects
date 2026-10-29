@@ -5,6 +5,7 @@ import { paletteCss } from "@/lib/palettes";
 import { createClient } from "@/lib/supabase/server";
 import { pendingDeletion } from "@/lib/account-deletion-server";
 import { ConsentBanner } from "@/components/consent-banner";
+import { inIosApp } from "@/lib/ios-app";
 
 export const metadata = {
   title: "Kin: Family Life, Decoded",
@@ -19,6 +20,9 @@ export default async function RootPage({ searchParams }: { searchParams: Promise
   const user = await getSessionUser();
 
   if (!user) {
+    // The iPhone app shows no prices (lib/ios-app.ts); its people sign in or
+    // sign up from the login page.
+    if (await inIosApp()) redirect("/login");
     return (
       <>
         {/* Kin Coral, the icon's look: what a new profile starts on. */}
