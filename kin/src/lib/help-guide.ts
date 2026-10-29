@@ -1442,6 +1442,23 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": []
           },
           {
+            "name": "Alarms",
+            "tags": [
+              "phone"
+            ],
+            "what": "In the Kin iPhone app, medicine doses ring like the Clock app: full screen, with sound even on silent, offline too. Any plan, check-up or bill can ring the same way.",
+            "how": "Settings → Notifications → Alarms. Doses follow Health reminders; switch on each plan, check-up or bill you want to ring.",
+            "pros": [
+              "A dose or an appointment isn't missed because the phone was on silent."
+            ],
+            "cons": [
+              "Needs the Kin iPhone app; in a browser the choices are kept for when it's installed."
+            ],
+            "tips": [
+              "open Kin once a week or so: each time it opens, it sets the next two weeks of alarms."
+            ]
+          },
+          {
             "name": "Action Button, widget and Siri",
             "tags": [
               "phone"

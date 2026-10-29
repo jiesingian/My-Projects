@@ -47,4 +47,5 @@ jobs:
           set -o pipefail
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -n 80
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' build | tail -n 80
