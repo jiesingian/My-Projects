@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { scanFlyerAction, addScannedItemsAction, scanSentScreenshotAction } from "@/lib/actions/flyer";
 import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
+import { KinAiLeft } from "@/components/kin-ai-left";
 import type { ScannedItem } from "@/lib/flyer-scan";
 import { shrink } from "@/lib/shrink-photo";
 
@@ -28,6 +29,8 @@ export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: str
   const [scanning, startScan] = useTransition();
   const [saving, startSave] = useTransition();
   const [plusNote, setPlusNote] = useState(false);
+  // Bumped after each scan, so the uses-left line reads the new count.
+  const [scans, setScans] = useState(0);
 
   // A screenshot sent from the share sheet: read it as soon as the page is
   // open, once. The action deletes it whether or not dates were found.
@@ -97,6 +100,7 @@ export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: str
         form.set("photo", file);
       }
       const result = await scanFlyerAction(form);
+      setScans((n) => n + 1);
       setError(result.error);
       if (!result.error) setRows(result.items.map((it) => ({ ...it, keep: true })));
     });
@@ -159,6 +163,7 @@ export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: str
         </p>
       )}
       {ready && <p className="kin-scan-privacy">{KIN_AI_PRIVACY}</p>}
+      {ready && !plus && <KinAiLeft refresh={scans} />}
       {!ready && (
         // Said up front: until the key is added, the photo can be looked at
         // but not read for dates.
