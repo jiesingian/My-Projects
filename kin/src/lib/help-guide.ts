@@ -731,7 +731,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "phone"
             ],
-            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it.",
+            "what": "The red SOS button alerts the household with where you are. A check-in asks one person to reply that they are fine. Once sent, \"Text them too\" opens your messages app addressed to the grown-ups, with the words and where you are already in it. The alert stays in the household's SOS history; where you were is kept for 30 days.",
             "how": "Tap SOS in the header. Rehearse once with a grown-up.",
             "pros": [
               "Help is one tap away.",
