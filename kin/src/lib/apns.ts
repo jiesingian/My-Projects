@@ -11,8 +11,10 @@ import { createPrivateKey, sign } from "node:crypto";
  *   Critical Alert once Apple grants Kin the entitlement (APNS_CRITICAL=1):
  *   through silent and Focus.
  * - "voip": only a ringing call, which the app hands to CallKit, so it rings
- *   full screen like Messenger, on silent too. Apple requires every VoIP
- *   push to become a call, so nothing else is ever sent on it.
+ *   full screen like Messenger, on silent too, and the end of that ring when
+ *   the caller gives up (`endsCall`). Apple requires every VoIP push to
+ *   become a call, so nothing else is ever sent on it; the app reports the
+ *   end against the ringing call itself (KinPushPlugin.swift, endRing).
  *
  * Off until Jonathan adds the key from the Apple Developer account (Vercel:
  * APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY; SETUP_FOR_JONATHAN.md):
@@ -41,6 +43,9 @@ export type PushContent = {
   urgent?: boolean;
   call?: { id: string; from: string; video: boolean };
   again?: boolean;
+  /** The call whose ring this push ends: the caller gave up before anyone
+   * answered (lib/actions/calls.ts, missedCallAction). */
+  endsCall?: string;
 };
 
 export type ApnsRequest = { pushType: "alert" | "voip" | "background"; topic: string; priority: 5 | 10; expiration: number; collapseId?: string; body: string };
@@ -51,11 +56,24 @@ export function apnsTopic(): string {
 
 /** What one push becomes for one of the app's devices, or null when that
  * device must not get it: a ring goes only on "voip", and everything else
- * only on "alert". */
+ * only on "alert", except that a missed call also goes on "voip" to stop the
+ * ring at once. */
 export function apnsRequest(device: Pick<NativeDevice, "channel">, p: PushContent, now: Date, opts: { critical?: boolean; ttlSeconds?: number } = {}): ApnsRequest | null {
   const nowS = Math.floor(now.getTime() / 1000);
   const isRing = Boolean(p.ring && p.call);
   if (device.channel === "voip") {
+    // The caller gave up: stop the CallKit ring now, not after its minute.
+    if (p.endsCall) {
+      if (!/^[0-9a-f-]{36}$/i.test(p.endsCall)) return null;
+      return {
+        pushType: "voip",
+        topic: `${apnsTopic()}.voip`,
+        priority: 10,
+        // Only worth anything while the phone could still be ringing.
+        expiration: nowS + 60,
+        body: JSON.stringify({ end: p.endsCall }),
+      };
+    }
     // Only the first ring: CallKit keeps that one ringing, and every VoIP
     // push must become a new call, so a repeat would stack a second one.
     if (!isRing || p.again) return null;

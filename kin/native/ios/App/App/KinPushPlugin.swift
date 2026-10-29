@@ -19,9 +19,10 @@ import UserNotifications
 ///   Decline tells the caller, as the notification's Decline does.
 ///
 /// Apple requires every VoIP push to be reported as a call at once, or it
-/// stops sending them: the server only ever sends rings there, and this is
-/// set up at launch (AppDelegate), before any page exists, because a ring
-/// can wake a closed app.
+/// stops sending them: the server sends only two things there, a ring and
+/// the end of a ring the caller gave up on, and this is set up at launch
+/// (AppDelegate), before any page exists, because a ring can wake a closed
+/// app.
 final class KinCalls: NSObject, PKPushRegistryDelegate, CXProviderDelegate, UNUserNotificationCenterDelegate {
     static let shared = KinCalls()
 
@@ -102,6 +103,10 @@ final class KinCalls: NSObject, PKPushRegistryDelegate, CXProviderDelegate, UNUs
 
     func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
         let dict = payload.dictionaryPayload
+        if let ended = dict["end"] as? String {
+            endRing(of: ended, completion: completion)
+            return
+        }
         let call = dict["call"] as? [String: Any]
         let callId = call?["id"] as? String ?? UUID().uuidString
         let from = call?["from"] as? String ?? ""
@@ -124,6 +129,26 @@ final class KinCalls: NSObject, PKPushRegistryDelegate, CXProviderDelegate, UNUs
                     self.calls[uuid] = nil
                 }
             }
+            completion()
+        }
+    }
+
+    /// The caller gave up before anyone answered (lib/actions/calls.ts,
+    /// missedCallAction): the iPhone stops ringing now rather than after its
+    /// own minute. The push is still reported to CallKit, as Apple requires
+    /// of every VoIP push: under the ringing call's own UUID, which CallKit
+    /// refuses as already there and so shows nothing new; if that call is
+    /// gone already (answered, declined, timed out), as a new call ended the
+    /// same moment. Ended with reportCall, not CXEndCallAction, so the caller
+    /// is not told "declined".
+    private func endRing(of callId: String, completion: @escaping () -> Void) {
+        let uuid = calls.first(where: { $0.value.id == callId })?.key ?? UUID()
+        let update = CXCallUpdate()
+        update.remoteHandle = CXHandle(type: .generic, value: "Kin")
+        update.localizedCallerName = "Kin"
+        provider.reportNewIncomingCall(with: uuid, update: update) { [weak self] _ in
+            self?.calls[uuid] = nil
+            self?.provider.reportCall(with: uuid, endedAt: Date(), reason: .unanswered)
             completion()
         }
     }

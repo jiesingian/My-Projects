@@ -40,6 +40,22 @@ test("a ring goes only on the VoIP token, and nothing else ever does", () => {
   expect(apnsRequest({ channel: "voip" }, plain, now)).toBeNull();
 });
 
+test("a missed call ends the CallKit ring on the VoIP token, and is still a notification", () => {
+  const callId = "0b5d6a1e-3c2f-4e8a-9b7d-1f2e3d4c5b6a";
+  const missed = { ...plain, title: "Missed voice call from Ann", endsCall: callId };
+  const voip = apnsRequest({ channel: "voip" }, missed, now)!;
+  expect(voip.pushType).toBe("voip");
+  expect(voip.priority).toBe(10);
+  expect(voip.expiration).toBe(nowS + 60);
+  expect(JSON.parse(voip.body)).toEqual({ end: callId });
+  // The "Missed call" notification still comes, on the alert token.
+  const alert = apnsRequest({ channel: "alert" }, missed, now)!;
+  expect(alert.pushType).toBe("alert");
+  expect(JSON.parse(alert.body).end).toBeUndefined();
+  // Anything that is not a call id never reaches CallKit.
+  expect(apnsRequest({ channel: "voip" }, { ...missed, endsCall: "not-a-call" }, now)).toBeNull();
+});
+
 test("an SOS is time-sensitive, or a Critical Alert once Apple grants it", () => {
   const t = apnsRequest({ channel: "alert" }, sos, now)!;
   const tb = JSON.parse(t.body);

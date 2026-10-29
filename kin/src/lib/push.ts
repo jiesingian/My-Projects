@@ -58,6 +58,9 @@ export async function sendPush(input: {
   /** An SOS: sent as urgent and kept on screen like a ring, but not dropped
    * after a minute -- it is kept for `ttlSeconds` (an hour if unset). */
   urgent?: boolean;
+  /** This call stopped ringing unanswered: the iPhone app's CallKit ring is
+   * ended at once (lib/apns.ts). Browsers and Android ignore it. */
+  endsCall?: string;
 }): Promise<number> {
   if (!vapidReady() && !apnsConfigured() && !fcmConfigured()) return 0;
   try {
@@ -75,6 +78,7 @@ export async function sendPush(input: {
       icon: input.icon && /^(https:\/\/|\/[^/])/.test(input.icon) ? input.icon : undefined,
       call: input.call,
       again: input.again || undefined,
+      endsCall: input.endsCall,
     });
     const options = input.ring
       ? { TTL: 60, urgency: "high" as const }
