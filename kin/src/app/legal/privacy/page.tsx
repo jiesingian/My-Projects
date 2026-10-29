@@ -131,7 +131,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Your household.</strong> Records belong to your household and are walled off from every other household
           by the database&rsquo;s own access rules. Inside the household, some records can be limited to grown-ups or to
-          the person they are about. The vault can be locked with a PIN, Face ID or a fingerprint. The lock is optional
+          the person they are about. Government ID numbers can be seen only by the person they belong to and the
+          household&rsquo;s grown-ups. The vault can be locked with a PIN, Face ID or a fingerprint. The lock is optional
           and guards the screen; it is not separate encryption.
         </li>
         <li>
