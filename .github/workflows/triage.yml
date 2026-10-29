@@ -17,6 +17,18 @@ permissions:
 
 jobs:
   classify:
+    # Only a pull request from a branch of this repository, opened by one of
+    # its two people, is labelled -- and so only those can merge themselves.
+    # The repository is public (18 September), and a fork's pull request runs
+    # its own copies of ci.yml, secret-scan.yml and schema-check.yml, so a
+    # stranger could make them pass and automerge would merge the change and
+    # migrate.yml would run its .sql on production (review of the watched
+    # changes, 29 October). A fork's pull request gets no label and waits for
+    # a person, as GitHub would have it anyway. automerge.yml checks the same.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.pull_request.user.login == 'jiesingian' ||
+       github.event.pull_request.user.login == 'jnnarenassingian-star')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

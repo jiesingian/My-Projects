@@ -217,17 +217,18 @@ export default function PrivacyPage() {
       <ul>
         <li>Your household&rsquo;s records: for as long as your account and household exist, unless you delete them sooner.</li>
         <li>
-          Deleting your account (Settings → Account) takes effect after 7 days, in case you change your mind. Then your sign-in, your personal space, the health records
+          Deleting your account (Settings → Account, or{" "}
+          <Link href="/legal/delete-account">from any browser</Link>) takes effect after 7 days, in case you change your mind. Then your sign-in, your personal space, the health records
           about you and your profile details are deleted, and what you added for the household (a plan, a bill, a chat
           message) stays for the rest of the family under &ldquo;Former member&rdquo;. When no grown-up is left, the
           household and everything in it, including its files, is deleted.
         </li>
         <li>Your shared location: only the latest position, replaced by each new one.</li>
-        <li>SOS alerts: in the household&rsquo;s SOS history, for as long as the household exists.</li>
+        <li>SOS alerts: in the household&rsquo;s SOS history, for as long as the household exists; the position in each is cleared after 30 days.</li>
         <li>Error logs: 30 days. Records of which reminders were sent: 40 days. A screenshot you send to Kin: 24 hours.</li>
         <li>
-          Deleting your account removes Kin&rsquo;s copy of your Google connection, but not the permission itself at Google:
-          remove it at{" "}
+          Deleting your account also withdraws Kin&rsquo;s Google Calendar permission at Google, and the household&rsquo;s Google
+          Drive permission when the household itself is deleted. To withdraw either sooner, or to check, go to{" "}
           <a href="https://myaccount.google.com/permissions" rel="noreferrer">
             myaccount.google.com/permissions
           </a>
@@ -275,10 +276,10 @@ export default function PrivacyPage() {
         </li>
       </ul>
       <p>
-        You can download a copy of your profile, your own uploads and your household&rsquo;s main records yourself, from
-        Settings → Account → Download my data. It does not yet include everything (for example direct and group messages, or loans
-        and savings circles); for a full copy, or anything else on this page, write to us at the contact below. We
-        answer within 15 days.
+        You can download a copy of your profile, your own uploads, the messages you sent and your household&rsquo;s records
+        yourself, from Settings → Account → Download my data. Messages other people sent you are theirs and are not in
+        it. For anything it leaves out, or anything else on this page, write to us at the contact below. We answer
+        within 15 days.
       </p>
       <p>
         If you live outside the Philippines, Kin is still run from the Philippines under Philippine law, and you can use

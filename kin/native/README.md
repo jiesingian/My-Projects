@@ -20,7 +20,9 @@ therefore wrapped as an installed app. The decisions:
 
 - `capacitor.config.json`: app id `com.jiesingian.kin` (it can change until
   the first upload to App Store Connect, never after), the live URL, and
-  app-bound domains (needed for the web app's service worker inside the shell).
+  app-bound domains (needed for the web app's service worker inside the shell),
+  and `KinApp/iOS` added to the web view's user agent, so the web app knows
+  it is inside the iPhone app (no purchase links there; App Review 3.1.1).
 - `ios/App`: the Xcode project, made by `npx cap add ios` and committed.
   `npx cap sync ios` (CI runs it) copies the config in. Swift Package Manager,
   no CocoaPods.
@@ -56,6 +58,11 @@ therefore wrapped as an installed app. The decisions:
   once Apple grants them.
 - `ExportOptions.plist`: for the TestFlight upload (`.github/workflows/testflight.yml`).
   `ios/TESTFLIGHT.md`: what the first run does and what each failure means.
+- `PrivacyInfo.xcprivacy` (app and widgets): Apple's privacy manifest, the
+  App Group `UserDefaults` reason. `Info.plist` says Kin uses no non-exempt
+  encryption (so builds skip the export question) and why each background
+  mode is there. iPhone only (`TARGETED_DEVICE_FAMILY = 1`): no iPad
+  screenshots or iPad review; it can be widened later, never narrowed.
 
 ## Android (built, not published)
 

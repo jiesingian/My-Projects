@@ -56,6 +56,13 @@ export default async function ({ db, as, check }) {
   const reach = async (who) => (await as(who, "select public_entry_reaches_me($1, $2) v", [P("b1"), F("b")]))[0].v === true;
   await check("public_entry_reaches_me: yes for a grown-up connection, no for a child on the tree or a stranger", async () => (await reach(ann)) && !(await reach(bea)) && !(await reach(cat)));
   await check("on_family_tree_as_me answers only for the caller", async () => (await as(cat, "select on_family_tree_as_me($1) v", [F("b")]))[0].v === false);
+  // An outsider's member id put on the writer's tree by anyone in it (any
+  // member may write family_tree_people) brings no Public entries: outsiders
+  // come in only by an accepted match between linked households (20261029235000).
+  await check("Eve, put on House B's tree by its child, still does not see it", async () => {
+    await as(bea, "insert into family_tree_people (family_id, member_id, full_name) values ($1, $2, 'Eve, added')", [F("b"), P("e1")]);
+    return !(await sees(eve)) && !(await fn(eve)) && (await as(eve, "select on_family_tree_as_me($1) v", [F("b")]))[0].v === false;
+  });
 
   await db.exec(`update family_links set status = 'removed' where requester_family_id = '${F("a")}' and addressee_family_id = '${F("b")}'`);
   await check("Households unlinked: the matched grown-up no longer sees it", async () => !(await sees(abe)));
