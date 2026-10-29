@@ -13,10 +13,11 @@ import type { PushContent } from "@/lib/apns";
  * notification itself: a ring becomes Android's full-screen incoming-call
  * notification; an SOS goes on its urgent channel.
  *
- * Off until Jonathan makes the free Firebase project (Vercel: FCM_PROJECT_ID,
- * FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY, from a service account;
- * SETUP_FOR_JONATHAN.md): without them Android devices are skipped and
- * everything else runs as before. Pure parts tested alone
+ * Off until Jonathan makes the free Firebase project (SETUP_FOR_JONATHAN.md):
+ * Vercel's FCM_SERVICE_ACCOUNT_JSON, the service account's whole key file
+ * pasted as one value (easiest from a phone), or FCM_PROJECT_ID,
+ * FCM_CLIENT_EMAIL and FCM_PRIVATE_KEY taken from it. Without them Android
+ * devices are skipped and everything else runs as before. Pure parts tested alone
  * (e2e/fcm.logic.spec.ts). */
 
 export type FcmDevice = { endpoint: string; token: string };
@@ -27,8 +28,26 @@ export function fcmDevice(row: { endpoint: string; p256dh: string; auth: string 
   return /^[A-Za-z0-9_:-]{20,400}$/.test(token) ? { endpoint: row.endpoint, token } : null;
 }
 
+type ServiceAccount = { projectId: string; clientEmail: string; privateKey: string };
+
+/** The service account, from the whole key file (FCM_SERVICE_ACCOUNT_JSON) or
+ * the three separate keys; null while either is incomplete or unreadable. */
+export function fcmServiceAccount(): ServiceAccount | null {
+  const whole = process.env.FCM_SERVICE_ACCOUNT_JSON?.trim();
+  if (whole) {
+    try {
+      const j = JSON.parse(whole) as { project_id?: string; client_email?: string; private_key?: string };
+      if (j.project_id && j.client_email && j.private_key) return { projectId: j.project_id, clientEmail: j.client_email, privateKey: j.private_key };
+    } catch {
+      // Not the key file (a partial paste): try the separate keys.
+    }
+  }
+  const { FCM_PROJECT_ID: projectId, FCM_CLIENT_EMAIL: clientEmail, FCM_PRIVATE_KEY: privateKey } = process.env;
+  return projectId && clientEmail && privateKey ? { projectId, clientEmail, privateKey } : null;
+}
+
 export function fcmConfigured(): boolean {
-  return Boolean(process.env.FCM_PROJECT_ID && process.env.FCM_CLIENT_EMAIL && process.env.FCM_PRIVATE_KEY);
+  return fcmServiceAccount() !== null;
 }
 
 /** What one push becomes for an Android phone (FCM HTTP v1's body). A repeat
@@ -79,18 +98,19 @@ const b64url = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 
 /** The service account's signed request for an access token (RS256). */
 export function serviceAccountAssertion(now = Date.now()): string {
+  const account = fcmServiceAccount();
   const iat = Math.floor(now / 1000);
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = b64url(
     JSON.stringify({
-      iss: process.env.FCM_CLIENT_EMAIL,
+      iss: account?.clientEmail,
       scope: "https://www.googleapis.com/auth/firebase.messaging",
       aud: "https://oauth2.googleapis.com/token",
       iat,
       exp: iat + 3600,
     }),
   );
-  const key = createPrivateKey((process.env.FCM_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"));
+  const key = createPrivateKey((account?.privateKey ?? "").replace(/\\n/g, "\n"));
   return `${header}.${claims}.${b64url(sign("sha256", Buffer.from(`${header}.${claims}`), key))}`;
 }
 
@@ -118,7 +138,7 @@ export async function sendFcm(body: { message: Record<string, unknown> }): Promi
   const token = await accessToken();
   if (!token) return { status: 0, reason: "no access token" };
   try {
-    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${process.env.FCM_PROJECT_ID}/messages:send`, {
+    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${fcmServiceAccount()?.projectId}/messages:send`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),

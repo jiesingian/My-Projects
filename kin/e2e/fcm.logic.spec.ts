@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { generateKeyPairSync, verify } from "node:crypto";
-import { fcmConfigured, fcmDevice, fcmMessage, fcmTokenGone, fcmWakeMessage, serviceAccountAssertion } from "@/lib/fcm";
+import { fcmConfigured, fcmDevice, fcmMessage, fcmServiceAccount, fcmTokenGone, fcmWakeMessage, serviceAccountAssertion } from "@/lib/fcm";
 import { FCM_PREFIX, NATIVE_KEY, fcmEndpoint, tokenEndpoint, usableToken } from "@/lib/native";
 
 /** Firebase push for the Kin Android app (29 October): how its token is
@@ -98,4 +98,37 @@ test("the daily alarm re-sync is a silent data message the app answers, never a 
   expect(m.data).toEqual({ sync: "alarms" });
   expect(m.notification).toBeUndefined();
   expect(m.android).toEqual({ priority: "normal", ttl: "86400s", collapse_key: "kin-alarm-sync" });
+});
+
+test("the whole key file pasted as one value is enough; a bad paste leaves push off", () => {
+  const names = ["FCM_SERVICE_ACCOUNT_JSON", "FCM_PROJECT_ID", "FCM_CLIENT_EMAIL", "FCM_PRIVATE_KEY"] as const;
+  const keep = Object.fromEntries(names.map((n) => [n, process.env[n]]));
+  try {
+    for (const n of names) delete process.env[n];
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    // As Google writes it: the key's newlines are \n inside the JSON string.
+    const file = JSON.stringify({
+      type: "service_account",
+      project_id: "family-app-kin-1a2b3",
+      private_key_id: "abc",
+      private_key: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+      client_email: "firebase-adminsdk-x@family-app-kin-1a2b3.iam.gserviceaccount.com",
+    }, null, 2);
+    process.env.FCM_SERVICE_ACCOUNT_JSON = `\n${file}\n`;
+    expect(fcmConfigured()).toBe(true);
+    expect(fcmServiceAccount()?.projectId).toBe("family-app-kin-1a2b3");
+    const [h, c, sig] = serviceAccountAssertion(Date.parse("2026-10-30T00:00:00Z")).split(".");
+    expect(JSON.parse(Buffer.from(c, "base64url").toString()).iss).toBe("firebase-adminsdk-x@family-app-kin-1a2b3.iam.gserviceaccount.com");
+    expect(verify("sha256", Buffer.from(`${h}.${c}`), publicKey, Buffer.from(sig, "base64url"))).toBe(true);
+    // Half a file, or the wrong file (google-services.json), is not a service account.
+    process.env.FCM_SERVICE_ACCOUNT_JSON = file.slice(0, 200);
+    expect(fcmConfigured()).toBe(false);
+    process.env.FCM_SERVICE_ACCOUNT_JSON = JSON.stringify({ project_info: { project_id: "x" }, client: [] });
+    expect(fcmConfigured()).toBe(false);
+  } finally {
+    for (const n of names) {
+      if (keep[n] === undefined) delete process.env[n];
+      else process.env[n] = keep[n];
+    }
+  }
 });
