@@ -8488,6 +8488,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pets: {
+        Row: {
+          birthday: string | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          food: string | null
+          id: string
+          kind: string
+          name: string
+          next_vaccine_on: string | null
+          next_vet_on: string | null
+          notes: string | null
+          vet: string | null
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          food?: string | null
+          id?: string
+          kind?: string
+          name: string
+          next_vaccine_on?: string | null
+          next_vet_on?: string | null
+          notes?: string | null
+          vet?: string | null
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          food?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          next_vaccine_on?: string | null
+          next_vet_on?: string | null
+          notes?: string | null
+          vet?: string | null
+        }
+        Relationships: []
+      }
       alarm_picks: {
         Row: {
           created_at: string

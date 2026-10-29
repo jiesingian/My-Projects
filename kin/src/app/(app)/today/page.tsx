@@ -45,6 +45,7 @@ import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
 import { NoClassesToday } from "@/components/no-classes-today";
+import { PetsOnToday } from "@/components/pets-on-today";
 import { ChristmasOnToday } from "@/components/christmas-on-today";
 import { TyphoonOnToday } from "@/components/typhoon-on-today";
 import { WhosWhere } from "@/components/whos-where";
@@ -226,6 +227,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <HolidayLine />
       {/* A school day: "No classes today" skips its classes and pickups. */}
       <NoClassesToday />
+      {/* A pet's vaccine or vet visit this week (components/pets-on-today). */}
+      <PetsOnToday />
       {/* This phone can't hear from Kin yet (components/push-nudge). */}
       <PushNudge />
 
