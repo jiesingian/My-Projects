@@ -35,7 +35,7 @@ const SLIDES: Record<Priority, Slide> = {
     id: "documents",
     icon: "fileText",
     title: "Papers you can find",
-    line: "PSA certificates, passports and policies in the vault, behind Face ID or a PIN.",
+    line: "PSA certificates, passports and policies in the vault, which you can lock with Face ID or a PIN.",
     screen: "Vault",
     plus: true,
     rows: [
@@ -146,7 +146,7 @@ const LAST: Slide = {
   id: "one",
   icon: "house",
   title: "One app, private to your family",
-  line: "The chat sits next to everything it’s about. Each household is walled off from every other. Nothing is sold, and your records never train AI.",
+  line: "The chat sits next to everything it’s about. Each household is walled off from every other. Nothing is sold, and Kin AI’s provider does not train on your records.",
   screen: "Family chat",
   rows: [
     { main: "Quinn", sub: "Dinner at 7 tonight?" },
