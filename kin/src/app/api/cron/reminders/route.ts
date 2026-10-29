@@ -5,6 +5,7 @@ import { deliver, vapidReady } from "@/lib/push";
 import { doseAlarmUrl, doseFromKey } from "@/lib/dose-alarm";
 import { reportError } from "@/lib/report-error";
 import { apnsConfigured, apnsWakeRequest, nativeDevice, sendApns, tokenGone } from "@/lib/apns";
+import { fcmConfigured, fcmDevice, fcmTokenGone, fcmWakeMessage, sendFcm } from "@/lib/fcm";
 
 /** The five-minute reminder tick (20260926140000_reminders.sql).
  *
@@ -126,14 +127,16 @@ export async function POST(request: Request) {
   return Response.json({ due: due?.length ?? 0, sent, woken });
 }
 
-/** The Kin iPhone app's silent re-sync (due_alarm_wakes, 20261029200000):
- * each app phone once a day, and within a tick of a medicine, picked plan,
- * check-up or bill changing, so its two weeks of alarms never run out. Not
- * even asked until the APNS_* keys exist, so no day's key is spent on a push
- * that can't go. A daily wake Apple refused for now is tried next tick; a
- * lost change wake is caught by the next daily one. */
+/** The Kin apps' silent re-sync (due_alarm_wakes, 20261029200000; Android
+ * since 20261030000000): each app phone once a day, and within a tick of a
+ * medicine, picked plan, check-up or bill changing, so its two weeks of
+ * alarms never run out. An iPhone gets Apple's background push, an Android
+ * phone Firebase's data message `sync: alarms`. Not even asked until the
+ * APNS_* or FCM_* keys exist, so no day's key is spent on a push that can't
+ * go; a phone whose kind has no keys yet is skipped. A daily wake refused for
+ * now is tried next tick; a lost change wake is caught by the next daily one. */
 async function wakeAlarms(supabase: ReturnType<typeof createClient<Database>>, secret: string): Promise<number> {
-  if (!apnsConfigured()) return 0;
+  if (!apnsConfigured() && !fcmConfigured()) return 0;
   const { data, error } = await supabase.rpc("due_alarm_wakes", { p_secret: secret });
   if (error) {
     reportError("Reminders: due_alarm_wakes failed", error);
@@ -142,6 +145,19 @@ async function wakeAlarms(supabase: ReturnType<typeof createClient<Database>>, s
   let woken = 0;
   await Promise.all(
     (data ?? []).map(async (row) => {
+      const android = fcmDevice(row);
+      if (android) {
+        if (!fcmConfigured()) return;
+        const r = await sendFcm(fcmWakeMessage(android));
+        if (r.status === 200) woken++;
+        else if (fcmTokenGone(r)) await supabase.rpc("cron_forget_endpoint", { p_secret: secret, p_endpoint: row.endpoint });
+        else {
+          reportError("Alarm wake refused by Firebase", new Error(`Push refused by FCM: ${r.status || "no status"}`), r.reason ?? "");
+          if (row.reason === "daily") await supabase.rpc("cron_retry_reminder", { p_secret: secret, p_key: row.key });
+        }
+        return;
+      }
+      if (!apnsConfigured()) return;
       const device = nativeDevice(row);
       const req = device && apnsWakeRequest(device, new Date());
       if (!device || !req) return;

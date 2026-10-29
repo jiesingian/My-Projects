@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { generateKeyPairSync, verify } from "node:crypto";
-import { fcmConfigured, fcmDevice, fcmMessage, fcmTokenGone, serviceAccountAssertion } from "@/lib/fcm";
+import { fcmConfigured, fcmDevice, fcmMessage, fcmTokenGone, fcmWakeMessage, serviceAccountAssertion } from "@/lib/fcm";
 import { FCM_PREFIX, NATIVE_KEY, fcmEndpoint, tokenEndpoint, usableToken } from "@/lib/native";
 
 /** Firebase push for the Kin Android app (29 October): how its token is
@@ -89,4 +89,13 @@ test("off until all three FCM_* keys exist; the service account's request is RS2
       else process.env[k] = v;
     }
   }
+});
+
+test("the daily alarm re-sync is a silent data message the app answers, never a notification", () => {
+  const m = fcmWakeMessage({ token: TOKEN }).message as { token: string; data: Record<string, string>; android: Record<string, unknown>; notification?: unknown };
+  expect(m.token).toBe(TOKEN);
+  // KinMessagingService looks for exactly this, before anything is shown.
+  expect(m.data).toEqual({ sync: "alarms" });
+  expect(m.notification).toBeUndefined();
+  expect(m.android).toEqual({ priority: "normal", ttl: "86400s", collapse_key: "kin-alarm-sync" });
 });
