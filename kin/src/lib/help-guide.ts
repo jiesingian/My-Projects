@@ -1534,7 +1534,24 @@ export const HELP_GUIDE: HelpTab[] = [
               "Needs the Kin iPhone app; in a browser the choices are kept for when it's installed."
             ],
             "tips": [
-              "open Kin once a week or so: each time it opens, it sets the next two weeks of alarms."
+              "you don't need to open Kin for them to keep coming: each day, and after a change, Kin quietly sets the next two weeks again."
+            ]
+          },
+          {
+            "name": "iPhone widgets",
+            "tags": [
+              "phone"
+            ],
+            "what": "In the Kin iPhone app: Today's next dose and next plan, and how many things are on the To-Buy list, on the Home Screen and the Lock Screen.",
+            "how": "Touch and hold the Home Screen (or the Lock Screen → Customize), tap + or Add Widgets, and pick Kin: Today or To-Buy.",
+            "pros": [
+              "The next dose at a glance, without opening Kin."
+            ],
+            "cons": [
+              "Needs the Kin iPhone app. A dose ticked on another phone shows on yours the next time Kin opens or refreshes itself."
+            ],
+            "tips": [
+              "tap a widget to open Kin on that page."
             ]
           },
           {
