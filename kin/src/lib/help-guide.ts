@@ -1321,6 +1321,24 @@ export const HELP_GUIDE: HelpTab[] = [
             "tips": [
               "Today lists, once a month, the assets whose value is over a year old; update them there."
             ]
+          },
+          {
+            "name": "Home upkeep: services and warranties",
+            "tags": [
+              "plus"
+            ],
+            "what": "Each thing in a home's breakdown (the aircon, the water filter, the ref) can say how often it is serviced, when it last was, and when its warranty ends. Today reminds when a service is due, and the week before a warranty runs out.",
+            "how": "Wealth → A&L → a home → Breakdown → Edit a thing: Serviced every, Last serviced, Warranty until. Tap Serviced after each visit.",
+            "pros": [
+              "Aircon cleaning and filter changes stop slipping.",
+              "A fault is claimed while the warranty still covers it."
+            ],
+            "cons": [
+              "Only for things listed in an asset's breakdown."
+            ],
+            "tips": [
+              "aircons are usually cleaned every 6 months; water filters changed every 3 to 6."
+            ]
           }
         ]
       },
