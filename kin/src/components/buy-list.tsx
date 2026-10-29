@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
+import { useActionState, useId, useOptimistic, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useBuyListLive } from "@/lib/buy-list-live";
 import {
@@ -47,7 +47,7 @@ import type { PickableAccount } from "@/components/money-actions";
 import { AccountOptions } from "@/components/account-options";
 import type { Tables } from "@/lib/database.types";
 import { mealDayLabel } from "@/lib/meal-shopping";
-import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
+import { failedSaveMessage, isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
 
 const initialState: ActionState = { error: null };
 
@@ -1272,32 +1272,58 @@ function ClearCheckedPanel({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const uid = useId();
+  const [error, setError] = useState<string | null>(null);
+  // One id per category's spend, made at the first try and kept until the
+  // basket clears (lib/ledger-ids, 29 October): a retry after "Load failed"
+  // finds a spend already logged instead of taking it out twice.
+  const ids = useRef(new Map<string, string>());
+  const spendId = (category: string) => {
+    if (!ids.current.has(category)) ids.current.set(category, newOpId());
+    return ids.current.get(category)!;
+  };
 
   function finish(withSpend: boolean) {
+    setError(null);
     startTransition(async () => {
-      if (withSpend && amount > 0 && accountId) {
-        const runs = mixed
-          ? [
-              { category: "Groceries", amount: groceryAmount, count: doneCount - market.count, noun: "Grocery run" },
-              { category: "Market", amount: marketAmount, count: market.count, noun: "Market run" },
-            ]
-          : [{ category: allMarket ? "Market" : "Groceries", amount: single, count: doneCount, noun: allMarket ? "Market run" : "Grocery run" }];
-        for (const r of runs.filter((x) => x.amount > 0)) {
-          await postHubExpenseAction({
-            accountId,
-            amount: r.amount,
-            particulars: `${r.noun} · ${r.count} item${r.count === 1 ? "" : "s"}`,
-            category: r.category,
-            sourceTable: "buy_items",
-            sourceId: null,
-          });
+      try {
+        await checkout(withSpend);
+      } catch (e) {
+        // A weak signal: the basket stays as it was, to try again.
+        setError(failedSaveMessage(e, true));
+      }
+    });
+  }
+
+  async function checkout(withSpend: boolean) {
+    if (withSpend && amount > 0 && accountId) {
+      const runs = mixed
+        ? [
+            { category: "Groceries", amount: groceryAmount, count: doneCount - market.count, noun: "Grocery run" },
+            { category: "Market", amount: marketAmount, count: market.count, noun: "Market run" },
+          ]
+        : [{ category: allMarket ? "Market" : "Groceries", amount: single, count: doneCount, noun: allMarket ? "Market run" : "Grocery run" }];
+      for (const r of runs.filter((x) => x.amount > 0)) {
+        const res = await postHubExpenseAction({
+          accountId,
+          amount: r.amount,
+          particulars: `${r.noun} · ${r.count} item${r.count === 1 ? "" : "s"}`,
+          category: r.category,
+          sourceTable: "buy_items",
+          sourceId: null,
+          clientId: spendId(r.category),
+        });
+        // Not logged: the basket stays, rather than clearing as if it was.
+        if (res.error) {
+          setError(res.error);
+          return;
         }
       }
-      await clearCheckedAction(withSpend && amount > 0 ? amount : null);
-      // The basket is empty now, so the till closes with it.
-      onClose();
-      router.refresh();
-    });
+    }
+    await clearCheckedAction(withSpend && amount > 0 ? amount : null);
+    ids.current.clear();
+    // The basket is empty now, so the till closes with it.
+    onClose();
+    router.refresh();
   }
 
   return (
@@ -1344,6 +1370,7 @@ function ClearCheckedPanel({
           </div>
         </div>
       )}
+      <ErrorText message={error} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"

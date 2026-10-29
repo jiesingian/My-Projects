@@ -13,6 +13,7 @@ import { allDayEvent } from "@/lib/calendar-shape";
 import { databaseError, reportError, refusalMessage, RLS_EXPLAINED } from "@/lib/report-error";
 import { clamp } from "@/lib/text";
 import { UUID } from "@/lib/ids";
+import { alreadyRecorded, ledgerRowId } from "@/lib/ledger-ids";
 import { isGrownUp } from "@/lib/roles";
 import { pesoRate, type PesoRate } from "@/lib/fx";
 import { householdZone } from "@/lib/household-zone";
@@ -1114,6 +1115,9 @@ export async function postHubExpenseAction(input: {
   category: string;
   sourceTable: "bills" | "events" | "buy_items" | "health_appointments" | "routines" | "assets" | "gift_list_items";
   sourceId: string | null;
+  /** Made on the phone and kept until this saves (lib/ledger-ids): a retry
+   * after an answer lost to a weak signal cannot record it twice. */
+  clientId?: string;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1132,6 +1136,7 @@ export async function postHubExpenseAction(input: {
   }
 
   const { error } = await insertEntry(supabase, me.family_id, me.id, {
+    id: ledgerRowId(input.clientId),
     accountId: input.accountId,
     direction: "out",
     amount: input.amount,
@@ -1140,6 +1145,7 @@ export async function postHubExpenseAction(input: {
     sourceTable: input.sourceTable,
     sourceId: input.sourceId,
   });
+  if (alreadyRecorded(error, input.clientId)) return { error: null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   revalidateWealth();
@@ -1188,6 +1194,8 @@ export async function addPaidExpenseAction(_prev: ActionState, formData: FormDat
     assetUse: againstTable === "assets" && ["buy", "add", "upkeep"].includes(assetUse) ? (assetUse as "buy" | "add" | "upkeep") : undefined,
     principal: againstTable === "liabilities" && principalRaw !== "" ? Number(principalRaw) : null,
     whose: String(formData.get("whose") ?? "me"),
+    // The sheet's id for this entry, kept until it saves (lib/ledger-ids).
+    clientId: String(formData.get("client_id") ?? "") || undefined,
   });
   return { error: res.error };
 }
@@ -1288,6 +1296,9 @@ export async function payBillAction(input: {
   /** A bill for a loan: the part that pays it down, when the person changed
    * Kin's split (LoanSplitBox). Null or left out follows the split. */
   principal?: number | null;
+  /** Made on the phone and kept until this saves (lib/ledger-ids): a retry
+   * after an answer lost to a weak signal cannot record it twice. */
+  clientId?: string;
 }): Promise<{ error: string | null; appUrl?: string | null; next?: NextBillOffer | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1312,6 +1323,7 @@ export async function payBillAction(input: {
   if (link && "error" in link) return { error: link.error };
   const status = input.viaApp ? "pending" : "confirmed";
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
+    id: ledgerRowId(input.clientId),
     accountId: input.accountId,
     direction: "out",
     amount: input.amount,
@@ -1325,6 +1337,8 @@ export async function payBillAction(input: {
     // The payment is whoever the bill is for, whichever account paid it.
     owner: bill.is_joint === null ? null : { is_joint: bill.is_joint, owner_member_id: bill.owner_member_id },
   });
+  // Paid already, by an earlier try of this same payment.
+  if (alreadyRecorded(error, input.clientId)) return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   // Tied to its payment before settling, so applySettlement finds it by
@@ -1530,6 +1544,9 @@ export async function receiveIncomeAction(input: {
   accountId: string;
   amount: number;
   viaApp: boolean;
+  /** Made on the phone and kept until this saves (lib/ledger-ids): a retry
+   * after an answer lost to a weak signal cannot record it twice. */
+  clientId?: string;
 }): Promise<{ error: string | null; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1545,6 +1562,7 @@ export async function receiveIncomeAction(input: {
 
   const status = input.viaApp ? "pending" : "confirmed";
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
+    id: ledgerRowId(input.clientId),
     accountId: input.accountId,
     direction: "in",
     amount: input.amount,
@@ -1556,6 +1574,7 @@ export async function receiveIncomeAction(input: {
     // Whoever the income is for, whichever account it landed in.
     owner: { is_joint: schedule.is_joint, owner_member_id: schedule.is_joint ? null : schedule.owner_member_id ?? me.id },
   });
+  if (alreadyRecorded(error, input.clientId)) return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
@@ -1884,6 +1903,9 @@ export async function contributeToGoalAction(input: {
   accountId: string;
   amount: number;
   viaApp: boolean;
+  /** Made on the phone and kept until this saves (lib/ledger-ids): a retry
+   * after an answer lost to a weak signal cannot record it twice. */
+  clientId?: string;
 }): Promise<{ error: string | null; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1910,6 +1932,7 @@ export async function contributeToGoalAction(input: {
     const transferGroupId = crypto.randomUUID();
     const { error: moveError } = await supabase.from("wealth_transactions").insert([
       ledgerRow(me.family_id, me.id, {
+        id: ledgerRowId(input.clientId),
         accountId: input.accountId,
         direction: "out",
         amount: input.amount,
@@ -1920,6 +1943,7 @@ export async function contributeToGoalAction(input: {
         goalId: input.goalId,
       }),
       ledgerRow(me.family_id, me.id, {
+        id: ledgerRowId(input.clientId, 1),
         accountId: goal.linked_account_id,
         direction: "in",
         amount: input.amount,
@@ -1929,6 +1953,8 @@ export async function contributeToGoalAction(input: {
         transferGroupId,
       }),
     ]);
+    // Both legs went in one statement, so an earlier try put both there.
+    if (alreadyRecorded(moveError, input.clientId)) return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
     if (moveError) return { error: explainLedgerRefusal(refusalMessage(moveError, RLS_EXPLAINED)) };
     if (status === "confirmed") {
       const goalError = await recalcGoalTotal(supabase, input.goalId);
@@ -1939,6 +1965,7 @@ export async function contributeToGoalAction(input: {
   }
 
   const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
+    id: ledgerRowId(input.clientId),
     accountId: input.accountId,
     direction: "out",
     amount: input.amount,
@@ -1947,6 +1974,7 @@ export async function contributeToGoalAction(input: {
     status,
     goalId: input.goalId,
   });
+  if (alreadyRecorded(error, input.clientId)) return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
 
   if (status === "confirmed") {
@@ -1965,9 +1993,23 @@ export async function contributeToGoalAction(input: {
  * its category, so the month's spending shows it. A yearly fund then moves
  * its date a year on; what was saved beyond the cost stays in the goal as
  * a head start. */
-export async function payFromFundAction(input: { goalId: string; accountId: string; amount: number; category: string }): Promise<{ error: string | null }> {
+const PART_RECORDED = "Part of this was recorded by an earlier try. Check the goal and the account before trying again.";
+
+export async function payFromFundAction(input: { goalId: string; accountId: string; amount: number; category: string; clientId?: string }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+
+  // Up to four rows, written one after another (lib/ledger-ids: legs 0-1
+  // the way back from the To account, 2 the way back out of the goal, 3
+  // the payment). Found already there from an earlier try: the payment
+  // means it is done; anything less means an earlier try stopped part way,
+  // and running it again would work out the rest from a goal already moved.
+  const legIds = [0, 1, 2, 3].map((leg) => ledgerRowId(input.clientId, leg)).filter((id): id is string => !!id);
+  if (legIds.length) {
+    const { data: there } = await supabase.from("wealth_transactions").select("id").in("id", legIds).eq("family_id", me.family_id);
+    if (there?.some((r) => r.id === legIds[3])) return { error: null };
+    if (there?.length) return { error: PART_RECORDED };
+  }
 
   const [{ data: goal }, { data: account }] = await Promise.all([
     supabase.from("goals").select("title, current_amount, target_date, repeats_yearly, is_joint, owner_member_id, linked_account_id").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
@@ -1997,9 +2039,10 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
     if (heldPart > 0) {
       const transferGroupId = crypto.randomUUID();
       const { error } = await supabase.from("wealth_transactions").insert([
-        ledgerRow(me.family_id, me.id, { accountId: goal.linked_account_id, direction: "out", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId }),
-        ledgerRow(me.family_id, me.id, { accountId: input.accountId, direction: "in", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId, goalId: input.goalId }),
+        ledgerRow(me.family_id, me.id, { id: ledgerRowId(input.clientId, 0), accountId: goal.linked_account_id, direction: "out", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId }),
+        ledgerRow(me.family_id, me.id, { id: ledgerRowId(input.clientId, 1), accountId: input.accountId, direction: "in", amount: heldPart, particulars: `From ${goal.title}`, category: TRANSFER_CATEGORY, transferGroupId, goalId: input.goalId }),
       ]);
+      if (alreadyRecorded(error, input.clientId)) return { error: PART_RECORDED };
       if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
       const goalError = await recalcGoalTotal(supabase, input.goalId);
       if (goalError) return { error: `The money came out of the goal, but its total did not update. ${refusalMessage(goalError)}` };
@@ -2009,6 +2052,7 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
 
   if (fromFund > 0) {
     const { data: back, error } = await insertEntry(supabase, me.family_id, me.id, {
+      id: ledgerRowId(input.clientId, 2),
       accountId: input.accountId,
       direction: "in",
       amount: fromFund,
@@ -2016,18 +2060,22 @@ export async function payFromFundAction(input: { goalId: string; accountId: stri
       category: GOAL_CATEGORY,
       goalId: input.goalId,
     });
+    if (alreadyRecorded(error, input.clientId)) return { error: PART_RECORDED };
     if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
     const settled = await applySettlement(supabase, me.id, back);
     if (settled) return { error: settled };
   }
 
   const { error: paidError } = await insertEntry(supabase, me.family_id, me.id, {
+    id: ledgerRowId(input.clientId, 3),
     accountId: input.accountId,
     direction: "out",
     amount: input.amount,
     particulars: goal.title,
     category,
   });
+  // A second try that got this far at the same time as the first: done.
+  if (alreadyRecorded(paidError, input.clientId)) return { error: null };
   if (paidError) return { error: `The money came out of the goal, but the payment was not recorded. ${explainLedgerRefusal(refusalMessage(paidError, RLS_EXPLAINED))}` };
 
   if (goal.repeats_yearly && goal.target_date) {

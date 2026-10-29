@@ -7,7 +7,7 @@ import { markTodayItemAction } from "@/lib/actions/today";
 import { approveRoutineLogAction, logRoutineAction, rejectRoutineLogAction } from "@/lib/actions/routines";
 import { setDoseTakenAction } from "@/lib/actions/health-care";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
-import { choreAnswerVerdict, choreLogVerdict, doseVerdict, moneyIds, moneyVerdict, type Verdict } from "@/lib/offline/rules";
+import { choreAnswerVerdict, choreLogVerdict, doseVerdict, moneyIds, moneyRetry, moneyVerdict, type Verdict } from "@/lib/offline/rules";
 import { sendMessageAction } from "@/lib/actions/chat";
 import { familyDay } from "@/lib/time";
 import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types";
@@ -36,7 +36,8 @@ import { reportError } from "@/lib/report-error";
  * - Money in, out or a transfer from Move money (28 October): recorded once,
  *   as of the date it was entered. The ids made on the phone are the ledger
  *   rows' ids, so one already there is not recorded again (moneyVerdict),
- *   and the action itself refuses a second row with the same id.
+ *   and the action itself refuses a second row with the same id. One the
+ *   database did not answer stays queued for the next sync (moneyRetry).
  *
  * Changes are applied one at a time. The first that fails for a reason that
  * might pass (the database, a timeout) stops the run, and it and everything
@@ -227,6 +228,8 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
       // What did not save says which entry it was: money the person thinks
       // is recorded must not vanish into a bare reason.
       const r = await settle(op.id, moneyVerdict(op, recorded), run);
+      // The database not answering: kept, and sent again next time.
+      if (r.outcome === "skipped" && r.note && moneyRetry(r.note)) return { id: op.id, outcome: "retry" };
       return r.outcome === "skipped" && r.note ? { ...r, note: `${op.label} wasn't recorded: ${r.note}` } : r;
     }
 
