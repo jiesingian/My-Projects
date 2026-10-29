@@ -79,7 +79,7 @@ reason.
 
 ### One check a week, not constant watching
 
-- The human check is `weekly-check.yml` (Fridays, ~17:00 Manila but GitHub's cron runs hours late). Nobody watches every push.
+- The human check is `weekly-check.yml` (asks for Friday 17:00 Manila; GitHub's cron has fired it 21:38–23:41 Manila, so expect Friday night). Nobody watches every push.
 
 <!--
 Neither person is expected to watch the other's work or follow every push.
@@ -101,9 +101,11 @@ every day and never once fired then: measured across 11, 12 and 13 September
 it landed between 20:34 and 21:35 Manila, three and a half to four and a half
 hours late, varying by an hour between days. GitHub's scheduled workflows are
 best-effort on shared runners; there is no setting that fixes this, and
-moving the cron earlier only aims at a moving target. Expect Friday evening
-rather than exactly 5pm. If a dependable hour is ever wanted, it has to be
-triggered by something that keeps time rather than by GitHub's cron.
+moving the cron earlier only aims at a moving target. Expect Friday night
+rather than 5pm: the weekly schedule has fired between 21:38 and 23:41
+Manila (25 September to 23 October, #1166). If a dependable hour is ever
+wanted, it has to be triggered by something that keeps time rather than by
+GitHub's cron.
 -->
 
 ### When you ask a person to do something by hand
