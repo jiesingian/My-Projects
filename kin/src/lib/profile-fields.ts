@@ -66,7 +66,7 @@ const PROFILE_FIELD_KEYS = [
 /** Picks just the editable profile fields off a member row, in one place,
  * so the member-detail page doesn't have to enumerate ~25 fields by hand
  * every time this list grows. */
-export function memberToProfileFields(member: Tables<"members">): ProfileFields {
+export function memberToProfileFields(member: Tables<"members">, ids?: Partial<Record<IdKey, string | null>> | null): ProfileFields {
   // Same key set, same value types per key (both trace back to the members
   // table) — TS can't verify that correspondence through a generic keyed
   // loop, hence the narrow cast here rather than a 25-field object literal.
@@ -74,7 +74,20 @@ export function memberToProfileFields(member: Tables<"members">): ProfileFields 
   for (const key of PROFILE_FIELD_KEYS) {
     result[key] = member[key];
   }
+  // Government ID numbers live in member_ids, which only the person and
+  // their household's grown-ups can read (20261030140000); unread, blank.
+  for (const key of ID_KEYS) result[key] = ids?.[key] ?? null;
   return result as ProfileFields;
+}
+
+/** The fields kept in member_ids rather than on members (20261030140000). */
+export const ID_KEYS = ["sss_number", "philhealth_number", "pagibig_number", "tin_number"] as const;
+export type IdKey = (typeof ID_KEYS)[number];
+
+/** Splits a profile save in two: the members row, and the ID numbers. */
+export function splitIdFields(fields: ProfileFields): { rest: Omit<ProfileFields, IdKey>; ids: Record<IdKey, string | null> } {
+  const { sss_number, philhealth_number, pagibig_number, tin_number, ...rest } = fields;
+  return { rest, ids: { sss_number, philhealth_number, pagibig_number, tin_number } };
 }
 
 /** Kept in step with the maxLength on each field's input in

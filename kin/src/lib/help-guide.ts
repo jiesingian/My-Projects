@@ -72,7 +72,7 @@ export const HELP_GUIDE: HelpTab[] = [
           {
             "name": "Member page: Moments and About",
             "tags": [],
-            "what": "One page per person. Moments gathers every journal entry they were in; About holds school, work, sizes (shoe, shirt, pants), contact details and ID numbers (SSS, PhilHealth, Pag-IBIG, TIN).",
+            "what": "One page per person. Moments gathers every journal entry they were in; About holds school, work, sizes (shoe, shirt, pants), contact details and ID numbers (SSS, PhilHealth, Pag-IBIG, TIN), which only the person and the household's grown-ups can see.",
             "how": "Tap a person anywhere in the app. Fill About once; tag them in journal entries to fill Moments.",
             "pros": [
               "The sizes make gift-buying easy.",

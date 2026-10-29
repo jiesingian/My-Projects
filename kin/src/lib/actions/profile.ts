@@ -7,7 +7,7 @@ import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
 import type { ProfileFields } from "@/lib/profile-fields";
-import { clampProfileFields } from "@/lib/profile-fields";
+import { clampProfileFields, splitIdFields } from "@/lib/profile-fields";
 import { isMemberColour } from "@/lib/member-colours";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
@@ -28,10 +28,19 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
   if (!fullName) return { error: "Name is required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", me.id);
+  const { rest, ids } = splitIdFields(clampProfileFields(fields));
+  const { error } = await supabase.from("members").update({ ...rest, full_name: fullName }).eq("id", me.id);
+  const idError = error ? null : (await saveIds(supabase, me.person_id, ids)).error;
   revalidatePath("/settings", "layout");
   revalidatePath("/family");
-  return { error: error ? databaseError(error) : null };
+  return { error: error ? databaseError(error) : idError ? databaseError(idError) : null };
+}
+
+/** Government ID numbers go to member_ids (20261030140000), whose own rules
+ * say who may write them: the person, the organizer, or a grown-up for a
+ * managed child -- the same people this file lets edit a profile. */
+async function saveIds(supabase: Awaited<ReturnType<typeof createClient>>, personId: string, ids: Record<string, string | null>) {
+  return supabase.from("member_ids").upsert({ person_id: personId, ...ids, updated_at: new Date().toISOString() });
 }
 
 /** Lets the organizer edit any member's profile fields, and lets a parent or
@@ -57,9 +66,11 @@ export async function updateMemberProfileAction(memberId: string, fields: Profil
   const fullName = clamp(fields.full_name, 100);
   if (!fullName) return { error: "Name is required." };
 
-  const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", memberId);
+  const { rest, ids } = splitIdFields(clampProfileFields(fields));
+  const { data: updated, error } = await supabase.from("members").update({ ...rest, full_name: fullName }).eq("id", memberId).select("person_id").maybeSingle();
+  const idError = error || !updated ? null : (await saveIds(supabase, updated.person_id, ids)).error;
   revalidatePath("/family");
-  return { error: error ? databaseError(error) : null };
+  return { error: error ? databaseError(error) : idError ? databaseError(idError) : null };
 }
 
 export type AlbumPhoto = { id: string; url: string };
