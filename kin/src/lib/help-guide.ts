@@ -65,7 +65,8 @@ export const HELP_GUIDE: HelpTab[] = [
               "The week a managed child turns 13, Kin tells the grown-ups they can have their own login."
             ],
             "cons": [
-              "A managed child doesn't sign in; approve a child's own join request to give them a login."
+              "A managed child doesn't sign in; approve a child's own join request to give them a login.",
+              "Sign-up asks whether you are 18 or older. Someone under 18 can only join a household with its invite code, and their request arrives set to \"Child\"; only a grown-up can start a household."
             ],
             "tips": []
           },
