@@ -52,6 +52,7 @@ import { commentCountLine } from "@/lib/event-thread";
 import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
+import { WaitingOnYou } from "@/components/waiting-on-you";
 import { GAME_VIEWS, GamePane, GameSwitch, type GameViewName } from "./game-pane";
 import { readAccess } from "@/lib/access";
 import { isGone } from "@/lib/member-status";
@@ -130,6 +131,10 @@ export default async function PlannerPage({
         {seg === "goals" && gameView !== "goals" && (
           <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} plus={readAccess(me.families).plus} forGoal={sp.goal} currency={me.families.currency} />
         )}
+        {/* Goals' own "Waiting on you" (29 October): a shared deposit not
+            everyone has made, a goal coming due, a payment into one waiting
+            on confirmation -- the same items, and sheet, as on Wealth. */}
+        {seg === "goals" && gameView === "goals" && <WaitingOnYou me={{ id: me.id, family_id: me.family_id, grownUp: isGrownUp(me.role) }} tab="goals" currency={me.families.currency} />}
         {seg === "goals" && gameView === "goals" && (
           <GoalsPane
             familyId={me.family_id}

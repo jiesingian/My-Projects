@@ -229,7 +229,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .or(`event_date.eq.${today},recurs_yearly.eq.true,and(event_date.lte.${today},end_date.gte.${today})`),
     supabase
       .from("bills")
-      .select("id, name, amount, due_date, status, account_id, owner_member_id, is_joint")
+      .select("id, name, amount, due_date, status, account_id, owner_member_id, is_joint, transaction_id")
       .eq("family_id", familyId)
       // Scheduled: paid in another app and waiting on its confirmation in
       // Accounts (23 October) -- it was pushed as due and hidden here.
@@ -364,6 +364,9 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   // One row per pending transfer (both legs are confirmed together) or
   // entry; Confirm opens its sheet under Accounts, "Waiting on you".
   const waitsOnMe = await moneyWaitsOn(supabase, familyId, me.id);
+  // Every pending entry, whoever it waits on: a bill paid elsewhere whose
+  // payment is one of these is already said, or is someone else's to say.
+  const pendingIds = new Set((pendingTx.data ?? []).map((t) => t.id));
   for (const p of pendingBriefItems(pendingRows((pendingTx.data ?? []).filter((t) => waitsOnMe({ named: t.recorded_by, account_id: t.account_id })).map((t) => ({ ...t, accountName: (t.accounts as { name: string } | null)?.name ?? "" }))), currency)) {
     items.push({ ...p, action: "confirm", mark: marked.get(p.id), icon: "wallet", tint: "money" });
   }
@@ -372,6 +375,9 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     // lte already excludes nulls, but the column is nullable and the type
     // says so; a bill without a date is treated as not yet overdue.
     const overdue = !!b.due_date && b.due_date < today;
+    // Paid in another app: its payment is already a row above, waiting on
+    // "it went through" -- one row for one thing (29 October), not two.
+    if (b.status === "scheduled" && b.transaction_id && pendingIds.has(b.transaction_id)) continue;
     if (b.status === "scheduled") {
       items.push({
         id: `bill-${b.id}`,

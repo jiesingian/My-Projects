@@ -335,7 +335,11 @@ export function GoalContributeControl({
   fromAccount2Id,
   fromAmount,
   from2Amount,
+  compact = false,
 }: {
+  /** One small filled button among the row's others (29 October), not a
+   * full-width bar above them. */
+  compact?: boolean;
   goalId: string;
   accounts: PickableAccount[];
   currency: string;
@@ -389,8 +393,8 @@ export function GoalContributeControl({
 
   return (
     <>
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => setOpen(true)}>
-        + PUT MONEY IN
+      <button type="button" className={compact ? "btn btn-primary" : "btn btn-secondary btn-block"} style={compact ? { minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.6875rem" } : { minHeight: "2.375rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => setOpen(true)}>
+        {compact ? "Put money in" : "+ PUT MONEY IN"}
       </button>
       <FormSheet open={open} onClose={() => setOpen(false)} title="Put money in">
         <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
@@ -619,17 +623,17 @@ export function LogSpendControl({
  * first: the reminder is usually the moment the transfer is actually made,
  * so what was logged ahead of time is often not quite what went through.
  * `openId` opens one row's sheet on arrival (Today's Confirm). */
-export function PendingRows({ rows, accounts, appUrls, currency, dateFormat, openId = null }: { rows: PendingRow[]; accounts: PickableAccount[]; appUrls: Record<string, string | null>; currency: string; dateFormat: string; openId?: string | null }) {
+export function PendingRows({ rows, accounts, appUrls, currency, dateFormat, openId = null, bare = false }: { rows: PendingRow[]; accounts: PickableAccount[]; appUrls: Record<string, string | null>; currency: string; dateFormat: string; openId?: string | null; /** Only the buttons: inside "Waiting on you"'s sheet, which already says what it is (29 October). */ bare?: boolean }) {
   return (
     <div>
       {rows.map((r) => (
-        <PendingRowItem key={r.id} row={r} accounts={accounts} appUrl={appUrls[r.id] ?? null} currency={currency} dateFormat={dateFormat} openAtStart={r.id === openId} />
+        <PendingRowItem key={r.id} row={r} accounts={accounts} appUrl={appUrls[r.id] ?? null} currency={currency} dateFormat={dateFormat} openAtStart={r.id === openId} bare={bare} />
       ))}
     </div>
   );
 }
 
-function PendingRowItem({ row, accounts, appUrl, currency, dateFormat, openAtStart }: { row: PendingRow; accounts: PickableAccount[]; appUrl: string | null; currency: string; dateFormat: string; openAtStart: boolean }) {
+function PendingRowItem({ row, accounts, appUrl, currency, dateFormat, openAtStart, bare = false }: { row: PendingRow; accounts: PickableAccount[]; appUrl: string | null; currency: string; dateFormat: string; openAtStart: boolean; bare?: boolean }) {
   const [open, setOpen] = useState(openAtStart);
   const [amount, setAmount] = useState(row.amount);
   const [occurredOn, setOccurredOn] = useState(row.occurredOn);
@@ -667,15 +671,19 @@ function PendingRowItem({ row, accounts, appUrl, currency, dateFormat, openAtSta
     run(() => deleteTransactionAction(row.entryId));
   };
   return (
-    <div id={`pending-${row.id}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-      <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
-        <span style={{ fontSize: "0.875rem", display: "block" }}>{title}</span>
-        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{meta}</span>
-      </span>
-      <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: row.kind === "in" ? "var(--color-accent-700)" : "inherit" }}>
-        {sign}
-        {fmt(row.amount)}
-      </span>
+    <div id={bare ? undefined : `pending-${row.id}`} style={bare ? { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem" } : { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+      {!bare && (
+        <>
+          <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
+            <span style={{ fontSize: "0.875rem", display: "block" }}>{title}</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{meta}</span>
+          </span>
+          <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: row.kind === "in" ? "var(--color-accent-700)" : "inherit" }}>
+            {sign}
+            {fmt(row.amount)}
+          </span>
+        </>
+      )}
       <span style={{ display: "flex", gap: "0.375rem", flex: "none" }}>
         <RowButton kind="primary" icon="check" label="Went through" disabled={pending} onClick={() => setOpen(true)} />
         <RowButton kind="ghost" label="Discard" disabled={pending} onClick={discard} />
@@ -2310,6 +2318,35 @@ export function AddRunningCostControl({ assetId, assetName, kind, whose, currenc
         <button type="button" className="btn btn-primary btn-block" disabled={pending || !name.trim() || !(amount > 0) || !due} onClick={save} style={{ minHeight: "2.75rem" }}>
           {pending ? "Adding…" : "Add running cost"}
         </button>
+      </FormSheet>
+    </>
+  );
+}
+
+/** One row of "Waiting on you" (Jonathan, 29 October): what it is, how it
+ * stands and what it comes to; tapped, the same sheet wherever the row is
+ * -- Accounts, Cash Flow, A&L or Goals -- with what it is about, who it
+ * waits on, and the action owed on it right there. `sheet` is built on the
+ * server (components/waiting-on-you.tsx). */
+export function WaitingRow({ title, meta, amount, badge, currency, autoOpen = false, sheet }: { title: string; meta: string; amount?: number; badge?: string; currency: string; autoOpen?: boolean; sheet: React.ReactNode }) {
+  const [open, setOpen] = useState(autoOpen);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        style={{ display: "flex", width: "100%", alignItems: "center", gap: "0.625rem", padding: "0.625rem 0", background: "none", border: 0, borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", color: "inherit", textAlign: "left", cursor: "pointer", font: "inherit" }}
+      >
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ fontSize: "0.875rem", display: "block" }}>{title}</span>
+          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{meta}</span>
+        </span>
+        {badge && <span style={{ flex: "none", font: "600 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)", padding: "0.3125rem 0.5rem", borderRadius: 999, background: "color-mix(in srgb, var(--color-text) 6%, transparent)" }}>{badge}</span>}
+        {amount != null && <span style={{ flex: "none", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(amount, currency)}</span>}
+        <span aria-hidden="true" style={{ flex: "none", color: "var(--color-neutral-600)" }}>›</span>
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={title} guardUnsaved={false}>
+        {sheet}
       </FormSheet>
     </>
   );
