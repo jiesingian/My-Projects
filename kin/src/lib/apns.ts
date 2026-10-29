@@ -43,7 +43,7 @@ export type PushContent = {
   again?: boolean;
 };
 
-export type ApnsRequest = { pushType: "alert" | "voip"; topic: string; priority: 5 | 10; expiration: number; collapseId?: string; body: string };
+export type ApnsRequest = { pushType: "alert" | "voip" | "background"; topic: string; priority: 5 | 10; expiration: number; collapseId?: string; body: string };
 
 export function apnsTopic(): string {
   return process.env.APNS_BUNDLE_ID || "com.jiesingian.kin";
@@ -88,6 +88,28 @@ export function apnsRequest(device: Pick<NativeDevice, "channel">, p: PushConten
     expiration: nowS + (opts.ttlSeconds ?? (sos ? 3600 : 12 * 3600)),
     collapseId: p.tag?.slice(0, 64),
     body: JSON.stringify({ aps, url: p.url.startsWith("/") ? p.url : "/today" }),
+  };
+}
+
+/** The silent push that wakes the app to set its alarms again (Jonathan,
+ * 29 October): once a day, and after a change that moves an alarm
+ * (due_alarm_wakes, 20261029200000). The app is given two weeks each time,
+ * so a phone where Kin isn't opened keeps ringing. Apple's rules for a
+ * background push: no alert, sound or badge, `content-available: 1`, and
+ * priority 5 -- Apple drops a background push sent at 10. Only on the alert
+ * token: the VoIP one must only ever ring. The app answers `sync: "alarms"`
+ * (AppDelegate.swift, KinAlarmSync). Kept a day, so a phone that was off
+ * still catches up when it comes back. */
+export const ALARM_WAKE_TTL_S = 24 * 3600;
+export function apnsWakeRequest(device: Pick<NativeDevice, "channel">, now: Date): ApnsRequest | null {
+  if (device.channel !== "alert") return null;
+  return {
+    pushType: "background",
+    topic: apnsTopic(),
+    priority: 5,
+    expiration: Math.floor(now.getTime() / 1000) + ALARM_WAKE_TTL_S,
+    collapseId: "kin-alarm-sync",
+    body: JSON.stringify({ aps: { "content-available": 1 }, sync: "alarms" }),
   };
 }
 

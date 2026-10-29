@@ -1,4 +1,6 @@
 import Foundation
+import UIKit
+import WebKit
 import Capacitor
 import CryptoKit
 import UserNotifications
@@ -19,7 +21,9 @@ import SwiftUI
 /// api/alarms for the next two weeks each time Kin opens, and hands the list
 /// to `replaceAll`. Every alarm Kin set before is cancelled and the new list
 /// is set, so a medicine stopped or a plan switched off stops ringing at the
-/// next open. On iOS 26 and later this is AlarmKit. Before that, iOS has no
+/// next open -- or sooner: a silent push wakes the app once a day and after a
+/// change (KinAlarmSync, below), so the two weeks never run out. On iOS 26
+/// and later this is AlarmKit. Before that, iOS has no
 /// alarms for apps, so they come as time-sensitive notifications: through
 /// Focus, but not through the silent switch.
 @objc(KinAlarmsPlugin)
@@ -31,11 +35,6 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "authorize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "replaceAll", returnType: CAPPluginReturnPromise),
     ]
-
-    /// Notifications Kin set as alarms carry this in their identifier, so
-    /// `replaceAll` only ever removes its own.
-    static let notificationPrefix = "kin-alarm:"
-    static let maxAlarms = 60
 
     // MARK: - Methods called from the page
 
@@ -59,16 +58,9 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func replaceAll(_ call: CAPPluginCall) {
         let raw = call.getArray("alarms", JSObject.self) ?? []
-        let alarms = raw.compactMap(KinAlarm.init).filter { $0.at > Date() }.prefix(Self.maxAlarms)
+        let alarms = raw.compactMap { KinAlarm($0 as [String: Any]) }
         Task {
-            #if canImport(AlarmKit)
-            if #available(iOS 26.0, *) {
-                await self.replaceWithAlarmKit(Array(alarms))
-                call.resolve(await self.currentStatus())
-                return
-            }
-            #endif
-            await self.replaceWithNotifications(Array(alarms))
+            await KinAlarmScheduler.replace(alarms)
             call.resolve(await self.currentStatus())
         }
     }
@@ -96,15 +88,39 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
         default: state = "notDetermined"
         }
         let pending = await UNUserNotificationCenter.current().pendingNotificationRequests()
-        let count = pending.filter { $0.identifier.hasPrefix(Self.notificationPrefix) }.count
+        let count = pending.filter { $0.identifier.hasPrefix(KinAlarmScheduler.notificationPrefix) }.count
         return ["engine": "notifications", "authorization": state, "scheduled": count]
+    }
+
+    // Tapping one of these opens its page: KinCalls (KinPushPlugin.swift)
+    // is the notification delegate for the whole app, set at launch.
+}
+
+/// Sets Kin's alarms on the phone: from the page (`replaceAll`) and from the
+/// silent push (KinAlarmSync), so both go the same way.
+enum KinAlarmScheduler {
+    /// Notifications Kin set as alarms carry this in their identifier, so
+    /// `replace` only ever removes its own.
+    static let notificationPrefix = "kin-alarm:"
+    static let maxAlarms = 60
+
+    /// Every alarm Kin set before is cancelled and this list is set.
+    static func replace(_ list: [KinAlarm]) async {
+        let alarms = Array(list.filter { $0.at > Date() }.prefix(maxAlarms))
+        #if canImport(AlarmKit)
+        if #available(iOS 26.0, *) {
+            await replaceWithAlarmKit(alarms)
+            return
+        }
+        #endif
+        await replaceWithNotifications(alarms)
     }
 
     // MARK: - AlarmKit (iOS 26 and later)
 
     #if canImport(AlarmKit)
     @available(iOS 26.0, *)
-    private func replaceWithAlarmKit(_ alarms: [KinAlarm]) async {
+    private static func replaceWithAlarmKit(_ alarms: [KinAlarm]) async {
         let manager = AlarmManager.shared
         guard manager.authorizationState == .authorized else { return }
         // Every alarm this app has is one Kin set: clear them all, then set
@@ -134,12 +150,12 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
 
     // MARK: - Notifications (before iOS 26)
 
-    private func replaceWithNotifications(_ alarms: [KinAlarm]) async {
+    private static func replaceWithNotifications(_ alarms: [KinAlarm]) async {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
         let pending = await center.pendingNotificationRequests()
-        center.removePendingNotificationRequests(withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix(Self.notificationPrefix) })
+        center.removePendingNotificationRequests(withIdentifiers: pending.map(\.identifier).filter { $0.hasPrefix(notificationPrefix) })
         for alarm in alarms {
             let content = UNMutableNotificationContent()
             content.title = alarm.title
@@ -149,12 +165,78 @@ public class KinAlarmsPlugin: CAPPlugin, CAPBridgedPlugin {
             content.userInfo = ["url": alarm.url]
             let parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: alarm.at)
             let trigger = UNCalendarNotificationTrigger(dateMatching: parts, repeats: false)
-            try? await center.add(UNNotificationRequest(identifier: Self.notificationPrefix + alarm.id, content: content, trigger: trigger))
+            try? await center.add(UNNotificationRequest(identifier: notificationPrefix + alarm.id, content: content, trigger: trigger))
+        }
+    }
+}
+
+/// The app's half of the silent push that keeps the alarms topped up
+/// (lib/apns.ts, apnsWakeRequest; due_alarm_wakes, 20261029200000). Apple
+/// wakes the app in the background, once a day and after a medicine, picked
+/// plan, check-up or bill changes, for about 30 seconds.
+///
+/// With Kin open on screen, the page is told to sync itself, as it does when
+/// it opens (components/native-alarm-sync.tsx). Otherwise there may be no
+/// page at all -- a closed app is woken without its window -- so the app asks
+/// api/alarms itself, with the member's own session: the web view's cookies,
+/// read from its store (WKWebsiteDataStore), the one place the session lives.
+/// Not a second login or a token kept in the app: nothing new to keep safe or
+/// to go stale, the route reads through row-level security as the member
+/// exactly as the page does, and signing out in Kin ends it too. If the server
+/// refreshes the session on the way, its new cookies go back into the web
+/// view's store; otherwise the page would carry a used refresh token and be
+/// signed out. Signed out, or no signal: the alarms already set stay as they
+/// were.
+enum KinAlarmSync {
+    static let server = URL(string: "https://kin-family-app.vercel.app")!
+
+    static func handle(_ completion: @escaping (UIBackgroundFetchResult) -> Void) {
+        Task { @MainActor in
+            if UIApplication.shared.applicationState == .active, let run = KinCalls.shared.run {
+                run("window.dispatchEvent(new Event('kin:alarms-changed'))")
+                completion(.newData)
+                return
+            }
+            completion(await fetchAndSet())
         }
     }
 
-    // Tapping one of these opens its page: KinCalls (KinPushPlugin.swift)
-    // is the notification delegate for the whole app, set at launch.
+    @MainActor
+    static func fetchAndSet() async -> UIBackgroundFetchResult {
+        let url = server.appendingPathComponent("api/alarms")
+        let host = server.host ?? ""
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        let cookies = await store.allCookies().filter { c in
+            let domain = c.domain.hasPrefix(".") ? String(c.domain.dropFirst()) : c.domain
+            return host == domain || host.hasSuffix("." + domain)
+        }
+        guard !cookies.isEmpty else { return .noData }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        for (name, value) in HTTPCookie.requestHeaderFields(with: cookies) {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        // Cookies are handled by hand, against the web view's store only.
+        let config = URLSessionConfiguration.ephemeral
+        config.httpShouldSetCookies = false
+        config.httpCookieAcceptPolicy = .never
+        let session = URLSession(configuration: config)
+        defer { session.finishTasksAndInvalidate() }
+
+        guard let result = try? await session.data(for: request), let http = result.1 as? HTTPURLResponse else { return .failed }
+        let data = result.0
+        if let setCookie = http.value(forHTTPHeaderField: "Set-Cookie") {
+            for cookie in HTTPCookie.cookies(withResponseHeaderFields: ["Set-Cookie": setCookie], for: url) {
+                await store.setCookie(cookie)
+            }
+        }
+        guard http.statusCode == 200,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = json["alarms"] as? [[String: Any]] else { return http.statusCode == 401 ? .noData : .failed }
+        await KinAlarmScheduler.replace(list.compactMap(KinAlarm.init))
+        return .newData
+    }
 }
 
 /// What a Kin alarm carries back when it rings (AlarmKit), for opening its page.
@@ -175,7 +257,7 @@ struct KinAlarm {
     let body: String
     let url: String
 
-    init?(_ o: JSObject) {
+    init?(_ o: [String: Any]) {
         guard let id = o["id"] as? String, let atText = o["at"] as? String, let title = o["title"] as? String else { return nil }
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

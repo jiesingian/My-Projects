@@ -42,6 +42,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
     }
 
+    // The silent push that keeps the alarms topped up (KinAlarmSync,
+    // KinAlarmsPlugin.swift): once a day, and after a change that moves an
+    // alarm. Apple gives about 30 seconds; the request times out at 20.
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        guard userInfo["sync"] as? String == "alarms" else {
+            completionHandler(.noData)
+            return
+        }
+        KinAlarmSync.handle(completionHandler)
+    }
+
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
     }

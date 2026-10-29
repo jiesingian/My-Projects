@@ -31,6 +31,12 @@ therefore wrapped as an installed app. The decisions:
 - `KinAlarmsPlugin.swift`: the page hands it the next two weeks of alarms
   (`api/alarms`, `lib/alarms.ts`) each time Kin opens. On iOS 26 and later
   they're AlarmKit alarms; on older iPhones, time-sensitive notifications.
+  `KinAlarmSync` (same file) keeps them topped up without Kin being opened:
+  a silent push (`apns-push-type: background`) once a day and after a change
+  wakes the app, which asks `api/alarms` with the web view's own session
+  cookies and sets the list again (`AppDelegate.swift`). A phone where Kin was
+  swiped away in the app switcher gets no silent push until Kin is next
+  opened; that is Apple's rule.
 - `KinPushPlugin.swift`:
   - `KinCalls` is set up at launch. It holds the two Apple tokens (alert and
     VoIP), which the page saves (`components/native-push.tsx`).

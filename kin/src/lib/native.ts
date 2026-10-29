@@ -86,5 +86,6 @@ export async function nativePushTokens(): Promise<NativeToken[]> {
 }
 
 /** The event the Alarms screen fires after a change, so the app re-sends
- * the list at once rather than at the next open. */
+ * the list at once rather than at the next open. The app fires it too when
+ * the silent alarm push arrives with Kin on screen (KinAlarmSync). */
 export const ALARMS_CHANGED = "kin:alarms-changed";
