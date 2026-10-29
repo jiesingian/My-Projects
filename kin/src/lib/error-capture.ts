@@ -126,6 +126,16 @@ export function isOwnScriptError(filename: unknown, stack: unknown, origin: stri
   return s.includes(`${origin}/`) || s.includes("/_next/");
 }
 
+/** Whether a server error is only the reader leaving mid-page. A page
+ * streams; when the browser goes before it has all arrived (a tap on to the
+ * next page, a closed tab, a test moving on), React stops writing with one of
+ * these, and nothing on the server went wrong. 100 of them on dev's /today in
+ * the week to 28 October, every one during an end-to-end run, none in
+ * production -- and they crowded the weekly digest. */
+export function isReaderGone(message: unknown): boolean {
+  return /^(Error: )?The destination stream (errored while writing data|closed early)\.?$/.test(String(message ?? "").trim());
+}
+
 /** What is recorded for an error a server action or route handler caught
  * (lib/report-error.ts): `where` is a fixed label, scrubbed again in case an
  * id or a name was put in it; `page` the page it came from, as a pattern.

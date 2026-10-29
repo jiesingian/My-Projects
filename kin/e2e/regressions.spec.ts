@@ -140,8 +140,9 @@ test.describe("bugs that already got out once", () => {
 
   /** Today's hub card formatted without a timezone while the briefing above it
    * formatted with one, so the same activity appeared twice on one page at two
-   * different times. */
-  test("Today's hub card agrees with the briefing above it", async ({ page }) => {
+   * different times. Today is one list now (#292) and the hub card is gone, so
+   * what is left to catch is that list reading the household's own clock. */
+  test("Today reads the household's own clock", async ({ page }) => {
     await page.goto("/today", { waitUntil: "networkidle" });
     // Today shows its first five open rows, urgent first, and the rest wait
     // behind "Show N more" (#985). An overdue bill or a due check-up in the

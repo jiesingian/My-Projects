@@ -749,7 +749,10 @@ export function GroupedBreakdown({
 
   // An owner with nothing counted (a child whose only goal is still empty)
   // has no slice, so no legend row either: "ERYNNE — —" said nothing
-  // (27 October). Their items still list in the sections below.
+  // (27 October). Nor a block in this breakdown. Their items still list in
+  // the page's own sections further down, outside this component: A&L's
+  // ASSETS, and Cash Flow's SPENDING BY PERSON, where an unpaid bill keeps
+  // its Settle (so a Family with only open bills has no block here).
   const owners = [...new Set(items.filter((i) => i.amount > 0).map((i) => i.ownerKey))]
     .map((key) => {
       const mine = items.filter((i) => i.ownerKey === key && i.amount >= 0);
