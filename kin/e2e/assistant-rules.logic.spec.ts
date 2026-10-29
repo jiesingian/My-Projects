@@ -56,174 +56,174 @@ type Row = { ask: string; tool: string; input?: Record<string, unknown>; rule?: 
 const TABLE: Row[] = [
   // bills
   { ask: "When is the electric bill due?", tool: "get_money", rule: "bills.due_when", lang: "en" },
-  { ask: "kailan due ang Meralco?", tool: "get_money", rule: "bills.due_when", lang: "tl" },
-  { ask: "Kailan ang bayad ng kuryente", tool: "get_money", rule: "bills.due_when", lang: "tl" },
+  { ask: "kailan due ang Meralco?", tool: "get_money", rule: "bills.due_when" },
+  { ask: "Kailan ang bayad ng kuryente", tool: "get_money", rule: "bills.due_when" },
   { ask: "What's due this week?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-11-01" }, rule: "bills.range" },
-  { ask: "Anong bills ang due this month?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-31" }, rule: "bills.range", lang: "tl" },
+  { ask: "Anong bills ang due this month?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-31" }, rule: "bills.range" },
   { ask: "Any bills due?", tool: "get_money", rule: "bills.unpaid" },
-  { ask: "may due ba tayo bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "bills.range", lang: "tl" },
+  { ask: "may due ba tayo bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "bills.range" },
   { ask: "Any overdue bills?", tool: "get_money", rule: "bills.overdue" },
   { ask: "How much do we owe?", tool: "get_money", rule: "bills.owed" },
-  { ask: "Magkano utang natin?", tool: "get_money", rule: "bills.owed", lang: "tl" },
+  { ask: "Magkano utang natin?", tool: "get_money", rule: "bills.owed" },
   { ask: "how much is due next week", tool: "get_schedule", input: { from: "2026-11-02", to: "2026-11-08" }, rule: "bills.range" },
   { ask: "How much is the Meralco bill?", tool: "get_money", rule: "bills.due_when" },
   { ask: "what is the water bill", tool: "get_money", rule: "bills.due_when" },
   { ask: "what bills are unpaid", tool: "get_money", rule: "bills.unpaid" },
-  { ask: "magkano ang kuryente?", tool: "get_money", rule: "bills.due_when", lang: "tl" },
+  { ask: "magkano ang kuryente?", tool: "get_money", rule: "bills.due_when" },
   // spending and budget
   { ask: "How much did we spend on groceries this month?", tool: "get_money", rule: "spending.category" },
-  { ask: "magkano nagastos natin sa groceries this month?", tool: "get_money", rule: "spending.category", lang: "tl" },
-  { ask: "Magkano na gastos natin ngayong buwan?", tool: "get_money", rule: "spending.total", lang: "tl" },
+  { ask: "magkano nagastos natin sa groceries this month?", tool: "get_money", rule: "spending.category" },
+  { ask: "Magkano na gastos natin ngayong buwan?", tool: "get_money", rule: "spending.total" },
   { ask: "How much have we spent this month?", tool: "get_money", rule: "spending.total" },
   { ask: "What did Ana spend this month?", tool: "get_money", rule: "spending.member" },
-  { ask: "magkano nagastos ni ben?", tool: "get_money", rule: "spending.member", lang: "tl" },
+  { ask: "magkano nagastos ni ben?", tool: "get_money", rule: "spending.member" },
   { ask: "What's left in the budget?", tool: "get_money", rule: "budget.left" },
   { ask: "How much is left this month?", tool: "get_money", rule: "budget.left" },
-  { ask: "Magkano natitira sa groceries budget?", tool: "get_money", rule: "budget.left_category", lang: "tl" },
+  { ask: "Magkano natitira sa groceries budget?", tool: "get_money", rule: "budget.left_category" },
   // balances
   { ask: "How much is in GCash?", tool: "get_money", rule: "balances.account" },
-  { ask: "magkano laman ng BPI?", tool: "get_money", rule: "balances.account", lang: "tl" },
+  { ask: "magkano laman ng BPI?", tool: "get_money", rule: "balances.account" },
   { ask: "Maya balance", tool: "get_money", rule: "balances.account" },
   { ask: "how much is in our savings", tool: "get_money", rule: "balances.account" },
   { ask: "how much is in the bank", tool: "get_money", rule: "balances.total" },
   { ask: "How much cash do we have?", tool: "get_money", rule: "balances.total" },
-  { ask: "magkano pera natin lahat?", tool: "get_money", rule: "balances.total", lang: "tl" },
+  { ask: "magkano pera natin lahat?", tool: "get_money", rule: "balances.total" },
   { ask: "What's our net worth?", tool: "get_money", rule: "balances.net_worth" },
   // schedule
   { ask: "What's on today?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "schedule.range" },
   { ask: "What's on tomorrow?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
-  { ask: "anong meron bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range", lang: "tl" },
+  { ask: "anong meron bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
   { ask: "What's on this week?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-11-01" }, rule: "schedule.range" },
-  { ask: "May lakad ba tayo sa Sabado?", tool: "get_schedule", input: { from: "2026-10-31", to: "2026-10-31" }, rule: "schedule.range", lang: "tl" },
+  { ask: "May lakad ba tayo sa Sabado?", tool: "get_schedule", input: { from: "2026-10-31", to: "2026-10-31" }, rule: "schedule.range" },
   { ask: "what's the schedule next Friday", tool: "get_schedule", input: { from: "2026-11-06", to: "2026-11-06" }, rule: "schedule.range" },
   { ask: "What's happening on the 15th?", tool: "get_schedule", input: { from: "2026-11-15", to: "2026-11-15" }, rule: "schedule.range" },
   { ask: "What's on this weekend?", tool: "get_schedule", input: { from: "2026-10-31", to: "2026-11-01" }, rule: "schedule.range" },
   { ask: "What's happening in December?", tool: "get_schedule", input: { from: "2026-12-01", to: "2026-12-31" }, rule: "schedule.range" },
-  { ask: "anong meron sa Nobyembre", tool: "get_schedule", input: { from: "2026-11-01", to: "2026-11-30" }, rule: "schedule.range", lang: "tl" },
-  { ask: "Anong schedule ni Lia ngayon?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "schedule.range", lang: "tl" },
+  { ask: "anong meron sa Nobyembre", tool: "get_schedule", input: { from: "2026-11-01", to: "2026-11-30" }, rule: "schedule.range" },
+  { ask: "Anong schedule ni Lia ngayon?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "schedule.range" },
   { ask: "When is the dentist?", tool: "search", input: { query: "dentist" }, rule: "schedule.when_is" },
-  { ask: "kailan ang beach trip?", tool: "search", input: { query: "beach trip" }, rule: "schedule.when_is", lang: "tl" },
+  { ask: "kailan ang beach trip?", tool: "search", input: { query: "beach trip" }, rule: "schedule.when_is" },
   { ask: "What time is Lia's dentist?", tool: "search", input: { query: "dentist" }, rule: "schedule.when_is" },
   { ask: "What time is the grocery run tomorrow?", tool: "search", input: { query: "grocery run" }, rule: "schedule.when_is" },
   { ask: "Who has a checkup?", tool: "get_family", rule: "family.checkups" },
   { ask: "When is Lia's checkup?", tool: "get_family", rule: "family.checkups" },
-  { ask: "sino may check-up?", tool: "get_family", rule: "family.checkups", lang: "tl" },
+  { ask: "sino may check-up?", tool: "get_family", rule: "family.checkups" },
   // shopping and meals
   { ask: "What's on the list?", tool: "get_household", rule: "household.list" },
-  { ask: "anong nasa listahan?", tool: "get_household", rule: "household.list", lang: "tl" },
+  { ask: "anong nasa listahan?", tool: "get_household", rule: "household.list" },
   { ask: "What do we need to buy?", tool: "get_household", rule: "household.list" },
   { ask: "What's for dinner?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "household.meals" },
-  { ask: "anong ulam bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals", lang: "tl" },
+  { ask: "anong ulam bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals" },
   { ask: "what are the meals this week", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-11-01" }, rule: "household.meals" },
   // family
   { ask: "Who is in the family?", tool: "get_family", rule: "family.members" },
-  { ask: "sino sino ang nasa pamilya?", tool: "get_family", rule: "family.members", lang: "tl" },
+  { ask: "sino sino ang nasa pamilya?", tool: "get_family", rule: "family.members" },
   { ask: "When is Lia's birthday?", tool: "get_family", rule: "family.birthday" },
-  { ask: "kailan birthday ni lolo?", tool: "get_family", rule: "family.birthday", lang: "tl" },
+  { ask: "kailan birthday ni lolo?", tool: "get_family", rule: "family.birthday" },
   { ask: "How old is Lia?", tool: "get_family", rule: "family.age" },
   // health, grown-ups only
   { ask: "What is Lia's allergy?", tool: "get_health", input: { member_name: "Lia" }, rule: "health.allergies" },
-  { ask: "Ano ang allergy ni Lia?", tool: "get_health", input: { member_name: "Lia" }, rule: "health.allergies", lang: "tl" },
+  { ask: "Ano ang allergy ni Lia?", tool: "get_health", input: { member_name: "Lia" }, rule: "health.allergies" },
   { ask: "What's Dad's blood type? I mean Ben's", tool: "get_health", input: { member_name: "Ben" }, rule: "health.blood_type" },
-  { ask: "Anong gamot ni Lolo ngayon?", tool: "get_health", input: { member_name: "Lolo" }, rule: "health.medicines_now", lang: "tl" },
+  { ask: "Anong gamot ni Lolo ngayon?", tool: "get_health", input: { member_name: "Lolo" }, rule: "health.medicines_now" },
   { ask: "What medicines does Ana take?", tool: "get_health", input: { member_name: "Ana" }, rule: "health.medicines_now" },
   { ask: "Who is Lia's doctor?", tool: "get_health", input: { member_name: "Lia" }, rule: "health.usual_doctor" },
   // plain adds, every detail present
   { ask: "Add milk to the list", tool: "add_buy_items", input: { items: [{ name: "milk" }] }, rule: "add.list" },
-  { ask: "Pa-add ng gatas", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list", lang: "tl" },
+  { ask: "Pa-add ng gatas", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list" },
   { ask: "Add milk and eggs to the list", tool: "add_buy_items", input: { items: [{ name: "milk" }, { name: "eggs" }] }, rule: "add.list" },
   { ask: "add 3 eggs to the list", tool: "add_buy_items", input: { items: [{ name: "eggs", quantity: 3 }] }, rule: "add.list" },
   { ask: "Add 1 L milk and 2 packs of noodles to the list", tool: "add_buy_items", input: { items: [{ name: "milk", quantity: 1, unit: "L" }, { name: "noodles", quantity: 2, unit: "pack" }] }, rule: "add.list" },
   { ask: "add 2 kilos of chicken and 1 dozen eggs to the shopping list", tool: "add_buy_items", input: { items: [{ name: "chicken", quantity: 2, unit: "kg" }, { name: "eggs", quantity: 1, unit: "dozen" }] }, rule: "add.list" },
-  { ask: "pakibili ng toyo at suka", tool: "add_buy_items", input: { items: [{ name: "toyo" }, { name: "suka" }] }, rule: "add.list", lang: "tl" },
+  { ask: "pakibili ng toyo at suka", tool: "add_buy_items", input: { items: [{ name: "toyo" }, { name: "suka" }] }, rule: "add.list" },
   { ask: "Add Meralco bill 3200 due Nov 15", tool: "add_bill", input: { name: "Meralco", amount: 3200, due_date: "2026-11-15", category: "Utilities" }, rule: "add.bill" },
   { ask: "add water bill ₱850 due the 5th", tool: "add_bill", input: { name: "Water", amount: 850, due_date: "2026-11-05", category: "Utilities" }, rule: "add.bill" },
-  { ask: "pa-add ng bill: Globe 1,299 due sa 20", tool: "add_bill", input: { name: "Globe", amount: 1299, due_date: "2026-11-20", category: "Utilities" }, rule: "add.bill", lang: "tl" },
+  { ask: "pa-add ng bill: Globe 1,299 due sa 20", tool: "add_bill", input: { name: "Globe", amount: 1299, due_date: "2026-11-20", category: "Utilities" }, rule: "add.bill" },
   { ask: "add tuition 15,000 due next Friday", tool: "add_bill", input: { name: "Tuition", amount: 15000, due_date: "2026-11-06", category: "Education" }, rule: "add.bill" },
   { ask: "Add Netflix 549 due every 10th", tool: "add_bill", input: { name: "Netflix", amount: 549, due_date: "2026-11-10", category: "Subscriptions", recurrence: "monthly" }, rule: "add.bill" },
   // the wider lookups (third PR): goals, debts and lending, subscriptions, documents, chores, piggy bank, guests, past months, the journal, where-is, do-we-have
   { ask: "How far is the Baguio fund?", tool: "get_money", rule: "goals.one" },
-  { ask: "kumusta ang ipon natin para sa Baguio", tool: "get_money", rule: "goals.one", lang: "tl" },
+  { ask: "kumusta ang ipon natin para sa Baguio", tool: "get_money", rule: "goals.one" },
   { ask: "what are our savings goals", tool: "get_money", rule: "goals.list" },
   { ask: "How much do we owe on the car loan?", tool: "get_debts", rule: "debts.loans" },
   { ask: "who owes us", tool: "get_debts", rule: "debts.owed_to_us" },
-  { ask: "sino may utang sa atin", tool: "get_debts", rule: "debts.owed_to_us", lang: "tl" },
+  { ask: "sino may utang sa atin", tool: "get_debts", rule: "debts.owed_to_us" },
   { ask: "how much does Tita Baby owe us", tool: "get_debts", rule: "debts.owed_to_us" },
   { ask: "do I owe anyone", tool: "get_debts", rule: "debts.we_owe" },
   { ask: "what subscriptions do we pay", tool: "get_subscriptions", rule: "subscriptions.list" },
-  { ask: "magkano ang subscriptions natin", tool: "get_subscriptions", rule: "subscriptions.list", lang: "tl" },
+  { ask: "magkano ang subscriptions natin", tool: "get_subscriptions", rule: "subscriptions.list" },
   { ask: "when is Netflix next charged", tool: "get_subscriptions", rule: "subscriptions.one" },
   { ask: "when does Lia's passport expire", tool: "get_documents", input: { query: "passport" }, rule: "documents.one" },
   { ask: "what documents expire soon", tool: "get_documents", input: {}, rule: "documents.expiring" },
-  { ask: "anong mag-expire na documents", tool: "get_documents", input: {}, rule: "documents.expiring", lang: "tl" },
+  { ask: "anong mag-expire na documents", tool: "get_documents", input: {}, rule: "documents.expiring" },
   { ask: "is the car registration still valid", tool: "get_documents", input: { query: "car registration" }, rule: "documents.one" },
   { ask: "what are Lia's chores today", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Lia" }, rule: "tasks.list" },
-  { ask: "anong gawain ni Lia ngayon", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Lia" }, rule: "tasks.list", lang: "tl" },
+  { ask: "anong gawain ni Lia ngayon", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Lia" }, rule: "tasks.list" },
   { ask: "who hasn't done their chores", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "tasks.not_done" },
-  { ask: "sino hindi pa tapos sa chores", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "tasks.not_done", lang: "tl" },
+  { ask: "sino hindi pa tapos sa chores", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "tasks.not_done" },
   { ask: "did Ben do his chores", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Ben" }, rule: "tasks.did" },
   { ask: "whose turn is it to wash the dishes", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "tasks.turn" },
   { ask: "what chores are there tomorrow", tool: "get_tasks", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "tasks.list" },
   { ask: "how much is in Lia's piggy bank", tool: "get_allowance", input: { member_name: "Lia" }, rule: "allowance.jars" },
-  { ask: "magkano ang alkansya ni Lia", tool: "get_allowance", input: { member_name: "Lia" }, rule: "allowance.jars", lang: "tl" },
+  { ask: "magkano ang alkansya ni Lia", tool: "get_allowance", input: { member_name: "Lia" }, rule: "allowance.jars" },
   { ask: "how many points does Ben have", tool: "get_allowance", input: { member_name: "Ben" }, rule: "allowance.points" },
   { ask: "who's coming to Lia's party", tool: "get_event_guests", input: { query: "lia" }, rule: "events.guests" },
-  { ask: "sino pupunta sa party ni Lia", tool: "get_event_guests", input: { query: "lia" }, rule: "events.guests", lang: "tl" },
+  { ask: "sino pupunta sa party ni Lia", tool: "get_event_guests", input: { query: "lia" }, rule: "events.guests" },
   { ask: "how many are coming Saturday", tool: "get_event_guests", input: { date: "2026-10-31" }, rule: "events.guests" },
   { ask: "who's coming on Nov 20", tool: "get_event_guests", input: { date: "2026-11-20" }, rule: "events.guests" },
   { ask: "How much did we spend last month?", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_total" },
-  { ask: "magkano nagastos natin noong nakaraang buwan", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_total", lang: "tl" },
+  { ask: "magkano nagastos natin noong nakaraang buwan", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_total" },
   { ask: "how much did we spend on groceries in September", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_category" },
   { ask: "how much did we spend in the last 3 months", tool: "get_spending", input: { from: "2026-07-01", to: "2026-09-30" }, rule: "spending.past_total" },
   { ask: "what did Ana spend last month", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_member" },
   { ask: "how much did we earn last month", tool: "get_spending", input: { from: "2026-09-01", to: "2026-09-30" }, rule: "spending.past_income" },
   { ask: "how much did we spend this year", tool: "get_spending", input: { from: "2026-01-01", to: "2026-10-28" }, rule: "spending.past_total" },
   { ask: "what happened on this day", tool: "get_journal", input: { on_day: "10-28" }, rule: "journal.on_this_day" },
-  { ask: "anong nangyari ngayong araw noon", tool: "get_journal", input: { on_day: "10-28" }, rule: "journal.on_this_day", lang: "tl" },
+  { ask: "anong nangyari ngayong araw noon", tool: "get_journal", input: { on_day: "10-28" }, rule: "journal.on_this_day" },
   { ask: "what did we write in the journal last week", tool: "get_journal", input: { from: "2026-10-19", to: "2026-10-25" }, rule: "journal.range" },
   { ask: "latest journal entry", tool: "get_journal", input: {}, rule: "journal.latest" },
   { ask: "journal entries about Baguio", tool: "get_journal", input: { query: "baguio" }, rule: "journal.about" },
   { ask: "where is the birth certificate", tool: "search", input: { query: "birth certificate" }, rule: "search.where_is" },
-  { ask: "nasaan ang passport ni Lia", tool: "search", input: { query: "passport" }, rule: "search.where_is", lang: "tl" },
+  { ask: "nasaan ang passport ni Lia", tool: "search", input: { query: "passport" }, rule: "search.where_is" },
   { ask: "where did we save the car OR/CR", tool: "search", input: { query: "car or/cr" }, rule: "search.where_is" },
   { ask: "do we have rice", tool: "get_household", rule: "household.have" },
-  { ask: "may bigas pa ba tayo", tool: "get_household", rule: "household.have", lang: "tl" },
+  { ask: "may bigas pa ba tayo", tool: "get_household", rule: "household.have" },
   { ask: "are we out of milk", tool: "get_household", rule: "household.have" },
-  { ask: "meron pa ba tayong toyo", tool: "get_household", rule: "household.have", lang: "tl" },
+  { ask: "meron pa ba tayong toyo", tool: "get_household", rule: "household.have" },
   { ask: "do we have plans tomorrow", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
   // short forms, thumb spellings and bare nouns (fifth PR)
   { ask: "wat's on tmrw", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
   { ask: "whats due this wk", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-11-01" }, rule: "bills.range" },
-  { ask: "anung meron bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range", lang: "tl" },
-  { ask: "sked bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range", lang: "tl" },
+  { ask: "anung meron bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
+  { ask: "sked bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
   { ask: "schedule today", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-28" }, rule: "schedule.range" },
-  { ask: "anong sched natin sa sabado", tool: "get_schedule", input: { from: "2026-10-31", to: "2026-10-31" }, rule: "schedule.range", lang: "tl" },
+  { ask: "anong sched natin sa sabado", tool: "get_schedule", input: { from: "2026-10-31", to: "2026-10-31" }, rule: "schedule.range" },
   { ask: "tomorrow?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
-  { ask: "bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range", lang: "tl" },
+  { ask: "bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "schedule.range" },
   { ask: "this week", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-11-01" }, rule: "schedule.range" },
-  { ask: "magkno nagastos natin sa groceries", tool: "get_money", rule: "spending.category", lang: "tl" },
-  { ask: "gastos natin this month", tool: "get_money", rule: "spending.total", lang: "tl" },
+  { ask: "magkno nagastos natin sa groceries", tool: "get_money", rule: "spending.category" },
+  { ask: "gastos natin this month", tool: "get_money", rule: "spending.total" },
   { ask: "spent on food this month", tool: "get_money", rule: "spending.category" },
-  { ask: "kumusta ang budget", tool: "get_money", rule: "budget.left", lang: "tl" },
-  { ask: "pera sa gcash", tool: "get_money", rule: "balances.account", lang: "tl" },
+  { ask: "kumusta ang budget", tool: "get_money", rule: "budget.left" },
+  { ask: "pera sa gcash", tool: "get_money", rule: "balances.account" },
   { ask: "meralco due date", tool: "get_money", rule: "bills.due_when" },
-  { ask: "due date ng meralco", tool: "get_money", rule: "bills.due_when", lang: "tl" },
-  { ask: "due ng meralco", tool: "get_money", rule: "bills.due_when", lang: "tl" },
-  { ask: "may overdue ba", tool: "get_money", rule: "bills.overdue", lang: "tl" },
-  { ask: "nasan ang passport", tool: "search", input: { query: "passport" }, rule: "search.where_is", lang: "tl" },
-  { ask: "san ang passport", tool: "search", input: { query: "passport" }, rule: "search.where_is", lang: "tl" },
+  { ask: "due date ng meralco", tool: "get_money", rule: "bills.due_when" },
+  { ask: "due ng meralco", tool: "get_money", rule: "bills.due_when" },
+  { ask: "may overdue ba", tool: "get_money", rule: "bills.overdue" },
+  { ask: "nasan ang passport", tool: "search", input: { query: "passport" }, rule: "search.where_is" },
+  { ask: "san ang passport", tool: "search", input: { query: "passport" }, rule: "search.where_is" },
   { ask: "wer is the passport", tool: "search", input: { query: "passport" }, rule: "search.where_is" },
-  { ask: "ulam bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals", lang: "tl" },
-  { ask: "list natin", tool: "get_household", rule: "household.list", lang: "tl" },
+  { ask: "ulam bukas?", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals" },
+  { ask: "list natin", tool: "get_household", rule: "household.list" },
   { ask: "family members", tool: "get_family", rule: "family.members" },
-  { ask: "members natin", tool: "get_family", rule: "family.members", lang: "tl" },
+  { ask: "members natin", tool: "get_family", rule: "family.members" },
   { ask: "when's lia's bday", tool: "get_family", rule: "family.birthday" },
-  { ask: "meds ni lolo", tool: "get_health", input: { member_name: "Lolo" }, rule: "health.medicines_now", lang: "tl" },
+  { ask: "meds ni lolo", tool: "get_health", input: { member_name: "Lolo" }, rule: "health.medicines_now" },
   { ask: "pls add milk to the list", tool: "add_buy_items", input: { items: [{ name: "milk" }] }, rule: "add.list" },
   { ask: "add milk n eggs to the list", tool: "add_buy_items", input: { items: [{ name: "milk" }, { name: "eggs" }] }, rule: "add.list" },
-  { ask: "gatas pa-add", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list", lang: "tl" },
+  { ask: "gatas pa-add", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list" },
   { ask: "we need milk", tool: "add_buy_items", input: { items: [{ name: "milk" }] }, rule: "add.list" },
-  { ask: "kailangan natin ng gatas", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list", lang: "tl" },
+  { ask: "kailangan natin ng gatas", tool: "add_buy_items", input: { items: [{ name: "gatas" }] }, rule: "add.list" },
   { ask: "out of milk", tool: "get_household", rule: "household.have" },
   // after the wide probe (sixth PR): what it missed and what it got wrong
   { ask: "What's on today and tomorrow?", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-29" }, rule: "schedule.range" },
@@ -231,12 +231,12 @@ const TABLE: Row[] = [
   { ask: "How much did we spend on groceries and dining this month?", tool: "get_money", rule: "spending.category" },
   { ask: "what did Lia and Ben spend", tool: "get_money", rule: "spending.member" },
   { ask: "whose birthday is this month", tool: "get_family", rule: "family.birthdays" },
-  { ask: "sino may birthday ngayong buwan", tool: "get_family", rule: "family.birthdays", lang: "tl" },
+  { ask: "sino may birthday ngayong buwan", tool: "get_family", rule: "family.birthdays" },
   { ask: "upcoming birthdays", tool: "get_family", rule: "family.birthdays" },
   { ask: "when is christmas", tool: "none", rule: "clock.holiday" },
-  { ask: "ilang tulog bago mag-pasko", tool: "none", rule: "clock.holiday", lang: "tl" },
+  { ask: "ilang tulog bago mag-pasko", tool: "none", rule: "clock.holiday" },
   { ask: "what day is it today", tool: "none", rule: "clock.date" },
-  { ask: "anong petsa ngayon", tool: "none", rule: "clock.date", lang: "tl" },
+  { ask: "anong petsa ngayon", tool: "none", rule: "clock.date" },
   { ask: "what time is it", tool: "none", rule: "clock.time" },
   { ask: "lolo's blood pressure", tool: "get_health", input: { member_name: "Lolo" }, rule: "health.recent_readings_90_days" },
   { ask: "what's lia's weight", tool: "get_health", input: { member_name: "Lia" }, rule: "health.recent_readings_90_days" },
@@ -244,7 +244,7 @@ const TABLE: Row[] = [
   { ask: "emergency contact", tool: "get_health", input: { member_name: "Ana" }, rule: "health.who_to_call" },
   { ask: "how much did we earn this month", tool: "get_money", rule: "spending.income" },
   { ask: "how much did we save this month", tool: "get_money", rule: "spending.income" },
-  { ask: "kita natin this month", tool: "get_money", rule: "spending.income", lang: "tl" },
+  { ask: "kita natin this month", tool: "get_money", rule: "spending.income" },
   { ask: "what accounts do we have", tool: "get_money", rule: "balances.total" },
   { ask: "accounts", tool: "get_money", rule: "balances.total" },
   { ask: "biggest expense this month", tool: "get_money", rule: "spending.total" },
@@ -254,17 +254,17 @@ const TABLE: Row[] = [
   { ask: "do we owe tita baby", tool: "get_debts", rule: "debts.we_owe" },
   { ask: "what do we owe", tool: "get_money", rule: "bills.owed" },
   { ask: "Is Meralco paid?", tool: "search", input: { query: "meralco" }, rule: "bills.paid_one" },
-  { ask: "bayad na ba ang meralco", tool: "search", input: { query: "meralco" }, rule: "bills.paid_one", lang: "tl" },
+  { ask: "bayad na ba ang meralco", tool: "search", input: { query: "meralco" }, rule: "bills.paid_one" },
   { ask: "did we pay the water bill", tool: "search", input: { query: "water" }, rule: "bills.paid_one" },
   { ask: "paid bills this month", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-31" }, rule: "bills.paid_range" },
   { ask: "what have we paid this month", tool: "get_schedule", input: { from: "2026-10-28", to: "2026-10-31" }, rule: "bills.paid_range" },
   { ask: "unpaid", tool: "get_money", rule: "bills.unpaid" },
   { ask: "what's in the pantry", tool: "get_household", rule: "household.pantry" },
-  { ask: "anong laman ng ref", tool: "get_household", rule: "household.pantry", lang: "tl" },
+  { ask: "anong laman ng ref", tool: "get_household", rule: "household.pantry" },
   { ask: "what's running low", tool: "get_household", rule: "household.pantry_low" },
-  { ask: "ano paubos na", tool: "get_household", rule: "household.pantry_low", lang: "tl" },
+  { ask: "ano paubos na", tool: "get_household", rule: "household.pantry_low" },
   { ask: "what are we cooking tomorrow", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals" },
-  { ask: "anong lulutuin bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals", lang: "tl" },
+  { ask: "anong lulutuin bukas", tool: "get_schedule", input: { from: "2026-10-29", to: "2026-10-29" }, rule: "household.meals" },
   { ask: "add 5 kg rice", tool: "add_buy_items", input: { items: [{ name: "rice", quantity: 5, unit: "kg" }] }, rule: "add.list" },
   { ask: "add rice 5kg to list", tool: "add_buy_items", input: { items: [{ name: "rice", quantity: 5, unit: "kg" }] }, rule: "add.list" },
   { ask: "add egg", tool: "add_buy_items", input: { items: [{ name: "egg" }] }, rule: "add.list" },
@@ -273,8 +273,8 @@ const TABLE: Row[] = [
   { ask: "list: eggs", tool: "add_buy_items", input: { items: [{ name: "eggs" }] }, rule: "add.list" },
   { ask: "eggs to the list", tool: "add_buy_items", input: { items: [{ name: "eggs" }] }, rule: "add.list" },
   { ask: "we need eggs and bread", tool: "add_buy_items", input: { items: [{ name: "eggs" }, { name: "bread" }] }, rule: "add.list" },
-  { ask: "bili tayo ng itlog", tool: "add_buy_items", input: { items: [{ name: "itlog" }] }, rule: "add.list", lang: "tl" },
-  { ask: "pabili ng itlog bukas", tool: "add_buy_items", input: { items: [{ name: "itlog" }] }, rule: "add.list", lang: "tl" },
+  { ask: "bili tayo ng itlog", tool: "add_buy_items", input: { items: [{ name: "itlog" }] }, rule: "add.list" },
+  { ask: "pabili ng itlog bukas", tool: "add_buy_items", input: { items: [{ name: "itlog" }] }, rule: "add.list" },
   { ask: "add family dinner Sunday 6pm", tool: "add_activity", input: { title: "Family dinner", date: "2026-11-01", start_time: "18:00", whole_family: true }, rule: "add.activity" },
   { ask: "add insurance 12000 due Dec 1 yearly", tool: "add_bill", input: { name: "Insurance", amount: 12000, due_date: "2026-12-01", category: "Insurance", recurrence: "yearly" }, rule: "add.bill" },
   // A digit inside a word is not an amount; the typed casing stays.
@@ -282,24 +282,24 @@ const TABLE: Row[] = [
   { ask: "add PLDT bill 1,699 due the 20th", tool: "add_bill", input: { name: "PLDT", amount: 1699, due_date: "2026-11-20", category: "Utilities" }, rule: "add.bill" },
   { ask: "meralco paid", tool: "get_money", rule: "mark.paid.ask" },
   { ask: "bought the milk and eggs", tool: "tick_list_item", input: { names: ["milk", "eggs"], checked: true }, rule: "mark.tick" },
-  { ask: "nabili na ang itlog at gatas", tool: "tick_list_item", input: { names: ["itlog", "gatas"], checked: true }, rule: "mark.tick", lang: "tl" },
+  { ask: "nabili na ang itlog at gatas", tool: "tick_list_item", input: { names: ["itlog", "gatas"], checked: true }, rule: "mark.tick" },
   { ask: "dishes done lia", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done" },
   { ask: "ben took out the trash", tool: "log_chore", input: { title: "trash", status: "done", member_name: "Ben" }, rule: "mark.chore_done" },
   { ask: "ben walked the dog", tool: "log_chore", input: { title: "dog", status: "done", member_name: "Ben" }, rule: "mark.chore_done" },
-  { ask: "turn ni lia ba sa dishes", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Lia" }, rule: "tasks.turn", lang: "tl" },
+  { ask: "turn ni lia ba sa dishes", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Lia" }, rule: "tasks.turn" },
   { ask: "what chores does ben have", tool: "get_tasks", input: { from: "2026-10-28", to: "2026-10-28", member_name: "Ben" }, rule: "tasks.list" },
   { ask: "next dentist", tool: "search", input: { query: "dentist" }, rule: "schedule.when_is" },
-  { ask: "kailan ang susunod na dentist", tool: "search", input: { query: "dentist" }, rule: "schedule.when_is", lang: "tl" },
+  { ask: "kailan ang susunod na dentist", tool: "search", input: { query: "dentist" }, rule: "schedule.when_is" },
   { ask: "upcoming checkups", tool: "get_family", rule: "family.checkups" },
   { ask: "passports", tool: "get_documents", input: { query: "passports" }, rule: "documents.one" },
   { ask: "lia's birth certificate", tool: "get_documents", input: { query: "birth certificate" }, rule: "documents.one" },
   { ask: "how much have we saved", tool: "get_money", rule: "goals.list" },
-  { ask: "magkano pa kulang sa baguio", tool: "get_money", rule: "goals.one", lang: "tl" },
-  { ask: "utang ni tita baby", tool: "get_debts", rule: "debts.owed_to_us", lang: "tl" },
+  { ask: "magkano pa kulang sa baguio", tool: "get_money", rule: "goals.one" },
+  { ask: "utang ni tita baby", tool: "get_debts", rule: "debts.owed_to_us" },
   { ask: "what do we pay yearly", tool: "get_subscriptions", rule: "subscriptions.list" },
-  { ask: "ilan ang pupunta", tool: "get_event_guests", input: {}, rule: "events.guests", lang: "tl" },
+  { ask: "ilan ang pupunta", tool: "get_event_guests", input: {}, rule: "events.guests" },
   { ask: "a year ago today", tool: "get_journal", input: { on_day: "10-28" }, rule: "journal.on_this_day" },
-  { ask: "milestones ni lia", tool: "get_journal", input: { milestones: true, member_name: "Lia" }, rule: "journal.milestones", lang: "tl" },
+  { ask: "milestones ni lia", tool: "get_journal", input: { milestones: true, member_name: "Lia" }, rule: "journal.milestones" },
   { ask: "lia's spending", tool: "get_money", rule: "spending.member" },
   { ask: "is there rice", tool: "get_household", rule: "household.have" },
   { ask: "budget", tool: "get_money", rule: "budget.left" },
@@ -310,24 +310,24 @@ const TABLE: Row[] = [
   // the marks (fourth PR): a bill paid, a list item ticked, a chore done, through the screens' own actions
   { ask: "paid Meralco from GCash", tool: "mark_bill_paid", input: { bill_name: "meralco", account_name: "gcash" }, rule: "mark.paid" },
   { ask: "paid Meralco 3200 from BPI", tool: "mark_bill_paid", input: { bill_name: "meralco", account_name: "bpi", amount: 3200 }, rule: "mark.paid" },
-  { ask: "binayaran ko na ang Globe sa GCash", tool: "mark_bill_paid", input: { bill_name: "globe", account_name: "gcash" }, rule: "mark.paid", lang: "tl" },
+  { ask: "binayaran ko na ang Globe sa GCash", tool: "mark_bill_paid", input: { bill_name: "globe", account_name: "gcash" }, rule: "mark.paid" },
   { ask: "paid Meralco in cash", tool: "mark_bill_paid", input: { bill_name: "meralco", outside: true }, rule: "mark.paid" },
   { ask: "paid Meralco", tool: "get_money", rule: "mark.paid.ask" },
-  { ask: "bayad na ang Meralco", tool: "get_money", rule: "mark.paid.ask", lang: "tl" },
+  { ask: "bayad na ang Meralco", tool: "get_money", rule: "mark.paid.ask" },
   { ask: "mark Meralco as paid", tool: "get_money", rule: "mark.paid.ask" },
   { ask: "Meralco is paid", tool: "get_money", rule: "mark.paid.ask" },
   { ask: "tick milk", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
   { ask: "bought milk", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
-  { ask: "nabili ko na ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: true }, rule: "mark.tick", lang: "tl" },
+  { ask: "nabili ko na ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: true }, rule: "mark.tick" },
   { ask: "check off eggs", tool: "tick_list_item", input: { name: "eggs", checked: true }, rule: "mark.tick" },
   { ask: "bought 2 kilos of rice", tool: "tick_list_item", input: { name: "rice", checked: true }, rule: "mark.tick" },
   { ask: "tick milk off the list", tool: "tick_list_item", input: { name: "milk", checked: true }, rule: "mark.tick" },
   { ask: "untick milk", tool: "tick_list_item", input: { name: "milk", checked: false }, rule: "mark.untick" },
-  { ask: "hindi pa nabili ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: false }, rule: "mark.untick", lang: "tl" },
+  { ask: "hindi pa nabili ang gatas", tool: "tick_list_item", input: { name: "gatas", checked: false }, rule: "mark.untick" },
   { ask: "Lia did the dishes", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done" },
   { ask: "done with the trash", tool: "log_chore", input: { title: "trash", status: "done" }, rule: "mark.chore_done" },
-  { ask: "ginawa na ni Lia ang dishes", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done", lang: "tl" },
-  { ask: "tapos na ang homework ni Ben", tool: "log_chore", input: { title: "homework", status: "done", member_name: "Ben" }, rule: "mark.chore_done", lang: "tl" },
+  { ask: "ginawa na ni Lia ang dishes", tool: "log_chore", input: { title: "dishes", status: "done", member_name: "Lia" }, rule: "mark.chore_done" },
+  { ask: "tapos na ang homework ni Ben", tool: "log_chore", input: { title: "homework", status: "done", member_name: "Ben" }, rule: "mark.chore_done" },
   { ask: "mark laundry as done", tool: "log_chore", input: { title: "laundry", status: "done" }, rule: "mark.chore_done" },
   { ask: "Ben finished his homework", tool: "log_chore", input: { title: "homework", status: "done", member_name: "Ben" }, rule: "mark.chore_done" },
   { ask: "skip the dishes today", tool: "log_chore", input: { title: "dishes", status: "skipped" }, rule: "mark.chore_skipped" },
@@ -335,13 +335,13 @@ const TABLE: Row[] = [
   { ask: "Add dentist on Friday at 3pm", tool: "add_activity", input: { title: "Dentist", date: "2026-10-30", start_time: "15:00", whole_family: false, member_names: ["Ana"] }, rule: "add.activity" },
   { ask: "add Lia dentist tomorrow 9am", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "09:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity" },
   { ask: "schedule family dinner at Lola's Saturday 6pm for everyone", tool: "add_activity", input: { title: "Family dinner at Lola's", date: "2026-10-31", start_time: "18:00", whole_family: true }, rule: "add.activity" },
-  { ask: "pa-schedule ng dentist ni Lia bukas alas-3 ng hapon", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "15:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity", lang: "tl" },
+  { ask: "pa-schedule ng dentist ni Lia bukas alas-3 ng hapon", tool: "add_activity", input: { title: "Dentist", date: "2026-10-29", start_time: "15:00", whole_family: false, member_names: ["Lia"] }, rule: "add.activity" },
   { ask: "add Lola Nena's birthday Dec 3", tool: "add_event", input: { title: "Lola Nena's birthday", date: "2026-12-03", kind: "birthday" }, rule: "add.event" },
   { ask: "add birthday party for Lia Nov 20", tool: "add_event", input: { title: "Birthday party for Lia", date: "2026-11-20", kind: "birthday" }, rule: "add.event" },
   { ask: "Add swimming for Lia and Ben Saturday 8am", tool: "add_activity", input: { title: "Swimming", date: "2026-10-31", start_time: "08:00", whole_family: false, member_names: ["Ben", "Lia"] }, rule: "add.activity" },
   { ask: "add to the list: milk, eggs, bread", tool: "add_buy_items", input: { items: [{ name: "milk" }, { name: "eggs" }, { name: "bread" }] }, rule: "add.list" },
   { ask: "add dinner adobo tomorrow", tool: "add_meal_plan", input: { date: "2026-10-29", dish: "Adobo" }, rule: "add.meal" },
-  { ask: "pa-add ng ulam na sinigang bukas", tool: "add_meal_plan", input: { date: "2026-10-29", dish: "Sinigang" }, rule: "add.meal", lang: "tl" },
+  { ask: "pa-add ng ulam na sinigang bukas", tool: "add_meal_plan", input: { date: "2026-10-29", dish: "Sinigang" }, rule: "add.meal" },
   { ask: "add goal Baguio trip 20000 by December", tool: "add_goal", input: { title: "Baguio trip", target_amount: 20000, target_date: "2026-12-31" }, rule: "add.goal" },
   { ask: "set a savings goal: emergency fund 100,000", tool: "add_goal", input: { title: "Emergency fund", target_amount: 100000 }, rule: "add.goal" },
   { ask: "journal: Lia lost her first tooth today", tool: "add_journal_entry", input: { title: "Lia lost her first tooth today", date: "2026-10-28" }, rule: "add.journal" },
@@ -420,7 +420,7 @@ test("a bill with a detail missing is asked for, not guessed and not handed on",
   expect(asked("add Meralco bill due Nov 15").ask).toBe("How much is the Meralco bill?");
   expect(asked("add water bill 900").ask).toBe("When is Water due?");
   expect(asked("add Netflix subscription 549").ask).toBe("When is Netflix due?");
-  expect(asked("pa-add ng bill na Globe").ask).toBe("Magkano ang Globe, at kailan ang due?");
+  expect(asked("pa-add ng bill na Globe").ask).toBe("How much is the Globe bill, and when is it due?");
   expect(isPending(both.pending)).toBe(true);
   expect(isPending({ rule: "x" })).toBe(false);
 });
@@ -571,7 +571,7 @@ test("when a bill is due: the bill found by its everyday name, with the amount a
   const en = m("When is the electric bill due?");
   expect(en.say(moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
   const tl = m("kailan due ang kuryente?");
-  expect(tl.say(moneyResult)).toBe("Due ang Meralco (₱3,200) sa Sun 15 Nov (18 days pa).");
+  expect(tl.say(moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
   // One already past says so.
   expect(said("when is the water bill due", moneyResult)).toBe("Maynilad (₱850) was due Tue 20 Oct (8 days ago).");
   // "How much" is the same answer: the amount and the day.
@@ -584,7 +584,7 @@ test("when a bill is due: the bill found by its everyday name, with the amount a
 
 test("overdue, owed, and every unpaid bill", () => {
   expect(said("any overdue bills?", moneyResult)).toBe("Overdue (1): Maynilad ₱850, due Tue 20 Oct (8 days ago). Total ₱850.");
-  expect(said("may overdue ba tayo na bill?", { ...moneyResult, unpaid_bills: [] })).toBe("Walang overdue na bill.");
+  expect(said("may overdue ba tayo na bill?", { ...moneyResult, unpaid_bills: [] })).toBe("No overdue bills.");
   expect(said("How much do we owe?", moneyResult)).toBe("Unpaid bills: ₱5,349 (3). Loans and other debts: ₱150,000.");
   expect(said("Any bills due?", moneyResult)).toBe("Unpaid (3): Maynilad ₱850 Tue 20 Oct; Globe Fiber ₱1,299 Fri 30 Oct; Meralco ₱3,200 Sun 15 Nov. Total ₱5,349.");
 });
@@ -595,22 +595,22 @@ test("bills in a range come from get_schedule, paid ones left out", () => {
   expect(line(r.say(result))).toBe("Due this week: Globe Fiber ₱1,299 Fri 30 Oct. Total ₱1,299.");
   expect(line(r.say({ ...result, bills_due: [] }))).toBe("Nothing due this week.");
   expect(said("how much is due this week", result)).toBe("Due this week: ₱1,299 (Globe Fiber ₱1,299 Fri 30 Oct).");
-  expect(said("may due ba bukas", { ...result, bills_due: [] })).toBe("Walang due bukas (Thu 29 Oct).");
+  expect(said("may due ba bukas", { ...result, bills_due: [] })).toBe("Nothing due tomorrow (Thu 29 Oct).");
 });
 
 test("spending this month: by category, in total with the top three, and by member; transfers and goals are not spending", () => {
   expect(said("How much did we spend on groceries this month?", moneyResult)).toBe("Groceries in October so far: ₱8,200.");
-  expect(said("magkano nagastos natin sa kuryente this month?", moneyResult)).toBe("Utilities ngayong October: ₱4,300.");
+  expect(said("magkano nagastos natin sa kuryente this month?", moneyResult)).toBe("Utilities in October so far: ₱4,300.");
   expect(said("How much have we spent this month?", moneyResult)).toBe("Spent in October so far: ₱15,000. Top: Groceries ₱8,200, Utilities ₱4,300, Dining ₱2,500.");
   expect(said("What did Ana spend this month?", moneyResult)).toBe("Ana's spending in October so far: ₱9,000 (from accounts you can see).");
-  expect(said("magkano nagastos ni ben?", moneyResult)).toBe("Nagastos ni Ben ngayong October: ₱6,000 (sa mga account na nakikita mo).");
+  expect(said("magkano nagastos ni ben?", moneyResult)).toBe("Ben's spending in October so far: ₱6,000 (from accounts you can see).");
   // A category with nothing spent is zero, not a guess.
   expect(said("how much did we spend on travel this month", moneyResult)).toBe("Travel in October so far: ₱0.");
 });
 
 test("what's left in the budget, overall and per category, over or not, or no budget at all", () => {
   expect(said("What's left in the budget?", moneyResult)).toBe("₱15,000 left of October's ₱30,000 budget (₱15,000 spent).");
-  expect(said("Magkano natitira sa groceries budget?", moneyResult)).toBe("₱1,800 pa ang natitira sa ₱10,000 Groceries budget (₱8,200 nagastos).");
+  expect(said("Magkano natitira sa groceries budget?", moneyResult)).toBe("₱1,800 left of the ₱10,000 Groceries budget (₱8,200 spent).");
   const over = { ...moneyResult, this_month_out_by_category: { Groceries: 12000 } };
   expect(said("what's left in the groceries budget", over)).toBe("Groceries is over by ₱2,000: ₱12,000 spent of ₱10,000.");
   const none = { ...moneyResult, budgets_this_month: { total: 0, by_category: {} } };
@@ -641,7 +641,7 @@ test("what's on a day: activities at the household's clock, events, bills, the m
   expect(said("What's on tomorrow?", scheduleResult)).toBe(
     "Tomorrow (Thu 29 Oct): 09:00 Dentist (Lia), Makati Med; 17:00 Grocery run; Globe Fiber due ₱1,299; Lolo Pepe's birthday (birthday); meal: Adobo.",
   );
-  expect(said("anong meron bukas?", { activities: [], events: [], bills_due: [], meals: [], goal_deadlines: [] })).toBe("Walang nakaschedule bukas (Thu 29 Oct).");
+  expect(said("anong meron bukas?", { activities: [], events: [], bills_due: [], meals: [], goal_deadlines: [] })).toBe("Nothing on tomorrow (Thu 29 Oct).");
   expect(said("what's on for Lia tomorrow", scheduleResult)).toBe("Tomorrow (Thu 29 Oct) for Lia: 09:00 Dentist (Lia), Makati Med; 17:00 Grocery run.");
   // A range names the day on each line.
   expect(said("what's on this week", { ...scheduleResult, events: [], bills_due: [], meals: [] })).toBe("This week: Thu 29 Oct: 09:00 Dentist (Lia), Makati Med; Thu 29 Oct: 17:00 Grocery run.");
@@ -659,8 +659,8 @@ test("when is something: the next activity, event or meal by that name", () => {
 test("meals: tonight, tomorrow, the week", () => {
   const day = { activities: [], events: [], bills_due: [], meals: [{ dish: "Sinigang", plan_date: "2026-10-28" }], goal_deadlines: [] };
   expect(said("What's for dinner?", day)).toBe("Tonight (Wed 28 Oct): Sinigang.");
-  expect(said("anong ulam ngayon?", day)).toBe("Ulam ngayon (Wed 28 Oct): Sinigang.");
-  expect(said("anong ulam bukas?", { ...day, meals: [] })).toBe("Walang nakaplanong ulam bukas (Thu 29 Oct).");
+  expect(said("anong ulam ngayon?", day)).toBe("Today (Wed 28 Oct): Sinigang.");
+  expect(said("anong ulam bukas?", { ...day, meals: [] })).toBe("No meal planned for tomorrow (Thu 29 Oct).");
   expect(said("what are the meals this week", { ...day, meals: [{ dish: "Sinigang", plan_date: "2026-10-28" }, { dish: "Adobo", plan_date: "2026-10-29" }] })).toBe("Meals this week: Wed 28 Oct Sinigang; Thu 29 Oct Adobo.");
 });
 
@@ -668,7 +668,7 @@ test("the shopping list: what is still to buy, with quantities", () => {
   const r = m("What's on the list?");
   const result = { shopping_list: [{ name: "milk", quantity: null, unit: null, section: "Dairy", checked: false }, { name: "chicken", quantity: 2, unit: "kg", section: "Meat", checked: false }, { name: "rice", quantity: 1, unit: "sack", section: "Pantry", checked: true }], still_to_buy: 2, meals_this_week: [] };
   expect(line(r.say(result))).toBe("To buy (2): milk, 2 kg chicken.");
-  expect(said("anong nasa listahan?", { shopping_list: [], still_to_buy: 0, meals_this_week: [] })).toBe("Walang laman ang list.");
+  expect(said("anong nasa listahan?", { shopping_list: [], still_to_buy: 0, meals_this_week: [] })).toBe("The list is empty.");
 });
 
 const familyResult = {
@@ -683,13 +683,13 @@ const familyResult = {
 test("who is in the family, a birthday, an age, a missing date of birth, and the checks due", () => {
   expect(said("Who is in the family?", familyResult)).toBe("3 in the household: Ana (mother), Ben (father), Lia (daughter).");
   expect(said("When is Lia's birthday?", familyResult)).toBe("Lia's birthday is 4 March: turning 11 on Thu 4 Mar (in 127 days).");
-  expect(said("kailan birthday ni ana?", familyResult)).toBe("Birthday ni Ana: 2 May, magi-39 sa Sun 2 May (186 days pa).");
+  expect(said("kailan birthday ni ana?", familyResult)).toBe("Ana's birthday is 2 May: turning 39 on Sun 2 May (in 186 days).");
   expect(said("How old is Lia?", familyResult)).toBe("Lia is 10, turning 11 on Thu 4 Mar (in 127 days).");
   expect(said("when is Ben's birthday", familyResult)).toBe("Ben's date of birth isn't recorded in Kin. Family → Ben → Edit adds it.");
   expect(said("Who has a checkup?", familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
   expect(said("When is Lia's checkup?", familyResult)).toBe("Due: Lia: Dental check-up, Mon 2 Nov.");
-  expect(said("kailan check-up ni Ana?", familyResult)).toBe("Walang due na health check si Ana.");
-  expect(said("sino may check-up?", { ...familyResult, health_due: [] })).toBe("Walang due na health check.");
+  expect(said("kailan check-up ni Ana?", familyResult)).toBe("No health check due for Ana.");
+  expect(said("sino may check-up?", { ...familyResult, health_due: [] })).toBe("No health checks due.");
 });
 
 test("a health fact, read from the get_health answer as healthAnswer shapes it; a tool refusal is relayed as it is", () => {
@@ -703,7 +703,7 @@ test("a health fact, read from the get_health answer as healthAnswer shapes it; 
     who_to_call: [{ name: "Ana Santos", relationship: "mother", phone: "0917 000 0000" }],
   };
   expect(said("What is Lia's allergy?", healthResult)).toBe("Lia's allergies: Peanuts, amoxicillin.");
-  expect(said("Ano ang blood type ni Lia?", healthResult)).toBe("Blood type ni Lia: O+.");
+  expect(said("Ano ang blood type ni Lia?", healthResult)).toBe("Lia's blood type: O+.");
   expect(said("What medicines does Lia take?", healthResult)).toBe("Lia's medicines now: Cetirizine 5 mg at 20:00; Salbutamol as needed (when wheezing).");
   expect(said("Who is Lia's doctor?", healthResult)).toBe("Lia's usual doctor: Dr. Reyes.");
   expect(said("Lia's HMO?", healthResult)).toBe("Lia's HMO or insurance: not recorded.");
@@ -713,9 +713,9 @@ test("a health fact, read from the get_health answer as healthAnswer shapes it; 
 
 test("adds confirm in a few words, and a tool's refusal comes back as it is", () => {
   expect(said("Add milk and eggs to the list", { added: "shopping items", items: [{ name: "milk", section: "Dairy" }, { name: "eggs", section: "Dairy" }] })).toBe("Added to the list: milk, eggs.");
-  expect(said("pa-add ng 2 kilo manok", { added: "shopping items", items: [{ name: "manok", quantity: "2 kg", section: "Meat" }] })).toBe("Na-add sa list: 2 kg manok.");
+  expect(said("pa-add ng 2 kilo manok", { added: "shopping items", items: [{ name: "manok", quantity: "2 kg", section: "Meat" }] })).toBe("Added to the list: 2 kg manok.");
   expect(said("Add Meralco bill 3200 due Nov 15", { added: "bill", name: "Meralco", amount: 3200, due_date: "2026-11-15" })).toBe("Added Meralco, ₱3,200 due Sun 15 Nov.");
-  expect(said("pa-add ng bill: Globe 1,299 due sa 20", { added: "bill" })).toBe("Na-add ang Globe, ₱1,299, due sa Fri 20 Nov.");
+  expect(said("pa-add ng bill: Globe 1,299 due sa 20", { added: "bill" })).toBe("Added Globe, ₱1,299 due Fri 20 Nov.");
   expect(said("Add milk to the list", { error: "No items to add." })).toBe("No items to add.");
 });
 
@@ -754,7 +754,7 @@ const debtsResult = {
 test("debts: a loan by name, who owes the family, whom the family owes", () => {
   expect(said("How much do we owe on the car loan?", debtsResult)).toBe("Car loan: ₱320,000 left.");
   expect(said("who owes us", debtsResult)).toBe("Owed to us (1): Tita Baby ₱3,000 (due Mon 30 Nov). Total ₱3,000.");
-  expect(said("sino may utang sa atin", debtsResult)).toBe("May utang sa atin (1): Tita Baby ₱3,000 (due Mon 30 Nov). Total ₱3,000.");
+  expect(said("sino may utang sa atin", debtsResult)).toBe("Owed to us (1): Tita Baby ₱3,000 (due Mon 30 Nov). Total ₱3,000.");
   expect(said("how much does Tita Baby owe us", debtsResult)).toBe("Owed to us (1): Tita Baby ₱3,000 (due Mon 30 Nov). Total ₱3,000.");
   expect(said("do I owe anyone", debtsResult)).toBe("No lending owed to anyone recorded in Kin.");
   expect(said("what loans do we have", debtsResult)).toBe("Loans and debts (2): Car loan ₱320,000; Credit card ₱18,500. Total ₱338,500.");
@@ -764,7 +764,7 @@ test("subscriptions: the list with monthly and yearly totals, or one by name", (
   const subs = { charges: [{ name: "Netflix", amount: 549, repeat: "monthly", per_month: 549, next: "2026-11-10", overdue: false }, { name: "Spotify", amount: 194, repeat: "monthly", per_month: 194, next: "2026-11-02", overdue: false }], charges_per_month: 743, charges_per_year: 8916, income: [], income_per_year: 0 };
   expect(said("what subscriptions do we pay", subs)).toBe("2 repeating charges, about ₱743 a month (₱8,916 a year): Netflix ₱549 monthly; Spotify ₱194 monthly.");
   expect(said("when is Netflix next charged", subs)).toBe("Netflix ₱549 monthly, next Tue 10 Nov.");
-  expect(said("magkano ang subscriptions natin", subs)).toBe("2 paulit-ulit na bayad, mga ₱743 kada buwan (₱8,916 kada taon): Netflix ₱549 buwan-buwan; Spotify ₱194 buwan-buwan.");
+  expect(said("magkano ang subscriptions natin", subs)).toBe("2 repeating charges, about ₱743 a month (₱8,916 a year): Netflix ₱549 monthly; Spotify ₱194 monthly.");
 });
 
 test("documents: one by name for a person, and what expires soon", () => {
@@ -792,13 +792,13 @@ test("chores: the day's list, who hasn't done theirs, did one person, whose turn
   expect(said("did Ben do his chores", { ...tasksResult, tasks: tasksResult.tasks.filter((x) => x.who[0] === "Ben Santos"), behind_on: [] })).toBe("Ben today: done nothing yet; not yet Trash.");
   expect(said("did Lia do her chores", { ...tasksResult, tasks: [tasksResult.tasks[0]], behind_on: [] })).toBe("Yes: Lia did Dishes today.");
   expect(said("whose turn is it to wash the dishes", tasksResult)).toBe("Dishes: Lia (done).");
-  expect(said("sino hindi pa tapos sa chores", { ...tasksResult, tasks: [tasksResult.tasks[0]], behind_on: [] })).toBe("Tapos na lahat ngayon.");
+  expect(said("sino hindi pa tapos sa chores", { ...tasksResult, tasks: [tasksResult.tasks[0]], behind_on: [] })).toBe("All done today.");
 });
 
 test("the piggy bank and the points", () => {
   const jars = { who: "Lia Santos", jars: { gastos: 500, ipon: 600, bigay: 150, total: 1250 }, weekly_allowance: 200, points_earned: 150, points_spent: 30, points_balance: 120 };
   expect(said("how much is in Lia's piggy bank", jars)).toBe("Lia's piggy bank: ₱1,250 (gastos ₱500, ipon ₱600, bigay ₱150), ₱200 a week; 120 points (30 spent).");
-  expect(said("magkano ang alkansya ni Lia", jars)).toBe("Alkansya ni Lia: ₱1,250 (gastos ₱500, ipon ₱600, bigay ₱150), ₱200 kada linggo; 120 points (30 nagastos).");
+  expect(said("magkano ang alkansya ni Lia", jars)).toBe("Lia's piggy bank: ₱1,250 (gastos ₱500, ipon ₱600, bigay ₱150), ₱200 a week; 120 points (30 spent).");
   expect(said("how many points does Ben have", { who: "Ben Santos", jars: null, points_earned: 40, points_spent: 0, points_balance: 40 })).toBe("Ben: 40 points.");
 });
 
@@ -814,7 +814,7 @@ test("spending in a past range: total with the top three, a category, a person, 
   expect(said("how much did we spend on groceries in September", sept)).toBe("Groceries September: ₱12,000.");
   expect(said("what did Ana spend last month", sept)).toBe("Ana's spending last month: ₱20,000 (from accounts you can see).");
   expect(said("how much did we earn last month", sept)).toBe("Money in last month: ₱70,000; out: ₱45,200.");
-  expect(said("magkano nagastos natin noong nakaraang buwan", sept)).toBe("Nagastos noong nakaraang buwan: ₱45,200. Pinakamalaki: Groceries ₱12,000, Utilities ₱8,000, Dining ₱6,000.");
+  expect(said("magkano nagastos natin noong nakaraang buwan", sept)).toBe("Spent last month: ₱45,200. Top: Groceries ₱12,000, Utilities ₱8,000, Dining ₱6,000.");
 });
 
 test("the journal: on this day, a range, the latest", () => {
@@ -831,7 +831,7 @@ test("where is: the matching records by kind; do we have: the pantry and the lis
   const household = { shopping_list: [{ name: "milk", quantity: null, unit: null, section: "Dairy", checked: false }], still_to_buy: 1, meals_this_week: [], pantry: [{ name: "Rice", quantity: 5, unit: "kg", running_low: false }, { name: "Toyo", quantity: null, unit: null, running_low: true }] };
   expect(said("do we have rice", household)).toBe("In the pantry: Rice 5 kg.");
   expect(said("are we out of milk", household)).toBe("None in the pantry; on the list: milk.");
-  expect(said("meron pa ba tayong toyo", household)).toBe("Sa pantry: Toyo (paubos na).");
+  expect(said("meron pa ba tayong toyo", household)).toBe("In the pantry: Toyo (running low).");
   expect(said("do we have any eggs left", household)).toBe("No eggs in the pantry, and it isn't on the list.");
 });
 
@@ -855,10 +855,10 @@ test("a bill paid with no account named: the bills are read, then which account 
 test("a mark's answer, and a mark the executor could not place", () => {
   expect(said("paid Meralco from GCash", { paid: "Meralco", amount: 3200, due_date: "2026-11-15", account: "GCash" })).toBe("Meralco paid from GCash, ₱3,200.");
   expect(said("paid Meralco in cash", { paid: "Meralco", amount: 3200, due_date: "2026-11-15", outside: true })).toBe("Meralco marked paid (₱3,200, outside Kin).");
-  expect(said("binayaran ko na ang Globe sa GCash", { paid: "Globe Fiber", amount: 1299, due_date: "2026-10-30", account: "GCash" })).toBe("Bayad na ang Globe Fiber mula sa GCash, ₱1,299.");
+  expect(said("binayaran ko na ang Globe sa GCash", { paid: "Globe Fiber", amount: 1299, due_date: "2026-10-30", account: "GCash" })).toBe("Globe Fiber paid from GCash, ₱1,299.");
   expect(said("paid Meralco from GCash", { error: 'No account called "gcash". Available: BPI Savings.' })).toBe('No account called "gcash". Available: BPI Savings.');
   expect(said("tick milk", { ticked: "milk", count: 1 })).toBe("Ticked milk off the list.");
-  expect(said("nabili ko na ang gatas", { ticked: "gatas", count: 1 })).toBe("Na-tick na ang gatas sa list.");
+  expect(said("nabili ko na ang gatas", { ticked: "gatas", count: 1 })).toBe("Ticked gatas off the list.");
   expect(said("untick milk", { unticked: "milk", count: 1 })).toBe("milk is back on the list.");
   expect(said("tick milk", { already: "ticked", name: "milk" })).toBe("milk was already ticked.");
   expect(said("Lia did the dishes", { logged: "done", title: "Dishes", date: "2026-10-28", for: "Lia Santos", awaits_approval: false })).toBe("Dishes done (Lia).");
@@ -897,7 +897,7 @@ test("an activity with no time, or no day, is asked for; the answer finishes it"
 test("the clock and the fixed days need no record", () => {
   expect(m("what day is it today").say({})).toBe("Today is Wednesday 28 October 2026.");
   expect(m("when is christmas").say({})).toBe("Christmas is Fri 25 Dec, in 58 days.");
-  expect(m("ilang tulog bago mag-pasko").say({})).toBe("Pasko: Fri 25 Dec, 58 araw pa.");
+  expect(m("ilang tulog bago mag-pasko").say({})).toBe("Christmas is Fri 25 Dec, in 58 days.");
   expect(m("when is new year").say({})).toBe("New Year's Day is Fri 1 Jan 2027, in 65 days.");
   expect(m("what time is it", { ...ctx, now: new Date("2026-10-28T06:30:00Z") }).say({})).toBe("It's 2:30 PM.");
   expect(matchRule("what time is it", { ...ctx, now: undefined })).toBeNull();
@@ -906,13 +906,13 @@ test("the clock and the fixed days need no record", () => {
 test("birthdays coming up, from the family's dates of birth", () => {
   expect(said("upcoming birthdays", familyResult)).toBe("Birthdays next up: Lia Thu 4 Mar (11); Ana Sun 2 May (39).");
   expect(said("whose birthday is this month", familyResult)).toBe("No birthdays this month.");
-  expect(said("sino may birthday ngayong buwan", familyResult)).toBe("Walang birthday ngayong buwan.");
+  expect(said("sino may birthday ngayong buwan", familyResult)).toBe("No birthdays this month.");
 });
 
 test("paid-status questions read the bills, never mark them", () => {
   const found = { bills: [{ id: "1", name: "Meralco", amount: 3200, due_date: "2026-10-15", status: "paid" }, { id: "2", name: "Meralco", amount: 3200, due_date: "2026-11-15", status: "unpaid" }] };
   expect(said("Is Meralco paid?", found)).toBe("Yes, Meralco is paid (₱3,200, due Thu 15 Oct); the next one, ₱3,200, is due Sun 15 Nov.");
-  expect(said("bayad na ba ang meralco", { bills: [found.bills[1]] })).toBe("Hindi pa bayad ang Meralco: ₱3,200, due Sun 15 Nov (18 days pa).");
+  expect(said("bayad na ba ang meralco", { bills: [found.bills[1]] })).toBe("Meralco is not paid yet: ₱3,200 due Sun 15 Nov (in 18 days).");
   expect(said("did we pay the water bill", { matches: "nothing found" })).toBe('No bill called "water" in Kin.');
   const month = { activities: [], events: [], bills_due: [{ name: "Globe Fiber", amount: 1299, due_date: "2026-10-30", status: "paid" }, { name: "Rent", amount: 15000, due_date: "2026-10-31", status: "unpaid" }], meals: [], goal_deadlines: [] };
   expect(said("paid bills this month", month)).toBe("Paid this month (1): Globe Fiber ₱1,299. Total ₱1,299.");
@@ -921,7 +921,7 @@ test("paid-status questions read the bills, never mark them", () => {
 test("the pantry, what is running low, and ticking several items", () => {
   const household = { shopping_list: [], still_to_buy: 0, meals_this_week: [], pantry: [{ name: "Rice", quantity: 5, unit: "kg", running_low: false }, { name: "Toyo", quantity: null, unit: null, running_low: true }] };
   expect(said("what's in the pantry", household)).toBe("In the pantry (2): Rice 5 kg, Toyo. Running low: Toyo.");
-  expect(said("ano paubos na", household)).toBe("Paubos na (1): Toyo.");
+  expect(said("ano paubos na", household)).toBe("Running low (1): Toyo.");
   expect(said("bought the milk and eggs", { ticked: "milk, eggs", count: 2 })).toBe("Ticked milk, eggs off the list.");
   expect(said("bought the milk and eggs", { ticked: "milk", count: 1, not_on_list: ["eggs"] })).toBe("Ticked milk off the list.");
 });
@@ -933,13 +933,16 @@ test("income and several categories or people this month", () => {
   expect(said("what accounts do we have", moneyResult)).toBe("Cash across 2 accounts: ₱124,250.50 (GCash ₱4,250.50, BPI Savings ₱120,000).");
 });
 
-test("the language of the answer follows the question", () => {
+test("Kin replies in English whatever language the question is in (Jonathan, 28 October)", () => {
   expect(m("When is the electric bill due?").lang).toBe("en");
-  expect(m("Kailan due ang Meralco?").lang).toBe("tl");
-  expect(m("Magkano nagastos natin sa groceries this month?").lang).toBe("tl");
+  expect(m("Kailan due ang Meralco?").lang).toBe("en");
+  // A question typed in Filipino is understood, and answered in English.
+  expect(said("kailan due ang kuryente?", moneyResult)).toBe("Meralco (₱3,200) is due Sun 15 Nov (in 18 days).");
+  expect(said("magkano nagastos natin sa groceries this month?", moneyResult)).toBe("Groceries in October so far: ₱8,200.");
+  expect(said("anong nasa listahan?", { shopping_list: [], still_to_buy: 0, meals_this_week: [] })).toBe("The list is empty.");
 });
 
-test("without a key and without a rule, Kin says what it can answer by itself: three examples, picked by the words in the question", () => {
+test("without a key and without a rule, Kin says what it can answer by itself: three English examples, picked by the words in the question", () => {
   const en = rulesOnlyLine("Help me plan the week");
   expect(en).toContain("nothing was sent anywhere");
   expect(en).toContain("When is the electric bill due?");
@@ -949,9 +952,8 @@ test("without a key and without a rule, Kin says what it can answer by itself: t
   expect(rulesOnlyLine("Should we move money to savings?")).toContain("How much did we spend on groceries this month?");
   expect(rulesOnlyLine("What should we cook this week?")).toContain("What's for dinner tomorrow?");
   expect(rulesOnlyLine("Is Lia's medicine working?")).toContain("What is Lia's allergy?");
-  const tl = rulesOnlyLine("Tulungan mo ako magplano ng linggo");
-  expect(tl).toContain("Kailan due ang Meralco?");
-  expect(tl).toContain("walang ipinadala");
-  expect(rulesOnlyLine("Magkano dapat ang ipon namin?")).toContain("Magkano ang laman ng GCash?");
+  // A question in Filipino hears the same English line.
+  expect(rulesOnlyLine("Tulungan mo ako magplano ng linggo")).toBe(en);
+  expect(rulesOnlyLine("Magkano dapat ang ipon namin?")).toContain("How much is in GCash?");
   expect(RULES_NOTE).toContain("Nothing was sent anywhere");
 });

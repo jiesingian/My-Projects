@@ -3,6 +3,17 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Decided 28 October: Kin speaks English only (Jonathan)
+
+Done the same day. Every Ask Kin reply is in English, whatever language the
+question is in: the rule layer (its Taglish lines removed from
+`lib/assistant/rules.ts`), the no-key line, and the model's prompt in
+`api/assistant`. Filipino words in a question are still understood
+("bukas", "ulam", "magkano"), so nobody's question breaks; the answer
+comes back in English. The help guide's examples are English. The rule
+for future work is in `kin/CLAUDE.md` ("Language"). The Taglish mentions in
+the entries below are history.
+
 ## Decided 28 October: Ask Kin answers the household's own questions itself (Jonathan)
 
 Built the same day. A **rule layer** (`src/lib/assistant/rules.ts`, pure;
