@@ -1,4 +1,5 @@
 import type { BriefItem } from "@/lib/queries/today";
+import { upkeepDue, type UpkeepItem } from "@/lib/upkeep";
 import { formatCurrency } from "@/lib/format";
 import { currentRound, instalmentPlan, pot, roundDate, type PaluwaganFrequency, type UtangDirection } from "@/lib/utang";
 import { cardDueDate, loanPaymentDates } from "@/lib/wealth";
@@ -61,7 +62,7 @@ function soonItem(partial: Omit<BriefItem, "whose" | "memberIds"> & { at: number
   return { ...partial, whose: "family", memberIds: [] };
 }
 
-export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[]; maturities?: MaturityLike[]; toMatch?: MatchLike[] }, today: string, currency: string): WealthRows {
+export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLike[]; loans: LoanLike[]; funds: FundLike[]; income: IncomeLike[]; assets?: AssetLike[]; cards?: CardLike[]; maturities?: MaturityLike[]; toMatch?: MatchLike[]; upkeep?: UpkeepItem[] }, today: string, currency: string): WealthRows {
   const fmt = (n: number) => formatCurrency(n, currency);
   const todayRows: BriefItem[] = [];
   const soon: BriefItem[] = [];
@@ -204,6 +205,18 @@ export function wealthRows(input: { utang: UtangLike[]; paluwagans: PaluwaganLik
       const n = inWeek(x.next_date);
       if (n) soon.push(soonItem({ id: `soon-income-${x.id}`, icon: "wallet", tint: "money", title: x.name, meta: `${fmt(Number(x.amount))} expected ${onDay(today, x.next_date)}`, href: "/wealth?seg=cashflow", at: n }));
     }
+  }
+
+  // Home upkeep (29 October): a service due today or overdue is a row,
+  // opening the things in that home; a warranty ending this week is a line
+  // in Coming up, and on its last day a row.
+  const upkeep = upkeepDue(input.upkeep ?? [], today);
+  for (const i of upkeep.service) {
+    todayRows.push({ id: `service-${i.id}-${i.due}`, icon: "house", tint: "home", title: `Service the ${i.name.toLowerCase()}`, meta: `every ${i.service_every_months} months · due ${i.due < today ? `since ${i.due}` : "today"}`, href: "/wealth?seg=assets" });
+  }
+  for (const i of upkeep.warranty) {
+    if (i.inDays === 0) todayRows.push({ id: `warranty-${i.id}`, icon: "fileText", tint: "home", title: `${i.name}: warranty ends today`, meta: "anything wrong with it, claim it today", href: "/wealth?seg=assets" });
+    else soon.push(soonItem({ id: `soon-warranty-${i.id}`, icon: "fileText", tint: "home", title: `${i.name}: warranty ends`, meta: onDay(today, i.warranty_until!.slice(0, 10)), href: "/wealth?seg=assets", at: i.inDays }));
   }
 
   // The first three days of a month: last month's recap is ready (the push

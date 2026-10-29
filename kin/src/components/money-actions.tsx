@@ -45,6 +45,7 @@ import {
   postHubExpenseAction,
   deleteRemittanceAction,
   matchBankBalanceAction,
+  markItemServicedAction,
 } from "@/lib/actions/wealth";
 import { formatCurrency, formatDate, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
@@ -65,6 +66,7 @@ import { LoanSplitBox, type SplitLoan } from "@/components/loan-split";
 import { ForSelect, type ExpenseTargets } from "@/components/for-select";
 import { raiseNextBill } from "@/components/next-bill-offer";
 import { failedSaveMessage, newOpId } from "@/lib/offline/live";
+import { nextServiceDue } from "@/lib/upkeep";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
  * they come back and confirm — so nothing is counted as moved until it
@@ -1026,8 +1028,18 @@ export type BreakdownItem = {
   value_now: number | null;
   /** What it is worth today, typed or worked out (assetWorth). */
   worth: number;
+  /** Home upkeep (20261029160000): all optional. */
+  warranty_until?: string | null;
+  service_every_months?: number | null;
+  last_serviced_on?: string | null;
 };
 
+const serviceLine = (i: { acquired_on: string | null; service_every_months?: number | null; last_serviced_on?: string | null }) => {
+  if (!i.service_every_months) return "";
+  const due = nextServiceDue({ acquired_on: i.acquired_on, service_every_months: i.service_every_months, last_serviced_on: i.last_serviced_on ?? null });
+  return ` · service every ${i.service_every_months} mo${due ? `, next ${shortDay(due)}` : ""}`;
+};
+const shortDay = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-PH", { day: "numeric", month: "short", year: "numeric" });
 const monthYear = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-PH", { month: "short", year: "numeric" });
 
 /** What an asset is made of: each thing with its price, when it was bought
@@ -1036,7 +1048,7 @@ export function AssetBreakdownControl({ assetId, assetName, items, currency }: {
   const uid = useId();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const blank = { name: "", kind: "appliance" as AssetItemKind, cost: "", acquired_on: "", value_now: "" };
+  const blank = { name: "", kind: "appliance" as AssetItemKind, cost: "", acquired_on: "", value_now: "", warranty_until: "", service_every_months: "", last_serviced_on: "" };
   const [draft, setDraft] = useState(blank);
   const { error, pending, run } = useMoneyAction();
   const field = { minHeight: "2.5rem", width: "100%" } as const;
@@ -1050,6 +1062,9 @@ export function AssetBreakdownControl({ assetId, assetName, items, currency }: {
       cost: String(i.cost),
       acquired_on: i.acquired_on ?? "",
       value_now: i.value_now == null ? "" : String(i.value_now),
+      warranty_until: i.warranty_until ?? "",
+      service_every_months: i.service_every_months == null ? "" : String(i.service_every_months),
+      last_serviced_on: i.last_serviced_on ?? "",
     });
   };
   const reset = () => {
@@ -1076,9 +1091,16 @@ export function AssetBreakdownControl({ assetId, assetName, items, currency }: {
                 {ASSET_ITEM_KIND_LABELS[i.kind as AssetItemKind] ?? i.kind} · paid {formatCurrency(i.cost, currency)}
                 {i.acquired_on ? ` · ${monthYear(i.acquired_on)}` : ""}
                 {i.value_now != null ? " · resale typed" : ""}
+                {serviceLine(i)}
+                {i.warranty_until ? ` · warranty to ${shortDay(i.warranty_until)}` : ""}
               </span>
             </span>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(i.worth, currency)}</span>
+            {i.service_every_months ? (
+              <button type="button" className="btn btn-secondary" disabled={pending} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }} onClick={() => run(() => markItemServicedAction(i.id))}>
+                Serviced
+              </button>
+            ) : null}
             <button type="button" className="btn btn-secondary" style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }} onClick={() => startEdit(i)}>
               Edit
             </button>
@@ -1125,6 +1147,18 @@ export function AssetBreakdownControl({ assetId, assetName, items, currency }: {
           <div className="field" style={{ margin: 0, gridColumn: "1 / -1" }}>
             <label htmlFor={`${uid}-now`}>Would sell for now ({sym}, optional)</label>
             <input id={`${uid}-now`} className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Leave blank to estimate from its age" value={draft.value_now} onChange={(e) => setDraft({ ...draft, value_now: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-every`}>Serviced every (months)</label>
+            <input id={`${uid}-every`} className="input" type="number" min="1" max="60" inputMode="numeric" placeholder="Aircon: 6" value={draft.service_every_months} onChange={(e) => setDraft({ ...draft, service_every_months: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-serviced`}>Last serviced</label>
+            <DateInput id={`${uid}-serviced`} className="input" value={draft.last_serviced_on} onChange={(e) => setDraft({ ...draft, last_serviced_on: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0, gridColumn: "1 / -1" }}>
+            <label htmlFor={`${uid}-warranty`}>Warranty until (optional)</label>
+            <DateInput id={`${uid}-warranty`} className="input" value={draft.warranty_until} onChange={(e) => setDraft({ ...draft, warranty_until: e.target.value })} style={field} />
           </div>
         </div>
         <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>{ASSET_ITEM_KIND_HINTS[draft.kind]}</p>

@@ -1444,7 +1444,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
             assetId={a.id}
             assetName={a.name}
             currency={currency}
-            items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth }))}
+            items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth, warranty_until: i.warranty_until, service_every_months: i.service_every_months, last_serviced_on: i.last_serviced_on }))}
           />
           <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
           {/* What it costs to keep (28 October): a repeating cost as a bill

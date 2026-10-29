@@ -2222,10 +2222,10 @@ function yearlyChangeFromForm(raw: FormDataEntryValue | string | null): { pct: n
   return { pct: n === 0 ? null : n };
 }
 
-type AssetItemInput = { name: string; kind: string; cost: string | number; acquired_on?: string | null; value_now?: string | number | null; note?: string | null };
+type AssetItemInput = { name: string; kind: string; cost: string | number; acquired_on?: string | null; value_now?: string | number | null; note?: string | null; warranty_until?: string | null; service_every_months?: string | number | null; last_serviced_on?: string | null };
 
 /** One breakdown item, checked and shaped for the table; an error names it. */
-function assetItemRow(input: AssetItemInput): { row: { name: string; kind: string; cost: number; acquired_on: string | null; value_now: number | null; note: string | null } } | { error: string } {
+function assetItemRow(input: AssetItemInput): { row: { name: string; kind: string; cost: number; acquired_on: string | null; value_now: number | null; note: string | null; warranty_until: string | null; service_every_months: number | null; last_serviced_on: string | null } } | { error: string } {
   const name = clamp(String(input.name ?? ""), 120);
   if (!name) return { error: "Name each thing in the breakdown." };
   const kind = (ASSET_ITEM_KINDS as readonly string[]).includes(input.kind) ? input.kind : "other";
@@ -2236,7 +2236,17 @@ function assetItemRow(input: AssetItemInput): { row: { name: string; kind: strin
   if (valueText && valueNow === null) return { error: `What "${name}" would sell for has to be a number, and cannot be less than zero.` };
   const acquired = String(input.acquired_on ?? "").trim();
   if (acquired && !/^\d{4}-\d{2}-\d{2}$/.test(acquired)) return { error: `When "${name}" was bought has to be a date.` };
-  return { row: { name, kind, cost, acquired_on: acquired || null, value_now: valueNow, note: clamp(String(input.note ?? ""), 500) || null } };
+  // Home upkeep (20261029160000): a warranty's end, how often it is
+  // serviced, and when it last was. All optional.
+  const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const warranty = String(input.warranty_until ?? "").trim();
+  if (warranty && !isDate(warranty)) return { error: `When the warranty on "${name}" ends has to be a date.` };
+  const serviced = String(input.last_serviced_on ?? "").trim();
+  if (serviced && !isDate(serviced)) return { error: `When "${name}" was last serviced has to be a date.` };
+  const everyText = String(input.service_every_months ?? "").trim();
+  const every = everyText ? Number(everyText) : null;
+  if (every !== null && !(Number.isInteger(every) && every >= 1 && every <= 60)) return { error: `How often "${name}" is serviced is a number of months, from 1 to 60.` };
+  return { row: { name, kind, cost, acquired_on: acquired || null, value_now: valueNow, note: clamp(String(input.note ?? ""), 500) || null, warranty_until: warranty || null, service_every_months: every, last_serviced_on: serviced || null } };
 }
 
 export async function addAssetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -2407,6 +2417,21 @@ export async function addAssetItemAction(assetId: string, input: AssetItemInput)
   if (error) return { error: databaseError(error) };
   await touchAsset(supabase, assetId, me.family_id);
   revalidateWealth();
+  return { error: null };
+}
+
+/** "Serviced" on a thing in the home (29 October): its last service is
+ * today, so the next one counts from here and Today's row goes. */
+export async function markItemServicedAction(itemId: string): Promise<ActionState> {
+  if (!UUID.test(itemId)) return { error: "That item wasn't found." };
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const today = familyDay(new Date(), await householdZone());
+  const { data, error } = await supabase.from("asset_items").update({ last_serviced_on: today }).eq("id", itemId).eq("family_id", me.family_id).select("id");
+  if (error) return { error: databaseError(error) };
+  if (!data?.length) return { error: "That item is no longer there — someone may have removed it." };
+  revalidateWealth();
+  revalidatePath("/today");
   return { error: null };
 }
 

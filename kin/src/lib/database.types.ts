@@ -1457,6 +1457,9 @@ export type Database = {
           name: string
           note: string | null
           value_now: number | null
+          warranty_until: string | null
+          service_every_months: number | null
+          last_serviced_on: string | null
         }
         Insert: {
           transaction_id?: string | null
@@ -1471,6 +1474,9 @@ export type Database = {
           name: string
           note?: string | null
           value_now?: number | null
+          warranty_until?: string | null
+          service_every_months?: number | null
+          last_serviced_on?: string | null
         }
         Update: {
           transaction_id?: string | null
@@ -1485,6 +1491,9 @@ export type Database = {
           name?: string
           note?: string | null
           value_now?: number | null
+          warranty_until?: string | null
+          service_every_months?: number | null
+          last_serviced_on?: string | null
         }
         Relationships: [
           {

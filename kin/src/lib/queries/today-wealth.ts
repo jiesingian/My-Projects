@@ -15,7 +15,7 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   const tz = await householdZone();
   const today = familyDay(new Date(), tz);
   const since = new Date(Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10) - 25)).toISOString();
-  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }, { data: assets }, accounts, { data: matched }] = await Promise.all([
+  const [utang, paluwagans, { data: loans }, { data: funds }, { data: income }, { data: marks }, { data: assets }, accounts, { data: matched }, { data: upkeep }] = await Promise.all([
     getUtang(me.family_id, me.id),
     getPaluwagans(me.family_id, me.id),
     // With a schedule, or a fixed rate that ends (20261026170000).
@@ -30,6 +30,8 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
     getAccounts(me.family_id),
     // Matched to the bank in the last 25 days, for the monthly row.
     supabase.from("wealth_transactions").select("account_id").eq("family_id", me.family_id).eq("particulars", MATCHED_PARTICULARS).gte("occurred_at", since),
+    // Things in the home serviced on a schedule, or under warranty (20261029160000).
+    supabase.from("asset_items").select("id, name, asset_id, acquired_on, service_every_months, last_serviced_on, warranty_until").eq("family_id", me.family_id).or("service_every_months.not.is.null,warranty_until.not.is.null"),
   ]);
   const toMatch = Number(today.slice(8, 10)) <= 3 ? accountsToMatch(accounts, me.id, new Set((matched ?? []).map((m) => m.account_id))) : [];
   const cards = accounts
@@ -38,7 +40,7 @@ export async function getTodayWealth(me: { id: string; family_id: string; famili
   // Investments with a maturity date (20261028130000).
   const maturities = accounts.filter((a) => (a.account_type === "investment" || a.account_type === "stocks") && a.matures_on).map((a) => ({ id: a.id, name: a.name, balance: a.balance, matures_on: a.matures_on }));
   const rows = wealthRows(
-    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards, maturities, toMatch },
+    { utang, paluwagans, loans: loans ?? [], funds: funds ?? [], income: (income ?? []).map((x) => ({ ...x, amount: Number(x.amount) })), assets: assets ?? [], cards, maturities, toMatch, upkeep: upkeep ?? [] },
     today,
     me.families.currency,
   );
