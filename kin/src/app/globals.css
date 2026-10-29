@@ -5193,6 +5193,9 @@ button.kin-initial:focus-visible {
    at least 44px tall: it has to work under a thumb inside Facebook's in-app
    browser, which is where the ads will land. */
 .kin-check-signin { min-height: 2.75rem; }
+/* Sign-up's "I agree" box: the whole line is the target, 44px tall. */
+.kin-agree { display: flex; gap: 0.625rem; align-items: center; min-height: 2.75rem; margin: 0 0 1rem; font-size: 0.8125rem; line-height: 1.45; color: var(--color-neutral-700); cursor: pointer; }
+.kin-agree input { width: 1.25rem; height: 1.25rem; flex: none; accent-color: var(--color-accent); margin: 0; }
 .kin-check-secondary { min-height: 2.75rem; align-self: center; }
 .kin-check-join { width: 100%; text-align: left; }
 .kin-check-join .btn { min-height: 2.75rem; }

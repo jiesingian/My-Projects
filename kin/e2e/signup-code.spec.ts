@@ -22,6 +22,13 @@ test("sign-up asks for an email and password, with no Google button", async ({ p
   await expect(page.getByRole("link", { name: /sign (in|up) with google/i })).toHaveCount(0);
 });
 
+test("agreeing to the terms is a box the person ticks: unticked, and required", async ({ page }) => {
+  await page.goto("/signup");
+  const box = page.getByRole("checkbox", { name: /I agree to the terms/ });
+  await expect(box).not.toBeChecked();
+  await expect(box).toHaveAttribute("required", "");
+});
+
 test("the code screen takes the code and refuses one of the wrong shape without asking Supabase", async ({ page }) => {
   await page.goto(`/verify?email=${encodeURIComponent(NOBODY)}`);
   await expect(page.getByText(NOBODY)).toBeVisible();
