@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { saidUnder18 } from "@/lib/age";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -50,6 +51,11 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   if (!householdName) return { error: "Give your family a name." };
 
   const supabase = await createClient();
+  // Under 18: join a parent's household instead (lib/age.ts).
+  const { data: auth } = await supabase.auth.getUser();
+  if (saidUnder18(auth.user?.user_metadata)) {
+    return { error: "A household is started by someone 18 or older. Ask a parent for your family's invite code and join it." };
+  }
 
   // Checked before the code is spent, not after. create_family refuses anyone
   // who already has a member row, and the redemption below is a separate
@@ -149,10 +155,14 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
   if (!inviteCode) return { error: "Enter the six-character invite code." };
 
   const supabase = await createClient();
+  // Someone who said they are under 18 asks to join as a child, so the
+  // organizer approves a child (lib/age.ts). join_family accepts only
+  // 'adult' and 'child_self'.
+  const { data: auth } = await supabase.auth.getUser();
   const { error } = await supabase.rpc("join_family", {
     p_invite_code: inviteCode,
     p_full_name: fullName,
-    p_role: "adult",
+    p_role: saidUnder18(auth.user?.user_metadata) ? "child_self" : "adult",
   });
   // join_family raises three distinct things and this used to report all of
   // them as a bad code, including the one that is nothing to do with the
@@ -344,7 +354,7 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
  *
  * The default stays `adult`, because approving without reading is the common
  * case and the quieter of the two answers should be what that gives you. */
-export async function approveMemberAction(memberId: string, role: MemberRole = "adult"): Promise<ActionState> {
+export async function approveMemberAction(memberId: string, role: JoinRole = "adult"): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the household's organizer can approve a join request." };
   // A child of any age may have a login of their own once the organizer
@@ -422,6 +432,10 @@ export async function reinstateMemberAction(memberId: string): Promise<ActionSta
  *    the write at all.
  */
 export type MemberRole = "parent" | "adult";
+
+/** What a join request can be approved as: a role above, or a child with a
+ * login of their own (approveMemberAction). */
+export type JoinRole = MemberRole | "child_self";
 
 export async function setMemberRoleAction(memberId: string, role: MemberRole): Promise<ActionState> {
   const me = await requireCurrentMember();

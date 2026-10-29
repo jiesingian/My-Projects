@@ -61,6 +61,17 @@ export default function SignupPage() {
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
           <span>Your household is walled off from every other one. Connect Google Drive and your documents and photos are kept there.</span>
         </div>
+        {/* Asked once; only the answer is kept (lib/age.ts). Under 18, Kin
+            is joined through a parent's household, never started alone. */}
+        <fieldset className="kin-age">
+          <legend>Are you 18 or older?</legend>
+          <label>
+            <input type="radio" name="over_18" value="yes" required /> Yes
+          </label>
+          <label>
+            <input type="radio" name="over_18" value="no" required /> No, I&rsquo;m under 18
+          </label>
+        </fieldset>
         {/* Ticked by the person, never for them (E-Commerce Act; NPC Circular
             2023-04: no pre-ticked consent). signUp refuses without it and
             records which version was agreed to, and when. */}
@@ -76,7 +87,7 @@ export default function SignupPage() {
         </SubmitButton>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
-        Already have an account? <Link href="/login">Sign in</Link>
+        Already have an account? <Link href="/login" style={{ textDecoration: "underline" }}>Sign in</Link>
       </p>
       </div>
     </OnboardingShell>

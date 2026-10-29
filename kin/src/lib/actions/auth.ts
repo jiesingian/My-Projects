@@ -56,6 +56,9 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
   if (formData.get("accept_terms") !== "on") {
     return { error: "Tick the box to agree to the terms and the privacy notice." };
   }
+  // Yes or no, nothing else (lib/age.ts).
+  const over18 = formData.get("over_18");
+  if (over18 !== "yes" && over18 !== "no") return { error: "Say whether you are 18 or older." };
 
   // Open sign-up (Jonathan, 28 September): an account is a person, before it
   // is part of any family. Codes come after registration -- a family's invite
@@ -76,7 +79,7 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
     // on the server, never taken from the form.
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      data: { accepted_terms_version: LEGAL_UPDATED, accepted_terms_at: new Date().toISOString() },
+      data: { accepted_terms_version: LEGAL_UPDATED, accepted_terms_at: new Date().toISOString(), over_18: over18 === "yes" },
     },
   });
   // A sign-up whose confirmation email could not be sent is rolled back by
