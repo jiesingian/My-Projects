@@ -2,7 +2,7 @@ const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const M = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
 const B = "b0000000-0000-0000-0000-000000000000";
-// "Not now" on "Waiting on you", per person (20261029210000).
+// "Not now" on "Waiting on you", per person (20261029233000).
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), ben = U("b1"), stranger = U("ff");
   const snooze = (who, member, family, key = "asset-x", until = "2026-11-28") =>
