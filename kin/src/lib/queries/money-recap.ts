@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAccounts, getArchivedAccountsForFlow, getSpendingBudgetRows } from "@/lib/queries/wealth";
+import { getAccounts, getArchivedAccountsForFlow, getAssetCosts, getSpendingBudgetRows } from "@/lib/queries/wealth";
 import { budgetsFor, budgetsInForce } from "@/lib/budgets";
 import { familyDay, familyMidnight } from "@/lib/time";
-import { inTotalsScope, paidFromVisibleFilter } from "@/lib/wealth";
+import { inTotalsScope, paidFromVisibleFilter, runningCosts } from "@/lib/wealth";
 import { buildRecap, monthBefore, type Recap, type RecapTxn } from "@/lib/money-recap";
 import { allRows } from "@/lib/queries/all-rows";
 
@@ -23,12 +23,12 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
   // Archived and deleted accounts' movements count too: they happened in the month.
   const counted = new Set([...accounts, ...archived].filter((a) => inTotalsScope(a, "all", leaveOut)).map((a) => a.id));
 
-  const [txns, budgetRows, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
+  const [txns, budgetRows, { data: bills }, { data: goals }, { data: snapshots }, { data: assets }, assetCosts] = await Promise.all([
     // Two months of movements: one imported statement can pass 1000 rows.
     allRows((a, b) =>
       supabase
         .from("wealth_transactions")
-        .select("account_id, direction, amount, category, goal_id, occurred_at")
+        .select("account_id, direction, amount, category, goal_id, occurred_at, source_table, source_id, capital")
         .eq("family_id", me.family_id)
         .eq("status", "confirmed")
         .gte("occurred_at", from.toISOString())
@@ -47,6 +47,10 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     supabase.from("goals").select("id, title, target_amount, current_amount").eq("family_id", me.family_id),
     // One row a day since 20261027120000: a month's figure is its last day's.
     supabase.from("net_worth_snapshots").select("day, net_worth").eq("viewer_member_id", me.id).eq("scope", "all").gte("day", `${prev}-01`).lt("day", nextMonth).order("day", { ascending: false }),
+    // What owning things cost (29 October): the assets' names, and their
+    // repeating running costs.
+    supabase.from("assets").select("id, name").eq("family_id", me.family_id),
+    getAssetCosts(me.family_id, today),
   ]);
 
   const rows = txns.filter((t) => counted.has(t.account_id));
@@ -75,5 +79,9 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     goals: (goals ?? []).map((g) => ({ id: g.id, title: g.title, target: Number(g.target_amount ?? 0), current: Number(g.current_amount) })),
     goalMoves: recapTxns.filter((t) => t.goalId).map((t) => ({ goalId: t.goalId!, month: t.month, direction: t.direction, amount: t.amount })),
     netWorth: { end: snap(month), start: snap(prev) },
+    assetSpend: rows
+      .filter((t) => t.direction === "out" && t.source_table === "assets" && !t.capital && t.source_id)
+      .map((t) => ({ name: (assets ?? []).find((a) => a.id === t.source_id)?.name ?? "An asset no longer listed", month: familyDay(new Date(t.occurred_at), tz).slice(0, 7), amount: Number(t.amount) })),
+    runningPerMonth: [...assetCosts.billsFor.values()].reduce((t, bills) => t + runningCosts(bills).perMonth, 0),
   });
 }

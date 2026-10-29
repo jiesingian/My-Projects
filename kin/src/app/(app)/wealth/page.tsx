@@ -81,6 +81,7 @@ import {
   loanInsurance,
   loanInsuranceFund,
   runningCosts,
+  insuranceGap,
   type RunningCost,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
@@ -1334,7 +1335,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
               <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
             </div>
           )}
-          <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} loanMonthly={liabilities.filter((l) => l.asset_id === a.id && Number(l.balance) > 0).reduce((t, l) => t + Number(l.monthly_payment ?? 0), 0)} currency={currency} fmtDate={fmtDate} />
+          <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} loanMonthly={liabilities.filter((l) => l.asset_id === a.id && Number(l.balance) > 0).reduce((t, l) => t + Number(l.monthly_payment ?? 0), 0)} kind={a.kind} insuredByLoan={liabilities.some((l) => l.asset_id === a.id && Number(l.balance) > 0 && (loanInsurance(l)?.included || !!loanInsuranceFund(l.name, goals)))} currency={currency} fmtDate={fmtDate} />
         </>
       ),
       actions: (
@@ -1752,9 +1753,11 @@ function LoanLines({
 /** An asset's running costs (28 October): each repeating bill against it
  * with its next due day, what they come to a month, and what its upkeep
  * came to over the last twelve months. Nothing when there is neither. */
-function RunningCostLines({ costs, upkeep, loanMonthly = 0, currency, fmtDate }: { costs: ReturnType<typeof runningCosts>; upkeep: number; /** The monthly payments of the loans on it. */ loanMonthly?: number; currency: string; fmtDate: (d: string) => string }) {
+function RunningCostLines({ costs, upkeep, loanMonthly = 0, kind, insuredByLoan = false, currency, fmtDate }: { costs: ReturnType<typeof runningCosts>; upkeep: number; /** The monthly payments of the loans on it. */ loanMonthly?: number; kind: string; /** A loan on it carries the insurance: Pag-IBIG's, or a yearly fund for it. */ insuredByLoan?: boolean; currency: string; fmtDate: (d: string) => string }) {
   const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
-  if (costs.costs.length === 0 && upkeep <= 0 && loanMonthly <= 0) return null;
+  // A car or a house with no insurance among its running costs (29 October).
+  const gap = insuredByLoan ? null : insuranceGap(kind, costs.costs.map((c) => c.name));
+  if (costs.costs.length === 0 && upkeep <= 0 && loanMonthly <= 0 && !gap) return null;
   const every = { monthly: "a month", quarterly: "every 3 months", yearly: "a year" } as const;
   return (
     <>
@@ -1765,6 +1768,7 @@ function RunningCostLines({ costs, upkeep, loanMonthly = 0, currency, fmtDate }:
         </div>
       )}
       {upkeep > 0 && <div style={muted}>Spent on it in the last 12 months: {formatCurrency(upkeep, currency)}</div>}
+      {gap && <div style={muted}>{gap}</div>}
       {/* What it really costs a month (28 October): the loan's payment and
           its running costs together. Upkeep stays apart -- a paid running
           cost is upkeep too, and it would count twice. */}

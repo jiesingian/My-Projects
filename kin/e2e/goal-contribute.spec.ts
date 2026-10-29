@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type Locator, type Page } from "@playwright/test";
 import { expandAllCollapsedGroups } from "./support/collapsible-groups";
+import { tidyUpAfter } from "./support/qa-household";
 
 /** Putting money into a savings goal, through the app rather than around it.
  *
@@ -84,19 +85,13 @@ test.beforeAll(async () => {
   }
 });
 
+// By the run's fixed prefix, not its exact title (29 October): the title
+// carries Date.now(), which a module loaded twice takes twice, so the
+// exact-title delete looked for a goal that was never made and left the real
+// one -- "E2E-CONTRIB-… school fund" was still on the sample household's
+// recap. tidyUpAfter removes the goal's ledger rows with it and asserts.
 test.afterAll(async () => {
-  const { ctx, url, headers } = await api();
-  try {
-    const goals = await ctx.get(`${url}/rest/v1/goals?select=id&title=eq.${encodeURIComponent(TITLE)}`, { headers });
-    for (const g of (await goals.json()) as { id: string }[]) {
-      await ctx.delete(`${url}/rest/v1/wealth_transactions?goal_id=eq.${g.id}`, { headers });
-      await ctx.delete(`${url}/rest/v1/goals?id=eq.${g.id}`, { headers });
-    }
-    const left = await ctx.get(`${url}/rest/v1/goals?select=id&title=eq.${encodeURIComponent(TITLE)}`, { headers });
-    expect(await left.json(), "the probe goal survived the tidy-up").toEqual([]);
-  } finally {
-    await ctx.dispose();
-  }
+  await tidyUpAfter("E2E-CONTRIB");
 });
 
 test("a goal added through the app starts at nothing", async ({ page }) => {

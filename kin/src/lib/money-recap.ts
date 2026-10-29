@@ -40,6 +40,10 @@ export type Recap = {
   saved: number;
   goals: (RecapGoal & { putIn: number; pct: number })[];
   netWorth: { end: number; start: number; change: number } | null;
+  /** What the house, the car and the rest cost to keep that month (29
+   * October): upkeep spent on each, and what their repeating running costs
+   * come to a month. Null when nothing was spent and none is set. */
+  owning: { lines: { name: string; spent: number }[]; spent: number; runningPerMonth: number } | null;
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -109,6 +113,10 @@ export function buildRecap(input: {
   goals: RecapGoal[];
   goalMoves: { goalId: string; month: string; direction: "in" | "out"; amount: number }[];
   netWorth: { end: number | null; start: number | null };
+  /** Upkeep entries tied to an asset (not capital), by the asset's name. */
+  assetSpend?: { name: string; month: string; amount: number }[];
+  /** The assets' repeating running costs, as a month's share. */
+  runningPerMonth?: number;
 }): Recap {
   const prev = monthBefore(input.month);
   const thisMonth = input.txns.filter((t) => t.month === input.month);
@@ -160,6 +168,7 @@ export function buildRecap(input: {
     saved: round2([...putIn.values()].reduce((s, n) => s + n, 0)),
     goals,
     netWorth: end !== null && start !== null ? { end, start, change: round2(end - start) } : null,
+    owning: owningFor(input.month, input.assetSpend ?? [], input.runningPerMonth ?? 0),
   };
 }
 
@@ -167,4 +176,13 @@ export function buildRecap(input: {
 export function monthLabel(month: string): string {
   const [y, m] = month.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-PH", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+/** The month's upkeep by asset, largest first, and the running costs' share. */
+function owningFor(month: string, spend: { name: string; month: string; amount: number }[], runningPerMonth: number): Recap["owning"] {
+  const by = new Map<string, number>();
+  for (const t of spend) if (t.month === month) by.set(t.name, (by.get(t.name) ?? 0) + t.amount);
+  const lines = [...by.entries()].map(([name, spent]) => ({ name, spent: round2(spent) })).sort((a, b) => b.spent - a.spent);
+  if (lines.length === 0 && !(runningPerMonth > 0)) return null;
+  return { lines, spent: round2(lines.reduce((t, l) => t + l.spent, 0)), runningPerMonth: round2(runningPerMonth) };
 }
