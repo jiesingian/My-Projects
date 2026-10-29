@@ -919,6 +919,22 @@ export const HELP_GUIDE: HelpTab[] = [
               "without it, reminders stay inside Kin.",
               "leave \"Show my Google events to the whole family\" on so the other grown-up's Today shows them too."
             ]
+          },
+          {
+            "name": "School: class days, pickups and no-classes days",
+            "tags": [],
+            "what": "A child's class days on the calendar (the Class days template, Monday to Friday), the school pickup as a duty the grown-ups take turns at, and \"No classes today\" on Today, which skips that day's classes and pickups for everyone when classes are suspended.",
+            "how": "On a child's page, Add their class days; in Planner → Add a task, choose \"School pickup, taking turns\". On a school day, a grown-up taps \"No classes today\" on Today.",
+            "pros": [
+              "Whose turn it is to pick up shows on their own Today.",
+              "A class suspension clears the day in one tap."
+            ],
+            "cons": [
+              "Kin doesn't hear about class suspensions by itself; a grown-up taps it."
+            ],
+            "tips": [
+              "add tuition as a bill with Due later and a monthly repeat, and keep report cards in the Vault under the child's name."
+            ]
           }
         ]
       },

@@ -41,6 +41,10 @@ type Template = {
   bymonthday?: number;
   time: string;
   reminder: string;
+  /** Minutes it lasts, for a block like a school day. */
+  duration?: string;
+  /** Taking turns among the grown-ups (a pickup rota). */
+  grownUpsTakeTurns?: boolean;
 };
 
 const TEMPLATES: Template[] = [
@@ -50,7 +54,12 @@ const TEMPLATES: Template[] = [
   { id: "swim", label: "Swimming lesson", kind: "lesson", title: "Swimming lesson", freq: "weekly", byweekday: [6], time: "10:00", reminder: "60" },
   { id: "pickleball", label: "Pickleball", kind: "sport", title: "Pickleball", freq: "weekly", byweekday: [2, 4], time: "17:30", reminder: "60" },
   { id: "clean", label: "House clean", kind: "chore", title: "House clean", freq: "weekly", byweekday: [0], time: "08:00", reminder: "" },
+  // School life (29 October): a child's class days on the calendar, and who
+  // brings them home, taking turns. "No classes today" on Today skips both.
+  { id: "class", label: "Class days", kind: "school", title: "Class", freq: "weekly", byweekday: [1, 2, 3, 4, 5], time: "07:00", reminder: "30", duration: "480" },
+  { id: "pickup", label: "School pickup, taking turns", kind: "school", title: "School pickup", freq: "weekly", byweekday: [1, 2, 3, 4, 5], time: "16:00", reminder: "30", grownUpsTakeTurns: true },
 ];
+
 
 /** Wraps a field so a refusal can point straight at it: named for scrolling,
  * ringed and announced when it is the one at fault. */
@@ -86,7 +95,7 @@ function FieldBlock({
   );
 }
 
-type Member = { id: string; full_name: string };
+type Member = { id: string; full_name: string; role?: string };
 type Account = PickableAccount;
 
 export type EditRoutine = {
@@ -119,12 +128,16 @@ export function RoutineForm({
   edit,
   today,
   attachments,
+  start,
 }: {
   members: Member[];
   accounts: Account[];
   edit?: EditRoutine | null;
   today: string;
   attachments?: RoutineAttachment[];
+  /** Arrived from a link with a template already chosen (?template=, and
+   * ?member= for whose it is): a child's page's "Add class days". */
+  start?: { template: string; memberId: string | null } | null;
 }) {
   const action = edit ? updateRoutineAction.bind(null, edit.id) : createRoutineAction;
   const [state, formAction] = useActionState(action, initialState);
@@ -157,14 +170,35 @@ export function RoutineForm({
   const [rotate, setRotate] = useState(edit?.rotate_assignee ?? false);
   const [cost, setCost] = useState(edit?.expected_cost != null ? String(edit.expected_cost) : "");
 
-  const applyTemplate = (t: Template) => {
+  const applyTemplate = (t: Template, forMember: string | null = null) => {
     setKind(t.kind);
     setTitle(t.title);
     setFreq(t.freq);
     setByweekday(t.byweekday);
     setTime(t.time);
     setReminder(t.reminder);
+    if (t.duration) setDuration(t.duration);
+    if (t.grownUpsTakeTurns) {
+      const grownUps = members.filter((m) => m.role === "parent" || m.role === "adult").map((m) => m.id);
+      setWholeFamily(false);
+      setWho(grownUps);
+      setRotate(grownUps.length >= 2);
+    } else if (forMember) {
+      setWholeFamily(false);
+      setWho([forMember]);
+    }
   };
+
+  // A template chosen by the link that opened the form, applied once.
+  const started = useRef(false);
+  useEffect(() => {
+    if (edit || started.current || !start) return;
+    started.current = true;
+    const t = TEMPLATES.find((x) => x.id === start.template);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- applying the link's template once, on arrival
+    if (t) applyTemplate(t, start.memberId && members.some((m) => m.id === start.memberId) ? start.memberId : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDay = (d: number) => setByweekday((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b)));
   const toggleWho = (id: string) => setWho((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));

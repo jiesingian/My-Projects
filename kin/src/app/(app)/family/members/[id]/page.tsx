@@ -234,6 +234,17 @@ export default async function MemberDetailPage({
                   <span className="kin-treepanel-stories-go">{treeStories.count > 0 ? "Open" : "Add one"}</span>
                 </Link>
               )}
+              {/* School life (29 October): a child's class days, from the Class days template. */}
+              {tab === "moments" && isChild && grownUpView && (
+                <Link href={`/planner/routines/new?template=class&member=${member.id}`} className="kin-treepanel-stories" style={{ marginBottom: "1rem" }}>
+                  <Icon name="fileText" size="1rem" />
+                  <span>
+                    <strong>{member.full_name.split(" ")[0]}&rsquo;s class days</strong>
+                    <small>On the calendar; &ldquo;No classes today&rdquo; on Today skips them</small>
+                  </span>
+                  <span className="kin-treepanel-stories-go">Add</span>
+                </Link>
+              )}
               {tab === "moments" && <PersonRecipes recipes={recipes} firstName={member.full_name.split(" ")[0]} />}
               {tab === "moments" ? (
                 <MomentsPane memberId={member.id} familyId={me.family_id} firstName={member.full_name.split(" ")[0]} isSelf={isSelf} fmtDate={fmtDate} />
