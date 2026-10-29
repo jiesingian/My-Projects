@@ -8903,3 +8903,26 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-keys-switch { display: flex; gap: 0.625rem; align-items: flex-start; margin-top: 1rem; min-height: 2.75rem; cursor: pointer; }
 .kin-keys-switch input { width: 1.25rem; height: 1.25rem; margin-top: 0.125rem; flex: none; }
 .kin-keys-switch small { display: block; color: var(--color-neutral-700); font-size: 0.8125rem; line-height: 1.4; margin-top: 0.125rem; }
+
+/* A&L's row buttons behind one "Options" (Jonathan, 28 October): a row
+   carried up to seven buttons over three lines; folded, it is one small
+   chip, and opening it shows them where they were. */
+.kin-row-actions > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  padding: 0 0.625rem;
+  margin-top: 0.375rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  cursor: pointer;
+  user-select: none;
+}
+.kin-row-actions > summary::-webkit-details-marker { display: none; }
+.kin-row-actions > summary::after { content: "▾"; font-size: 0.6875rem; }
+.kin-row-actions[open] > summary::after { content: "▴"; }

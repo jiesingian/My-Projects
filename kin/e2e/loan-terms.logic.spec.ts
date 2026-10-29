@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
+import { costPerMonth, runningCosts, RUNNING_COST_PRESETS, accountGroup, AL_CASH, AL_INVESTMENTS, amortise, amortisedPayment, assetGroup, cardDueDate, emergencyCover, extraPaymentEffect, loanInsurance, loanInsuranceFund, loanKindFor, loanOriginStatus, netWorthMoves, paymentsLeftForBalance, repricedPayment } from "@/lib/wealth";
 
 /** What A&L groups together (26 October): a balance sheet's groups, not the
  * account types. A time deposit is an investment, a card is not cash. */
@@ -219,4 +219,25 @@ test("which loans need yearly insurance, and the fund that pays it", () => {
   expect(loanInsuranceFund("Auto loan", goals)).toBeNull();
   // Another loan whose name sits inside the fund's is not its loan.
   expect(loanInsuranceFund("Car loan", [{ title: "BDO car loan insurance", repeats_yearly: true }])).toBeNull();
+});
+
+/** An asset's running costs (28 October): repeating bills against it, the
+ * newest of each, and what they come to a month. */
+test("running costs: newest bill of each name, monthly share of each repeat", () => {
+  expect(costPerMonth(28_000, "yearly")).toBe(2333.33);
+  expect(costPerMonth(4_500, "monthly")).toBe(4500);
+  expect(costPerMonth(3_000, "quarterly")).toBe(1000);
+  expect(costPerMonth(500, "once")).toBe(0);
+  const r = runningCosts([
+    { name: "Association dues", amount: 4500, recurrence: "monthly", due_date: "2026-10-05", status: "paid" },
+    { name: "Association dues", amount: 4500, recurrence: "monthly", due_date: "2026-11-05", status: "unpaid" },
+    { name: "Real property tax (amilyar)", amount: 12_000, recurrence: "yearly", due_date: "2026-01-31", status: "paid" },
+    { name: "Plumber", amount: 2500, recurrence: "once", due_date: "2026-10-01", status: "paid" },
+  ]);
+  expect(r.costs.map((c) => c.name)).toEqual(["Association dues", "Real property tax (amilyar)"]);
+  expect(r.costs[0]).toMatchObject({ open: true, due: "2026-11-05", perMonth: 4500 });
+  // Paid and not yet carried forward: still a running cost, no due day.
+  expect(r.costs[1]).toMatchObject({ open: false, due: null, perMonth: 1000 });
+  expect(r.perMonth).toBe(5500);
+  expect(RUNNING_COST_PRESETS.vehicle.map((p) => p.name)).toContain("Car insurance");
 });

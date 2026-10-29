@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getAssetCosts, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -20,6 +20,7 @@ import {
   type LineEntry,
   ValueUpdateControl,
   AssetBreakdownControl,
+  AddRunningCostControl,
   LoanScheduleControl,
   RemoveButton,
   SetBalanceButton,
@@ -79,6 +80,8 @@ import {
   pendingRows,
   loanInsurance,
   loanInsuranceFund,
+  runningCosts,
+  type RunningCost,
 } from "@/lib/wealth";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -1207,7 +1210,7 @@ async function NetWorthKeeper({ familyId, memberId }: { familyId: string; member
 
 async function AssetsPane({ familyId, memberId, currency, scope, range, includePrivate }: { familyId: string; memberId: string; currency: string; scope: WealthScope; range: CashFlowRange; includePrivate: boolean }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending] = await Promise.all([
+  const [nw, who, allAccounts, loanBills, onPlanner, monthlySpending, assetCosts] = await Promise.all([
     getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&range=${range}&who=${w}`),
     getAccounts(familyId),
@@ -1215,6 +1218,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
     getGoalsOnPlanner(familyId),
     // The last six full months' living costs, for the emergency cover.
     getMonthlySpending(familyId, scope, 6),
+    getAssetCosts(familyId, today),
   ]);
   const { assets, liabilities, goals, goalHeld, cashAccounts, investmentAccounts, creditAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, investmentTotal, creditOwed, owedToUs, paluwaganIn, receivables, weOwe, paluwaganOwed, payables, netWorth } = nw;
   // Deliberately not `cashAccounts` -- that list is scoped to whoever the
@@ -1317,6 +1321,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
               <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
             </div>
           )}
+          <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} currency={currency} fmtDate={fmtDate} />
         </>
       ),
       actions: (
@@ -1328,6 +1333,14 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
             items={a.items.map((i) => ({ id: i.id, name: i.name, kind: i.kind, cost: Number(i.cost), acquired_on: i.acquired_on, value_now: i.value_now == null ? null : Number(i.value_now), worth: i.worth }))}
           />
           <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
+          {/* What it costs to keep (28 October): a repeating cost as a bill
+              against it, and a one-off as upkeep through Move money. */}
+          {a.kind !== "investment" && <AddRunningCostControl assetId={a.id} assetName={a.name} kind={a.kind} whose={a.is_joint ? "joint" : (a.owner_member_id ?? "me")} currency={currency} today={today} />}
+          {a.kind !== "investment" && (
+            <Link href={`/wealth/transact?mode=out&against=assets:${a.id}`} className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+              Record a cost
+            </Link>
+          )}
           <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
         </>
       ),
@@ -1348,7 +1361,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
       ]
         .filter(Boolean)
         .join(" · ") || undefined,
-      detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} />,
+      detail: <LoanLines loan={l} today={today} currency={currency} fmtDate={fmtDate} insurance={loanInsurance(l)} fund={loanInsuranceFund(l.name, goals)} assetInsurance={l.asset_id ? (runningCosts(assetCosts.billsFor.get(l.asset_id) ?? []).costs.find((c) => /insurance|\bmri\b/i.test(c.name)) ?? null) : null} />,
       actions: (
         <>
           {/* Paying it from here splits the payment into interest and
@@ -1660,6 +1673,7 @@ function LoanLines({
   fmtDate,
   insurance,
   fund,
+  assetInsurance,
 }: {
   loan: LoanTerms & { id: string; is_joint?: boolean | null };
   today: string;
@@ -1667,6 +1681,8 @@ function LoanLines({
   fmtDate: (d: string) => string;
   insurance?: ReturnType<typeof loanInsurance>;
   fund?: { title: string; target_amount: number | null; current_amount: number; target_date: string | null; repeats_yearly: boolean | null; created_at: string } | null;
+  /** An insurance running cost on the loan's asset, which pays it as well as a fund. */
+  assetInsurance?: RunningCost | null;
 }) {
   const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
   const balance = Number(loan.balance);
@@ -1715,12 +1731,32 @@ function LoanLines({
       )}
       {/* The lender's yearly insurance (28 October): the yearly fund that
           pays it, or what is required and a way to set aside for it. */}
-      {insurance && balance > 0 && <LoanInsuranceLine insurance={insurance} fund={fund ?? null} isJoint={!!loan.is_joint} today={today} currency={currency} fmtDate={fmtDate} />}
+      {insurance && balance > 0 && <LoanInsuranceLine insurance={insurance} fund={fund ?? null} assetInsurance={assetInsurance ?? null} isJoint={!!loan.is_joint} today={today} currency={currency} fmtDate={fmtDate} />}
     </>
   );
 }
 
-function LoanInsuranceLine({ insurance, fund, isJoint, today, currency, fmtDate }: { insurance: NonNullable<ReturnType<typeof loanInsurance>>; fund: NonNullable<Parameters<typeof LoanLines>[0]["fund"]> | null; isJoint: boolean; today: string; currency: string; fmtDate: (d: string) => string }) {
+/** An asset's running costs (28 October): each repeating bill against it
+ * with its next due day, what they come to a month, and what its upkeep
+ * came to over the last twelve months. Nothing when there is neither. */
+function RunningCostLines({ costs, upkeep, currency, fmtDate }: { costs: ReturnType<typeof runningCosts>; upkeep: number; currency: string; fmtDate: (d: string) => string }) {
+  const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
+  if (costs.costs.length === 0 && upkeep <= 0) return null;
+  const every = { monthly: "a month", quarterly: "every 3 months", yearly: "a year" } as const;
+  return (
+    <>
+      {costs.costs.length > 0 && (
+        <div style={muted}>
+          Running costs: {costs.costs.map((c) => `${c.name} ${formatCurrency(c.amount, currency)} ${every[c.recurrence]}${c.due ? ` (next ${fmtDate(c.due)})` : ""}`).join(" · ")}
+          {costs.costs.length > 1 || costs.costs[0].recurrence !== "monthly" ? ` · about ${formatCurrency(costs.perMonth, currency)} a month in all` : ""}
+        </div>
+      )}
+      {upkeep > 0 && <div style={muted}>Spent on it in the last 12 months: {formatCurrency(upkeep, currency)}</div>}
+    </>
+  );
+}
+
+function LoanInsuranceLine({ insurance, fund, assetInsurance, isJoint, today, currency, fmtDate }: { insurance: NonNullable<ReturnType<typeof loanInsurance>>; fund: NonNullable<Parameters<typeof LoanLines>[0]["fund"]> | null; assetInsurance: RunningCost | null; isJoint: boolean; today: string; currency: string; fmtDate: (d: string) => string }) {
   const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
   if (fund) {
     const target = Number(fund.target_amount ?? 0);
@@ -1735,6 +1771,10 @@ function LoanInsuranceLine({ insurance, fund, isJoint, today, currency, fmtDate 
     );
   }
   if (insurance.included) return <div style={muted}>{insurance.what}</div>;
+  if (assetInsurance) {
+    const every = { monthly: "a month", quarterly: "every 3 months", yearly: "a year" } as const;
+    return <div style={muted}>Insurance: {assetInsurance.name} {formatCurrency(assetInsurance.amount, currency)} {every[assetInsurance.recurrence]}{assetInsurance.due ? `, next due ${fmtDate(assetInsurance.due)}` : ""}{" · one of the asset's running costs."}{/fire/i.test(assetInsurance.name) && !/\bmri\b/i.test(assetInsurance.name) && /MRI/.test(insurance.what) ? " MRI (life cover on the borrower) is separate: ask the bank whether it is in the monthly payment." : ""}</div>;
+  }
   const q = new URLSearchParams({ yearly: "1", title: insurance.title, note: insurance.note, whose: isJoint ? "joint" : "me" });
   return (
     <div style={{ ...muted, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem" }}>
@@ -1771,7 +1811,16 @@ function CategoryLines({ lines, currency, noun = "expense", open, always = false
       </div>
       {l.sub && <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{l.sub}</div>}
       {l.detail}
-      {l.actions && <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>}
+      {l.actions &&
+        (always ? (
+          // A&L: the buttons fold behind one "Options" chip (28 October).
+          <details className="kin-row-actions">
+            <summary>Options</summary>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
+          </details>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.375rem" }}>{l.actions}</div>
+        ))}
     </div>
   ));
   if (always) return <div style={{ margin: "-0.25rem 0 0.75rem" }}>{rows}</div>;
