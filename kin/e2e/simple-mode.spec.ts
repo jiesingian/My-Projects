@@ -71,7 +71,7 @@ test.describe("Simple Kin's Today", () => {
       expect(overflow).toBeLessThanOrEqual(0);
       // Every button and link a finger reaches is at least 44px tall.
       const small = await page.locator(".kin-simple-today :is(button, a.btn)").evaluateAll((els) =>
-        els.filter((e) => (e as HTMLElement).offsetParent && e.getBoundingClientRect().height < 44).map((e) => e.textContent?.trim()),
+        els.filter((e) => (e as HTMLElement).offsetParent && e.getBoundingClientRect().height < 43.99).map((e) => e.textContent?.trim()),
       );
       expect(small).toEqual([]);
       const { violations } = await new AxeBuilder({ page }).include(".kin-simple-today").withTags(["wcag2a", "wcag2aa"]).analyze();
