@@ -1,0 +1,50 @@
+name: iOS build
+
+# Builds Kin's iPhone app (kin/native, a Capacitor shell around the web app)
+# on GitHub's macOS runner, unsigned, for the simulator. It proves the Swift
+# compiles against the iOS SDK -- AlarmKit, CallKit and PushKit included --
+# without an Apple Developer account. Signing and TestFlight come later
+# (kin/native/README.md); that job will need the account's secrets.
+#
+# Only for changes under kin/native or this file, so a web-only pull request
+# never waits on a macOS runner. Free while the repository is public; macOS
+# minutes count ten times against a private plan.
+
+on:
+  pull_request:
+    paths:
+      - "kin/native/**"
+      - ".github/workflows/ios.yml"
+  push:
+    branches: [main]
+    paths:
+      - "kin/native/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: iOS app compiles
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: kin/native
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/native/package-lock.json
+      - run: npm ci
+      - name: Copy the config into the Xcode project
+        run: npx cap sync ios
+      - name: Which Xcode
+        run: xcodebuild -version
+      - name: Build for the simulator, unsigned
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -n 80
