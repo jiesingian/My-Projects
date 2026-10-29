@@ -39,10 +39,11 @@ export type FeaturePage = {
 const plus = pesos(PLANS.monthly.amountCents);
 const plusYear = pesos(PLANS.annual.amountCents);
 
-/** The free or Plus line, the same facts as the plan screen (plan-features.ts). */
-export function featurePlanLine(plan: "free" | "plus"): string {
+/** The free or Plus line, the same facts as the plan screen (plan-features.ts).
+ * Without the price in the Kin Android app (lib/native.ts, inAndroidApp). */
+export function featurePlanLine(plan: "free" | "plus", opts: { prices?: boolean } = {}): string {
   if (plan === "free") return `Part of Kin Free, for good. No card, no trial clock.`;
-  return `Part of Kin Plus: ${plus} a month or ${plusYear} a year for the whole family. Every family starts with ${TRIAL_DAYS} days of Plus free, no card needed; do nothing and you move to Kin Free and keep everything.`;
+  return `Part of Kin Plus${opts.prices === false ? ", for" : `: ${plus} a month or ${plusYear} a year for`} the whole family. Every family starts with ${TRIAL_DAYS} days of Plus free, no card needed; do nothing and you move to Kin Free and keep everything.`;
 }
 
 export const FEATURE_PAGES: FeaturePage[] = [

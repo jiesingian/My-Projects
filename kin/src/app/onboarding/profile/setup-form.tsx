@@ -30,7 +30,7 @@ const numericCode = {
  *
  * The name box sits above both forms and rides into whichever is sent, so
  * joining with an invite code asks for nothing else. */
-export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
+export function SetupForm({ inviteCode = "", inAndroidApp = false }: { inviteCode?: string; inAndroidApp?: boolean }) {
   const [createState, createAction] = useActionState(createFamilyAction, initialState);
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
   const [fullName, setFullName] = useState("");
@@ -130,8 +130,9 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
               <>Kin Free, as you chose, with {TRIAL_DAYS} days of the Plus extras to try first. No card, nothing to cancel.</>
             ) : (
               <>
-                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good, or Plus for{" "}
-                {pesos(PLANS.monthly.amountCents)} a month if you choose it.
+                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good
+                {/* No price in the Android app (lib/native.ts, inAndroidApp). */}
+                {inAndroidApp ? ", or Plus if you choose it." : <>, or Plus for {pesos(PLANS.monthly.amountCents)} a month if you choose it.</>}
               </>
             )}
           </p>

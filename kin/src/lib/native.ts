@@ -25,6 +25,7 @@ type KinAlarmsPlugin = {
 
 type Bridge = {
   isNativePlatform?: () => boolean;
+  getPlatform?: () => string;
   Plugins?: { KinAlarms?: KinAlarmsPlugin };
   nativePromise?: (plugin: string, method: string, options?: unknown) => Promise<unknown>;
 };
@@ -38,6 +39,24 @@ function bridge(): Bridge | null {
 /** True inside the Kin iPhone app. */
 export function inNativeApp(): boolean {
   return bridge() !== null;
+}
+
+/** The Kin Android app adds this to its web view's user agent
+ * (kin/native/capacitor.config.json, android.appendUserAgent), so the server
+ * knows it too, before the page runs (lib/native-request.ts). */
+export const ANDROID_APP_UA = "KinAndroidApp";
+
+export function isAndroidAppUserAgent(ua: string | null | undefined): boolean {
+  return Boolean(ua && ua.includes(ANDROID_APP_UA));
+}
+
+/** True inside the Kin Android app. Kin Plus is sold only on the website,
+ * and Google Play allows no price, buy button or link to it inside an app
+ * it distributes (kin/native/android/store/POLICY.md, "Payments"): those
+ * screens leave their prices out here. A Kin code can still be entered. */
+export function inAndroidApp(): boolean {
+  if (typeof navigator !== "undefined" && isAndroidAppUserAgent(navigator.userAgent)) return true;
+  return bridge()?.getPlatform?.() === "android";
 }
 
 /** The native alarm plugin, or null in a browser (or an app build without it). */

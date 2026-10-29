@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, type Ref } from "react";
+import { useState, useSyncExternalStore, type Ref } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
 import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 import type { ChosenPlan } from "@/lib/first-open";
+import { inAndroidApp } from "@/lib/native";
+
+const noSubscribe = () => () => {};
 
 /** The plan step before sign-up (agreed 13 October, answer 6A): "Start with
  * Plus free", highlighted, or "Just Kin Free". Both start the same trial;
@@ -17,6 +20,8 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
   const [plan, setPlan] = useState<ChosenPlan>("plus");
   const monthly = pesos(PLANS.monthly.amountCents);
   const yearly = pesos(PLANS.annual.amountCents);
+  // No price in the Kin Android app (Google Play's billing rule; lib/native.ts).
+  const android = useSyncExternalStore(noSubscribe, inAndroidApp, () => false);
 
   return (
     <section className="kin-welcome-step kin-check-plan">
@@ -34,7 +39,9 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
               Start with Plus free <span className="kin-plus-badge">RECOMMENDED</span>
             </strong>
             <small>
-              Everything, free for {TRIAL_DAYS} days. After that, {monthly}/mo or {yearly}/yr for the whole family, only if you subscribe.
+              {android
+                ? `Everything, free for ${TRIAL_DAYS} days, for the whole family.`
+                : `Everything, free for ${TRIAL_DAYS} days. After that, ${monthly}/mo or ${yearly}/yr for the whole family, only if you subscribe.`}
             </small>
           </span>
         </label>
@@ -82,9 +89,11 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
           </section>
           <section className="kin-plan" aria-labelledby="kin-check-plus">
             <h3 id="kin-check-plus">Kin Plus</h3>
-            <p className="kin-plan-price">
-              {monthly} a month or {yearly} a year
-            </p>
+            {!android && (
+              <p className="kin-plan-price">
+                {monthly} a month or {yearly} a year
+              </p>
+            )}
             <ul>
               {PLUS_FEATURES.map((f) => (
                 <li key={f}>

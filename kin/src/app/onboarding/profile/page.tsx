@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SetupForm } from "./setup-form";
 import { createClient } from "@/lib/supabase/server";
 import { HELPER_INVITE_COOKIE, helperLanding } from "@/lib/helper-access";
+import { androidAppRequest } from "@/lib/native-request";
 
 /** The one setup screen after sign-up (agreed 13 October): your name and your
  * family's, then Today. Arriving by an invite link puts joining first, with
@@ -25,5 +26,5 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
     if (where === "accept") redirect("/helper/accept");
     if (where === "helper") redirect("/helper");
   }
-  return <SetupForm inviteCode={invite} />;
+  return <SetupForm inviteCode={invite} inAndroidApp={await androidAppRequest()} />;
 }

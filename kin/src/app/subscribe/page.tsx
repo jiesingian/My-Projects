@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { paletteCss } from "@/lib/palettes";
+import { androidAppRequest } from "@/lib/native-request";
 import { SubscribeScreen } from "./subscribe-screen";
 
 /** The plan screen: Kin Free beside Kin Plus, where the household stands, and
@@ -14,6 +15,7 @@ export default async function SubscribePage() {
   if (!member) redirect("/login");
 
   const access = readAccess(member.families);
+  const inAndroidApp = await androidAppRequest();
 
   return (
     <>
@@ -26,6 +28,7 @@ export default async function SubscribePage() {
         plan={access.plan}
         trialing={access.trialing}
         daysLeft={access.daysLeft}
+        inAndroidApp={inAndroidApp}
       />
     </>
   );

@@ -29,6 +29,7 @@ export function SubscribeScreen({
   plan,
   trialing,
   daysLeft,
+  inAndroidApp = false,
 }: {
   householdName: string;
   isOrganiser: boolean;
@@ -36,6 +37,9 @@ export function SubscribeScreen({
   plan: Plan;
   trialing: boolean;
   daysLeft: number | null;
+  /** In the Kin Android app: no price and no word of paying elsewhere
+   * (Google Play's billing rule; lib/native.ts, inAndroidApp). */
+  inAndroidApp?: boolean;
 }) {
   const [state, formAction] = useActionState(redeemCodeForHouseholdAction, initialState);
   const uid = useId();
@@ -68,7 +72,9 @@ export function SubscribeScreen({
             Kin Plus {plan === "plus" && <span className="tag tag-accent">{trialing ? "TRIAL" : "CURRENT"}</span>}
           </h3>
           <p className="kin-plan-price">
-            {pesos(PLANS.monthly.amountCents)} a month, or {pesos(PLANS.annual.amountCents)} a year ({perMonth(PLANS.annual)}/mo). One price for the whole household.
+            {inAndroidApp
+              ? "One plan for the whole household."
+              : `${pesos(PLANS.monthly.amountCents)} a month, or ${pesos(PLANS.annual.amountCents)} a year (${perMonth(PLANS.annual)}/mo). One price for the whole household.`}
           </p>
           <ul>
             {PLUS_FEATURES.map((f) => (
@@ -95,7 +101,7 @@ export function SubscribeScreen({
             <Blueprint style={{ padding: "0.875rem", marginBottom: "1.25rem", background: "var(--color-accent-100)", display: "flex", gap: "0.625rem" }}>
               <Icon name="info" size={16} className="text-[var(--color-accent-700)] mt-1" />
               <span style={{ fontSize: "0.84375rem", lineHeight: 1.4 }}>
-                Paying with GCash, Maya or a card is coming soon. Until then, a Kin code unlocks Plus. Enter one below.
+                {inAndroidApp ? "A Kin code unlocks Plus. Enter one below." : "Paying with GCash, Maya or a card is coming soon. Until then, a Kin code unlocks Plus. Enter one below."}
               </span>
             </Blueprint>
 

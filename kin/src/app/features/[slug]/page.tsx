@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FEATURE_PAGES, featurePage, featurePlanLine } from "@/lib/feature-pages";
+import { FEATURE_PAGES, featurePage } from "@/lib/feature-pages";
+import { FeaturePlanLine } from "@/components/feature-plan-line";
 import { SITE_URL } from "@/lib/site";
 
 /** One public feature page (lib/feature-pages.ts holds the words and the
@@ -76,7 +77,7 @@ export default async function FeaturePage({ params }: { params: Promise<{ slug: 
 
       <h2>Free or Plus?</h2>
       <p className="kin-feature-plan" data-plan={page.plan}>
-        {page.plan === "free" ? <span className="kin-feature-badge">KIN FREE</span> : <span className="kin-feature-badge kin-plus-badge">PLUS</span>} {featurePlanLine(page.plan)}
+        {page.plan === "free" ? <span className="kin-feature-badge">KIN FREE</span> : <span className="kin-feature-badge kin-plus-badge">PLUS</span>} <FeaturePlanLine plan={page.plan} />
       </p>
 
       <h2>Questions people ask</h2>
