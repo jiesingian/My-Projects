@@ -6,7 +6,7 @@ import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getAssetCosts, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getAttributableTargets, getLoanBillIds, getGoalsOnPlanner, getAssetCosts, getLongerBills, getMonthlySpending, getBudgetHistory, getSpendingByMember, getPrivateBudgetCount, getBudgetSharing, recordAndGetNetWorthHistory, keepNetWorthCurrent, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddExpenseForm, AddIncomeScheduleForm, BillReminderPicker, SetTargetControl, AllocationEditor, CategoryBudgetRow, BudgetVisibility } from "@/components/wealth-controls";
@@ -537,7 +537,7 @@ function UtangInstalments({ heading, rows, currency, fmtDate }: {
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null, includePrivate }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null; includePrivate: boolean }) {
   const [fmtDate, dateFormat, today] = await Promise.all([familyDate(), householdDateFormat(), householdZone().then((tz) => familyDay(new Date(), tz))]);
-  const [cf, budget, accounts, who, nextBills, targets] = await Promise.all([
+  const [cf, budget, accounts, who, nextBills, targets, longerBills] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
     getAccounts(familyId),
@@ -546,7 +546,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     grownUp && plus ? getNextBillOffers(familyId) : Promise.resolve([]),
     // What an expense already paid can be for: a loan, an asset, a goal.
     getAttributableTargets(familyId),
+    getLongerBills(familyId),
   ]);
+  // Quarterly and yearly bills, as a month's share (28 October).
+  const longer = runningCosts(longerBills);
   // Utang in instalments (20261022180000), each one's next instalment on
   // its date: money lent coming back under INCOME, money borrowed going
   // out under EXPENSES. The household's, so under Who = everyone;
@@ -897,6 +900,16 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
             center={{ label: "spent", note: budget.spendBudget > 0 && range === "month" ? `of ${formatCurrency(budget.spendBudget, currency)}` : `this ${periodNoun}` }}
           />
         </Blueprint>
+      )}
+      {/* Bills that come round every three months or every year (28
+          October): what they ask of each month, so the amilyar or the
+          insurance renewal is set aside for rather than a surprise. */}
+      {scope === "all" && longer.costs.length > 0 && (
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-0.375rem 0 0.875rem" }}>
+          Bills every 3 months or yearly:{" "}
+          {longer.costs.map((c) => `${c.name} ${formatCurrency(c.amount, currency)}${c.due ? ` (${fmtDate(c.due)})` : ""}`).join(" · ")} · set aside about{" "}
+          <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(longer.perMonth, currency)}</span> a month for them.
+        </p>
       )}
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} today={today} />
       {/* Last month in one page, for the grown-ups (19 October): the same
@@ -1321,7 +1334,7 @@ async function AssetsPane({ familyId, memberId, currency, scope, range, includeP
               <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(a.worth.total - owedOn.get(a.id)!, currency)}</span>
             </div>
           )}
-          <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} currency={currency} fmtDate={fmtDate} />
+          <RunningCostLines costs={runningCosts(assetCosts.billsFor.get(a.id) ?? [])} upkeep={assetCosts.upkeep.get(a.id) ?? 0} loanMonthly={liabilities.filter((l) => l.asset_id === a.id && Number(l.balance) > 0).reduce((t, l) => t + Number(l.monthly_payment ?? 0), 0)} currency={currency} fmtDate={fmtDate} />
         </>
       ),
       actions: (
@@ -1739,9 +1752,9 @@ function LoanLines({
 /** An asset's running costs (28 October): each repeating bill against it
  * with its next due day, what they come to a month, and what its upkeep
  * came to over the last twelve months. Nothing when there is neither. */
-function RunningCostLines({ costs, upkeep, currency, fmtDate }: { costs: ReturnType<typeof runningCosts>; upkeep: number; currency: string; fmtDate: (d: string) => string }) {
+function RunningCostLines({ costs, upkeep, loanMonthly = 0, currency, fmtDate }: { costs: ReturnType<typeof runningCosts>; upkeep: number; /** The monthly payments of the loans on it. */ loanMonthly?: number; currency: string; fmtDate: (d: string) => string }) {
   const muted = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" } as const;
-  if (costs.costs.length === 0 && upkeep <= 0) return null;
+  if (costs.costs.length === 0 && upkeep <= 0 && loanMonthly <= 0) return null;
   const every = { monthly: "a month", quarterly: "every 3 months", yearly: "a year" } as const;
   return (
     <>
@@ -1752,6 +1765,21 @@ function RunningCostLines({ costs, upkeep, currency, fmtDate }: { costs: ReturnT
         </div>
       )}
       {upkeep > 0 && <div style={muted}>Spent on it in the last 12 months: {formatCurrency(upkeep, currency)}</div>}
+      {/* What it really costs a month (28 October): the loan's payment and
+          its running costs together. Upkeep stays apart -- a paid running
+          cost is upkeep too, and it would count twice. */}
+      {loanMonthly > 0 && (
+        <div style={muted}>
+          Cost of owning:{" "}
+          {costs.perMonth > 0 ? (
+            <>
+              about <span style={{ fontFamily: "var(--font-numeric)", color: "var(--color-text)", fontWeight: 600 }}>{formatCurrency(loanMonthly + costs.perMonth, currency)}</span> a month · loan {formatCurrency(loanMonthly, currency)} + running costs {formatCurrency(costs.perMonth, currency)}
+            </>
+          ) : (
+            `the loan's ${formatCurrency(loanMonthly, currency)} a month, before dues, tax and insurance: add them under Options › Add a running cost.`
+          )}
+        </div>
+      )}
     </>
   );
 }
