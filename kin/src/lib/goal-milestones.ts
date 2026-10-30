@@ -35,10 +35,13 @@ export async function celebrateGoalMilestones(): Promise<void> {
     const { data: won } = await supabase.from("planner_goals").update({ milestone: step }).eq("id", t.id).eq("milestone", was.get(t.id) ?? 0).select("id");
     if (!won?.length) continue;
     const people = (t.ownerId ? [t.ownerId] : grownUps).filter((id) => id !== me.id);
-    if (people.length > 0)
+    // The push's source is a row of its own (money_pushes, 20261030190000):
+    // push_targets sends only what an event of the sender's warrants.
+    const { data: push } = people.length > 0 ? await supabase.from("money_pushes").insert({ family_id: me.family_id, created_by: me.id, what: "milestone", ref: t.id, step }).select("id").single() : { data: null };
+    if (push)
       await sendPush({
         kind: "bills",
-        source: `goal-milestone:${t.id}:${step}`,
+        source: push.id,
         memberIds: people,
         title: step === 100 ? `🎯 ${t.title}: reached! 🎉` : `🎯 ${t.title}: ${step === 50 ? "halfway there" : `${step}% there`}`,
         body: t.caption,

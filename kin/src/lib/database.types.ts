@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      money_pushes: {
+        Row: {
+          created_at: string
+          created_by: string
+          family_id: string
+          id: string
+          recipient: string | null
+          ref: string
+          step: number | null
+          what: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          family_id: string
+          id?: string
+          recipient?: string | null
+          ref: string
+          step?: number | null
+          what: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          family_id?: string
+          id?: string
+          recipient?: string | null
+          ref?: string
+          step?: number | null
+          what?: string
+        }
+        Relationships: []
+      }
       storage_sweep: {
         Row: { bucket: string; path: string; queued_at: string }
         Insert: { bucket: string; path: string; queued_at?: string }

@@ -176,6 +176,9 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
  * to act on it hears of it -- who logged it, the owner of the account it
  * moves through, its owner, or every grown-up when it is joint with nobody
  * named (actorsFor). */
+/** Due bills read for Today: four shown, the rest counted. */
+const BILLS_READ = 200;
+
 async function moneyWaitsOn(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, meId: string) {
   const [{ data: members }, { data: accounts }] = await Promise.all([
     supabase.from("members").select("id, role, status").eq("family_id", familyId),
@@ -237,8 +240,10 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .lte("due_date", today)
       .order("due_date", { ascending: true })
       // Read past four, since some are someone else's to act on and are
-      // left out below (29 October); four still reach Today.
-      .limit(20),
+      // left out below (29 October); four still reach Today, and the rest
+      // are counted in one line -- so read enough to count them (a cap of
+      // 20 under-counted a long-unpaid household, 30 October).
+      .limit(BILLS_READ),
     supabase
       // Today's: due by today (or with no date), a check-up booked for today
       // or missed, and one given today (marked here). Without the date
@@ -415,12 +420,14 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   }
 
   if (myBills.length > 4) {
-    const more = myBills.length - 4;
+    // A full read may have left some out: say "20+" rather than a number
+    // that is too low.
+    const more = `${myBills.length - 4}${(bills.data ?? []).length >= BILLS_READ ? "+" : ""}`;
     items.push({
       id: "bills-more",
       icon: "wallet",
       tint: "money",
-      title: `${more} more bill${more === 1 ? "" : "s"} due`,
+      title: `${more} more bill${more === "1" ? "" : "s"} due`,
       meta: "in Cash Flow, with the rest of what's due",
       href: "/wealth?seg=cashflow&open=expenses",
       urgent: true,
