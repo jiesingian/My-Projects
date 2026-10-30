@@ -1,8 +1,11 @@
 # Personal space: a person owns their account, a household links them
 
 Approved by Jonathan on 28 September (BACKLOG, "Agreed 28 September", item 1).
-This note is the design; it ships in three pull requests so nothing is ever
-half-migrated.
+This note is the design. It was written as a plan to ship in three pull
+requests, so nothing was ever half-migrated, and all three are built: the data
+model (`20260928185000_people_and_personal_space.sql`), starting your own
+household (`20260928214500_start_own_household.sql`), and the profile page.
+It now describes the design as built; "Not in this change" still holds.
 
 ## Where it starts
 
@@ -72,7 +75,7 @@ personal photo rows go with it. Household records it wrote stay.
 
 ## The steps
 
-1. **The data model** (this PR). `people`, `members.person_id`,
+1. **The data model** (the first PR). `people`, `members.person_id`,
    `current_person_id()`, `owner_person_id` and `visibility` on journal entries
    and photos, `owner_person_id` on goals, `personal_notes`, and the policies
    above. No screen changes; the app keeps writing household entries exactly as

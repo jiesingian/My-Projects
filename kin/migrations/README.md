@@ -7,8 +7,8 @@ of them are worth reading, particularly
 `2026-09-08-goal-totals-from-the-ledger.sql`.
 
 **New migrations do not go here.** They go in `kin/supabase/migrations/`, where
-the pipeline picks them up: dev applies them on merge, production applies them
-when Jonathan presses the button. See the README there.
+the pipeline picks them up: on merge dev applies them, then production, by
+itself. See the README there.
 
 **Never move one of these files into that directory.** Its version would be
 missing from the ledgers, so the pipeline would try to run it again against two

@@ -43,7 +43,9 @@ from the session):
    declaration): https://privacy.gov.ph/?p=41669
 5. A support address. Then any session fills `OPERATOR` in
    `src/lib/legal.ts` (name, address, email, DPO, registration, TIN), which
-   the legal pages already show.
+   the legal pages already show. **Support address done 30 October
+   (#1182):** familyapp.kin@gmail.com is `OPERATOR.email`; the other fields
+   are still empty.
 6. A lawyer's read, and the providers' data terms on file:
    https://supabase.com/legal/dpa, https://vercel.com/legal/dpa,
    https://www.anthropic.com/legal/commercial-terms,
@@ -109,7 +111,7 @@ link for every step:
   `/legal/delete-account` page.
 - **Payments:** Kin Plus is sold only on the website. Inside the store
   apps, no prices or links to it. The iPhone's version is #1140; the
-  Android app's follows once that has merged, on the same switch.
+  Android app's is #1162 (done 29 October), on the same switch.
 - **Listing** (`store/LISTING.md`, `store/DATA_SAFETY.md`):
   - text, category, the IARC answers;
   - the review login plan: a made-up household on production, created by
@@ -451,7 +453,8 @@ statements page (`/wealth/statements`, #944, with lib/statements.ts and
 its two queries) and the BILLS label. "Snap a receipt" has no row of its
 own: it is a "Snap it" line inside Add expense and on Move money, shown
 only once `ANTHROPIC_API_KEY` is on the server (`kinAiReady`); the page
-itself stays at `/wealth/scan`.
+itself stays at `/wealth/scan`. **Removed 28 October (#1059):** the receipt
+scanner is gone, "Snap it" lines and `/wealth/scan` with it.
 
 ## Wrap-up items a session could do, 23 October
 
@@ -1169,7 +1172,8 @@ are refused. Not checked: on a phone (see "Needs a real phone").
     receives a subscription. The cron path is unchanged apart from
     due_scheduled_messages() asking the new way. Probe:
     push-targets-per-push.mjs, and on dev with two real logins:
-    e2e/push-targets-live.spec.ts (every pull request's e2e job). Not
+    e2e/push-targets-live.spec.ts (main's e2e job on dev after each merge;
+    every pull request's until 23 October). Not
     checked: the last hop to a real phone (deliver(), unchanged).
 - **Minor, left:**
   - ~~Deleting a note, question or gift row that's already gone reports

@@ -4,7 +4,7 @@ Each item here is a secret, an outside account or money, which `CLAUDE.md`
 keeps with Jonathan. Everything else is already built and merged; these
 steps switch it on. Each says what it is for and what is safe.
 
-**Where things stand (checked 19 October; nothing changed since 29 September):**
+**Where things stand (rows 1–7 checked 19 October, unchanged since 29 September; rows 9–11 added 29–30 October):**
 
 | | |
 |---|---|
@@ -147,8 +147,9 @@ the one key:
 - **Planner → Add → *Scan a flyer or invitation***: a photo of a school memo,
   an invite or a poster, read for dates and offered as calendar entries to
   tick (`src/lib/actions/flyer.ts`).
-- The Kin Plus features built on the same path (receipt and e-wallet
-  scans, the chat summary, Send it to Kin), as each lands.
+- The Kin Plus features built on the same path (the chat summary, Send it
+  to Kin), as each lands. The receipt scanner was removed on 28 October
+  (#1059).
 
 Until the key exists every one of them is visible and says *Kin AI isn't
 switched on yet*; nothing is sent anywhere.
@@ -714,3 +715,24 @@ Allow three weeks from registration to the public listing:
 phone" has the Android checks: alarms, calls, the re-sync, and the full
 screen being taken away.
 
+---
+
+## For reference: names no other section mentions
+
+Names only, no values, and nothing here says whether one is set.
+
+**GitHub Actions secrets the workflows read** (each workflow's comments say
+more):
+
+| Name | What it is for |
+|---|---|
+| `PROD_DB_URL` | `migrate.yml` applies migrations to production with it. In the `main-only` environment, not a repository secret. |
+| `PROD_SUPABASE_URL`, `PROD_SUPABASE_ANON_KEY` | `schema-check.yml` and `weekly-check.yml` ask production what columns it has (read-only, no rows). |
+| `PROD_E2E_EMAIL`, `PROD_E2E_PASSWORD` | The production throwaway QA account those checks sign in as; never a real account. |
+| `DEV_DB_URL` | `migrate.yml` and `self-heal.yml` apply migrations to dev; `e2e.yml` copies dev's schema (structure only) for `smoke-private-db`. |
+
+**One Vercel variable:** `GOOGLE_CALENDAR_REDIRECT_URI`, the OAuth redirect
+for linking Google Calendar (`src/app/api/calendar/connect` and
+`callback`), as `GOOGLE_REDIRECT_URI` is for Drive. It uses the same
+`GOOGLE_CLIENT_ID`. Without it, Settings says Google Calendar linking isn't
+configured.

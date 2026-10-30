@@ -91,8 +91,11 @@ fifteen minutes earlier, tidy-ups truthfully reporting nothing of their own
 left behind, and a full suite that could not be made to come out clean twice
 running. It cost an hour to work out that nothing was broken.
 
-`e2e.yml` holds a repo-wide concurrency group of one, so CI never overlaps
-itself. Nothing serialises two laptops. Two households did.
+In CI, since 23 October, a pull request's smoke runs in `smoke-private-db` on
+a database of its own; on dev only main's run after each merge and the weekly
+check run, one at a time in the `e2e-dev` group. Nothing serialises two
+laptops, which is why a session runs one spec against dev, never the full
+suite (root `CLAUDE.md`). Two households did, back then.
 
 That reasoning still holds, and dev has one household rather than two only
 because nobody has yet hit the collision there. If two sessions start tripping
@@ -101,9 +104,12 @@ theory about timing.
 
 ## What each one holds
 
+This section describes production's two, `kin-e2e-qa@` (qa1) and
+`kin-e2e-qa2@` (qa2), as they were when it was written.
+
 They started identically, seeded once on 9 September, because `regressions.spec`
-is not self-sufficient — it asserts against fixtures the household is expected
-to already hold, and a household missing them fails for reasons that have
+was not self-sufficient then — it asserted against fixtures the household was
+expected to already hold, and a household missing them fails for reasons that have
 nothing to do with the code. This part has stayed identical since, and neither
 household's own tests touch it:
 
@@ -139,17 +145,16 @@ staying matched:
 
 Don't assume the two match without checking.
 
-## Known: the seed is pinned to one week
+## The seed was pinned to one week — CLOSED 9 September
 
 Those activities are dated Monday **7 September 2026**, in both households.
 The Planner test reads the current week, so from Monday **14 September** they
 fall outside it and `regressions.spec` starts failing on both machines at once
 — not because anything broke, but because the fixtures aged out.
 
-The fix is for `regressions.spec` to create its own fixtures at a date it
-chooses, the way `writes.spec` and the newer specs do, rather than asserting
-against content somebody seeded by hand. That is a change to a spec, not to
-this file; it is recorded in `KNOWN_RISKS.md`.
+**Fixed the same day.** `regressions.spec` now makes its own fixtures in a
+`beforeAll`, anchored to today in the household's own zone, the way
+`writes.spec` and the newer specs do. `KNOWN_RISKS.md` has the detail.
 
 ## Adding or repairing a household
 

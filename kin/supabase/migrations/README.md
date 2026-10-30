@@ -12,17 +12,21 @@ already run. Use UTC, and make it later than every file already here.
 1. You open a pull request with the file in it, like any other change.
 2. It merges on green, like any other change.
 3. **Dev applies it by itself**, the moment the merge lands — if `DEV_DB_URL`
-   is set. It is optional: without it the run says loudly that dev was skipped,
-   and either person can bring dev up to date through the Supabase connector.
-4. **Production waits for Jonathan** — one button: Actions → *Migrate* → Run
-   workflow → `production`. No SQL is pasted, and the run prints exactly which
-   versions it applied. Tick *dry run* first if you want to see the list
-   without running it.
+   is set. Without it the run says loudly that dev was skipped.
+4. **Production follows by itself**, in the same run, and only if dev took it.
+   `automerge.yml` dispatches *Migrate* with target `both` after each merge.
+   No SQL is pasted, and the run prints exactly which versions it applied.
+   Actions → *Migrate* → Run workflow is still there for re-running a
+   transient failure, or for `production` alone when the two have drifted.
 
-Step 4 is the one asymmetry, and it is deliberate: a migration takes effect the
-instant it is run, and no check afterwards can catch a bad one. What changed on
-10 September is only *how* it is run — a button instead of a copy-paste into
-the SQL editor, and a recorded list of what actually went in.
+Step 4 used to wait for Jonathan to press a button. On 21 September the button
+was forgotten and a merged feature sat in the app unable to save, so
+production now follows dev on its own (the header of
+`.github/workflows/migrate.yml` tells the story). What changed on 10 September
+is *how* a migration is run — a workflow instead of a copy-paste into the SQL
+editor, and a recorded list of what actually went in. The SQL editor, a
+connection string and the connector are still never the route; see the
+`migrations` skill.
 
 ## Writing one
 
@@ -55,8 +59,9 @@ have and try to run it again against a database that already has it.
 
 ## If it goes wrong
 
-`db push` stops at the first failing statement, and the versions it already
-applied stay applied — this is not one big transaction across files. The run
+The runner (`kin/scripts/migrate.mjs`, not `supabase db push`; its header says
+why) stops at the first failing migration, and the versions it already applied
+stay applied — this is not one big transaction across files. The run
 log names the file it died on. Fix forward with a new migration; do not edit a
 file that has already run anywhere, because its version is already ticked off
 in a ledger and the edit will simply never be applied.
