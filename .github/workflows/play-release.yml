@@ -47,6 +47,12 @@ jobs:
   release:
     name: Build, sign and upload
     runs-on: ubuntu-latest
+    # Its secrets live in the `main-only` environment, which hands them only
+    # to a run from main (Settings → Environments → main-only → deployment
+    # branches: main). A branch's copy of this file, or any other workflow on a
+    # branch, cannot read them; while a secret still exists at repository level
+    # too, the environment's copy wins here and the old one keeps working.
+    environment: main-only
     timeout-minutes: 30
     defaults:
       run:
