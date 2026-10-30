@@ -6,6 +6,13 @@
 # hook registration. Anything genuinely per-machine goes in settings.local.json.
 .claude/settings.local.json
 
+# Every project folder's basics, so a new one beside kin/ is covered before
+# it has a .gitignore of its own (kin/.gitignore repeats these).
+.DS_Store
+node_modules/
+.env*
+!.env.example
+
 # machine-local graphify pointers and auto-backups (regenerated on any machine)
 graphify-out/.graphify_python
 graphify-out/.graphify_root

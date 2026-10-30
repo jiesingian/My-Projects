@@ -76,7 +76,6 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git fetch --no-tags --depth=0 origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
             # --no-renames: a migration renamed to a new timestamp is a new
             # version to the ledger and has never run, so it is as new as an
             # added file (28 September: the fix for a duplicate version was a
