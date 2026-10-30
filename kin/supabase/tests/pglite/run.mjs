@@ -1,4 +1,4 @@
-// Row-level security checks for the chat and connection migrations, run in
+// Row-level security checks for the migrations, run in
 // PGlite (Postgres compiled to WebAssembly) -- no database, no credentials,
 // no real data. `npm run test:rls` from kin/.
 //
@@ -8,6 +8,12 @@
 // themselves are the real files from supabase/migrations, applied in order
 // -- twice, so a file that cannot re-run fails here. Each probe file then
 // runs against a fresh database of its own.
+//
+// A new migration needs no edit here: every file named later than the
+// newest one in MIGRATIONS runs after it, in name order. Only a migration
+// PGlite cannot run (it leans on a table or column base.sql does not stand
+// in for) goes in SKIP, or base.sql gains the stand-in. Every migration PR
+// once appended to MIGRATIONS, so two open at once always conflicted here.
 //
 // Add a probe: a file in probes/ exporting `default async ({ db, as, check,
 // refused })`. `as(userId, sql, params)` runs a query as that signed-in user;
@@ -21,7 +27,9 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(here, "..", "..", "migrations");
 
-// The migrations these probes cover, in the order they ran on main.
+// The migrations these probes cover, in the order they ran on main. Older
+// files are left out on purpose (base.sql stands in for them), and a few sit
+// beside the migration they amend rather than in name order.
 const MIGRATIONS = [
   "20260923160000_tree_shared_relatives.sql",
   "20260929060000_connections.sql",
@@ -183,6 +191,20 @@ const MIGRATIONS = [
   "20261030190000_money_pushes.sql",
 ];
 
+// Newer migrations PGlite cannot run, each with the reason.
+const SKIP = [];
+
+// Every migration named after the newest in MIGRATIONS, in name order.
+// "Newest" is the highest name, not the last line, since the list is not in
+// name order; migrate.mjs refuses a file older than the newest applied, so a
+// new file always lands after it.
+const newestListed = [...MIGRATIONS].sort().at(-1);
+const ADDED = fs
+  .readdirSync(migrationsDir)
+  .filter((f) => /^\d{14}_.*\.sql$/.test(f) && f > newestListed && !SKIP.includes(f) && !MIGRATIONS.includes(f))
+  .sort();
+MIGRATIONS.push(...ADDED);
+
 const only = process.argv[2];
 const probeFiles = fs
   .readdirSync(path.join(here, "probes"))
@@ -197,7 +219,8 @@ async function freshDatabase() {
       try {
         await db.exec(fs.readFileSync(path.join(migrationsDir, m), "utf8"));
       } catch (e) {
-        throw new Error(`${m} failed on pass ${pass}: ${e.message}`);
+        const hint = ADDED.includes(m) ? " (if PGlite cannot run it, add it to SKIP in run.mjs with the reason, or give base.sql the stand-in it needs)" : "";
+        throw new Error(`${m} failed on pass ${pass}: ${e.message}${hint}`);
       }
     }
   }

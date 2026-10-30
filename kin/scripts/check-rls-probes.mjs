@@ -17,8 +17,9 @@
 //   - an object created by a migration already on the base branch, mentioned
 //     by no probe and not in the allowlist                  -> warning only
 //   - an allowlist entry that a probe now covers            -> notice (remove it)
-//   - a new migration that creates something but is not in run.mjs's
-//     MIGRATIONS list, so no probe can actually reach it    -> warning
+//   - a new migration that creates something but that run.mjs does not
+//     apply (in SKIP, or older than MIGRATIONS' newest and not listed),
+//     so no probe can actually reach it                    -> warning
 //
 // The allowlist, supabase/tests/pglite/no-probe-yet.txt, grandfathers what
 // existed on 20 October 2026 so the step passes on main. It is debt, not
@@ -92,7 +93,13 @@ const probeText = fs.readdirSync(probesDir).filter((f) => f.endsWith(".mjs"))
 const probed = (name) => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(probeText);
 
 const runMjs = fs.readFileSync(path.join(pgliteDir, "run.mjs"), "utf8");
-const inHarness = (file) => runMjs.includes(`"${file}"`);
+// run.mjs applies what MIGRATIONS lists plus every file named after its
+// newest, less SKIP.
+const listedIn = (name) => [...(runMjs.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\];`))?.[1] ?? "").matchAll(/"([^"]+\.sql)"/g)].map((m) => m[1]);
+const harnessListed = listedIn("MIGRATIONS");
+const harnessSkipped = listedIn("SKIP");
+const harnessNewest = [...harnessListed].sort().at(-1) ?? "";
+const inHarness = (file) => !harnessSkipped.includes(file) && (harnessListed.includes(file) || file > harnessNewest);
 
 // ── The allowlist ───────────────────────────────────────────────────────────
 
@@ -164,7 +171,7 @@ for (const o of unprobed) {
   const key = `${o.kind} ${o.name}`;
   if (isNew(o)) {
     errors++;
-    annotate("error", o, `${o.kind} ${o.name} is new and no probe under supabase/tests/pglite/probes/ mentions it. Add one (the migrations skill: negative cases included) and list the migration in run.mjs.`);
+    annotate("error", o, `${o.kind} ${o.name} is new and no probe under supabase/tests/pglite/probes/ mentions it. Add one (the migrations skill: negative cases included).`);
   } else if (!allow.has(key)) {
     warnings++;
     annotate("warning", o, `${o.kind} ${o.name} has no probe and is not in no-probe-yet.txt. Write a probe, or add it to the allowlist and say why.`);
@@ -173,7 +180,7 @@ for (const o of unprobed) {
 for (const file of newOnBranch) {
   if (all.some((o) => isNew(o) && o.files.includes(file)) && !inHarness(file)) {
     warnings++;
-    annotate("warning", { file }, `${file} creates something but is not in MIGRATIONS in supabase/tests/pglite/run.mjs, so no probe can reach what it creates.`);
+    annotate("warning", { file }, `${file} creates something but supabase/tests/pglite/run.mjs does not apply it (it is in SKIP, or older than MIGRATIONS' newest), so no probe can reach what it creates.`);
   }
 }
 for (const key of allow) {

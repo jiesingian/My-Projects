@@ -1,2 +1,0 @@
-wealth-simple-off
-wealth-simple-on

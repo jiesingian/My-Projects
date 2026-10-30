@@ -1,2 +1,0 @@
-today-simple-off
-today-simple-on
