@@ -337,6 +337,24 @@ working exactly as now, for everyone, with or without the iPhone app.
   keeps 15% (Small Business Program) and you set its price. That is a
   pricing decision; say the word and a session builds it.
 
+### Before enrolling: three things to do first (free)
+
+- **Your Apple Account.** At
+  [account.apple.com](https://account.apple.com/account/manage), check that
+  your first and last name are your **legal name**, as on your ID, and that
+  two-factor authentication is on. Apple shows that name as the App Store
+  seller; a nickname delays approval. Use a street address, not a P.O. box.
+- **Enrol from your iPhone**, in Apple's **Apple Developer** app (free, App
+  Store), rather than the website: it scans your ID for the identity check.
+  Have your passport, driver's licence or national ID at hand.
+- **What can be done before Apple approves you**, so Monday's waiting isn't
+  wasted: the support email (above), and the review household (step 10;
+  it lives in Kin, not at Apple, so it can be made today). Apple's approval
+  can take from a few hours to several days when it checks an ID;
+  everything from step 2 on waits for it. If it is still pending after a
+  week, write to Apple at
+  [developer.apple.com/contact](https://developer.apple.com/contact/).
+
 ### Steps
 
 1. **Join the Apple Developer Program** at

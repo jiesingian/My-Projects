@@ -61,6 +61,24 @@ jobs:
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build CODE_SIGNING_ALLOWED=NO \
             SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' build | tail -n 80
+      # What TestFlight builds (testflight.yml): Release, for a real iPhone,
+      # with the widget extension inside. Unsigned here, so it needs no Apple
+      # account, but it compiles the same code with the same optimiser and
+      # device SDK, so a Release-only or device-only error shows here, on the
+      # pull request that caused it, not on the first signed run.
+      - name: Build Release for a real iPhone, unsigned
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KIN_REQUIRE_ALARMKIT' build | tail -n 80
+          test -d build-device/Build/Products/Release-iphoneos/App.app/PlugIns/KinWidgets.appex \
+            || { echo "::error::The widget extension is not inside the app."; exit 1; }
+          test -f build-device/Build/Products/Release-iphoneos/App.app/PrivacyInfo.xcprivacy \
+            || { echo "::error::The app's privacy manifest is not in the bundle."; exit 1; }
+          test -f build-device/Build/Products/Release-iphoneos/App.app/PlugIns/KinWidgets.appex/PrivacyInfo.xcprivacy \
+            || { echo "::error::The widgets' privacy manifest is not in the bundle."; exit 1; }
 
   # Waits until no End-to-end run is queued or going on dev, the same way
   # weekly-check.yml does and for the same reason: GitHub keeps one waiter
