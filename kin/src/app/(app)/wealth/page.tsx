@@ -730,7 +730,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
   const incomeItems = incomeLinesDone.map(({ actions: _actions, ...item }) => item);
 
   const forLabel = (table: string | null, id: string | null): string | null =>
-    !table || !id ? null : (table === "liabilities" ? targets.loans : table === "assets" ? targets.assets : targets.goals).find((x) => x.id === id)?.name ?? null;
+    !table || !id ? null : table === "accounts" ? (accounts.find((x) => x.id === id)?.name ?? null) : (table === "liabilities" ? targets.loans : table === "assets" ? targets.assets : targets.goals).find((x) => x.id === id)?.name ?? null;
   const expenseLines = new Map<string, Line>();
   for (const t of cf.periodOut) {
     const category = categoryLabel(t.category ?? "Other");
@@ -994,7 +994,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, openPending = null, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; openPending?: string | null; includePrivate: boolean; grownUp: boolean }) {
-  const [dateFormat, pane, cf, who, allArchived, viewers, tracked] = await Promise.all([
+  const [dateFormat, pane, cf, who, allArchived, viewers, tracked, allAccounts] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope, "account"),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -1005,7 +1005,11 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     getArchivedAccounts(familyId),
     getAccountViewers(familyId),
     getTrackedGoals(familyId, currency),
+    getAccounts(familyId),
   ]);
+  // What a 🎯 savings goal's auto-save can move money from: any account the
+  // viewer can pay out of, whoever's view this is.
+  const payFrom = toPickable(allAccounts, memberId).map((x) => ({ id: x.id, name: x.name }));
   const archived = allArchived.filter((a) => inScope(a, scope));
   // Whom an account of yours can be shown to: everyone else in the
   // household. A managed child is listed but can't be ticked -- with no
@@ -1135,7 +1139,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{who.ownerOf(a.owner_member_id, false)}</span>
                     )}
                     {a.account_type !== "credit_card" && (
-                      <WealthGoalButton tracks="account" id={a.id} suggest={{ title: `${a.name} savings goal`, amount: Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000) }} goal={markOf(tracked.get(trackKey("account", a.id)))} currency={currency} />
+                      <WealthGoalButton tracks="account" id={a.id} suggest={{ title: `${a.name} savings goal`, amount: Math.max(10000, Math.ceil((a.balance * 1.5) / 10000) * 10000) }} goal={markOf(tracked.get(trackKey("account", a.id)))} currency={currency} accounts={payFrom} />
                     )}
                     <AccountPrivacyToggle
                       accountId={a.id}

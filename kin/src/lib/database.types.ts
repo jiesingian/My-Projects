@@ -1631,6 +1631,7 @@ export type Database = {
           against_id: string | null
           against_table: string | null
           amount: number
+          auto_save: boolean
           category: string | null
           created_at: string
           created_by: string | null
@@ -1654,6 +1655,7 @@ export type Database = {
           against_id?: string | null
           against_table?: string | null
           amount: number
+          auto_save?: boolean
           category?: string | null
           created_at?: string
           created_by?: string | null
@@ -1677,6 +1679,7 @@ export type Database = {
           against_id?: string | null
           against_table?: string | null
           amount?: number
+          auto_save?: boolean
           category?: string | null
           created_at?: string
           created_by?: string | null

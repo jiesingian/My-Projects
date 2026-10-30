@@ -8,7 +8,7 @@ import { isGrownUp } from "@/lib/roles";
 import { setSpendingBudgetAction } from "@/lib/actions/wealth";
 import { EXTRA_PREFIX, isTracks, milestoneOf, type Tracks } from "@/lib/wealth-goals";
 import { getTrackedGoals } from "@/lib/queries/wealth-goals";
-import { GOAL_CATEGORY } from "@/lib/wealth";
+import { GOAL_CATEGORY, TRANSFER_CATEGORY } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 
 const clamp = (s: string, n: number) => s.trim().slice(0, n);
@@ -187,11 +187,13 @@ export async function stopWealthGoalAction(goalId: string): Promise<ActionState>
   return { error: null };
 }
 
-/** Auto-save (Jonathan, 29 October): the monthly amount a goal needs, as a
- * monthly bill on Today -- into a house or car's fund (a bill for the goal,
- * which puts the money in when paid), or extra on a loan (a bill for the
- * loan, which pays it down). Its first one on the day given: payday, as
- * suggested. One per goal; a second replaces the amount of the first. */
+/** Auto-save (Jonathan, 29-30 October): the monthly amount a goal needs, as
+ * a monthly bill on Today -- into a house or car's fund (a bill for the
+ * goal, which puts the money in when paid), extra on a loan (a bill for the
+ * loan, which pays it down), or into a savings account (a bill for the
+ * account, paid as a transfer into it). Its first one on the day given:
+ * payday, as suggested; paying one lines up the next (rollAutoSaves). One
+ * per goal; a second replaces the amount, account and day of the first. */
 export async function autoSaveWealthGoalAction(goalId: string, input: { amount: number; accountId: string; firstDate: string }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const amount = Math.round(Number(input.amount) * 100) / 100;
@@ -204,10 +206,20 @@ export async function autoSaveWealthGoalAction(goalId: string, input: { amount: 
   ]);
   if (!g || !isTracks(g.tracks)) return { error: "That goal is gone." };
   if (!account) return { error: "Choose the account it comes out of." };
-  const target = g.tracks === "asset" && g.savings_goal_id ? { table: "goals" as const, id: g.savings_goal_id } : g.tracks === "loan" && g.tracks_id ? { table: "liabilities" as const, id: g.tracks_id } : null;
-  if (!target) return { error: "Auto-save is for a fund or a loan." };
-  const { data: loan } = target.table === "liabilities" ? await supabase.from("liabilities").select("name").eq("id", target.id).maybeSingle() : { data: null };
-  const name = target.table === "goals" ? `Save for ${g.title}` : `${EXTRA_PREFIX}${loan?.name ?? g.title}`;
+  // A fund's goes into the fund, a loan's pays it down extra, and a savings
+  // account's moves money into the account (a transfer, 20261030180000).
+  const target =
+    g.tracks === "asset" && g.savings_goal_id ? { table: "goals" as const, id: g.savings_goal_id }
+    : g.tracks === "loan" && g.tracks_id ? { table: "liabilities" as const, id: g.tracks_id }
+    : g.tracks === "account" && g.tracks_id ? { table: "accounts" as const, id: g.tracks_id }
+    : null;
+  if (!target) return { error: "Auto-save is for a savings account, a fund or a loan." };
+  if (target.table === "accounts" && target.id === account.id) return { error: "Choose another account to move it from: this is the one it goes into." };
+  const { data: thing } =
+    target.table === "liabilities" ? await supabase.from("liabilities").select("name").eq("id", target.id).maybeSingle()
+    : target.table === "accounts" ? await supabase.from("accounts").select("name").eq("id", target.id).maybeSingle()
+    : { data: null };
+  const name = target.table === "goals" ? `Save for ${g.title}` : target.table === "accounts" ? `Save into ${thing?.name ?? g.title}` : `${EXTRA_PREFIX}${thing?.name ?? g.title}`;
   const owner = g.owner_member_id === null ? { is_joint: true, owner_member_id: null } : { is_joint: false, owner_member_id: g.owner_member_id };
 
   // One a goal: an open one already there takes the new amount, account and
@@ -220,9 +232,10 @@ export async function autoSaveWealthGoalAction(goalId: string, input: { amount: 
     .eq("against_table", target.table)
     .eq("against_id", target.id)
     .in("status", ["unpaid", "overdue"])
-    .eq("name", name)
+    .eq("auto_save", true)
     .limit(1);
-  const row = { name, amount, account_id: account.id, due_date: input.firstDate, category: target.table === "goals" ? GOAL_CATEGORY : "Debt", recurrence: "monthly", against_table: target.table, against_id: target.id, ...owner };
+  const category = target.table === "goals" ? GOAL_CATEGORY : target.table === "accounts" ? TRANSFER_CATEGORY : "Debt";
+  const row = { name, amount, account_id: account.id, due_date: input.firstDate, category, recurrence: "monthly", against_table: target.table, against_id: target.id, auto_save: true, ...owner };
   const { error } = open?.[0]
     ? await supabase.from("bills").update(row).eq("id", open[0].id)
     : await supabase.from("bills").insert({ ...row, family_id: me.family_id, status: "unpaid", created_by: me.id });

@@ -179,6 +179,7 @@ const MIGRATIONS = [
   "20261030140000_member_ids.sql",
   "20261030153700_alarm_wakes_android.sql",
   "20261030171300_drop_move_account_owner.sql",
+  "20261030180000_bill_auto_save.sql",
 ];
 
 const only = process.argv[2];
