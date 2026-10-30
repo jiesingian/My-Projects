@@ -7,7 +7,6 @@ import {
   saveRecipeAction,
   deleteRecipeAction,
   addMealIngredientsToBuyAction,
-  toggleIngredientAtHomeAction,
   addRecipeCategoryAction,
   removeRecipeCategoryAction,
 } from "@/lib/actions/household";
@@ -815,40 +814,6 @@ export function AddIngredientsToBuyButton({ mealId, missing }: { mealId: string;
   );
 }
 
-/** One ingredient chip. Tapping it says the house already has it, which
- * takes it off every shopping list built from here on. */
-export function IngredientChip({ name, inPantry, onList }: { name: string; inPantry: boolean; onList: boolean }) {
-  const { pending, run } = useAct();
-
-  return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={() => run(() => toggleIngredientAtHomeAction(name, !inPantry))}
-      title={inPantry ? "In the house — tap to say it is not" : onList ? "On the shopping list — tap if it is already in the house" : "Tap if it is already in the house"}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.1875rem",
-        fontSize: "0.71875rem",
-        padding: "0.1875rem 0.5625rem",
-        borderRadius: 999,
-        border: 0,
-        cursor: "pointer",
-        fontFamily: "var(--font-body)",
-        background: inPantry
-          ? "color-mix(in srgb, var(--color-switch-on) 18%, transparent)"
-          : onList
-            ? "color-mix(in srgb, var(--cal-schedule) 14%, transparent)"
-            : "color-mix(in srgb, var(--color-text) 6%, transparent)",
-        color: "var(--color-text)",
-      }}
-    >
-      {inPantry && <Icon name="check" size={10} style={{ color: "var(--color-switch-on)" }} />}
-      {name}
-    </button>
-  );
-}
 
 /** Paste a recipe's address; Kin reads it on the server (readRecipeFromLinkAction)
  * and opens the editor filled in. Nothing is saved until Save there. */
