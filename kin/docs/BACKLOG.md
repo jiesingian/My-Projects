@@ -60,11 +60,18 @@ table; whether OFW families make Kin "offer services" in the EU; the
 refund windows and the 7- and 15-day replies; a written 72-hour breach
 plan.
 
+**Verified on dev, 30 October**, as the QA household, viewing only:
+Settings → Privacy shows the Kin AI choice; Wealth and Family → Health
+show the one-time OK line; a profile's About tab shows the ID numbers from
+`member_ids`; Download my data builds its ZIP with the sent-message files,
+and dev's error log has no skipped table. axe found nothing on those
+screens. Anthropic's commercial terms say "Anthropic may not train models
+on Customer Content from Services", as the notice says.
+
 **Not verified:** the official texts on privacy.gov.ph, lawphil.net and
-Play's help pages (blocked from the session; law-firm summaries used); the
-new screens in a browser as the QA household (dev's sign-in was timing
-out; their database rules are covered by probes); Download my data end to
-end.
+Play's help pages. The session's network policy blocks those hosts, so
+law-firm summaries were used. The Kin AI card inside Ask Kin itself was
+not triggered, since asking would write to the QA household.
 
 ## Decided 29 October: Kin on Google Play (Jonathan)
 
