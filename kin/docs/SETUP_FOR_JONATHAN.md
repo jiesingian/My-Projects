@@ -391,8 +391,9 @@ working exactly as now, for everyone, with or without the iPhone app.
      the signing certificate itself. Download the `.p8` file; Apple lets you
      download it only once. Note the **Key ID** and the **Issuer ID** at the
      top of the page.
-   - Add four repository secrets at
-     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new):
+   - Add four secrets to the `main-only` environment (not repository
+     secrets: there any branch could read them), at
+     [Settings → Environments → **main-only** → Add environment secret](https://github.com/jiesingian/My-Projects/settings/environments):
      `APPLE_TEAM_ID` (step 2), `ASC_KEY_ID`, `ASC_ISSUER_ID`, and
      `ASC_KEY_P8` (open the `.p8` in a text editor and paste all of it,
      including the BEGIN and END lines).
@@ -613,8 +614,9 @@ Allow three weeks from registration to the public listing:
        folder.
      - The terminal prints one long line: that is the key as text, for
        GitHub.
-   - Add four repository secrets at
-     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new),
+   - Add four secrets to the `main-only` environment (not repository
+     secrets: there any branch could read them), at
+     [Settings → Environments → **main-only** → Add environment secret](https://github.com/jiesingian/My-Projects/settings/environments),
      one at a time:
      - `ANDROID_UPLOAD_KEYSTORE_B64`: the long line, all of it;
      - `ANDROID_UPLOAD_KEYSTORE_PASSWORD`: the password;
@@ -656,8 +658,8 @@ Allow three weeks from registration to the public listing:
      new users**. Enter the service account's email (in the file, as
      `client_email`). Under **App permissions** add Kin, tick **Release to
      testing tracks** and **Release apps to production**. **Invite user**.
-   - Add a repository secret `PLAY_SERVICE_ACCOUNT_JSON` at
-     [Settings → Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new):
+   - Add `PLAY_SERVICE_ACCOUNT_JSON` to the `main-only` environment at
+     [Settings → Environments → **main-only** → Add environment secret](https://github.com/jiesingian/My-Projects/settings/environments):
      the whole file's contents. Then delete the downloaded file.
    - From now on,
      [Run workflow](https://github.com/jiesingian/My-Projects/actions/workflows/play-release.yml)
