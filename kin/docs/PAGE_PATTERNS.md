@@ -5,7 +5,8 @@ written down which one a new page should reach for. This is that decision.
 
 ## `HubHeader` — exactly the five tab roots
 
-`/today`, `/journal`, `/household`, `/planner`, `/family`, `/wealth`. Each is
+`/journal`, `/household`, `/planner`, `/family`, `/wealth`. (`/today` has its
+own `TodayHeader`, from `components/family-panel.tsx`.) Each is
 a numbered hub (`n="01"` through `n="05"`) with segmented sub-views under it
 (Cash Flow / Accounts / A&L, say) and today's date in the household's own
 format. Nothing else uses it, and nothing else should — a `HubHeader` on a
@@ -15,10 +16,10 @@ detail page would carry a segmented control that has nowhere to point.
 
 A back button plus one small eyebrow line (`"HUB 01 · MILESTONE"`). This is
 every add/edit/detail screen under a hub: `journal/new`, `wealth/accounts/[id]`,
-`family/members/[id]`, and so on — 26 pages as of this writing, all following
+`family/members/[id]`, and so on — 68 pages on 30 October, all following
 the same `backHref` + `eyebrow` shape. A new add/edit/detail page should use
 this and nothing else; inventing a one-off header for a screen that is
-structurally the same as the other 26 is exactly the kind of drift this file
+structurally the same as all the others is exactly the kind of drift this file
 exists to stop.
 
 ## Custom — only when the page is not really a hub screen at all

@@ -7,8 +7,8 @@ own work — `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm run test:
 without spending the first ten minutes rediscovering the setup.
 
 It installs npm dependencies, recreates the gitignored `kin/.env.local` from
-the two public Supabase values, and pins graphify to the version that produced
-the committed graph cache. It does nothing at all outside a remote session.
+the two public Supabase values, pins graphify to one version, and builds the
+graph (`graphify update .`) when `graph.json` is missing. It does nothing at all outside a remote session.
 
 ## Registering it
 
@@ -31,8 +31,10 @@ Anything genuinely specific to one machine belongs in
 
 Two things in the script go stale if the repo moves and nothing will warn you:
 
-- `GRAPHIFY_VERSION` must match `kin/graphify-out/cache/ast/`. A mismatch
-  re-extracts every file and rewrites `graph.json` by thousands of lines.
+- `GRAPHIFY_VERSION` keeps the extractor compatible with the committed
+  semantic layer (`.graphify_labels.json`, `cache/semantic/`), which came from
+  a paid pass. `graph.json` and `cache/ast/` are gitignored (root
+  `.gitignore`) and rebuilt locally, so they are no longer what it matches.
 - The Supabase URL and anon key must match the project. Both are public by
   design — the anon key is what every browser already carries, and RLS is what
   actually protects the data. The service role key is a real secret and is

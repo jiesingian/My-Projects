@@ -6,8 +6,8 @@ would have to be true for it to bite, and measured where measuring was
 possible. They are here so the next person does not spend the afternoon
 rediscovering them.
 
-Nothing in this file is a feature request. `docs/FUTURE_FEATURES.md` is the
-place for those.
+Nothing in this file is a feature request. `docs/BACKLOG.md` is the place
+for those.
 
 ---
 
@@ -182,7 +182,7 @@ and says so in those words.
 
 ---
 
-## Two people, one QA household — 9 September
+## Two people, one QA household — 9 September; changed by the dev split, 10 September
 
 The suite's write specs now tidy up after themselves. Finding out why they
 appeared not to took longer than writing the tidy-up, and the reason is worth
@@ -229,6 +229,11 @@ other. `docs/QA_HOUSEHOLDS.md` says which is which.
 **What it did not fix** is below: CI holds the *first* household, and so does
 Jonathan's container. Two laptops no longer collide; a laptop and CI still do.
 
+**Changed by the dev split, 10 September.** The accounts above are
+production's now, and left alone. Every machine and CI use one dev account,
+`kin-dev-qa@`, and sessions do not run the full suite against shared dev (root
+`CLAUDE.md`); `docs/QA_HOUSEHOLDS.md` has the current list.
+
 ---
 
 ## Signing up: five bugs closed, and the one that needs a migration — 9 September
@@ -274,8 +279,8 @@ fixed; one left, because closing it properly needs a migration.
 failure between them still spends a code with nothing to show. The membership
 check closes the case that actually happens, and the action now says plainly
 that the code was counted and logs it -- but the only real fix is one RPC that
-redeems and creates in a single transaction, which is a migration, which is
-Jonathan's. Worth doing before the beta codes go out more widely.
+redeems and creates in a single transaction, which is a migration (either
+person can write one). Worth doing before the beta codes go out more widely.
 
 **Not covered by any test, and honestly cannot be from here.** Everything
 above is verified against an account that is *already* in a household --
@@ -1265,7 +1270,7 @@ household's zone as much as the code does.
 
 ---
 
-## CI and Jonathan's container share one QA household — 10 September
+## CI and Jonathan's container share one QA household — CLOSED 23 October
 
 Splitting the throwaway households fixed the two-laptops case and left the
 other one standing. `QA_HOUSEHOLDS.md` assigns `kin-e2e-qa@example.com` to
@@ -1296,9 +1301,15 @@ anywhere. Not done, because a new QA account is Jonathan's to make.
 Until then the honest workaround is to look at whether an End-to-end run is in
 flight before starting one locally, and wait if it is.
 
+**Closed 23 October, another way.** No fourth account was made. Since the dev
+split the accounts above are production's, and sessions no longer run the full
+suite against shared dev (root `CLAUDE.md`). Since 23 October a pull request's
+smoke runs in `smoke-private-db`, on a database of its own; on dev only main's
+run after each merge and the weekly check run, one at a time (`e2e.yml`).
+
 ---
 
-## A push to main can lose its end-to-end run entirely — 10 September
+## A push to main can lose its end-to-end run entirely — CLOSED 23 October
 
 `main` is at a commit the suite never ran against, and nothing about the
 repository says so. Run 41, the suite for `f539d6a` — the merge of #38, which
@@ -1329,3 +1340,8 @@ What can be done meanwhile costs nothing: `e2e.yml` already accepts
 `workflow_dispatch`, so a `main` commit found without a suite can be given one
 on demand. That needs somebody to notice, and noticing is the part that failed
 here.
+
+**Closed 23 October.** Pull requests no longer queue in dev's group at all:
+they run `smoke-private-db` on a database of their own, and only main's run
+and the weekly check wait in `e2e-dev` (`e2e.yml`). So a pull request can no
+longer take main's run.

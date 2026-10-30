@@ -10,44 +10,36 @@ away on every load — passed `tsc`, `lint` and `build` without complaint.
 A **throwaway household**. Never point these at your own family: the write
 tests add rows, and nobody wants test data in their journal.
 
-**There are three, and which one is yours is not a free choice.**
-`docs/QA_HOUSEHOLDS.md` is the list and this section defers to it:
+**There are three, all in `kin-dev`.** `docs/QA_HOUSEHOLDS.md` is the list
+and this section defers to it:
 
 | Account | Whose |
 | --- | --- |
-| `kin-e2e-qa@example.com` | Jonathan's machine, **and CI** |
-| `kin-e2e-qa2@example.com` | Janine's machine |
-| `kin-e2e-qa3@example.com` | `delete-household.spec.ts` only, via `E2E_DELETE_EMAIL` |
+| `kin-dev-qa@example.com` | every machine, **and CI** (`E2E_EMAIL`) |
+| `kin-dev-delete@example.com` | `delete-household.spec.ts` only, via `E2E_DELETE_EMAIL` |
+| `kin-dev-qa-partner@example.com` | the household's second adult, via `E2E_PARTNER_EMAIL` |
 
-Until 9 September there was one, and this file said so — which is why anyone
-reading only this page asks for the first account by name. Two people ran the
-suite against it from two machines minutes apart and spent an hour deciding
-nothing was broken. Use the one your machine is assigned. The two households
-are seeded identically, so there is nothing in one that the other lacks and
-no reason to reach for somebody else's.
+Production's `kin-e2e-qa@` and `kin-e2e-qa2@` are still there and are to be
+left alone; the suite refuses to start against production at all.
 
-**The passwords are not here and must not be put here.** Jonathan has all
-three; ask him for the one your machine needs.
+Until 9 September there was one household, and this file said so. Two people
+ran the suite against it from two machines minutes apart and spent an hour
+deciding nothing was broken. From 9 September each machine had its own; since
+the dev split on 10 September both machines and CI share the one dev account,
+and `QA_HOUSEHOLDS.md` says why that is enough there.
 
-**Do not reset the first account's password.** It is the CI secret
-`E2E_PASSWORD`, so changing it in the SQL editor stops every End-to-end run
-dead — the suite refuses to start rather than testing a logged-out shell —
-until somebody with repository-settings access updates the secret to match.
-If a password is genuinely lost, that is Jonathan's to reissue, secret and
-all, together. For the record the statement is:
+**The passwords are not here and must not be put here.** Jonathan has them;
+ask him for the ones your machine needs.
 
-```sql
-update auth.users
-   set encrypted_password = extensions.crypt('<new>', extensions.gen_salt('bf'))
- where email = 'kin-e2e-qa2@example.com';   -- never a real account
-```
-
-It writes directly to `auth.users` in the one Supabase project the Singian
-family's real records live in, so the `where` clause is the only thing keeping
-it off somebody's actual login. Read it twice before running it.
+**Do not reset `kin-dev-qa@`'s password.** It is the CI secret
+`E2E_PASSWORD`, so changing it stops every End-to-end run dead — the suite
+refuses to start rather than testing a logged-out shell — until somebody with
+repository-settings access updates the secret to match. If a password is
+genuinely lost, that is Jonathan's to reissue, secret and all, together; ask
+the way the `ask-a-person` skill says. Nobody writes to `auth.users` by hand.
 
 To create a fresh throwaway household of your own, make an auth user in
-Supabase (**Authentication → Users → Add user**, *Auto Confirm User* ticked)
+`kin-dev` (**Authentication → Users → Add user**, *Auto Confirm User* ticked)
 and then set:
 
 ```bash
@@ -61,10 +53,14 @@ logged-out shell.
 
 ## Running
 
+Dev is shared, so never run the whole suite (`npm run e2e`) against it from
+a session; CI and the weekly check take their turns there one at a time. Run
+the one spec you need:
+
 ```bash
-npm run dev          # in one terminal
-npm run e2e          # in another
-npm run e2e:ui       # or watch it happen
+npm run dev                                 # in one terminal
+npx playwright test e2e/<spec>.spec.ts      # in another
+npm run test:logic                          # the function-only specs; no browser, no database
 ```
 
 `e2e/.auth/state.json` holds the signed-in cookie between specs. It is
@@ -72,24 +68,28 @@ gitignored, and it is a real session — treat it like a password.
 
 ## What is covered
 
-| Spec | What it holds the app to |
-| --- | --- |
-| `smoke.spec.ts` | All seven hubs, at 390/834/1440, light and dark: 200, no redirect, right theme, no sideways scroll, no console or page errors, no failed requests. 42 combinations. |
-| `regressions.spec.ts` | One test per bug that already shipped once. |
-| `writes.spec.ts` | The forms that add things, each verified by going back and finding what it made. |
-| `deletes.spec.ts` | Removing things: each makes two, removes one, and checks the other survived. |
-| `edits.spec.ts` | Changing things: set several fields, change one, and check the others are still what they were. |
-| `preferences.spec.ts` | Household settings that are supposed to change something, checked against the thing they change. |
-| `authorization.spec.ts` | What row-level security refuses, asked of the database directly. |
+About two hundred spec files, checked 30 October. The `*.logic.spec.ts` ones
+test functions on their own, with no browser and no database; the rest drive
+the app. `smoke.spec.ts` opens every hub at every width in both themes;
+`regressions.spec.ts` holds one test per bug that already shipped once.
+
+Where each runs (`.github/workflows/e2e.yml`, `weekly-check.yml`):
+
+- **Every pull request**: `smoke-private-db`, the smoke tier and the logic
+  specs on a database of its own, every pull request at once (since
+  23 October).
+- **Main, after each merge**: the same smoke on dev, plus the specs that need
+  dev itself (`chat-live`, `push-targets-live`), one run at a time.
+- **Once a week**: the full write-heavy suite against dev, in
+  `weekly-check.yml`.
 
 ## What is not covered, and why
 
-- **Signing up and resetting a password.** Both need email, and email needs
-  custom SMTP, which needs a domain.
+- **Finishing a sign-up or a password reset.** Both send an email with a code
+  or link, and the suite cannot read the mailbox. `signup-code.spec.ts` checks
+  the screens and the refusals up to that point.
 - **Google Calendar and Drive.** Both need OAuth credentials.
 - **Uploads.** Storage plus Drive; worth doing once the above exists.
-- **Most of the 128 server actions.** Adding is covered, two of the thirty
-  destructive ones are, and one of the editing ones is.
 
 ## Adding to it
 
