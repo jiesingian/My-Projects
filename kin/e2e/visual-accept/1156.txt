@@ -1,3 +1,0 @@
-wealth-simple-off
-wealth-simple-on
-today-simple-off
