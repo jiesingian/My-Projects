@@ -162,7 +162,8 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
       const { data, error } = await db.from(table).select("*").eq("family_id", me.family_id).range(from, from + PAGE - 1);
       if (error) {
         // A section this member cannot read, or one that does not exist in
-        // this database yet, is left out and said so -- not a failed export.
+        // this database yet, is left out and reported to the error log --
+        // not a failed export. The README does not list it.
         reportError("Export: a table was skipped", error, table);
         break;
       }
