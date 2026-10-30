@@ -27,7 +27,7 @@ Read the first `error:` line in the Archive or Upload step.
 
 | The log says | What it means | What to do |
 |---|---|---|
-| `Missing repository secrets: ...` | A secret was not added, or its name is misspelt | Add it at [Secrets → Actions → New](https://github.com/jiesingian/My-Projects/settings/secrets/actions/new), exact name as listed, then Run again |
+| `Missing secrets in main-only: ...` | A secret was not added, its name is misspelt, or it was added as a repository secret | Add it to the `main-only` environment at [Settings → Environments → main-only](https://github.com/jiesingian/My-Projects/settings/environments), exact name as listed, then Run again |
 | `No Account for Team "..."` or `Unable to authenticate` | The API key is wrong: a mismatched Key ID or Issuer ID, or the `.p8` pasted without its BEGIN/END lines | Check the three key secrets against [the API keys page](https://appstoreconnect.apple.com/access/integrations/api) |
 | `Cloud signing permission error` or `You do not have required contracts / permission to perform this operation` | The key is not **Admin**, or the account has not accepted the latest Program License Agreement | Make a new key with **Admin** access, or accept the agreement on [developer.apple.com/account](https://developer.apple.com/account) (a banner shows it), then Run again |
 | `No profiles for 'com.jiesingian.kin' were found` | The App ID is not registered yet, or Xcode could not register it | Do §9 step 3, then Run again |

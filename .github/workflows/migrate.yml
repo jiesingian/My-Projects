@@ -196,7 +196,7 @@ jobs:
           URL: ${{ secrets.PROD_DB_URL }}
         run: |
           if [ -z "$URL" ]; then
-            echo "::error::PROD_DB_URL is not set. Supabase → kin-family-app → Connect → Session pooler → URI, with the database password in it."
+            echo "::error::PROD_DB_URL is not set in the main-only environment (Settings → Environments → main-only; not a repository secret). Supabase → kin-family-app → Connect → Direct → Session pooler → URI, with the database password in it."
             exit 1
           fi
 
