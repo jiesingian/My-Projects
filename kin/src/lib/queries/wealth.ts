@@ -308,16 +308,6 @@ export async function getNextBillOffers(familyId: string): Promise<NextBillOffer
   return offers.filter((o) => !hidden.has(o.billId));
 }
 
-export async function getGoals(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("goals")
-    .select("*, owner:owner_member_id(full_name)")
-    .eq("family_id", familyId)
-    .order("created_at", { ascending: false });
-  return data ?? [];
-}
-
 /** Assets less liabilities — the number the whole A&L tab exists to move.
  *
  * Cash accounts and goals both count toward it, not just the standalone

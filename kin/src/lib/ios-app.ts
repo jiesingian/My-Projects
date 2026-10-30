@@ -18,11 +18,6 @@ export function isIosAppUserAgent(ua: string | null | undefined): boolean {
   return Boolean(ua && ua.includes(IOS_APP_UA));
 }
 
-/** True when this request comes from the Kin iPhone app. */
-export async function inIosApp(): Promise<boolean> {
-  return isIosAppUserAgent((await headers()).get("user-agent"));
-}
-
 /** The Kin Android app's mark (capacitor.config.json, android.appendUserAgent).
  * Google Play's rule is the same as Apple's here: no price, buy link, code or
  * reward for Kin Plus inside an app it distributes, and the Philippines has

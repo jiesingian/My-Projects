@@ -4,7 +4,6 @@ export const MAX_GLASSES = 24;
 
 export const LIQUID_INTAKE_TYPES = ["water", "juice", "milk"] as const;
 export type LiquidIntakeType = (typeof LIQUID_INTAKE_TYPES)[number];
-export const LIQUID_INTAKE_LABEL: Record<LiquidIntakeType, string> = { water: "Water", juice: "Juice", milk: "Milk" };
 
 export type LiquidIntakeMember = {
   id: string;

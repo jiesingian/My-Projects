@@ -34,7 +34,6 @@ export const PLANS: Record<PlanId, Plan> = {
   },
 };
 
-export const PLAN_LIST: Plan[] = [PLANS.monthly, PLANS.annual];
 
 export function pesos(cents: number): string {
   return `₱${(cents / 100).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
