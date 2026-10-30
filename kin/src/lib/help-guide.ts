@@ -108,7 +108,8 @@ export const HELP_GUIDE: HelpTab[] = [
               "Either side can remove a connection at any time."
             ],
             "cons": [
-              "Someone outside the household has to accept first. Grown-ups in your own household are connected already."
+              "Someone outside the household has to accept first. Grown-ups in your own household are connected already.",
+              "Removing a connection hides what you mark Public only from people outside your household. Grown-ups in your own household still see it, as they see your Household entries."
             ],
             "tips": []
           },
