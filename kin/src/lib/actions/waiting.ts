@@ -46,14 +46,22 @@ export async function remindDepositAction(goalId: string, memberId: string): Pro
   ]);
   if (!goal || !who) return { error: "That goal or person isn't in your household." };
   const from = me.full_name?.split(" ")[0] ?? "Someone";
+  // The push's source is a row of its own (money_pushes, 20261030190000):
+  // push_targets sends only what an event of the sender's warrants.
+  const { data: push, error } = await supabase.from("money_pushes").insert({ family_id: me.family_id, created_by: me.id, what: "deposit", ref: goal.id, recipient: who.id }).select("id").single();
+  if (error || !push) return { error: databaseError(error) };
   const sent = await sendPush({
     kind: "bills",
-    source: `deposit:${goal.id}`,
+    source: push.id,
     memberIds: [who.id],
     title: `${goal.title}: this month's deposit`,
     body: `${from} is reminding you to put in your share this month.`,
     url: "/wealth?seg=assets",
     tag: `deposit-${goal.id}`,
   });
+  // Nothing reached a phone (no device with Kin's notifications on, or
+  // bill notifications off): say so rather than "Reminded ✓".
+  const first = who.full_name?.split(" ")[0] ?? "They";
+  if (sent === 0) return { error: `${first} has no phone with Kin's bill notifications on, so the reminder didn't reach them. Tell them in person or in Chat.` };
   return { error: null, sent };
 }
