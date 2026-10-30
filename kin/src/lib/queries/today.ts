@@ -371,7 +371,11 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
     items.push({ ...p, action: "confirm", mark: marked.get(p.id), icon: "wallet", tint: "money" });
   }
 
-  for (const b of (bills.data ?? []).filter((b) => waitsOnMe(b)).slice(0, 4)) {
+  // Four on Today at most, oldest first; the rest are said in one line
+  // rather than hidden (30 October: a goal's auto-save due today sat behind
+  // four old overdue bills, on no screen but Cash Flow's).
+  const myBills = (bills.data ?? []).filter((b) => waitsOnMe(b) && !(b.status === "scheduled" && b.transaction_id && pendingIds.has(b.transaction_id)));
+  for (const b of myBills.slice(0, 4)) {
     // lte already excludes nulls, but the column is nullable and the type
     // says so; a bill without a date is treated as not yet overdue.
     const overdue = !!b.due_date && b.due_date < today;
@@ -406,6 +410,19 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       // Expenses group, folded by default, so the link asks for it open and
       // names the row; "Pay" that lands on a chart costs the tap it saved.
       href: `/wealth?seg=cashflow&open=expenses&bill=${b.id}`,
+      urgent: true,
+    });
+  }
+
+  if (myBills.length > 4) {
+    const more = myBills.length - 4;
+    items.push({
+      id: "bills-more",
+      icon: "wallet",
+      tint: "money",
+      title: `${more} more bill${more === 1 ? "" : "s"} due`,
+      meta: "in Cash Flow, with the rest of what's due",
+      href: "/wealth?seg=cashflow&open=expenses",
       urgent: true,
     });
   }

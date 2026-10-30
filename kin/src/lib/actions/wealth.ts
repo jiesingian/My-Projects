@@ -1501,9 +1501,12 @@ async function payBillAsTransfer(
   const transferGroupId = crypto.randomUUID();
   const legs: LedgerInput[] = [
     { id: outId, accountId: from.id, direction: "out", amount: input.amount, particulars: `${bill.name} (to ${to.name})`, category: TRANSFER_CATEGORY, status, transferGroupId },
-    { accountId: to.id, direction: "in", amount: input.amount, particulars: `${bill.name} (from ${from.name})`, category: TRANSFER_CATEGORY, status, transferGroupId },
+    { id: crypto.randomUUID(), accountId: to.id, direction: "in", amount: input.amount, particulars: `${bill.name} (from ${from.name})`, category: TRANSFER_CATEGORY, status, transferGroupId },
   ];
-  // One statement, not read back: see transferAction.
+  // One statement, not read back: see transferAction. Both legs carry an
+  // id: rows inserted together share one column list, so a leg without one
+  // is sent a null id rather than the default -- and the database refuses
+  // the pair (found paying a savings auto-save, 30 October).
   const { error } = await supabase.from("wealth_transactions").insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
   if (alreadyRecorded(error, input.clientId)) return { error: null, appUrl: input.viaApp ? appUrl : null };
   if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
