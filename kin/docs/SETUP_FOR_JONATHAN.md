@@ -318,15 +318,12 @@ working exactly as now, for everyone, with or without the iPhone app.
 
 ### Before you pay: two answers only you can give
 
-- **A support email.** Apple asks for a Support URL that says how to reach
-  you (App Review 1.5): that page is ready at
-  [/legal/support](https://kin-family-app.vercel.app/legal/support), but
-  every contact field on it, and on the privacy page, says "Being registered"
-  until `OPERATOR.email` in `kin/src/lib/legal.ts` is set. Tell a session the
-  address (any you will read, e.g. a new Gmail for Kin); it fills it in. The
-  business name, address and registration numbers can stay "being
-  registered": enrolled as an Individual, the App Store shows your own name
-  as the seller.
+- **A support email.** Done (30 October): `familyapp.kin@gmail.com`, Kin's
+  own address (your Apple Account stays on your personal one), is on
+  [/legal/support](https://kin-family-app.vercel.app/legal/support) and the
+  legal pages (`OPERATOR.email`, `kin/src/lib/legal.ts`). The business name,
+  address and registration numbers can stay "being registered": enrolled as
+  an Individual, the App Store shows your own name as the seller.
 - **In-app purchase, or not.** Inside the iPhone app Kin shows no prices,
   plan links or Kin codes (Apple forbids pointing to another way to pay,
   3.1.1), and a household's Plus still works there. Apple's rule on honouring
