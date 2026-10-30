@@ -165,7 +165,7 @@ export function WealthGoalButton({
               )}
               {/* Auto-save (29 October): the month's amount as a monthly bill
                   on Today, into a fund or extra on a loan. */}
-              {(tracks === "asset" || tracks === "loan") && !goal.reached && (goal.autoSave || goal.perMonth) ? <AutoSave goal={goal} tracks={tracks} accounts={accounts} currency={currency} /> : null}
+              {(tracks === "asset" || tracks === "loan" || tracks === "account") && !goal.reached && (goal.autoSave || goal.perMonth) ? <AutoSave goal={goal} tracks={tracks} accounts={tracks === "account" ? accounts.filter((x) => x.id !== id) : accounts} currency={currency} /> : null}
               {/* A balance: the month's amount moved there now. */}
               {tracks === "account" && id && goal.perMonth ? (
                 <Link href={`/wealth/transact?mode=transfer&to=${id}&amount=${goal.perMonth}`} className="btn btn-secondary" style={{ justifySelf: "start", minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem", display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
@@ -234,7 +234,7 @@ export function WealthGoalButton({
 /** The month's amount as a monthly bill on Today (Jonathan, 29 October):
  * from which account, starting which day -- payday, as suggested. Set up,
  * it says so, and its amount or account can be changed here. */
-function AutoSave({ goal, tracks, accounts, currency }: { goal: GoalMark; tracks: "asset" | "loan"; accounts: { id: string; name: string }[]; currency: string }) {
+function AutoSave({ goal, tracks, accounts, currency }: { goal: GoalMark; tracks: "asset" | "loan" | "account"; accounts: { id: string; name: string }[]; currency: string }) {
   const uid = useId();
   const router = useRouter();
   const set = goal.autoSave ?? null;
@@ -244,7 +244,7 @@ function AutoSave({ goal, tracks, accounts, currency }: { goal: GoalMark; tracks
   const [first, setFirst] = useState(set?.next ?? goal.payday ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const what = tracks === "asset" ? "into its fund" : "extra on the loan";
+  const what = tracks === "asset" ? "into its fund" : tracks === "account" ? "moved into the account" : "extra on the loan";
   if (accounts.length === 0) return null;
   const save = () =>
     start(async () => {

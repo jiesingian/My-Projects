@@ -5,8 +5,8 @@ import { householdZone } from "@/lib/household-zone";
 import { getAccounts, getSpendingByMember } from "@/lib/queries/wealth";
 import { formatCurrency } from "@/lib/format";
 import { familyDay, familyMidnight } from "@/lib/time";
-import { categoryLabel, GOAL_CATEGORY } from "@/lib/wealth";
-import { EXTRA_PREFIX, accountProgress, isTracks, limitProgress, loanPace, loanProgress, monthsUntil, onTimeRun, trackKey, clamp01, type Tracks } from "@/lib/wealth-goals";
+import { categoryLabel } from "@/lib/wealth";
+import { accountProgress, isTracks, limitProgress, loanPace, loanProgress, monthsUntil, onTimeRun, trackKey, clamp01, type Tracks } from "@/lib/wealth-goals";
 
 /** One Planner goal that follows something on Wealth (🎯, 29 October),
  * with how it stands -- the same figures on Wealth's 🎯 and Planner's
@@ -105,8 +105,8 @@ export const getTrackedGoals = cache(async (familyId: string, currency: string):
   // payday: the soonest income still expected.
   const fundIds = goals.flatMap((g) => (g.tracks === "asset" && g.savings_goal_id ? [g.savings_goal_id] : []));
   const [{ data: saveBills }, { data: paydays }] = await Promise.all([
-    fundIds.length || ids("loan").length
-      ? supabase.from("bills").select("id, name, amount, account_id, due_date, against_table, against_id, category").eq("family_id", familyId).eq("recurrence", "monthly").in("status", ["unpaid", "overdue", "scheduled"]).in("against_id", [...fundIds, ...ids("loan")]).order("due_date", { ascending: true })
+    fundIds.length || ids("loan").length || ids("account").length
+      ? supabase.from("bills").select("id, name, amount, account_id, due_date, against_table, against_id").eq("family_id", familyId).eq("auto_save", true).in("status", ["unpaid", "overdue", "scheduled"]).in("against_id", [...fundIds, ...ids("loan"), ...ids("account")]).order("due_date", { ascending: true })
       : none,
     supabase.from("income_schedules").select("next_date").eq("family_id", familyId).eq("status", "expected").gte("next_date", today).order("next_date", { ascending: true }).limit(1),
   ]);
@@ -115,8 +115,8 @@ export const getTrackedGoals = cache(async (familyId: string, currency: string):
   const nextIncome = paydays?.[0]?.next_date?.slice(0, 10) ?? null;
   const payday = nextIncome ?? firstOfNextMonth(today);
   const paydayKnown = nextIncome !== null;
-  const autoSaveFor = (table: "goals" | "liabilities", id: string | null) => {
-    const b = (saveBills ?? []).find((x) => x.against_table === table && x.against_id === id && (table === "goals" ? x.category === GOAL_CATEGORY : x.name.startsWith(EXTRA_PREFIX)));
+  const autoSaveFor = (table: "goals" | "liabilities" | "accounts", id: string | null) => {
+    const b = (saveBills ?? []).find((x) => x.against_table === table && x.against_id === id);
     return b ? { amount: Number(b.amount), accountId: b.account_id, next: b.due_date?.slice(0, 10) ?? null } : null;
   };
   const txIds = (schedules ?? []).flatMap((s) => (s.transaction_id ? [s.transaction_id] : []));
@@ -139,7 +139,7 @@ export const getTrackedGoals = cache(async (familyId: string, currency: string):
       const lines: string[] = [];
       const perMonth = a && !p.reached && left ? Math.ceil((setTo - p.current) / left) : null;
       if (perMonth) lines.push(`${fmt(perMonth)} a month gets it there${by}.`);
-      out.set(trackKey("account", g.tracks_id!), { ...base, key: trackKey("account", g.tracks_id!), thing: a?.name ?? null, href: `/wealth/accounts/${g.tracks_id}`, current: p.current, target: setTo, fraction: p.fraction, reached: p.reached, caption: `${fmt(p.current)} of ${fmt(setTo)}${by}`, lines, perMonth, nudge: a ? dateNudge(p.reached, setTo - p.current) : null });
+      out.set(trackKey("account", g.tracks_id!), { ...base, key: trackKey("account", g.tracks_id!), thing: a?.name ?? null, href: `/wealth/accounts/${g.tracks_id}`, current: p.current, target: setTo, fraction: p.fraction, reached: p.reached, caption: `${fmt(p.current)} of ${fmt(setTo)}${by}`, lines, perMonth, autoSave: autoSaveFor("accounts", g.tracks_id), nudge: a && !autoSaveFor("accounts", g.tracks_id) ? dateNudge(p.reached, setTo - p.current) : null });
     } else if (tracks === "loan") {
       const l = (loans ?? []).find((x) => x.id === g.tracks_id);
       const balance = l ? Number(l.balance) : 0;

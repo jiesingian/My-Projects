@@ -524,6 +524,48 @@ async function insertEntry(supabase: Db, familyId: string, memberId: string, inp
   return supabase.from("wealth_transactions").insert(ledgerRow(familyId, memberId, input)).select().single();
 }
 
+/** A 🎯 goal's auto-save (bills.auto_save, 20261030180000) is a monthly
+ * saving asked for once, so paying one lines up next month's by itself --
+ * an ordinary repeating bill is only offered again (lib/bill-roll.ts).
+ * Nothing is added while one for the same goal is still open, so a second
+ * confirm or a retry lines up one, not two. */
+async function rollAutoSaves(supabase: Db, billIds: string[]): Promise<string | null> {
+  if (billIds.length === 0) return null;
+  const { data: paid } = await supabase.from("bills").select("*").in("id", billIds).eq("auto_save", true);
+  for (const b of paid ?? []) {
+    if (!b.due_date || !b.against_table || !b.against_id) continue;
+    const { data: open } = await supabase
+      .from("bills")
+      .select("id")
+      .eq("family_id", b.family_id)
+      .eq("auto_save", true)
+      .eq("against_table", b.against_table)
+      .eq("against_id", b.against_id)
+      .in("status", ["unpaid", "overdue", "scheduled"])
+      .limit(1);
+    if ((open ?? []).length > 0) continue;
+    const { error } = await supabase.from("bills").insert({
+      family_id: b.family_id,
+      name: b.name,
+      amount: b.amount,
+      due_date: addMonths(b.due_date.slice(0, 10), 1),
+      category: b.category,
+      recurrence: b.recurrence,
+      status: "unpaid",
+      account_id: b.account_id,
+      against_table: b.against_table,
+      against_id: b.against_id,
+      is_joint: b.is_joint,
+      owner_member_id: b.owner_member_id,
+      remind_days_before: b.remind_days_before,
+      auto_save: true,
+      created_by: b.created_by,
+    });
+    if (error) return `It was paid, but next month's auto-save could not be lined up. ${refusalMessage(error)}`;
+  }
+  return null;
+}
+
 /** What a confirmed movement does beyond moving the balance: a bill it paid
  * becomes settled, a goal it funded moves closer. Deferred until confirmation
  * so a payment still waiting in someone's banking app doesn't mark a bill
@@ -544,17 +586,27 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       .eq("id", entry.source_id)
       .eq("family_id", entry.family_id);
     if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(error)}`;
+    const rolled = await rollAutoSaves(supabase, [entry.source_id]);
+    if (rolled) return rolled;
   } else {
-    // A bill for a loan, an asset or a goal (20261026150000): its payment's
-    // source is what the money was for, and the bill is tied to the
-    // payment by transaction_id instead. No such bill: nothing changes.
-    const { error } = await supabase
+    // A bill for a loan, an asset, a goal (20261026150000) or an account
+    // (a transfer into it, 20261030180000): its payment's source is what
+    // the money was for, and the bill is tied to the payment by
+    // transaction_id instead -- for a transfer, to its out leg, whichever
+    // leg is confirmed. No such bill: nothing changes.
+    const tied = entry.transfer_group_id
+      ? ((await supabase.from("wealth_transactions").select("id").eq("transfer_group_id", entry.transfer_group_id)).data ?? []).map((l) => l.id)
+      : [entry.id];
+    const { data: paid, error } = await supabase
       .from("bills")
       .update({ status: "paid", paid_at: entry.occurred_at, paid_from_account_id: entry.account_id, paid_by_member_id: memberId })
-      .eq("transaction_id", entry.id)
+      .in("transaction_id", tied.length ? tied : [entry.id])
       .eq("family_id", entry.family_id)
-      .in("status", ["unpaid", "scheduled"]);
+      .in("status", ["unpaid", "scheduled"])
+      .select("id");
     if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${refusalMessage(error)}`;
+    const rolled = await rollAutoSaves(supabase, (paid ?? []).map((b) => b.id));
+    if (rolled) return rolled;
   }
 
   if (entry.source_table === "income_schedules" && entry.source_id) {
@@ -960,11 +1012,16 @@ async function reopenWhatItSettled(supabase: Db, familyId: string, entry: Tables
     if (error) return `The bill could not be reopened, so the payment was left in place. ${refusalMessage(error)}`;
   } else {
     // A bill paid for a loan, an asset or a goal is tied to its payment by
-    // transaction_id (20261026150000).
+    // transaction_id (20261026150000); one paid as a transfer into an
+    // account (20261030180000), to its out leg -- and a transfer is deleted
+    // whole, whichever leg is tapped.
+    const tied = entry.transfer_group_id
+      ? ((await supabase.from("wealth_transactions").select("id").eq("transfer_group_id", entry.transfer_group_id)).data ?? []).map((l) => l.id)
+      : [entry.id];
     const { error } = await supabase
       .from("bills")
       .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
-      .eq("transaction_id", entry.id)
+      .in("transaction_id", tied.length ? tied : [entry.id])
       .eq("family_id", familyId);
     if (error) return `The bill could not be reopened, so the payment was left in place. ${refusalMessage(error)}`;
   }
@@ -1332,6 +1389,8 @@ export async function settleBillOutsideKinAction(billId: string): Promise<Action
     .select("id");
   if (error) return { error: databaseError(error) };
   if (!data?.length) return { error: "Bill not found, or already paid." };
+  const rolled = await rollAutoSaves(supabase, [billId]);
+  if (rolled) return { error: rolled };
   revalidateWealth();
   revalidatePath("/today");
   return { error: null, next: await offerNextBill(supabase, me, billId) };
@@ -1367,6 +1426,7 @@ export async function payBillAction(input: {
     if (ledgerRowId(input.clientId) && bill.transaction_id === ledgerRowId(input.clientId)) return { error: null };
     return { error: "This bill is already paid." };
   }
+  if (bill.against_table === "accounts" && bill.against_id) return payBillAsTransfer(supabase, me, bill, input, account.linked_app_url);
 
   // A bill for a loan, an asset or a goal (20261026150000): the payment's
   // source is what the money was for, as Move money records it -- a loan
@@ -1415,6 +1475,54 @@ export async function payBillAction(input: {
   // Paid in another app it is only scheduled until confirmed; the offer
   // comes on Cash Flow and Today once it is paid.
   return { error: null, appUrl: input.viaApp ? account.linked_app_url : null, next: status === "confirmed" ? await offerNextBill(supabase, me, bill.id) : null };
+}
+
+/** A bill for one of the household's accounts (a 🎯 savings goal's
+ * auto-save, 20261030180000): paying it moves the money there as a
+ * transfer -- the same matched pair of entries Move money makes, in one
+ * statement -- rather than spending it. The bill is tied to the out leg;
+ * paid in a banking app it waits as scheduled until confirmed, and
+ * applySettlement then settles it from either leg. */
+async function payBillAsTransfer(
+  supabase: Db,
+  me: { id: string; family_id: string },
+  bill: Tables<"bills">,
+  input: { accountId: string; amount: number; viaApp: boolean; clientId?: string },
+  appUrl: string | null,
+): Promise<{ error: string | null; appUrl?: string | null; next?: NextBillOffer | null }> {
+  if (input.accountId === bill.against_id) return { error: "Pay it from another account: this is the one it goes into." };
+  const { data: accounts } = await supabase.from("accounts").select("id, name").eq("family_id", me.family_id).in("id", [input.accountId, bill.against_id!]);
+  const from = accounts?.find((a) => a.id === input.accountId);
+  const to = accounts?.find((a) => a.id === bill.against_id);
+  if (!to) return { error: "The account it goes into is gone." };
+  if (!from) return { error: "Choose an account to pay from." };
+  const status = input.viaApp ? "pending" : "confirmed";
+  const outId = ledgerRowId(input.clientId) ?? crypto.randomUUID();
+  const transferGroupId = crypto.randomUUID();
+  const legs: LedgerInput[] = [
+    { id: outId, accountId: from.id, direction: "out", amount: input.amount, particulars: `${bill.name} (to ${to.name})`, category: TRANSFER_CATEGORY, status, transferGroupId },
+    { accountId: to.id, direction: "in", amount: input.amount, particulars: `${bill.name} (from ${from.name})`, category: TRANSFER_CATEGORY, status, transferGroupId },
+  ];
+  // One statement, not read back: see transferAction.
+  const { error } = await supabase.from("wealth_transactions").insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
+  if (alreadyRecorded(error, input.clientId)) return { error: null, appUrl: input.viaApp ? appUrl : null };
+  if (error) return { error: explainLedgerRefusal(refusalMessage(error, RLS_EXPLAINED)) };
+
+  if (status === "confirmed") {
+    const { error: paidError } = await supabase
+      .from("bills")
+      .update({ status: "paid", transaction_id: outId, paid_at: new Date().toISOString(), paid_from_account_id: from.id, paid_by_member_id: me.id })
+      .eq("id", bill.id)
+      .eq("family_id", me.family_id);
+    if (paidError) return { error: `The money moved, but the bill is still showing as unpaid. ${refusalMessage(paidError)}` };
+    const rolled = await rollAutoSaves(supabase, [bill.id]);
+    if (rolled) return { error: rolled };
+  } else {
+    const { error: tieError } = await supabase.from("bills").update({ transaction_id: outId, status: "scheduled" }).eq("id", bill.id).eq("family_id", me.family_id);
+    if (tieError) return { error: `The transfer was recorded, but the bill is still showing as unpaid. ${refusalMessage(tieError)}` };
+  }
+  revalidateWealth();
+  return { error: null, appUrl: input.viaApp ? appUrl : null, next: null };
 }
 
 /** What a bill's payment is for, checked against the household: the loan
