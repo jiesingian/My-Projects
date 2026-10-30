@@ -28,8 +28,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <p className="kin-legal-meta">Last updated {LEGAL_UPDATED}</p>
         {missing && (
           <p className="kin-legal-draft">
-            Kin&rsquo;s business registration is in progress. Its registered name, address, contact email and
-            registration numbers will be published on this page as soon as they are issued.
+            Kin&rsquo;s business registration is in progress. Its registered name, address
+            {OPERATOR.email ? "" : ", contact email"} and registration numbers will be published on this page as soon as
+            they are issued.
           </p>
         )}
         {children}

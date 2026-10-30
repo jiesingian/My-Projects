@@ -19,7 +19,10 @@ export const OPERATOR: {
 } = {
   name: null,
   address: null,
-  email: null,
+  // Kin's own support address (Jonathan, 30 October), kept apart from
+  // anyone's personal mail: the App Store's Support URL needs a way to reach
+  // Kin (App Review 1.5).
+  email: "familyapp.kin@gmail.com",
   dpo: null,
   registration: null,
   tin: null,
