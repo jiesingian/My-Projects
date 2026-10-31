@@ -928,7 +928,7 @@ export const HELP_GUIDE: HelpTab[] = [
             "tags": [
               "ai"
             ],
-            "what": "Title, date, time, repeat, who it is for, place and notes. A photo of a school memo or invitation can fill in the dates.",
+            "what": "Title, date, time, repeat (once, weekly, monthly, quarterly, semi-annually or yearly), who it is for, place and notes. A photo of a school memo or invitation can fill in the dates.",
             "how": "Planner → + , or Today → Event.",
             "pros": [
               "One form for both tasks and events.",
