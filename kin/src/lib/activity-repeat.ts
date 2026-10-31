@@ -3,17 +3,19 @@ import { addDays, familyClock, familyDay, familyInstant, familyMidnight, weekday
 /** How a Planner task (the `activities` table) repeats, in one place.
  *
  * A task has a first day (start_at, read in the household's zone) and a
- * rule: once, weekly, monthly or yearly. Since 14 October a weekly one may
+ * rule: once, weekly, monthly, quarterly, semi-annually or yearly. Since 14 October a weekly one may
  * also name its days (repeat_days, 0 = Sunday) and any repeating one an end
  * day (repeat_until, inclusive). A row saved before then has neither, and
  * means what it always did: weekly on its first day's weekday, monthly on its
- * date, yearly on its month and day, never ending.
+ * date, yearly on its month and day, never ending. Quarterly and
+ * semi-annually (Janine, 31 October) are monthly every 3 and 6 months from
+ * the first day's month.
  *
  * Everything that expands a task -- the Planner calendar, the spoken brief,
  * the calendar link, Google Calendar -- asks this module, so they cannot
  * disagree. Pure, and tested alone (e2e/activity-repeat.logic.spec.ts). */
 
-export const ACTIVITY_REPEATS = ["once", "weekly", "monthly", "yearly"] as const;
+export const ACTIVITY_REPEATS = ["once", "weekly", "monthly", "quarterly", "semiannually", "yearly"] as const;
 export type ActivityRepeat = (typeof ACTIVITY_REPEATS)[number];
 
 export type ActivityRule = {
@@ -25,6 +27,8 @@ export type ActivityRule = {
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const RRULE_DAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+/** How many months apart a month-based rule falls. */
+const EVERY_MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, semiannually: 6 };
 
 const repeats = (rule: ActivityRule) => !!rule.repeat && rule.repeat !== "once" && (ACTIVITY_REPEATS as readonly string[]).includes(rule.repeat);
 
@@ -47,8 +51,13 @@ export function occursOn(rule: ActivityRule, first: string, day: string): boolea
     return wd !== null && weeklyDays(rule, first).includes(wd);
   }
   // Monthly on the same date: a month without it (the 31st in September)
-  // has no occurrence, as it always had. Yearly on the same month and day.
-  if (rule.repeat === "monthly") return day.slice(8) === first.slice(8);
+  // has no occurrence, as it always had. Quarterly and semi-annually the
+  // same, every 3 or 6 months. Yearly on the same month and day.
+  const every = EVERY_MONTHS[rule.repeat!];
+  if (every) {
+    const months = (Number(day.slice(0, 4)) - Number(first.slice(0, 4))) * 12 + Number(day.slice(5, 7)) - Number(first.slice(5, 7));
+    return day.slice(8) === first.slice(8) && months % every === 0;
+  }
   return day.slice(5) === first.slice(5);
 }
 
@@ -92,7 +101,8 @@ function utcStamp(at: Date): string {
  * as the RFC asks when the start carries a zone. */
 export function activityRRule(rule: ActivityRule, startAt: Date, tz: string = FAMILY_TZ, opts: { utcStart?: boolean } = {}): string | null {
   if (!repeats(rule)) return null;
-  const parts = [`FREQ=${rule.repeat!.toUpperCase()}`];
+  const every = EVERY_MONTHS[rule.repeat!];
+  const parts = every ? ["FREQ=MONTHLY", ...(every > 1 ? [`INTERVAL=${every}`] : [])] : [`FREQ=${rule.repeat!.toUpperCase()}`];
   if (rule.repeat === "weekly" && rule.repeat_days?.length) {
     const first = familyDay(startAt, tz);
     let shift = 0;
@@ -133,6 +143,10 @@ export function describeActivityRepeat(rule: ActivityRule, first: string): strin
     when = days.length === 7 ? "Every day" : `Every ${days.map((d) => SHORT_DAYS[d]).join(", ")}`;
   } else if (rule.repeat === "monthly") {
     when = `Every month on the ${ordinal(Number(first.slice(8)))}`;
+  } else if (rule.repeat === "quarterly") {
+    when = `Quarterly on the ${ordinal(Number(first.slice(8)))}`;
+  } else if (rule.repeat === "semiannually") {
+    when = `Semi-Annually on the ${ordinal(Number(first.slice(8)))}`;
   } else {
     when = `Every year on ${shortDay(first, first)}`;
   }

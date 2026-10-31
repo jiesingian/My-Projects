@@ -206,6 +206,8 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
           <option value="once">Once</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="semiannually">Semi-Annually</option>
           <option value="yearly">Yearly</option>
         </select>
       </Field>

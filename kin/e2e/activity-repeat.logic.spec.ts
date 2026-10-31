@@ -107,3 +107,17 @@ test("the spoken brief reads a weekly task on its chosen days and not after its 
   // Tuesday 27 October: past its end.
   expect(buildBrief("Ana", [gym], new Date("2026-10-26T21:00:00Z"), "Asia/Manila")).toContain("nothing on the calendar");
 });
+
+test("quarterly and semi-annually fall every 3 and 6 months on the first day's date", () => {
+  expect(occurrenceDays({ repeat: "quarterly" }, "2026-01-15", "2026-01-01", "2027-01-31")).toEqual(["2026-01-15", "2026-04-15", "2026-07-15", "2026-10-15", "2027-01-15"]);
+  expect(occurrenceDays({ repeat: "semiannually", repeat_until: "2027-06-30" }, "2026-03-10", "2026-01-01", "2028-12-31")).toEqual(["2026-03-10", "2026-09-10", "2027-03-10"]);
+  // A 31st skips the quarter whose month has none, as monthly does.
+  expect(occurrenceDays({ repeat: "quarterly" }, "2026-01-31", "2026-01-01", "2026-12-31")).toEqual(["2026-01-31", "2026-07-31", "2026-10-31"]);
+  expect(occursOn({ repeat: "quarterly" }, "2026-01-15", "2026-02-15")).toBe(false);
+  expect(activityRRule({ repeat: "quarterly" }, new Date("2026-10-14T01:00:00Z"), "Asia/Manila")).toBe("RRULE:FREQ=MONTHLY;INTERVAL=3");
+  expect(activityRRule({ repeat: "semiannually" }, new Date("2026-10-14T01:00:00Z"), "Asia/Manila")).toBe("RRULE:FREQ=MONTHLY;INTERVAL=6");
+  expect(activityRRule({ repeat: "monthly" }, new Date("2026-10-14T01:00:00Z"), "Asia/Manila")).toBe("RRULE:FREQ=MONTHLY");
+  expect(describeActivityRepeat({ repeat: "quarterly" }, "2026-10-15")).toBe("Quarterly on the 15th");
+  expect(describeActivityRepeat({ repeat: "semiannually", repeat_until: "2027-12-31" }, "2026-10-01")).toBe("Semi-Annually on the 1st · until 31 Dec 2027");
+  expect(readRepeatFields({ repeat: "quarterly", days: [], until: "", date: "2026-10-15" })).toEqual({ repeat: "quarterly", repeat_days: null, repeat_until: null, date: "2026-10-15" });
+});
